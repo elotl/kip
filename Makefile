@@ -1,5 +1,6 @@
 GIT_VERSION=$(shell git describe --dirty)
 CURRENT_TIME=$(shell date +%Y%m%d%H%M%S)
+IMAGE_TAG=$(GIT_VERSION)
 
 LD_VERSION_FLAGS=-X main.buildVersion=$(GIT_VERSION) -X main.buildTime=$(CURRENT_TIME)
 LDFLAGS=-ldflags "$(LD_VERSION_FLAGS)"
@@ -19,8 +20,8 @@ virtual-kubelet: $(PKG_SRC) $(VENDOR_SRC) $(CMD_SRC)
 	CGO_ENABLED=0 go build $(LDFLAGS) -o $(TOP_DIR)$@ $(TOP_DIR)cmd/virtual-kubelet
 
 img: $(BINARIES)
-	@echo "Checking if BUILD_NUMBER is set" && test -n "$(BUILD_NUMBER)"
-	img build -t $(REGISTRY_REPO):$(BUILD_NUMBER) \
+	@echo "Checking if IMAGE_TAG is set" && test -n "$(IMAGE_TAG)"
+	img build -t $(REGISTRY_REPO):$(IMAGE_TAG) \
 		-t $(REGISTRY_REPO):dev .
 
 login-img:
@@ -29,8 +30,8 @@ login-img:
 	@img login -u "$(REGISTRY_USER)" -p "$(REGISTRY_PASSWORD)" "$(REGISTRY_SERVER)"
 
 push-img: img
-	@echo "Checking if BUILD_NUMBER is set" && test -n "$(BUILD_NUMBER)"
-	img push $(REGISTRY_REPO):$(BUILD_NUMBER)
+	@echo "Checking if IMAGE_TAG is set" && test -n "$(IMAGE_TAG)"
+	img push $(REGISTRY_REPO):$(IMAGE_TAG)
 	img push $(REGISTRY_REPO):dev
 
 clean:
