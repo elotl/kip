@@ -1,5 +1,5 @@
-GIT_VERSION=$(git describe --dirty)
-CURRENT_TIME=$(date +%Y%m%d%H%M%S)
+GIT_VERSION=$(shell git describe --dirty)
+CURRENT_TIME=$(shell date +%Y%m%d%H%M%S)
 
 LD_VERSION_FLAGS=-X github.com/elotl/cloud-instance-provider/main.buildVersion=$(GIT_VERSION) -X github.com/elotl/cloud-instance-provider/main.buildTime=$(CURRENT_TIME)
 LDFLAGS=-ldflags "$(LD_VERSION_FLAGS)"
