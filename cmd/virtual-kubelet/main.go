@@ -27,7 +27,9 @@ import (
 	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/commands/root"
 	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/commands/version"
 	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/provider"
-	ciprovider "github.com/elotl/cloud-instance-provider/pkg/provider"
+	//ciprovider "github.com/elotl/cloud-instance-provider/pkg/provider"
+
+	"github.com/elotl/cloud-instance-provider/pkg/server"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -45,11 +47,11 @@ var (
 
 func registerProvider(s *provider.Store) {
 	s.Register("cloud-instance-provider", func(cfg provider.InitConfig) (provider.Provider, error) {
-		return ciprovider.NewProvider(
-			cfg.ConfigPath,
+		return server.NewInstanceProvider(
 			cfg.NodeName,
 			cfg.OperatingSystem,
 			cfg.InternalIP,
+			cfg.ConfigPath,
 			cfg.DaemonPort,
 		)
 	})

@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+// Service definition.
+// TODO: Set up reverse proxy.
+// See https://github.com/grpc-ecosystem/grpc-gateway
+service Milpa {
+  // Get Server Version.
+  rpc GetVersion (VersionRequest) returns (VersionReply) {}
+
+  // Asks the server if it is the leader.
+  rpc IsLeader (IsLeaderRequest) returns (IsLeaderReply) {}
+
+  // Create given resource on cloud backend.
+  rpc Create (CreateRequest) returns (APIReply) {}
+
+  // Update given resource on cloud backend.
+  rpc Update (UpdateRequest) returns (APIReply) {}
+
+  // Get the given resource
+  rpc Get (GetRequest) returns (APIReply) {}
+
+  // Get the given resource
+  rpc Delete (DeleteRequest) returns (APIReply) {}
+
+  // Get logs of a given pod.
+  rpc GetLogs (LogsRequest) returns (APIReply) {}
+
+  // Get cloud resource usage
+  //rpc GetUsage(UsageRequest) returns (APIReply) {}
+
+  // Get cloud resource usage
+  // rpc StreamUsage(UsageRequest) returns (stream StreamMsg) {}
+
+  // Dump controller status.
+  rpc Dump (DumpRequest) returns (APIReply) {}
+
+  // Setup forwarding rules for kiyot
+  rpc SetupIPForwarding (SetupIPForwardingRequest) returns (APIReply) {}
+
+  // Deploy a Milpa package for a unit in a running pod.
+  rpc Deploy (stream DeployRequest) returns (APIReply) {}
+
+  // Stream logs from a running pod
+  rpc StreamLogs(StreamLogsRequest) returns (stream StreamMsg) {}
+
+  // Connect a local port on the client to a remote port
+  rpc PortForward(stream StreamMsg) returns (stream StreamMsg) {}
+
+  // Execute a command in the context of a unit
+  rpc Exec(stream StreamMsg) returns (stream StreamMsg) {}
+
+  // Attach to stdin, stdout and stderr of a running pod
+  rpc Attach(stream StreamMsg) returns (stream StreamMsg) {}
+}
+
+// It might make sense to move to a generic RESTish API request
+// object...  As an example:
+// message APIRequest {
+//   string action = 1;
+//   string kind = 2;
+//   string name = 3;
+//   map<string, string> parameters = 4;
+//   bytes body = 5;
+// }
+
+message CreateRequest {
+  bytes manifest = 1;
+}
+
+message UpdateRequest {
+  bytes manifest = 1;
+}
+
+message GetRequest {
+  bytes kind = 1;
+  bytes name = 2;
+}
+
+message DeleteRequest {
+  bytes kind = 1;
+  bytes name = 2;
+  bool cascade = 3;
+}
+
+message DumpRequest {
+  bytes kind = 1;
+}
+
+message SetupIPForwardingRequest {
+  bytes podName = 1;
+  bytes network = 2;
+}
+
+message APIReply {
+  int32 status = 1;
+  bytes body = 2;
+  // Warnings are printed by the client to stderr
+  bytes warning = 3;
+}
+
+message VersionRequest {
+}
+
+message VersionReply {
+  bytes versionInfo = 1;
+}
+
+message IsLeaderRequest {
+}
+
+message IsLeaderReply {
+  bool isLeader = 1;
+}
+
+message LogsRequest {
+  string resourceName = 1;
+  string itemName = 2;
+  int32 lines = 3; // Number of lines.
+  int32 limitbytes = 4; // Max number of bytes to return.
+}
+
+// message UsageRequest {
+//   string selector = 1;
+//   string usageType = 2;
+//   string startDate = 3;
+//   string endDate = 4;
+//   bool raw = 5;
+// }
+
+message DeployRequest {
+  string resourceName = 1;
+  string itemName = 2;
+  bytes packageData = 3;
+}
+
+message StreamLogsRequest{
+  string Pod = 1;
+  string Unit = 2;
+  bool Metadata = 3;
+}
+
+message ConsoleStreamMsg {
+  bytes Data = 1;
+}
+
+message StreamMsg {
+  bytes Data = 1;
+  bytes Error = 2;
+}
