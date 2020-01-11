@@ -22,7 +22,7 @@ func (s InstanceProvider) Create(context context.Context, request *clientapi.Cre
 		return errToAPIReply(
 			util.WrapError(err, "Error determining manifest kind")), nil
 	}
-	store, exists := s.KV[objectKind]
+	store, exists := s.Registries[objectKind]
 	if !exists {
 		return errToAPIReply(
 			fmt.Errorf("Asked to create unknown object kind: %s", objectKind)), nil

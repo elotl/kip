@@ -13,7 +13,7 @@ import (
 )
 
 func (s InstanceProvider) deploy(podName, pkgName string, pkgData io.Reader) error {
-	reg, exists := s.KV["Pod"]
+	reg, exists := s.Registries["Pod"]
 	if !exists {
 		return fmt.Errorf("Fatal error: can't find pod registry in storage")
 	}
@@ -26,7 +26,7 @@ func (s InstanceProvider) deploy(podName, pkgName string, pkgData io.Reader) err
 	if pod.Status.BoundNodeName == "" {
 		return fmt.Errorf("Pod %s is not bound to any node", podName)
 	}
-	reg, exists = s.KV["Node"]
+	reg, exists = s.Registries["Node"]
 	if !exists {
 		return fmt.Errorf("Fatal error: can't find node registry in storage")
 	}

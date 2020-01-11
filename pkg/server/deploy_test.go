@@ -14,7 +14,7 @@ func setupDeployTestServer() (InstanceProvider, func()) {
 	nodeReg, closer1 := registry.SetupTestNodeRegistry()
 	podReg, closer2 := registry.SetupTestPodRegistry()
 	s := InstanceProvider{
-		KV: map[string]registry.Registryer{
+		Registries: map[string]registry.Registryer{
 			"Node": nodeReg,
 			"Pod":  podReg,
 		},
@@ -26,12 +26,12 @@ func setupDeployTestServer() (InstanceProvider, func()) {
 func TestDeploy(t *testing.T) {
 	s, closer := setupDeployTestServer()
 	defer closer()
-	nodeReg := s.KV["Node"].(*registry.NodeRegistry)
+	nodeReg := s.Registries["Node"].(*registry.NodeRegistry)
 	node := api.GetFakeNode()
 	node.Status.Addresses = api.NewNetworkAddresses("1.2.3.4", "")
 	_, err := nodeReg.CreateNode(node)
 	assert.NoError(t, err)
-	podReg := s.KV["Pod"].(*registry.PodRegistry)
+	podReg := s.Registries["Pod"].(*registry.PodRegistry)
 	pod := api.GetFakePod()
 	pod.Status.BoundNodeName = node.Name
 	pod.Status.Phase = api.PodRunning
@@ -55,7 +55,7 @@ func TestDeployNoPod(t *testing.T) {
 func TestDeployNoNode(t *testing.T) {
 	s, closer := setupDeployTestServer()
 	defer closer()
-	podReg := s.KV["Pod"].(*registry.PodRegistry)
+	podReg := s.Registries["Pod"].(*registry.PodRegistry)
 	pod := api.GetFakePod()
 	pod.Status.BoundNodeName = ""
 	pod.Status.Phase = api.PodRunning

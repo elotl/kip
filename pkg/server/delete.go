@@ -11,7 +11,7 @@ import (
 )
 
 func (s InstanceProvider) deleteHelper(kind, name string, cascade bool) (api.MilpaObject, error) {
-	store, exists := s.KV[kind]
+	store, exists := s.Registries[kind]
 	if !exists {
 		return nil, fmt.Errorf("Asked to delete unknown object kind: %s", kind)
 	}

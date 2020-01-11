@@ -23,7 +23,7 @@ type SendRecver interface {
 }
 
 func (s InstanceProvider) GetNodeForRunningPod(podName, unitName string) (*api.Node, error) {
-	reg, exists := s.KV["Pod"]
+	reg, exists := s.Registries["Pod"]
 	if !exists {
 		return nil, fmt.Errorf("Fatal error: can't find pod registry in storage")
 	}
@@ -54,7 +54,7 @@ func (s InstanceProvider) GetNodeForRunningPod(podName, unitName string) (*api.N
 	if pod.Status.BoundNodeName == "" {
 		return nil, fmt.Errorf("pod is unbound")
 	}
-	reg, exists = s.KV["Node"]
+	reg, exists = s.Registries["Node"]
 	if !exists {
 		return nil, fmt.Errorf("can't find node registry in storage")
 	}

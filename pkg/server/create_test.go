@@ -12,13 +12,14 @@ import (
 )
 
 func createServerForCreate() (*InstanceProvider, func()) {
-	kv := make(map[string]registry.Registryer)
 	podReg, closer := registry.SetupTestPodRegistry()
-	kv["Pod"] = podReg
+	regs := map[string]registry.Registryer{
+		"Pod": podReg,
+	}
 	cm := NewControllerManager(make(map[string]Controller))
 	cm.startControllersHelper()
 	s := &InstanceProvider{
-		KV:                kv,
+		Registries:        regs,
 		Encoder:           api.VersioningCodec{},
 		controllerManager: cm,
 	}
@@ -38,7 +39,7 @@ func TestServerCreateReqOK(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int32(201), reply.Status)
 	assert.Len(t, reply.Warning, 0)
-	podReg := s.KV["Pod"].(*registry.PodRegistry)
+	podReg := s.Registries["Pod"].(*registry.PodRegistry)
 	p, err := podReg.GetPod(pod.Name)
 	assert.NoError(t, err)
 	assert.NotNil(t, p)
@@ -73,7 +74,7 @@ func TestServerCreateReqExtraFields(t *testing.T) {
 	assert.Equal(t, int32(201), reply.Status)
 	assert.True(t, len(reply.Warning) > 0)
 	assert.Contains(t, string(reply.Warning), "containers")
-	podReg := s.KV["Pod"].(*registry.PodRegistry)
+	podReg := s.Registries["Pod"].(*registry.PodRegistry)
 	p, err := podReg.GetPod("foo")
 	assert.NoError(t, err)
 	assert.NotNil(t, p)

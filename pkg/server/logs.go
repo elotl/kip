@@ -29,7 +29,7 @@ import (
 // node (and thus the name of the logfile)
 
 func (s InstanceProvider) getPodLog(podName, itemName string, lines, bytes int) (*api.LogFile, error) {
-	reg, exists := s.KV["Pod"]
+	reg, exists := s.Registries["Pod"]
 	if !exists {
 		return nil, fmt.Errorf("Fatal error: can't find pod registry in storage")
 	}
@@ -63,7 +63,7 @@ func (s InstanceProvider) getPodLog(podName, itemName string, lines, bytes int) 
 }
 
 func (s InstanceProvider) getNodeLog(nodeName, itemName string, isUnit bool, lines, bytes int) (*api.LogFile, error) {
-	reg, exists := s.KV["Node"]
+	reg, exists := s.Registries["Node"]
 	if !exists {
 		return nil, fmt.Errorf("Fatal error: can't find node registry in storage")
 	}
@@ -99,7 +99,7 @@ func (s InstanceProvider) getNodeLog(nodeName, itemName string, isUnit bool, lin
 }
 
 func (s InstanceProvider) getLogFromRegistry(resourceName, itemName string, lines, bytes int) (*api.LogFile, error) {
-	reg, exists := s.KV["Log"]
+	reg, exists := s.Registries["Log"]
 	if !exists {
 		return nil, fmt.Errorf("Fatal error: can't find log registry in storage")
 	}

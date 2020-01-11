@@ -11,12 +11,12 @@ import (
 func setupServer() (InstanceProvider, func()) {
 	podReg, podCloser := registry.SetupTestPodRegistry()
 	s := InstanceProvider{
-		KV: map[string]registry.Registryer{
+		Registries: map[string]registry.Registryer{
 			"Pod": podReg,
 		},
 	}
 	nodeReg, nodeCloser := registry.SetupTestNodeRegistry()
-	s.KV["Node"] = nodeReg
+	s.Registries["Node"] = nodeReg
 	return s, func() {
 		podCloser()
 		nodeCloser()
@@ -26,8 +26,8 @@ func setupServer() (InstanceProvider, func()) {
 func TestGetNodeForRunningPod(t *testing.T) {
 	s, closer := setupServer()
 	defer closer()
-	podReg := s.KV["Pod"].(*registry.PodRegistry)
-	nodeReg := s.KV["Node"].(*registry.NodeRegistry)
+	podReg := s.Registries["Pod"].(*registry.PodRegistry)
+	nodeReg := s.Registries["Node"].(*registry.NodeRegistry)
 
 	_, err := s.GetNodeForRunningPod("NotInReg", "")
 	assert.Error(t, err)

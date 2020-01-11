@@ -14,7 +14,7 @@ func setupLogTestServer() (InstanceProvider, func()) {
 	podReg, closer2 := registry.SetupTestPodRegistry()
 	logReg, closer3 := registry.SetupTestLogRegistry()
 	s := InstanceProvider{
-		KV: map[string]registry.Registryer{
+		Registries: map[string]registry.Registryer{
 			"Pod":  podReg,
 			"Node": nodeReg,
 			"Log":  logReg,
@@ -30,8 +30,8 @@ func TestGetLogForPod(t *testing.T) {
 	// correct content
 	s, closer := setupLogTestServer()
 	defer closer()
-	podReg := s.KV["Pod"].(*registry.PodRegistry)
-	nodeReg := s.KV["Node"].(*registry.NodeRegistry)
+	podReg := s.Registries["Pod"].(*registry.PodRegistry)
+	nodeReg := s.Registries["Node"].(*registry.NodeRegistry)
 	node := api.GetFakeNode()
 	node.Status.Addresses = api.NewNetworkAddresses("1.2.3.4", "")
 	_, err := nodeReg.CreateNode(node)
@@ -54,7 +54,7 @@ func TestGetLogFromRegistry(t *testing.T) {
 	s, closer := setupLogTestServer()
 	defer closer()
 	logInput := api.GetFakeLog()
-	logReg := s.KV["Log"].(*registry.LogRegistry)
+	logReg := s.Registries["Log"].(*registry.LogRegistry)
 	_, err := logReg.CreateLog(logInput)
 	assert.NoError(t, err)
 	logFile, err := s.findLog(logInput.ParentObject.Name, logInput.Name, 0, 0)
@@ -67,7 +67,7 @@ func TestGetLogFromRegistry(t *testing.T) {
 func TestGetLogForNotRunningPod(t *testing.T) {
 	s, closer := setupLogTestServer()
 	defer closer()
-	podReg := s.KV["Pod"].(*registry.PodRegistry)
+	podReg := s.Registries["Pod"].(*registry.PodRegistry)
 	pod := api.GetFakePod()
 	pod.Status.Phase = api.PodWaiting
 	_, err := podReg.CreatePod(pod)
@@ -77,7 +77,7 @@ func TestGetLogForNotRunningPod(t *testing.T) {
 	log := api.GetFakeLog()
 	log.Content = podLogData
 	log.ParentObject = api.ToObjectReference(pod)
-	logReg := s.KV["Log"].(*registry.LogRegistry)
+	logReg := s.Registries["Log"].(*registry.LogRegistry)
 	_, err = logReg.CreateLog(log)
 	assert.NoError(t, err)
 

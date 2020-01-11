@@ -53,7 +53,7 @@ type Controller interface {
 }
 
 type InstanceProvider struct {
-	KV                map[string]registry.Registryer
+	Registries        map[string]registry.Registryer
 	Encoder           api.MilpaCodec
 	SystemQuit        <-chan struct{}
 	SystemWaitGroup   *sync.WaitGroup
@@ -313,7 +313,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 	controllerManager := NewControllerManager(controllers)
 
 	s := &InstanceProvider{
-		KV:                kv,
+		Registries:        kv,
 		Encoder:           api.VersioningCodec{},
 		SystemQuit:        systemQuit,
 		SystemWaitGroup:   systemWG,

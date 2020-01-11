@@ -16,7 +16,7 @@ func (s InstanceProvider) Get(context context.Context, request *clientapi.GetReq
 		kind = kind[0 : len(kind)-1]
 	}
 	name := string(request.Name)
-	store, exists := s.KV[kind]
+	store, exists := s.Registries[kind]
 	if !exists {
 		return errToAPIReply(
 			fmt.Errorf("Asked to get unknown object kind: %s", kind)), nil

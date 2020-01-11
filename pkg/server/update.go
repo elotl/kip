@@ -21,7 +21,7 @@ func (s InstanceProvider) Update(context context.Context, request *clientapi.Upd
 		return errToAPIReply(
 			util.WrapError(err, "Error determining manifest kind")), nil
 	}
-	store, exists := s.KV[objectKind]
+	store, exists := s.Registries[objectKind]
 	if !exists {
 		return errToAPIReply(
 			fmt.Errorf("Asked to update unknown object kind: %s", objectKind)), nil
