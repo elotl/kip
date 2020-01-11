@@ -68,41 +68,19 @@ func TestConfigValidation(t *testing.T) {
 		{
 			mod: func(cf *ServerConfigFile) {
 				// No boot image tags specified.
-				cf.Nodes.BootImageTags = cloud.BootImageTags{}
+				cf.Cells.BootImageTags = cloud.BootImageTags{}
 			},
 			errors: 0,
 		},
 		// Now that we have added marketplace licensing, these
 		// are no longer errors
-		{
-			mod: func(cf *ServerConfigFile) {
-				cf.License.Username = ""
-				cf.License.Password = ""
-				cf.License.Id = ""
-				cf.License.Key = ""
-			},
-			errors: 0,
-		},
-		{
-			mod: func(cf *ServerConfigFile) {
-				cf.License.Username = blankTemplateValue
-				cf.License.Password = blankTemplateValue
-				cf.License.Id = blankTemplateValue
-				cf.License.Key = blankTemplateValue
-			},
-			errors: 0,
-		},
 	}
 	for i, test := range tests {
 		cf := serverConfigFileWithDefaults()
-		cf.Nodes.BootImageTags = cloud.BootImageTags{
+		cf.Cells.BootImageTags = cloud.BootImageTags{
 			Company: "elotl-test",
 		}
-		cf.Nodes.DefaultInstanceType = "t2.nano"
-		cf.License.Username = "tester"
-		cf.License.Password = "tester_password"
-		cf.License.Id = "tester_id"
-		cf.License.Key = "some long key"
+		cf.Cells.DefaultInstanceType = "t2.nano"
 		test.mod(cf)
 		errs := validateServerConfigFile(cf)
 		if len(errs) != test.errors {

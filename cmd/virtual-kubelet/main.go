@@ -48,10 +48,9 @@ var (
 func registerProvider(s *provider.Store) {
 	s.Register("cloud-instance-provider", func(cfg provider.InitConfig) (provider.Provider, error) {
 		return server.NewInstanceProvider(
-			cfg.NodeName,
-			cfg.OperatingSystem,
-			cfg.InternalIP,
 			cfg.ConfigPath,
+			cfg.NodeName,
+			cfg.InternalIP,
 			cfg.DaemonPort,
 		)
 	})

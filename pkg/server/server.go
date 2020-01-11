@@ -1,10 +1,8 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"sort"
 	"sync"
@@ -33,21 +31,20 @@ import (
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	"golang.org/x/net/context"
 	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 )
 
 const (
-	// Provider configuration defaults.
-	defaultCPUCapacity    = "20"
-	defaultMemoryCapacity = "100Gi"
-	defaultPodCapacity    = "20"
-
 	// Values used in tracing as attribute keys.
-	namespaceKey     = "namespace"
-	nameKey          = "name"
-	containerNameKey = "containerName"
+	namespaceKey          = "namespace"
+	nameKey               = "name"
+	containerNameKey      = "containerName"
+	etcdClusterRegionPath = "milpa/cluster/region"
+)
+
+var (
+	MaxEventListSize = 4000 // modified for testing
 )
 
 type Controller interface {
@@ -55,13 +52,6 @@ type Controller interface {
 	Dump() []byte
 }
 
-type ProviderConfig struct {
-	CPU    string `json:"cpu,omitempty"`
-	Memory string `json:"memory,omitempty"`
-	Pods   string `json:"pods,omitempty"`
-}
-
-// todo:change this name
 type InstanceProvider struct {
 	KV                map[string]registry.Registryer
 	Encoder           api.MilpaCodec
@@ -71,24 +61,14 @@ type InstanceProvider struct {
 	ItzoClientFactory nodeclient.ItzoClientFactoryer
 	cloudClient       cloud.CloudClient
 	controllerManager *ControllerManager
-	//
+	// Unsure how many of these are actually needed here...
 	nodeName           string
-	operatingSystem    string
 	internalIP         string
 	daemonEndpointPort int32
-	config             ProviderConfig
+	kubeletConfig      KubeletConfig
 	startTime          time.Time
-	notifier           func(*v1.Pod)
+	//notifier           func(*v1.Pod)
 }
-
-const (
-	milpaElectionDir      = "milpa/election"
-	etcdClusterRegionPath = "milpa/cluster/region"
-)
-
-var (
-	MaxEventListSize = 4000
-)
 
 func validateWriteToEtcd(client *etcd.SimpleEtcd) error {
 	glog.Info("Validating write access to etcd (will block until we can connect)")
@@ -142,7 +122,7 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 	savedRegion = string(pair.Value)
 	if region != savedRegion {
 		return fmt.Errorf(
-			"Error: region has changed from %s to %s. "+
+			"error: region has changed from %s to %s. "+
 				"This is unsupported. "+
 				"Please delete all cluster resources and rename your cluster.",
 			savedRegion, region)
@@ -151,12 +131,7 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 }
 
 // InstanceProvider should implement node.PodLifecycleHandler
-func NewInstanceProvider(nodeName, operatingSystem, internalIP, configFilePath string, daemonEndpointPort int32) (*InstanceProvider, error) {
-	providerConfig, err := loadProviderConfig(configFilePath, nodeName)
-	if err != nil {
-		return nil, err
-	}
-
+func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndpointPort int32) (*InstanceProvider, error) {
 	serverConfigFile, err := ParseConfig(configFilePath)
 	if err != nil {
 		glog.Errorf("Loading Config file (%s) failed with error: %s",
@@ -165,7 +140,7 @@ func NewInstanceProvider(nodeName, operatingSystem, internalIP, configFilePath s
 	}
 	errs := validateServerConfigFile(serverConfigFile)
 	if len(errs) > 0 {
-		return nil, fmt.Errorf("Invalid Server Config: %v", errs.ToAggregate())
+		return nil, fmt.Errorf("invalid server config: %v", errs.ToAggregate())
 	}
 
 	// todo: systemQuit should get passed in...
@@ -188,7 +163,7 @@ func NewInstanceProvider(nodeName, operatingSystem, internalIP, configFilePath s
 	if serverConfigFile.Testing.ControllerID != "" {
 		controllerID = serverConfigFile.Testing.ControllerID
 	}
-	nametag := serverConfigFile.Nodes.Nametag
+	nametag := serverConfigFile.Cells.Nametag
 	if nametag == "" {
 		nametag = controllerID
 	}
@@ -227,14 +202,14 @@ func NewInstanceProvider(nodeName, operatingSystem, internalIP, configFilePath s
 	err = instanceselector.Setup(
 		cloudClient.GetAttributes().Provider,
 		cloudRegion,
-		serverConfigFile.Nodes.DefaultInstanceType)
+		serverConfigFile.Cells.DefaultInstanceType)
 	if err != nil {
 		glog.Errorf("Error setting up instance selector %s", err)
 		os.Exit(1)
 	}
 	// Ugly: need to do validation of this field after we have setup
 	// the instanceselector
-	errs = validation.ValidateInstanceType(serverConfigFile.Nodes.DefaultInstanceType, field.NewPath("nodes.defaultInstanceType"))
+	errs = validation.ValidateInstanceType(serverConfigFile.Cells.DefaultInstanceType, field.NewPath("nodes.defaultInstanceType"))
 	if len(errs) > 0 {
 		glog.Errorf("Error validating server.yml: %v", errs.ToAggregate())
 		os.Exit(1)
@@ -279,15 +254,15 @@ func NewInstanceProvider(nodeName, operatingSystem, internalIP, configFilePath s
 		lastStatusReply:   conmap.NewStringTimeTime(),
 	}
 	imageIdCache := timeoutmap.New(false, nil)
-	cloudInitFile := cloudinitfile.New(serverConfigFile.Nodes.CloudInitFile)
+	cloudInitFile := cloudinitfile.New(serverConfigFile.Cells.CloudInitFile)
 	fixedSizeVolume := cloudClient.GetAttributes().FixedSizeVolume
 	nodeController := &nodemanager.NodeController{
 		Config: nodemanager.NodeControllerConfig{
 			PoolInterval:      7 * time.Second,
 			HeartbeatInterval: 10 * time.Second,
 			ReaperInterval:    10 * time.Second,
-			ItzoVersion:       serverConfigFile.Nodes.Itzo.Version,
-			ItzoURL:           serverConfigFile.Nodes.Itzo.URL,
+			ItzoVersion:       serverConfigFile.Cells.Itzo.Version,
+			ItzoURL:           serverConfigFile.Cells.Itzo.URL,
 		},
 		NodeRegistry:  nodeRegistry,
 		LogRegistry:   logRegistry,
@@ -295,9 +270,9 @@ func NewInstanceProvider(nodeName, operatingSystem, internalIP, configFilePath s
 		NodeDispenser: nodeDispenser,
 		NodeScaler: nodemanager.NewBindingNodeScaler(
 			nodeRegistry,
-			serverConfigFile.Nodes.StandbyNodes,
+			serverConfigFile.Cells.StandbyCells,
 			cloudStatus,
-			serverConfigFile.Nodes.DefaultVolumeSize,
+			serverConfigFile.Cells.DefaultVolumeSize,
 			fixedSizeVolume,
 		),
 		CloudClient:        cloudClient,
@@ -307,7 +282,7 @@ func NewInstanceProvider(nodeName, operatingSystem, internalIP, configFilePath s
 		CloudInitFile:      cloudInitFile,
 		CertificateFactory: certFactory,
 		CloudStatus:        cloudStatus,
-		BootImageTags:      serverConfigFile.Nodes.BootImageTags,
+		BootImageTags:      serverConfigFile.Cells.BootImageTags,
 	}
 	garbageController := &GarbageController{
 		config: GarbageControllerConfig{
@@ -332,7 +307,7 @@ func NewInstanceProvider(nodeName, operatingSystem, internalIP, configFilePath s
 
 	if azClient, ok := cloudClient.(*azure.AzureClient); ok {
 		azureImageController := azure.NewImageController(
-			controllerID, serverConfigFile.Nodes.BootImageTags, azClient)
+			controllerID, serverConfigFile.Cells.BootImageTags, azClient)
 		controllers["ImageController"] = azureImageController
 	}
 	controllerManager := NewControllerManager(controllers)
@@ -348,10 +323,9 @@ func NewInstanceProvider(nodeName, operatingSystem, internalIP, configFilePath s
 
 		// Todo: cleanup these parameters after initial commit
 		nodeName:           nodeName,
-		operatingSystem:    operatingSystem,
 		internalIP:         internalIP,
 		daemonEndpointPort: daemonEndpointPort,
-		config:             providerConfig,
+		kubeletConfig:      serverConfigFile.Kubelet,
 		startTime:          time.Now(),
 	}
 
@@ -367,50 +341,13 @@ func NewInstanceProvider(nodeName, operatingSystem, internalIP, configFilePath s
 	}
 
 	err = validateBootImageTags(
-		serverConfigFile.Nodes.BootImageTags, cloudClient)
+		serverConfigFile.Cells.BootImageTags, cloudClient)
 	if err != nil {
 		glog.Errorf("Failed to validate boot image tags.")
 		os.Exit(1)
 	}
 
 	return s, err
-}
-
-func loadProviderConfig(providerConfig, nodeName string) (config ProviderConfig, err error) {
-	data, err := ioutil.ReadFile(providerConfig)
-	if err != nil {
-		return config, fmt.Errorf("reading config %q: %v", providerConfig, err)
-	}
-	configMap := map[string]ProviderConfig{}
-	err = json.Unmarshal(data, &configMap)
-	if err != nil {
-		log.G(context.TODO()).Errorf(
-			"parsing config %q: %v", providerConfig, err)
-		return config, err
-	}
-	if _, exist := configMap[nodeName]; exist {
-		log.G(context.TODO()).Infof("found config for node %q", nodeName)
-		config = configMap[nodeName]
-	}
-	if config.CPU == "" {
-		config.CPU = defaultCPUCapacity
-	}
-	if config.Memory == "" {
-		config.Memory = defaultMemoryCapacity
-	}
-	if config.Pods == "" {
-		config.Pods = defaultPodCapacity
-	}
-	if _, err = resource.ParseQuantity(config.CPU); err != nil {
-		return config, fmt.Errorf("Invalid CPU value %v", config.CPU)
-	}
-	if _, err = resource.ParseQuantity(config.Memory); err != nil {
-		return config, fmt.Errorf("Invalid memory value %v", config.Memory)
-	}
-	if _, err = resource.ParseQuantity(config.Pods); err != nil {
-		return config, fmt.Errorf("Invalid pods value %v", config.Pods)
-	}
-	return config, nil
 }
 
 func filterEventList(eventList *api.EventList) *api.EventList {
@@ -516,19 +453,15 @@ func (p *InstanceProvider) ConfigureNode(ctx context.Context, n *v1.Node) {
 	n.Status.Conditions = p.nodeConditions()
 	n.Status.Addresses = p.nodeAddresses()
 	n.Status.DaemonEndpoints = p.nodeDaemonEndpoints()
-	os := p.operatingSystem
-	if os == "" {
-		os = "Linux"
-	}
-	n.Status.NodeInfo.OperatingSystem = os
+	n.Status.NodeInfo.OperatingSystem = "Linux"
 	n.Status.NodeInfo.Architecture = "amd64"
 }
 
 func (p *InstanceProvider) capacity() v1.ResourceList {
 	return v1.ResourceList{
-		"cpu":    resource.MustParse(p.config.CPU),
-		"memory": resource.MustParse(p.config.Memory),
-		"pods":   resource.MustParse(p.config.Pods),
+		"cpu":    p.kubeletConfig.CPU,
+		"memory": p.kubeletConfig.Memory,
+		"pods":   p.kubeletConfig.Pods,
 	}
 }
 

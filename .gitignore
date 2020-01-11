@@ -15,4 +15,4 @@
 # vendor/
 
 /virtual-kubelet
-cmd/virtual-kubelet
+cmd/virtual-kubelet/virtual-kubelet

@@ -18,31 +18,33 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
 	"github.com/elotl/cloud-instance-provider/pkg/util/yaml"
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 const (
 	blankTemplateValue = "FILL_IN"
 )
 
-// ServerConfigFile stores the parsed json from server.yml, this
-// is different from serverConfig that stores the configuration
-// for the milpa server
+var (
+	defaultCPUCapacity    = resource.MustParse("20")
+	defaultMemoryCapacity = resource.MustParse("100Gi")
+	defaultPodCapacity    = resource.MustParse("20")
+)
+
+// ServerConfigFile stores the parsed json from server.yml
 type ServerConfigFile struct {
-	api.TypeMeta         `json:",inline"`
-	Cloud                MultiCloudConfig `json:"cloud"`
-	Etcd                 EtcdConfig       `json:"etcd"`
-	Nodes                NodeConfig       `json:"nodes"`
-	License              LicenseConfig    `json:"license"`
-	DisableUsageReporter bool             `json:"disableUsageReporter"`
-	Testing              TestingConfig    `json:"testing"`
+	api.TypeMeta `json:",inline"`
+	Cloud        MultiCloudConfig `json:"cloud"`
+	Etcd         EtcdConfig       `json:"etcd"`
+	Cells        CellsConfig      `json:"cells"`
+	Testing      TestingConfig    `json:"testing"`
+	Kubelet      KubeletConfig    `json:"kubelet"`
 }
 
-type LicenseConfig struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Id       string `json:"id"`
-	Key      string `json:"key"`
-	File     string `json:"file,omitempty"`
+type KubeletConfig struct {
+	CPU    resource.Quantity `json:"cpu"`
+	Memory resource.Quantity `json:"memory"`
+	Pods   resource.Quantity `json:"pods"`
 }
 
 type MultiCloudConfig struct {
@@ -99,11 +101,11 @@ type InternalEtcdConfig struct {
 	ConfigFile string `json:"configFile"`
 }
 
-type NodeConfig struct {
+type CellsConfig struct {
 	BootImageTags       cloud.BootImageTags           `json:"bootImageTags"`
 	DefaultInstanceType string                        `json:"defaultInstanceType"`
 	DefaultVolumeSize   string                        `json:"defaultVolumeSize"`
-	StandbyNodes        []nodemanager.StandbyNodeSpec `json:"standbyNodes"`
+	StandbyCells        []nodemanager.StandbyNodeSpec `json:"standbyCells"`
 	CloudInitFile       string                        `json:"cloudInitFile"`
 	Itzo                ItzoConfig                    `json:"itzo"`
 	ExtraCIDRs          []string                      `json:"extraCIDRs"`
@@ -131,15 +133,16 @@ func serverConfigFileWithDefaults() *ServerConfigFile {
 				DataDir: "/opt/milpa/data",
 			},
 		},
-		Nodes: NodeConfig{
+		Cells: CellsConfig{
 			BootImageTags:     cloud.BootImageTags{},
-			StandbyNodes:      []nodemanager.StandbyNodeSpec{},
+			StandbyCells:      []nodemanager.StandbyNodeSpec{},
 			DefaultVolumeSize: "5Gi",
 		},
-		License: LicenseConfig{
-			File: fmt.Sprintf("%s/.milpa.license", os.Getenv("HOME")),
+		Kubelet: KubeletConfig{
+			CPU:    defaultCPUCapacity,
+			Memory: defaultMemoryCapacity,
+			Pods:   defaultPodCapacity,
 		},
-		DisableUsageReporter: false,
 	}
 	return &sc
 }
@@ -307,8 +310,8 @@ func ConfigureCloud(configFile *ServerConfigFile, controllerID, nametag string) 
 		glog.Infof("controller is inside the cloud network, connecting via private IPs")
 	}
 	err = cloudClient.EnsureMilpaSecurityGroups(
-		configFile.Nodes.ExtraCIDRs,
-		configFile.Nodes.ExtraSecurityGroups,
+		configFile.Cells.ExtraCIDRs,
+		configFile.Cells.ExtraSecurityGroups,
 	)
 	if err != nil {
 		return nil, util.WrapError(err, "Error setting up cloud client security groups")
@@ -376,16 +379,16 @@ func validateAzureConfig(cf *AzureConfig) field.ErrorList {
 func validateServerConfigFile(cf *ServerConfigFile) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	nodes := cf.Nodes
-	fldPath := field.NewPath("nodes")
+	cells := cf.Cells
+	fldPath := field.NewPath("cells")
 
-	if nodes.CloudInitFile != "" {
-		allErrs = append(allErrs, validation.ValidateFileExists(nodes.CloudInitFile, fldPath.Child("cloudInitFile"))...)
+	if cells.CloudInitFile != "" {
+		allErrs = append(allErrs, validation.ValidateFileExists(cells.CloudInitFile, fldPath.Child("cloudInitFile"))...)
 	}
 
-	allErrs = append(allErrs, validation.ValidateResourceParses(nodes.DefaultVolumeSize, fldPath.Child("defaultVolumeSize"))...)
+	allErrs = append(allErrs, validation.ValidateResourceParses(cells.DefaultVolumeSize, fldPath.Child("defaultVolumeSize"))...)
 
-	if nodes.DefaultInstanceType == "" {
+	if cells.DefaultInstanceType == "" {
 		allErrs = append(allErrs, field.Required(fldPath.Child("defaultInstanceType"), ""))
 	}
 
@@ -394,8 +397,8 @@ func validateServerConfigFile(cf *ServerConfigFile) field.ErrorList {
 	// selector needs the cloud config in order to be initialized
 	// allErrs = append(allErrs, validation.ValidateInstanceType(nodes.DefaultInstanceType, fldPath.Child("defaultInstanceType"))...)
 
-	snPath := fldPath.Child("standbyNodes")
-	for i, n := range nodes.StandbyNodes {
+	snPath := fldPath.Child("standbyCells")
+	for i, n := range cells.StandbyCells {
 		snPath = snPath.Index(i)
 		allErrs = append(allErrs, validation.ValidateNonnegativeField(int64(n.Count), snPath.Child("count"))...)
 		if n.InstanceType == "" {
@@ -403,9 +406,9 @@ func validateServerConfigFile(cf *ServerConfigFile) field.ErrorList {
 		}
 	}
 
-	if len(nodes.Nametag) > 0 {
-		for _, msg := range validation.NameIsDNS952Label(nodes.Nametag, false) {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("nametag"), nodes.Nametag, msg))
+	if len(cells.Nametag) > 0 {
+		for _, msg := range validation.NameIsDNS952Label(cells.Nametag, false) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("nametag"), cells.Nametag, msg))
 		}
 	}
 
