@@ -98,23 +98,15 @@ func createCRUDTestRegistries(t *testing.T) *registryCRUDTester {
 	// create all the reg and return a map of type to registry
 	// also return a function that'll close everything
 	podRegistry, c1 := SetupTestPodRegistry()
-	secretRegistry, c2 := SetupTestSecretRegistry()
-	serviceRegistry, c3 := SetupTestServiceRegistry()
 
 	regs := map[string]Registryer{
-		"Pod":     podRegistry,
-		"Secret":  secretRegistry,
-		"Service": serviceRegistry,
+		"Pod": podRegistry,
 	}
 
 	return &registryCRUDTester{
-		t:    t,
-		regs: regs,
-		closer: func() {
-			c1()
-			c2()
-			c3()
-		},
+		t:      t,
+		regs:   regs,
+		closer: c1,
 	}
 }
 
@@ -136,38 +128,6 @@ func TestRegistryCRUD(t *testing.T) {
 		func(lhs api.MilpaObject, rhs api.MilpaObject) bool {
 			a := lhs.(*api.Pod)
 			b := rhs.(*api.Pod)
-			return reflect.DeepEqual(a.Spec, b.Spec)
-		},
-	)
-
-	// Secret
-	regTester.registryTestType(
-		api.GetFakeSecret("mysecretstore", "first-secret", "bG92ZQ=="),
-		api.GetFakeSecret("yoursecretstore", "another-secret", "Z29k"),
-		func(o api.MilpaObject) api.MilpaObject {
-			s := o.(*api.Secret)
-			s.Data["new-secret"] = []byte("Zm9v")
-			return s
-		},
-		func(lhs api.MilpaObject, rhs api.MilpaObject) bool {
-			a := lhs.(*api.Secret)
-			b := rhs.(*api.Secret)
-			return reflect.DeepEqual(a.Data, b.Data)
-		},
-	)
-
-	// Service
-	regTester.registryTestType(
-		api.GetFakeService(),
-		api.GetFakeService(),
-		func(o api.MilpaObject) api.MilpaObject {
-			s := o.(*api.Service)
-			s.Spec.SourceRanges = []string{"1.2.3.4/32", "128.32.0.0/0"}
-			return s
-		},
-		func(lhs api.MilpaObject, rhs api.MilpaObject) bool {
-			a := lhs.(*api.Service)
-			b := rhs.(*api.Service)
 			return reflect.DeepEqual(a.Spec, b.Spec)
 		},
 	)

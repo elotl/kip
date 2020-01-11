@@ -32,7 +32,7 @@ var (
 type AzureClient struct {
 	asgs           network.ApplicationSecurityGroupsClient
 	disks          compute.DisksClient
-	groups         resources.GroupsGroupClient
+	groups         resources.GroupsClient
 	images         compute.ImagesClient
 	ips            network.PublicIPAddressesClient
 	lbs            network.LoadBalancersClient
@@ -66,7 +66,7 @@ func getAzureConnection(subscriptionID string) (*AzureClient, error) {
 	az := &AzureClient{
 		asgs:        network.NewApplicationSecurityGroupsClient(subscriptionID),
 		disks:       compute.NewDisksClient(subscriptionID),
-		groups:      resources.NewGroupsGroupClient(subscriptionID),
+		groups:      resources.NewGroupsClient(subscriptionID),
 		images:      compute.NewImagesClient(subscriptionID),
 		ips:         network.NewPublicIPAddressesClient(subscriptionID),
 		lbs:         network.NewLoadBalancersClient(subscriptionID),

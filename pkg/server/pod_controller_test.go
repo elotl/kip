@@ -21,26 +21,19 @@ func createPodController(c nodeclient.ItzoClientFactoryer) (*PodController, func
 	wg := &sync.WaitGroup{}
 	podRegistry, closer1 := registry.SetupTestPodRegistry()
 	logRegistry, closer2 := registry.SetupTestLogRegistry()
-	secretRegistry, closer3 := registry.SetupTestSecretRegistry()
-	nodeRegistry, closer4 := registry.SetupTestNodeRegistry()
-	closer := func() { closer1(); closer2(); closer3(); closer4() }
+	nodeRegistry, closer3 := registry.SetupTestNodeRegistry()
+	closer := func() { closer1(); closer2(); closer3() }
 	dispenser := nodemanager.NewNodeDispenser()
 	controller := &PodController{
 		podRegistry:       podRegistry,
 		logRegistry:       logRegistry,
 		metricsRegistry:   registry.NewMetricsRegistry(100),
-		secretLister:      secretRegistry,
 		nodeLister:        nodeRegistry,
 		nodeDispenser:     dispenser,
 		nodeClientFactory: c,
 		events:            events.NewEventSystem(quit, wg),
 		cloudClient:       cloud.NewMockClient(),
 		lastStatusReply:   conmap.NewStringTimeTime(),
-		licenseParams: LicenseParameters{
-			HasLimits:    false,
-			MaxResources: 20,
-			MaxUnits:     5,
-		},
 	}
 	return controller, closer
 }
@@ -85,61 +78,6 @@ func schedulePodHelper(t *testing.T, ctl *PodController, pod *api.Pod) {
 		req.ReplyChan <- nodemanager.NodeReply{Node: node}
 	}()
 	ctl.schedulePod(pod)
-}
-
-func TestSchedulePodLicenseLimitsHappy(t *testing.T) {
-	t.Parallel()
-	client := nodeclient.NewMockItzoClientFactory()
-	ctl, closer := createPodController(client)
-	defer closer()
-	ctl.licenseParams.HasLimits = true
-
-	// Happy Path, pod gets to running
-	pod := api.GetFakePod()
-	podName := pod.Name
-	pod, err := ctl.podRegistry.CreatePod(pod)
-	assert.NoError(t, err)
-
-	schedulePodHelper(t, ctl, pod)
-
-	success := false
-	start := time.Now()
-	for time.Now().Before(start.Add(4 * time.Second)) {
-		pod, err = ctl.podRegistry.GetPod(podName)
-		assert.NoError(t, err)
-		if pod.Status.Phase == api.PodRunning {
-			success = true
-			break
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-	assert.True(t, success, "Pod never reached running state")
-}
-
-func TestSchedulePodLicenseLimitsFull(t *testing.T) {
-	t.Parallel()
-	client := nodeclient.NewMockItzoClientFactory()
-	ctl, closer := createPodController(client)
-	defer closer()
-
-	// License limits doesn't schedule pod
-	ctl.licenseParams.HasLimits = true
-	for i := 0; i < ctl.licenseParams.MaxResources; i++ {
-		pod := api.GetFakePod()
-		pod.Status.Phase = api.PodRunning
-		_, err := ctl.podRegistry.CreatePod(pod)
-		assert.NoError(t, err)
-	}
-	pod := api.GetFakePod()
-	pod, err := ctl.podRegistry.CreatePod(pod)
-	assert.NoError(t, err)
-
-	schedulePodHelper(t, ctl, pod)
-	pod, err = ctl.podRegistry.GetPod(pod.Name)
-	assert.NoError(t, err)
-	// No loop needed since the pod will reach phase dispatching
-	// in schedulePodHelper
-	assert.Equal(t, string(api.PodWaiting), string(pod.Status.Phase))
 }
 
 func TestCheckClaimedNodesSimple(t *testing.T) {
@@ -498,115 +436,6 @@ func TestHandleReplyTimeouts(t *testing.T) {
 	assert.Nil(t, err)
 	//assert.Equal(t, api.PodTerminated, pod.Status.Phase)
 	waitForPodInState(t, ctl, pod.Name, api.PodTerminated)
-}
-
-func TestLoadRegistryCredentials(t *testing.T) {
-	t.Parallel()
-	client := nodeclient.NewMockItzoClientFactory()
-	ctl, closer := createPodController(client)
-	defer closer()
-
-	s1 := api.GetFakeSecret("docker-reg",
-		"server", "",
-		"username", "docker_user",
-		"password", "docker_password",
-	)
-	s3 := api.GetFakeSecret("gcr-reg",
-		"server", "gcr.io",
-		"username", "gcr_user",
-		"password", "gcr_password",
-	)
-	secReg := ctl.secretLister.(*registry.SecretRegistry)
-	secReg.CreateSecret(s1)
-	secReg.CreateSecret(s3)
-	pod := api.GetFakePod()
-	pod.Spec.Units = []api.Unit{
-		{
-			Image: "ACCOUNT.dkr.ecr.REGION.amazonaws.com/fooimage",
-		}}
-	pod.Spec.ImagePullSecrets = []string{"docker-reg", "gcr-reg"}
-	cc := &cloud.MockCloudClient{
-		ContainerAuthorizer: func() (string, string, error) {
-			return "aws_user", "aws_password", nil
-		},
-	}
-
-	ctl.cloudClient = cc
-	creds, err := ctl.loadRegistryCredentials(pod)
-	assert.NoError(t, err)
-	expectedCreds := map[string]api.RegistryCredentials{
-		"": api.RegistryCredentials{
-			Server:   "",
-			Username: "docker_user",
-			Password: "docker_password",
-		},
-		"ACCOUNT.dkr.ecr.REGION.amazonaws.com": api.RegistryCredentials{
-			Server:   "ACCOUNT.dkr.ecr.REGION.amazonaws.com",
-			Username: "aws_user",
-			Password: "aws_password",
-		},
-		"gcr.io": api.RegistryCredentials{
-			Server:   "gcr.io",
-			Username: "gcr_user",
-			Password: "gcr_password",
-		},
-	}
-	assert.Equal(t, expectedCreds, creds)
-}
-
-func TestLoadPodSecrets(t *testing.T) {
-	t.Parallel()
-	client := nodeclient.NewMockItzoClientFactory()
-	ctl, closer := createPodController(client)
-	defer closer()
-	pod := api.GetFakePod()
-	pod.Spec.Units = []api.Unit{{
-		Env: []api.EnvVar{
-			api.EnvVar{
-				Name:  "FOOVAR",
-				Value: "foo",
-			},
-			api.EnvVar{
-				Name: "BARVAR",
-				ValueFrom: &api.EnvVarSource{
-					SecretKeyRef: &api.SecretKeySelector{
-						Name: "sec1",
-						Key:  "barvarkey",
-					},
-				},
-			},
-			api.EnvVar{
-				Name: "BAZVAR",
-				ValueFrom: &api.EnvVarSource{
-					SecretKeyRef: &api.SecretKeySelector{
-						Name: "sec2",
-						Key:  "bazkey",
-					},
-				},
-			},
-		},
-	}}
-	secReg := ctl.secretLister.(*registry.SecretRegistry)
-	_, err := ctl.loadPodSecrets(pod)
-	assert.Error(t, err)
-
-	sec1 := api.GetFakeSecret("sec1", "barvarkey", "barvarval")
-	sec2 := api.GetFakeSecret("sec2", "bazkey", "bazval")
-	_, err = secReg.CreateSecret(sec1)
-	assert.NoError(t, err)
-	_, err = secReg.CreateSecret(sec2)
-	assert.NoError(t, err)
-	secrets, err := ctl.loadPodSecrets(pod)
-	assert.NoError(t, err)
-	expected := map[string]map[string][]byte{
-		"sec1": map[string][]byte{
-			"barvarkey": []byte("barvarval"),
-		},
-		"sec2": map[string][]byte{
-			"bazkey": []byte("bazval"),
-		},
-	}
-	assert.Equal(t, expected, secrets)
 }
 
 func TestQueryPodStatus(t *testing.T) {

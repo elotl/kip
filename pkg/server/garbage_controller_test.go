@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
 	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
 	"github.com/stretchr/testify/assert"
@@ -66,79 +65,4 @@ func TestCleanAzureResourceGroupsHelper(t *testing.T) {
 	assert.Equal(t, 1, r.groups.Len())
 	assert.True(t, r.groups.Has("milpa-testcluster-3"))
 	assert.Equal(t, 0, ctl.lastOrphanedAzureGroups.Len())
-}
-
-func TestCleanUnknownContainerInstance(t *testing.T) {
-	ctl, closer := createGarbageController()
-	defer closer()
-
-	ctl.cloudClient = cloud.NewMockClient()
-	p1 := api.GetFakePod()
-	p1.Status.Phase = api.PodRunning
-	tv := true
-	p1.Spec.Resources.ContainerInstance = &tv
-	p1.Status.BoundInstanceID = "1234"
-	ctl.cloudClient.StartContainerInstance(p1)
-
-	p2 := api.GetFakePod()
-	p2.Status.Phase = api.PodRunning
-	p2.Spec.Resources.ContainerInstance = &tv
-	p2.Spec.InstanceType = ""
-	p2.Status.BoundInstanceID = "5678"
-	_, err := ctl.podRegistry.CreatePod(p2)
-	assert.NoError(t, err)
-	_, err = ctl.cloudClient.StartContainerInstance(p2)
-
-	assert.NoError(t, err)
-	cloudInsts, err := ctl.cloudClient.ListContainerInstances()
-	assert.NoError(t, err)
-	assert.Len(t, cloudInsts, 2)
-	ctl.cleanUnknownContainerInstances()
-	cloudInsts, err = ctl.cloudClient.ListContainerInstances()
-	assert.NoError(t, err)
-	assert.Len(t, cloudInsts, 2)
-	ctl.cleanUnknownContainerInstances()
-	cloudInsts, err = ctl.cloudClient.ListContainerInstances()
-	assert.NoError(t, err)
-	assert.Len(t, cloudInsts, 1)
-	if len(cloudInsts) == 1 {
-		assert.Equal(t, "5678", cloudInsts[0].ID)
-	}
-}
-
-func TestGetOutdatedTaskDefinitions(t *testing.T) {
-	tests := []struct {
-		taskARNs []string
-		podNames []string
-		expected []string
-	}{
-		{
-			taskARNs: []string{},
-			podNames: []string{"foo", "bar"},
-			expected: []string{},
-		},
-		{
-			taskARNs: []string{"arn:aws:ecs:501:td/milpa-tc_foo:5", "arn:aws:ecs:501:td/milpa-tc_bar:1"},
-			podNames: []string{"foo", "bar"},
-			expected: []string{},
-		},
-		{
-			taskARNs: []string{"arn:aws:ecs:501:td/milpa-tc_foo:5", "arn:aws:ecs:501:td/milpa-tc_foo:2", "arn:aws:ecs:501:td/milpa-tc_foo:1"},
-			podNames: []string{"foo", "bar"},
-			expected: []string{"arn:aws:ecs:501:td/milpa-tc_foo:2", "arn:aws:ecs:501:td/milpa-tc_foo:1"},
-		},
-		{
-			taskARNs: []string{"arn:aws:ecs:501:td/milpa-tc_baz:1"},
-			podNames: []string{"foo", "bar"},
-			expected: []string{"arn:aws:ecs:501:td/milpa-tc_baz:1"},
-		},
-	}
-	controllerID := "tc"
-	for i, tc := range tests {
-		podNamesSet := sets.NewString(tc.podNames...)
-		oldTaskDefs := getOutdatedTaskDefinitions(tc.taskARNs, podNamesSet, controllerID)
-		if !oldTaskDefs.Equal(sets.NewString(tc.expected...)) {
-			t.Errorf("test case %d failed, expected equal: %v %v", i, tc.expected, oldTaskDefs.List())
-		}
-	}
 }

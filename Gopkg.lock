@@ -26,7 +26,7 @@
   version = "v0.2.2"
 
 [[projects]]
-  digest = "1:8997eca47f47bab241dbc5a843f4beb6859bd45e0c3bf6309a3c53a8566a09f9"
+  digest = "1:a421859bcb6020185501689c6b69345f82fb5ff8ea60174c4e53a757f0e97157"
   name = "github.com/Azure/azure-sdk-for-go"
   packages = [
     "services/compute/mgmt/2018-10-01/compute",
@@ -36,8 +36,8 @@
     "version",
   ]
   pruneopts = "UT"
-  revision = "77258e94d84ea36012a72c0e0a1e2faa409c6396"
-  version = "v29.0.0"
+  revision = "2e62f976f4de2713ef1b8bb3254bebb81b95b638"
+  version = "v38.0.0"
 
 [[projects]]
   digest = "1:5041865c1d50f6c46e3aa0638741539129d0a48924abdcc850f93c53af5cac36"
@@ -277,11 +277,12 @@
   version = "v4"
 
 [[projects]]
-  digest = "1:6b21090f60571b20b3ddc2c8e48547dffcf409498ed6002c2cada023725ed377"
+  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   pruneopts = "UT"
-  revision = "782f4967f2dc4564575ca782fe2d04090b5faca8"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
 
 [[projects]]
   digest = "1:3f7570ad151d00244d94ea2a4f884084984be7617a92089b1c35db9f5d65be89"
@@ -337,14 +338,6 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "a88a26dd5a786dfa2f13d85847c85fa2ae383188"
-
-[[projects]]
-  digest = "1:2b5f431fa18891a2ac0e02353c83fb3bf458fced6ccecd664b429054e0c4ce3b"
-  name = "github.com/evanphx/json-patch"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "bf22ed9311622d93e213ba31e4ae7a5771e5d379"
-  version = "v4.6.0"
 
 [[projects]]
   branch = "master"
@@ -733,23 +726,23 @@
   version = "v1.0.5"
 
 [[projects]]
-  digest = "1:23472f69a3ee7225de2f104aa48c6456959d1c155e45035c9845806d83109190"
+  digest = "1:ac83cf90d08b63ad5f7e020ef480d319ae890c208f8524622a2f3136e2686b02"
   name = "github.com/stretchr/objx"
   packages = ["."]
   pruneopts = "UT"
-  revision = "ea4fe68685ee0d3cee7032121851b57e7494e8ea"
-  version = "v0.2.0"
+  revision = "477a77ecc69700c7cdeb1fa9e129548e1c1c393c"
+  version = "v0.1.1"
 
 [[projects]]
-  digest = "1:e7c64d1aa12dd3cb65e82568ba55fe529903575a47115c304b7a76abd8d00134"
+  digest = "1:ad527ce5c6b2426790449db7663fe53f8bb647f9387295406794c8be001238da"
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
     "mock",
   ]
   pruneopts = "UT"
-  revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
-  version = "v1.1.4"
+  revision = "221dbe5ed46703ee255b1da0dec05086f5035f62"
+  version = "v1.4.0"
 
 [[projects]]
   branch = "master"
@@ -1257,11 +1250,10 @@
   revision = "0f16f28eb27dc4a87556f0f4935ade9037f3903f"
 
 [[projects]]
-  digest = "1:861dd931e40044944f8415d8b053de5a2f3051317100a87922b3e5c1722afce1"
+  digest = "1:881314b7814b98de343bfe96833c5e0e1fcc187356c0a19efb3492b231374028"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
-    "discovery/fake",
     "informers",
     "informers/admissionregistration",
     "informers/admissionregistration/v1beta1",
@@ -1390,7 +1382,6 @@
     "plugin/pkg/client/auth/exec",
     "rest",
     "rest/watch",
-    "testing",
     "tools/auth",
     "tools/cache",
     "tools/clientcmd",
@@ -1551,17 +1542,9 @@
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/fields",
     "k8s.io/apimachinery/pkg/labels",
-    "k8s.io/apimachinery/pkg/runtime",
-    "k8s.io/apimachinery/pkg/runtime/schema",
-    "k8s.io/apimachinery/pkg/runtime/serializer",
-    "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/errors",
-    "k8s.io/apimachinery/pkg/util/runtime",
     "k8s.io/apimachinery/pkg/util/sets",
     "k8s.io/apimachinery/pkg/util/wait",
-    "k8s.io/apimachinery/pkg/watch",
-    "k8s.io/client-go/discovery",
-    "k8s.io/client-go/discovery/fake",
     "k8s.io/client-go/informers",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
@@ -1569,12 +1552,9 @@
     "k8s.io/client-go/kubernetes/typed/core/v1",
     "k8s.io/client-go/listers/core/v1",
     "k8s.io/client-go/rest",
-    "k8s.io/client-go/testing",
-    "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/clientcmd/api",
     "k8s.io/client-go/tools/record",
-    "k8s.io/client-go/util/flowcontrol",
     "k8s.io/client-go/util/workqueue",
     "k8s.io/klog",
     "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1",
