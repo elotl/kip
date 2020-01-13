@@ -52,6 +52,7 @@ func registerProvider(s *provider.Store) {
 			cfg.NodeName,
 			cfg.InternalIP,
 			cfg.DaemonPort,
+			cfg.StopChan,
 		)
 	})
 }

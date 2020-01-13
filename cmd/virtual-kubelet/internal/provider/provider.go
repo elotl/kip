@@ -30,6 +30,11 @@ type Provider interface {
 	ConfigureNode(context.Context, *v1.Node)
 }
 
+type StopperProvider interface {
+	Provider
+	Stop()
+}
+
 // PodMetricsProvider is an optional interface that providers can implement to expose pod stats
 type PodMetricsProvider interface {
 	GetStatsSummary(context.Context) (*stats.Summary, error)

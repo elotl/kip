@@ -77,11 +77,7 @@ type AzureConfig struct {
 }
 
 type GCEConfig struct {
-}
-
-type Store struct {
-	ConfigFile string
-	dataDir    string
+	// Someday!
 }
 
 type EtcdConfig struct {

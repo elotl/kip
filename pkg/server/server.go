@@ -131,7 +131,9 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 }
 
 // InstanceProvider should implement node.PodLifecycleHandler
-func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndpointPort int32) (*InstanceProvider, error) {
+func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndpointPort int32, systemQuit <-chan struct{}) (*InstanceProvider, error) {
+	systemWG := &sync.WaitGroup{}
+
 	serverConfigFile, err := ParseConfig(configFilePath)
 	if err != nil {
 		glog.Errorf("Loading Config file (%s) failed with error: %s",
@@ -144,7 +146,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 	}
 
 	// todo: systemQuit should get passed in...
-	systemQuit, systemWG := SetupSignalHandler()
+	//systemQuit, systemWG := SetupSignalHandler()
 	etcdClient, err := setupEtcd(
 		serverConfigFile.Etcd.Internal.ConfigFile,
 		serverConfigFile.Etcd.Internal.DataDir,
@@ -348,6 +350,27 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 	}
 
 	return s, err
+}
+
+func (ip *InstanceProvider) Stop() {
+	quitTimeout := time.Duration(10)
+	waitGroupDone := make(chan struct{})
+	go waitForWaitGroup(ip.SystemWaitGroup, waitGroupDone)
+	select {
+	case <-waitGroupDone:
+		return
+	case <-time.After(time.Second * quitTimeout):
+		glog.Errorf(
+			"Loops were still running after %d seconds, forcing exit",
+			quitTimeout)
+		return
+	}
+}
+
+func waitForWaitGroup(wg *sync.WaitGroup, waitGroupDone chan struct{}) {
+	wg.Wait()
+	glog.Info("All controllers have exited")
+	waitGroupDone <- struct{}{}
 }
 
 func filterEventList(eventList *api.EventList) *api.EventList {

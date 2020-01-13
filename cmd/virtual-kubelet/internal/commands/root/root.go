@@ -123,6 +123,7 @@ func runRootCommand(ctx context.Context, s *provider.Store, c Opts) error {
 		DaemonPort:        int32(c.ListenPort),
 		InternalIP:        os.Getenv("VKUBELET_POD_IP"),
 		KubeClusterDomain: c.KubeClusterDomain,
+		StopChan:          ctx.Done(),
 	}
 
 	pInit := s.Get(c.Provider)
@@ -130,7 +131,7 @@ func runRootCommand(ctx context.Context, s *provider.Store, c Opts) error {
 		return errors.Errorf("provider %q not found", c.Provider)
 	}
 
-	p, err := pInit(initConfig)
+	ourProvider, err := pInit(initConfig)
 	if err != nil {
 		return errors.Wrapf(err, "error initializing provider %s", c.Provider)
 	}
@@ -147,7 +148,7 @@ func runRootCommand(ctx context.Context, s *provider.Store, c Opts) error {
 		leaseClient = client.CoordinationV1beta1().Leases(corev1.NamespaceNodeLease)
 	}
 
-	pNode := NodeFromProvider(ctx, c.NodeName, taint, p, c.Version)
+	pNode := NodeFromProvider(ctx, c.NodeName, taint, ourProvider, c.Version)
 	nodeRunner, err := node.NewNodeController(
 		node.NaiveNodeProvider{},
 		pNode,
@@ -181,7 +182,7 @@ func runRootCommand(ctx context.Context, s *provider.Store, c Opts) error {
 		PodClient:         client.CoreV1(),
 		PodInformer:       podInformer,
 		EventRecorder:     eb.NewRecorder(scheme.Scheme, corev1.EventSource{Component: path.Join(pNode.Name, "pod-controller")}),
-		Provider:          p,
+		Provider:          ourProvider,
 		SecretInformer:    secretInformer,
 		ConfigMapInformer: configMapInformer,
 		ServiceInformer:   serviceInformer,
@@ -193,7 +194,7 @@ func runRootCommand(ctx context.Context, s *provider.Store, c Opts) error {
 	go podInformerFactory.Start(ctx.Done())
 	go scmInformerFactory.Start(ctx.Done())
 
-	cancelHTTP, err := setupHTTPServer(ctx, p, apiConfig)
+	cancelHTTP, err := setupHTTPServer(ctx, ourProvider, apiConfig)
 	if err != nil {
 		return err
 	}
@@ -229,6 +230,10 @@ func runRootCommand(ctx context.Context, s *provider.Store, c Opts) error {
 	log.G(ctx).Info("Initialized")
 
 	<-ctx.Done()
+
+	if stoppable, ok := ourProvider.(provider.StopperProvider); ok {
+		stoppable.Stop()
+	}
 	return nil
 }
 
