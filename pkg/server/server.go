@@ -484,6 +484,9 @@ func K8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 	milpapod.Namespace = pod.Namespace
 	milpapod.Labels = pod.Labels
 	milpapod.Annotations = pod.Annotations
+	if milpapod.Annotations == nil {
+		milpapod.Annotations = make(map[string]string)
+	}
 	podBytes, err := pod.Marshal()
 	if err != nil {
 		return nil, err
@@ -537,6 +540,9 @@ func K8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 func MilpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
 	pod := &v1.Pod{}
 	annotations := milpaPod.Annotations
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
 	if podStr, exists := annotations[kubernetesPodKey]; exists {
 		err := pod.Unmarshal([]byte(podStr))
 		if err != nil {
