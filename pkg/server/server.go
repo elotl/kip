@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -335,6 +336,10 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		kubeletConfig:      serverConfigFile.Kubelet,
 		startTime:          time.Now(),
 	}
+	eventSystem.RegisterHandler(events.PodRunning, s)
+	eventSystem.RegisterHandler(events.PodTerminated, s)
+	eventSystem.RegisterHandler(events.PodUpdated, s)
+	eventSystem.RegisterHandler(events.PodEjected, s)
 
 	go controllerManager.Start()
 	go controllerManager.WaitForShutdown(systemQuit, systemWG)
@@ -357,10 +362,26 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 	return s, err
 }
 
-func (ip *InstanceProvider) Stop() {
+func (p *InstanceProvider) Handle(ev events.Event) error {
+	milpaPod, ok := ev.Object.(*api.Pod)
+	if !ok {
+		glog.Errorf("event %v with unknown object", ev)
+		return nil
+	}
+	pod, err := p.MilpaToK8sPod(milpaPod)
+	if err != nil {
+		glog.Errorf("converting milpa pod %s: %v", milpaPod.Name, err)
+		return nil
+	}
+	glog.Infof("milpa pod %s event %v", milpaPod.Name, ev)
+	p.notifier(pod)
+	return nil
+}
+
+func (p *InstanceProvider) Stop() {
 	quitTimeout := time.Duration(10)
 	waitGroupDone := make(chan struct{})
-	go waitForWaitGroup(ip.SystemWaitGroup, waitGroupDone)
+	go waitForWaitGroup(p.SystemWaitGroup, waitGroupDone)
 	select {
 	case <-waitGroupDone:
 		return
@@ -399,6 +420,117 @@ func filterReplyObject(obj api.MilpaObject) api.MilpaObject {
 	return obj
 }
 
+func (p *InstanceProvider) getStatus(milpaPod *api.Pod) v1.PodStatus {
+	isScheduled := v1.ConditionFalse
+	isInitialized := v1.ConditionFalse
+	isReady := v1.ConditionFalse
+	if milpaPod.Status.BoundNodeName != "" {
+		isScheduled = v1.ConditionTrue
+	}
+	phase := v1.PodUnknown
+	switch milpaPod.Status.Phase {
+	case api.PodWaiting:
+		phase = v1.PodPending
+	case api.PodDispatching:
+		isScheduled = v1.ConditionTrue
+		phase = v1.PodPending
+	case api.PodRunning:
+		isScheduled = v1.ConditionTrue
+		isInitialized = v1.ConditionTrue
+		isReady = v1.ConditionTrue
+		phase = v1.PodRunning
+	case api.PodSucceeded:
+		isScheduled = v1.ConditionTrue
+		isInitialized = v1.ConditionTrue
+		isReady = v1.ConditionTrue
+		phase = v1.PodSucceeded
+	case api.PodFailed:
+		isScheduled = v1.ConditionTrue
+		isInitialized = v1.ConditionTrue
+		isReady = v1.ConditionTrue
+		phase = v1.PodFailed
+	case api.PodTerminated:
+		isScheduled = v1.ConditionTrue
+		isInitialized = v1.ConditionTrue
+		isReady = v1.ConditionTrue
+		phase = v1.PodFailed
+	}
+	conditions := []v1.PodCondition{
+		v1.PodCondition{
+			Type:   v1.PodScheduled,
+			Status: isScheduled,
+		},
+		v1.PodCondition{
+			Type:   v1.PodInitialized,
+			Status: isInitialized,
+		},
+		v1.PodCondition{
+			Type:   v1.PodReady,
+			Status: isReady,
+		},
+	}
+	startTime := metav1.Time{}
+	if milpaPod.Status.ReadyTime != nil {
+		startTime = metav1.NewTime(milpaPod.Status.ReadyTime.Time)
+	}
+	privateIPv4Address := ""
+	for _, address := range milpaPod.Status.Addresses {
+		if address.Type == api.PrivateIP {
+			privateIPv4Address = address.Address
+		}
+	}
+	initContainerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.InitUnitStatuses))
+	for i, st := range milpaPod.Status.InitUnitStatuses {
+		initContainerStatuses[i] = unitToContainerStatus(st)
+	}
+	containerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.UnitStatuses))
+	for i, st := range milpaPod.Status.UnitStatuses {
+		containerStatuses[i] = unitToContainerStatus(st)
+	}
+	return v1.PodStatus{
+		Phase:                 phase,
+		Conditions:            conditions,
+		Message:               "",
+		Reason:                "",
+		HostIP:                p.internalIP,
+		PodIP:                 privateIPv4Address,
+		StartTime:             &startTime,
+		InitContainerStatuses: initContainerStatuses,
+		ContainerStatuses:     containerStatuses,
+		QOSClass:              v1.PodQOSBestEffort,
+	}
+}
+
+func unitToContainerStatus(st api.UnitStatus) v1.ContainerStatus {
+	cst := v1.ContainerStatus{
+		Name:         st.Name,
+		Image:        st.Image,
+		ImageID:      st.Image,
+		RestartCount: st.RestartCount,
+	}
+	if st.State.Waiting != nil {
+		cst.Ready = false
+		cst.State.Waiting = &v1.ContainerStateWaiting{
+			Reason: st.State.Waiting.Reason,
+		}
+	}
+	if st.State.Running != nil {
+		cst.Ready = true
+		cst.State.Running = &v1.ContainerStateRunning{
+			StartedAt: metav1.NewTime(st.State.Running.StartedAt.Time),
+		}
+	}
+	if st.State.Terminated != nil {
+		cst.Ready = false
+		cst.State.Terminated = &v1.ContainerStateTerminated{
+			ExitCode:   st.State.Terminated.ExitCode,
+			FinishedAt: metav1.NewTime(st.State.Terminated.FinishedAt.Time),
+			//ContainerID:
+		}
+	}
+	return cst
+}
+
 func ContainerToUnit(container v1.Container) api.Unit {
 	unit := api.Unit{
 		Name:       container.Name,
@@ -407,6 +539,16 @@ func ContainerToUnit(container v1.Container) api.Unit {
 		Args:       container.Args,
 		WorkingDir: container.WorkingDir,
 	}
+	//Resources: v1.ResourceRequirements{
+	//	Limits: v1.ResourceList{
+	//		v1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", *cntrDef.Cpu)),
+	//		v1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", *cntrDef.Memory)),
+	//	},
+	//	Requests: v1.ResourceList{
+	//		v1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", *cntrDef.Cpu)),
+	//		v1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", *cntrDef.MemoryReservation)),
+	//	},
+	//},
 	unit.Env = make([]api.EnvVar, len(container.Env))
 	for i, e := range container.Env {
 		unit.Env[i] = api.EnvVar{
@@ -434,9 +576,16 @@ func ContainerToUnit(container v1.Container) api.Unit {
 			unit.SecurityContext.Capabilities = caps
 		}
 	}
+	for _, port := range container.Ports {
+		unit.Ports = append(unit.Ports,
+			api.ServicePort{
+				Port:     int(port.ContainerPort),
+				NodePort: int(port.HostPort),
+				Protocol: api.Protocol(string(port.Protocol)),
+			})
+	}
 	//container.VolumeMounts,
 	//container.EnvFrom,
-	//container.Ports,
 	return unit
 }
 
@@ -455,6 +604,14 @@ func UnitToContainer(unit api.Unit, container *v1.Container) v1.Container {
 			Name:  e.Name,
 			Value: e.Value,
 		}
+	}
+	for _, port := range unit.Ports {
+		container.Ports = append(container.Ports,
+			v1.ContainerPort{
+				ContainerPort: int32(port.Port),
+				HostPort:      int32(port.NodePort),
+				Protocol:      v1.Protocol(string(port.Protocol)),
+			})
 	}
 	usc := unit.SecurityContext
 	if usc != nil {
@@ -482,20 +639,12 @@ func UnitToContainer(unit api.Unit, container *v1.Container) v1.Container {
 	return *container
 }
 
-func K8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
+func (p *InstanceProvider) K8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 	milpapod := api.NewPod()
 	milpapod.Name = util.WithNamespace(pod.Namespace, pod.Name)
 	milpapod.Namespace = pod.Namespace
 	milpapod.Labels = pod.Labels
 	milpapod.Annotations = pod.Annotations
-	if milpapod.Annotations == nil {
-		milpapod.Annotations = make(map[string]string)
-	}
-	podBytes, err := pod.Marshal()
-	if err != nil {
-		return nil, err
-	}
-	milpapod.Annotations[kubernetesPodKey] = string(podBytes)
 	milpapod.Spec.RestartPolicy = api.RestartPolicy(string(pod.Spec.RestartPolicy))
 	podsc := pod.Spec.SecurityContext
 	if podsc != nil {
@@ -541,23 +690,18 @@ func K8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 	return milpapod, nil
 }
 
-func MilpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
+func (p *InstanceProvider) MilpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
+	namespace, name := util.SplitNamespaceAndName(milpaPod.Name)
 	pod := &v1.Pod{}
-	annotations := milpaPod.Annotations
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
-	if podStr, exists := annotations[kubernetesPodKey]; exists {
-		err := pod.Unmarshal([]byte(podStr))
-		if err != nil {
-			return nil, err
-		}
-	}
-	name, namespace := util.SplitNamespaceAndName(milpaPod.Name)
+	pod.Kind = "Pod"
+	pod.APIVersion = "v1"
 	pod.Name = name
 	pod.Namespace = namespace
+	//TODO pod.UID = ...
 	pod.Labels = milpaPod.Labels
 	pod.Annotations = milpaPod.Annotations
+	pod.Spec.NodeName = p.nodeName
+	pod.Spec.Volumes = []v1.Volume{}
 	pod.Spec.RestartPolicy = v1.RestartPolicy(string(milpaPod.Spec.RestartPolicy))
 	mpsc := milpaPod.Spec.SecurityContext
 	if mpsc != nil {
@@ -614,6 +758,9 @@ func MilpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
 		container = UnitToContainer(unit, ptr)
 		pod.Spec.Containers = append(pod.Spec.Containers, container)
 	}
+	pod.Status = p.getStatus(milpaPod)
+	podBytes, _ := json.Marshal(pod)
+	glog.Infof("pod %s", string(podBytes))
 	return pod, nil
 }
 
@@ -627,7 +774,7 @@ func (p *InstanceProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
 	log.G(ctx).Infof("CreatePod %q", pod.Name)
-	milpaPod, err := K8sToMilpaPod(pod)
+	milpaPod, err := p.K8sToMilpaPod(pod)
 	if err != nil {
 		log.G(ctx).Errorf("CreatePod %q: %v", pod.Name, err)
 		return err
@@ -647,7 +794,7 @@ func (p *InstanceProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
 	log.G(ctx).Infof("UpdatePod %q", pod.Name)
-	milpaPod, err := K8sToMilpaPod(pod)
+	milpaPod, err := p.K8sToMilpaPod(pod)
 	if err != nil {
 		log.G(ctx).Errorf("UpdatePod %q: %v", pod.Name, err)
 		return err
@@ -667,7 +814,7 @@ func (p *InstanceProvider) DeletePod(ctx context.Context, pod *v1.Pod) (err erro
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
 	log.G(ctx).Infof("DeletePod %q", pod.Name)
-	milpaPod, err := K8sToMilpaPod(pod)
+	milpaPod, err := p.K8sToMilpaPod(pod)
 	if err != nil {
 		log.G(ctx).Errorf("DeletePod %q: %v", pod.Name, err)
 		return err
@@ -693,7 +840,7 @@ func (p *InstanceProvider) GetPod(ctx context.Context, namespace, name string) (
 		log.G(ctx).Errorf("GetPod %q: %v", name, err)
 		return nil, err
 	}
-	pod, err := MilpaToK8sPod(milpaPod)
+	pod, err := p.MilpaToK8sPod(milpaPod)
 	if err != nil {
 		log.G(ctx).Errorf("GetPod %q: %v", name, err)
 		return nil, err
@@ -728,7 +875,7 @@ func (p *InstanceProvider) GetPodStatus(ctx context.Context, namespace, name str
 		log.G(ctx).Errorf("GetPodStatus %q: %v", name, err)
 		return nil, err
 	}
-	pod, err := MilpaToK8sPod(milpaPod)
+	pod, err := p.MilpaToK8sPod(milpaPod)
 	if err != nil {
 		log.G(ctx).Errorf("GetPodStatus %q: %v", name, err)
 		return nil, err
@@ -753,7 +900,7 @@ func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 	}
 	pods := make([]*v1.Pod, len(milpaPods.Items))
 	for i, milpaPod := range milpaPods.Items {
-		pods[i], err = MilpaToK8sPod(milpaPod)
+		pods[i], err = p.MilpaToK8sPod(milpaPod)
 		if err != nil {
 			log.G(ctx).Errorf("GetPods: %v", err)
 			return nil, err
