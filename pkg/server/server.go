@@ -1,6 +1,7 @@
 package server
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -134,6 +135,9 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 // InstanceProvider should implement node.PodLifecycleHandler
 func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndpointPort int32, systemQuit <-chan struct{}) (*InstanceProvider, error) {
 	systemWG := &sync.WaitGroup{}
+
+	// TODO: change from glog to containerd/log to match VK.
+	flag.CommandLine.Parse([]string{"--logtostderr", "--v=3"})
 
 	serverConfigFile, err := ParseConfig(configFilePath)
 	if err != nil {
