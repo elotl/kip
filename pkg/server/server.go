@@ -1,6 +1,8 @@
 package server
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"sort"
@@ -41,6 +43,7 @@ const (
 	nameKey               = "name"
 	containerNameKey      = "containerName"
 	etcdClusterRegionPath = "milpa/cluster/region"
+	kubernetesPodKey      = "elotl.co/kubernetes-pod"
 )
 
 var (
@@ -67,7 +70,7 @@ type InstanceProvider struct {
 	daemonEndpointPort int32
 	kubeletConfig      KubeletConfig
 	startTime          time.Time
-	//notifier           func(*v1.Pod)
+	notifier           func(*v1.Pod)
 }
 
 func validateWriteToEtcd(client *etcd.SimpleEtcd) error {
@@ -133,6 +136,9 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 // InstanceProvider should implement node.PodLifecycleHandler
 func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndpointPort int32, rm *manager.ResourceManager, systemQuit <-chan struct{}) (*InstanceProvider, error) {
 	systemWG := &sync.WaitGroup{}
+
+	// TODO: change from glog to containerd/log to match VK.
+	flag.CommandLine.Parse([]string{"--logtostderr", "--v=3"})
 
 	serverConfigFile, err := ParseConfig(configFilePath)
 	if err != nil {
@@ -322,6 +328,10 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		kubeletConfig:      serverConfigFile.Kubelet,
 		startTime:          time.Now(),
 	}
+	eventSystem.RegisterHandler(events.PodRunning, s)
+	eventSystem.RegisterHandler(events.PodTerminated, s)
+	eventSystem.RegisterHandler(events.PodUpdated, s)
+	eventSystem.RegisterHandler(events.PodEjected, s)
 
 	go controllerManager.Start()
 	go controllerManager.WaitForShutdown(systemQuit, systemWG)
@@ -343,10 +353,26 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 	return s, err
 }
 
-func (ip *InstanceProvider) Stop() {
+func (p *InstanceProvider) Handle(ev events.Event) error {
+	milpaPod, ok := ev.Object.(*api.Pod)
+	if !ok {
+		glog.Errorf("event %v with unknown object", ev)
+		return nil
+	}
+	pod, err := p.MilpaToK8sPod(milpaPod)
+	if err != nil {
+		glog.Errorf("converting milpa pod %s: %v", milpaPod.Name, err)
+		return nil
+	}
+	glog.Infof("milpa pod %s event %v", milpaPod.Name, ev)
+	p.notifier(pod)
+	return nil
+}
+
+func (p *InstanceProvider) Stop() {
 	quitTimeout := time.Duration(10)
 	waitGroupDone := make(chan struct{})
-	go waitForWaitGroup(ip.SystemWaitGroup, waitGroupDone)
+	go waitForWaitGroup(p.SystemWaitGroup, waitGroupDone)
 	select {
 	case <-waitGroupDone:
 		return
@@ -385,13 +411,373 @@ func filterReplyObject(obj api.MilpaObject) api.MilpaObject {
 	return obj
 }
 
+func (p *InstanceProvider) getStatus(milpaPod *api.Pod) v1.PodStatus {
+	isScheduled := v1.ConditionFalse
+	isInitialized := v1.ConditionFalse
+	isReady := v1.ConditionFalse
+	if milpaPod.Status.BoundNodeName != "" {
+		isScheduled = v1.ConditionTrue
+	}
+	phase := v1.PodUnknown
+	switch milpaPod.Status.Phase {
+	case api.PodWaiting:
+		phase = v1.PodPending
+	case api.PodDispatching:
+		isScheduled = v1.ConditionTrue
+		phase = v1.PodPending
+	case api.PodRunning:
+		isScheduled = v1.ConditionTrue
+		isInitialized = v1.ConditionTrue
+		isReady = v1.ConditionTrue
+		phase = v1.PodRunning
+	case api.PodSucceeded:
+		isScheduled = v1.ConditionTrue
+		isInitialized = v1.ConditionTrue
+		isReady = v1.ConditionTrue
+		phase = v1.PodSucceeded
+	case api.PodFailed:
+		isScheduled = v1.ConditionTrue
+		isInitialized = v1.ConditionTrue
+		isReady = v1.ConditionTrue
+		phase = v1.PodFailed
+	case api.PodTerminated:
+		isScheduled = v1.ConditionTrue
+		isInitialized = v1.ConditionTrue
+		isReady = v1.ConditionTrue
+		phase = v1.PodFailed
+	}
+	conditions := []v1.PodCondition{
+		v1.PodCondition{
+			Type:   v1.PodScheduled,
+			Status: isScheduled,
+		},
+		v1.PodCondition{
+			Type:   v1.PodInitialized,
+			Status: isInitialized,
+		},
+		v1.PodCondition{
+			Type:   v1.PodReady,
+			Status: isReady,
+		},
+	}
+	startTime := metav1.Time{}
+	if milpaPod.Status.ReadyTime != nil {
+		startTime = metav1.NewTime(milpaPod.Status.ReadyTime.Time)
+	}
+	privateIPv4Address := ""
+	for _, address := range milpaPod.Status.Addresses {
+		if address.Type == api.PrivateIP {
+			privateIPv4Address = address.Address
+		}
+	}
+	initContainerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.InitUnitStatuses))
+	for i, st := range milpaPod.Status.InitUnitStatuses {
+		initContainerStatuses[i] = unitToContainerStatus(st)
+	}
+	containerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.UnitStatuses))
+	for i, st := range milpaPod.Status.UnitStatuses {
+		containerStatuses[i] = unitToContainerStatus(st)
+	}
+	return v1.PodStatus{
+		Phase:                 phase,
+		Conditions:            conditions,
+		Message:               "",
+		Reason:                "",
+		HostIP:                p.internalIP,
+		PodIP:                 privateIPv4Address,
+		StartTime:             &startTime,
+		InitContainerStatuses: initContainerStatuses,
+		ContainerStatuses:     containerStatuses,
+		QOSClass:              v1.PodQOSBestEffort,
+	}
+}
+
+func unitToContainerStatus(st api.UnitStatus) v1.ContainerStatus {
+	cst := v1.ContainerStatus{
+		Name:         st.Name,
+		Image:        st.Image,
+		ImageID:      st.Image,
+		RestartCount: st.RestartCount,
+	}
+	if st.State.Waiting != nil {
+		cst.Ready = false
+		cst.State.Waiting = &v1.ContainerStateWaiting{
+			Reason: st.State.Waiting.Reason,
+		}
+	}
+	if st.State.Running != nil {
+		cst.Ready = true
+		cst.State.Running = &v1.ContainerStateRunning{
+			StartedAt: metav1.NewTime(st.State.Running.StartedAt.Time),
+		}
+	}
+	if st.State.Terminated != nil {
+		cst.Ready = false
+		cst.State.Terminated = &v1.ContainerStateTerminated{
+			ExitCode:   st.State.Terminated.ExitCode,
+			FinishedAt: metav1.NewTime(st.State.Terminated.FinishedAt.Time),
+			//ContainerID:
+		}
+	}
+	return cst
+}
+
+func ContainerToUnit(container v1.Container) api.Unit {
+	unit := api.Unit{
+		Name:       container.Name,
+		Image:      container.Image,
+		Command:    container.Command,
+		Args:       container.Args,
+		WorkingDir: container.WorkingDir,
+	}
+	//Resources: v1.ResourceRequirements{
+	//	Limits: v1.ResourceList{
+	//		v1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", *cntrDef.Cpu)),
+	//		v1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", *cntrDef.Memory)),
+	//	},
+	//	Requests: v1.ResourceList{
+	//		v1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", *cntrDef.Cpu)),
+	//		v1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", *cntrDef.MemoryReservation)),
+	//	},
+	//},
+	unit.Env = make([]api.EnvVar, len(container.Env))
+	for i, e := range container.Env {
+		unit.Env[i] = api.EnvVar{
+			Name:  e.Name,
+			Value: e.Value,
+		}
+	}
+	if container.SecurityContext != nil {
+		unit.SecurityContext = &api.SecurityContext{
+			RunAsUser:  container.SecurityContext.RunAsUser,
+			RunAsGroup: container.SecurityContext.RunAsGroup,
+		}
+		ccaps := container.SecurityContext.Capabilities
+		if ccaps != nil {
+			caps := &api.Capabilities{
+				Add:  make([]string, len(ccaps.Add)),
+				Drop: make([]string, len(ccaps.Drop)),
+			}
+			for i, a := range ccaps.Add {
+				caps.Add[i] = string(a)
+			}
+			for i, d := range ccaps.Drop {
+				caps.Drop[i] = string(d)
+			}
+			unit.SecurityContext.Capabilities = caps
+		}
+	}
+	for _, port := range container.Ports {
+		unit.Ports = append(unit.Ports,
+			api.ServicePort{
+				Port:     int(port.ContainerPort),
+				NodePort: int(port.HostPort),
+				Protocol: api.Protocol(string(port.Protocol)),
+			})
+	}
+	//container.VolumeMounts,
+	//container.EnvFrom,
+	return unit
+}
+
+func UnitToContainer(unit api.Unit, container *v1.Container) v1.Container {
+	if container == nil {
+		container = &v1.Container{}
+	}
+	container.Name = unit.Name
+	container.Image = unit.Image
+	container.Command = unit.Command
+	container.Args = unit.Args
+	container.WorkingDir = unit.WorkingDir
+	container.Env = make([]v1.EnvVar, len(unit.Env))
+	for i, e := range unit.Env {
+		container.Env[i] = v1.EnvVar{
+			Name:  e.Name,
+			Value: e.Value,
+		}
+	}
+	for _, port := range unit.Ports {
+		container.Ports = append(container.Ports,
+			v1.ContainerPort{
+				ContainerPort: int32(port.Port),
+				HostPort:      int32(port.NodePort),
+				Protocol:      v1.Protocol(string(port.Protocol)),
+			})
+	}
+	usc := unit.SecurityContext
+	if usc != nil {
+		if container.SecurityContext == nil {
+			container.SecurityContext = &v1.SecurityContext{}
+		}
+		csc := container.SecurityContext
+		csc.RunAsUser = usc.RunAsUser
+		csc.RunAsGroup = usc.RunAsGroup
+		ucaps := usc.Capabilities
+		if ucaps != nil {
+			caps := &v1.Capabilities{
+				Add:  make([]v1.Capability, len(ucaps.Add)),
+				Drop: make([]v1.Capability, len(ucaps.Drop)),
+			}
+			for i, a := range ucaps.Add {
+				caps.Add[i] = v1.Capability(string(a))
+			}
+			for i, d := range ucaps.Drop {
+				caps.Drop[i] = v1.Capability(string(d))
+			}
+			csc.Capabilities = caps
+		}
+	}
+	return *container
+}
+
+func (p *InstanceProvider) K8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
+	milpapod := api.NewPod()
+	milpapod.Name = util.WithNamespace(pod.Namespace, pod.Name)
+	milpapod.Namespace = pod.Namespace
+	milpapod.Labels = pod.Labels
+	milpapod.Annotations = pod.Annotations
+	milpapod.Spec.RestartPolicy = api.RestartPolicy(string(pod.Spec.RestartPolicy))
+	podsc := pod.Spec.SecurityContext
+	if podsc != nil {
+		mpsc := &api.PodSecurityContext{
+			RunAsUser:          podsc.RunAsUser,
+			RunAsGroup:         podsc.RunAsGroup,
+			SupplementalGroups: podsc.SupplementalGroups,
+		}
+		mpsc.NamespaceOptions = &api.NamespaceOption{
+			Network: api.NamespaceModePod,
+			Pid:     api.NamespaceModeContainer,
+			Ipc:     api.NamespaceModeContainer,
+		}
+		if pod.Spec.HostNetwork {
+			mpsc.NamespaceOptions.Network = api.NamespaceModeNode
+		}
+		if pod.Spec.HostPID {
+			mpsc.NamespaceOptions.Pid = api.NamespaceModeNode
+		}
+		if pod.Spec.HostIPC {
+			mpsc.NamespaceOptions.Ipc = api.NamespaceModeNode
+		}
+		if pod.Spec.ShareProcessNamespace != nil {
+			// TODO: containers share pid namespace in the pod.
+		}
+		mpsc.Sysctls = make([]api.Sysctl, len(podsc.Sysctls))
+		for i, sysctl := range podsc.Sysctls {
+			mpsc.Sysctls[i] = api.Sysctl{
+				Name:  sysctl.Name,
+				Value: sysctl.Value,
+			}
+		}
+		milpapod.Spec.SecurityContext = mpsc
+	}
+	for _, initContainer := range pod.Spec.InitContainers {
+		initUnit := ContainerToUnit(initContainer)
+		milpapod.Spec.InitUnits = append(milpapod.Spec.InitUnits, initUnit)
+	}
+	for _, container := range pod.Spec.Containers {
+		unit := ContainerToUnit(container)
+		milpapod.Spec.Units = append(milpapod.Spec.Units, unit)
+	}
+	return milpapod, nil
+}
+
+func (p *InstanceProvider) MilpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
+	namespace, name := util.SplitNamespaceAndName(milpaPod.Name)
+	pod := &v1.Pod{}
+	pod.Kind = "Pod"
+	pod.APIVersion = "v1"
+	pod.Name = name
+	pod.Namespace = namespace
+	//TODO pod.UID = ...
+	pod.Labels = milpaPod.Labels
+	pod.Annotations = milpaPod.Annotations
+	pod.Spec.NodeName = p.nodeName
+	pod.Spec.Volumes = []v1.Volume{}
+	pod.Spec.RestartPolicy = v1.RestartPolicy(string(milpaPod.Spec.RestartPolicy))
+	mpsc := milpaPod.Spec.SecurityContext
+	if mpsc != nil {
+		if pod.Spec.SecurityContext == nil {
+			pod.Spec.SecurityContext = &v1.PodSecurityContext{}
+		}
+		psc := pod.Spec.SecurityContext
+		psc.RunAsUser = mpsc.RunAsUser
+		psc.RunAsGroup = mpsc.RunAsGroup
+		psc.SupplementalGroups = mpsc.SupplementalGroups
+		if mpsc.NamespaceOptions != nil {
+			if mpsc.NamespaceOptions.Network == api.NamespaceModeNode {
+				pod.Spec.HostNetwork = true
+			}
+			if mpsc.NamespaceOptions.Pid == api.NamespaceModeNode {
+				pod.Spec.HostPID = true
+			}
+			if mpsc.NamespaceOptions.Ipc == api.NamespaceModeNode {
+				pod.Spec.HostIPC = true
+			}
+		}
+		psc.Sysctls = make([]v1.Sysctl, len(mpsc.Sysctls))
+		for i, sysctl := range mpsc.Sysctls {
+			psc.Sysctls[i] = v1.Sysctl{
+				Name:  sysctl.Name,
+				Value: sysctl.Value,
+			}
+		}
+		pod.Spec.SecurityContext = psc
+	}
+	initContainerMap := make(map[string]v1.Container)
+	for _, initContainer := range pod.Spec.InitContainers {
+		initContainerMap[initContainer.Name] = initContainer
+	}
+	containerMap := make(map[string]v1.Container)
+	for _, container := range pod.Spec.Containers {
+		containerMap[container.Name] = container
+	}
+	for _, initUnit := range milpaPod.Spec.InitUnits {
+		initContainer, exists := initContainerMap[initUnit.Name]
+		ptr := &initContainer
+		if !exists {
+			ptr = nil
+		}
+		initContainer = UnitToContainer(initUnit, ptr)
+		pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
+	}
+	for _, unit := range milpaPod.Spec.Units {
+		container, exists := containerMap[unit.Name]
+		ptr := &container
+		if !exists {
+			ptr = nil
+		}
+		container = UnitToContainer(unit, ptr)
+		pod.Spec.Containers = append(pod.Spec.Containers, container)
+	}
+	pod.Status = p.getStatus(milpaPod)
+	podBytes, _ := json.Marshal(pod)
+	glog.Infof("pod %s", string(podBytes))
+	return pod, nil
+}
+
+func (p *InstanceProvider) getPodRegistry() *registry.PodRegistry {
+	reg := p.Registries["Pod"]
+	return reg.(*registry.PodRegistry)
+}
+
 func (p *InstanceProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	ctx, span := trace.StartSpan(ctx, "CreatePod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
 	log.G(ctx).Infof("CreatePod %q", pod.Name)
-	//p.notifier(pod)
-	return fmt.Errorf("not implemented")
+	milpaPod, err := p.K8sToMilpaPod(pod)
+	if err != nil {
+		log.G(ctx).Errorf("CreatePod %q: %v", pod.Name, err)
+		return err
+	}
+	podRegistry := p.getPodRegistry()
+	_, err = podRegistry.CreatePod(milpaPod)
+	if err != nil {
+		log.G(ctx).Errorf("CreatePod %q: %v", pod.Name, err)
+		return err
+	}
+	p.notifier(pod)
+	return nil
 }
 
 func (p *InstanceProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
@@ -399,27 +785,58 @@ func (p *InstanceProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
 	log.G(ctx).Infof("UpdatePod %q", pod.Name)
-	//p.notifier(pod)
-	return fmt.Errorf("not implemented")
+	milpaPod, err := p.K8sToMilpaPod(pod)
+	if err != nil {
+		log.G(ctx).Errorf("UpdatePod %q: %v", pod.Name, err)
+		return err
+	}
+	podRegistry := p.getPodRegistry()
+	_, err = podRegistry.UpdatePodSpecAndLabels(milpaPod)
+	if err != nil {
+		log.G(ctx).Errorf("UpdatePod %q: %v", pod.Name, err)
+		return err
+	}
+	p.notifier(pod)
+	return nil
 }
 
-// DeletePod deletes the specified pod out of memory.
 func (p *InstanceProvider) DeletePod(ctx context.Context, pod *v1.Pod) (err error) {
 	ctx, span := trace.StartSpan(ctx, "DeletePod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
 	log.G(ctx).Infof("DeletePod %q", pod.Name)
-	//p.notifier(pod)
-	return fmt.Errorf("not implemented")
+	milpaPod, err := p.K8sToMilpaPod(pod)
+	if err != nil {
+		log.G(ctx).Errorf("DeletePod %q: %v", pod.Name, err)
+		return err
+	}
+	podRegistry := p.getPodRegistry()
+	_, err = podRegistry.Delete(milpaPod.Name)
+	if err != nil {
+		log.G(ctx).Errorf("DeletePod %q: %v", pod.Name, err)
+		return err
+	}
+	p.notifier(pod)
+	return nil
 }
 
-func (p *InstanceProvider) GetPod(ctx context.Context, namespace, name string) (pod *v1.Pod, err error) {
+func (p *InstanceProvider) GetPod(ctx context.Context, namespace, name string) (*v1.Pod, error) {
 	ctx, span := trace.StartSpan(ctx, "GetPod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, name)
 	log.G(ctx).Infof("GetPod %q", name)
-	//p.notifier(pod)
-	return nil, fmt.Errorf("not implemented")
+	podRegistry := p.getPodRegistry()
+	milpaPod, err := podRegistry.GetPod(util.WithNamespace(namespace, name))
+	if err != nil {
+		log.G(ctx).Errorf("GetPod %q: %v", name, err)
+		return nil, err
+	}
+	pod, err := p.MilpaToK8sPod(milpaPod)
+	if err != nil {
+		log.G(ctx).Errorf("GetPod %q: %v", name, err)
+		return nil, err
+	}
+	return pod, nil
 }
 
 func (p *InstanceProvider) GetContainerLogs(ctx context.Context, namespace, podName, containerName string, opts vkapi.ContainerLogOpts) (io.ReadCloser, error) {
@@ -427,7 +844,6 @@ func (p *InstanceProvider) GetContainerLogs(ctx context.Context, namespace, podN
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
 	log.G(ctx).Infof("GetContainerLogs %q", podName)
-	//p.notifier(pod)
 	return nil, fmt.Errorf("not implemented")
 }
 
@@ -436,7 +852,6 @@ func (p *InstanceProvider) RunInContainer(ctx context.Context, namespace, podNam
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
 	log.G(ctx).Infof("RunInContainer %q %v", podName, cmd)
-	//p.notifier(pod)
 	return fmt.Errorf("not implemented")
 }
 
@@ -445,17 +860,44 @@ func (p *InstanceProvider) GetPodStatus(ctx context.Context, namespace, name str
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, name)
 	log.G(ctx).Infof("GetPodStatus %q", name)
-	//p.notifier(pod)
-	return nil, fmt.Errorf("not implemented")
+	podRegistry := p.getPodRegistry()
+	milpaPod, err := podRegistry.GetPod(util.WithNamespace(namespace, name))
+	if err != nil {
+		log.G(ctx).Errorf("GetPodStatus %q: %v", name, err)
+		return nil, err
+	}
+	pod, err := p.MilpaToK8sPod(milpaPod)
+	if err != nil {
+		log.G(ctx).Errorf("GetPodStatus %q: %v", name, err)
+		return nil, err
+	}
+	return &pod.Status, nil
 }
 
-// GetPods returns a list of all pods known to be "running".
 func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 	ctx, span := trace.StartSpan(ctx, "GetPods")
 	defer span.End()
 	log.G(ctx).Infof("GetPods")
-	//p.notifier(pod)
-	return nil, fmt.Errorf("not implemented")
+	podRegistry := p.getPodRegistry()
+	milpaPods, err := podRegistry.ListPods(func(pod *api.Pod) bool {
+		if pod.Status.Phase == api.PodRunning {
+			return true
+		}
+		return false
+	})
+	if err != nil {
+		log.G(ctx).Errorf("GetPods: %v", err)
+		return nil, err
+	}
+	pods := make([]*v1.Pod, len(milpaPods.Items))
+	for i, milpaPod := range milpaPods.Items {
+		pods[i], err = p.MilpaToK8sPod(milpaPod)
+		if err != nil {
+			log.G(ctx).Errorf("GetPods: %v", err)
+			return nil, err
+		}
+	}
+	return pods, nil
 }
 
 func (p *InstanceProvider) ConfigureNode(ctx context.Context, n *v1.Node) {
@@ -598,7 +1040,7 @@ func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary,
 // NotifyPods is called to set a pod notifier callback function. This should be
 // called before any operations are done within the provider.
 func (p *InstanceProvider) NotifyPods(ctx context.Context, notifier func(*v1.Pod)) {
-	//p.notifier = notifier
+	p.notifier = notifier
 }
 
 func addAttributes(ctx context.Context, span trace.Span, attrs ...string) context.Context {
