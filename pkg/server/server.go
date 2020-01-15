@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"io"
-	"os"
 	"sort"
 	"sync"
 	"time"
@@ -27,6 +26,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/timeoutmap"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
 	"github.com/golang/glog"
+	"github.com/virtual-kubelet/node-cli/manager"
 	vkapi "github.com/virtual-kubelet/virtual-kubelet/node/api"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	"golang.org/x/net/context"
@@ -124,21 +124,20 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 		return fmt.Errorf(
 			"error: region has changed from %s to %s. "+
 				"This is unsupported. "+
-				"Please delete all cluster resources and rename your cluster.",
+				"Please delete all cluster resources and rename your cluster",
 			savedRegion, region)
 	}
 	return nil
 }
 
 // InstanceProvider should implement node.PodLifecycleHandler
-func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndpointPort int32, systemQuit <-chan struct{}) (*InstanceProvider, error) {
+func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndpointPort int32, rm *manager.ResourceManager, systemQuit <-chan struct{}) (*InstanceProvider, error) {
 	systemWG := &sync.WaitGroup{}
 
 	serverConfigFile, err := ParseConfig(configFilePath)
 	if err != nil {
-		glog.Errorf("Loading Config file (%s) failed with error: %s",
+		return nil, fmt.Errorf("loading Config file (%s) failed with error: %s",
 			configFilePath, err.Error())
-		os.Exit(1)
 	}
 	errs := validateServerConfigFile(serverConfigFile)
 	if len(errs) > 0 {
@@ -154,13 +153,11 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		systemWG,
 	)
 	if err != nil {
-		glog.Errorf("Etcd error: %s", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("etcd error: %s", err)
 	}
 	controllerID, err := getControllerID(etcdClient)
 	if err != nil {
-		glog.Errorf("Controller ID error: %s", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("controller ID error: %s", err)
 	}
 	if serverConfigFile.Testing.ControllerID != "" {
 		controllerID = serverConfigFile.Testing.ControllerID
@@ -174,25 +171,21 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 
 	certFactory, err := certs.New(etcdClient)
 	if err != nil {
-		glog.Errorf("Error setting up certificate factory: %v", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("error setting up certificate factory: %v", err)
 	}
 
 	cloudClient, err := ConfigureCloud(serverConfigFile, controllerID, nametag)
 	if err != nil {
-		glog.Errorln("Error configuring cloud client", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("error configuring cloud client: %v", err)
 	}
 	cloudRegion := cloudClient.GetAttributes().Region
 	err = ensureRegionUnchanged(etcdClient, cloudRegion)
 	if err != nil {
-		glog.Errorln("Error ensuring Milpa region is unchanged", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("error ensuring Milpa region is unchanged: %v", err)
 	}
 	clientCert, err := certFactory.CreateClientCert()
 	if err != nil {
-		glog.Errorf("Error creating node client certificate: %v", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("error creating node client certificate: %v", err)
 	}
 	cloudStatus := cloudClient.CloudStatusKeeper()
 	cloudStatus.Start()
@@ -206,15 +199,13 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		cloudRegion,
 		serverConfigFile.Cells.DefaultInstanceType)
 	if err != nil {
-		glog.Errorf("Error setting up instance selector %s", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("error setting up instance selector %s", err)
 	}
 	// Ugly: need to do validation of this field after we have setup
 	// the instanceselector
 	errs = validation.ValidateInstanceType(serverConfigFile.Cells.DefaultInstanceType, field.NewPath("nodes.defaultInstanceType"))
 	if len(errs) > 0 {
-		glog.Errorf("Error validating server.yml: %v", errs.ToAggregate())
-		os.Exit(1)
+		return nil, fmt.Errorf("error validating server.yml: %v", errs.ToAggregate())
 	}
 
 	glog.Infof("Setting up events")
@@ -247,6 +238,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		logRegistry:       logRegistry,
 		metricsRegistry:   metricsRegistry,
 		nodeLister:        nodeRegistry,
+		resourceManager:   rm,
 		nodeDispenser:     nodeDispenser,
 		nodeClientFactory: itzoClientFactory,
 		events:            eventSystem,
@@ -345,8 +337,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 	err = validateBootImageTags(
 		serverConfigFile.Cells.BootImageTags, cloudClient)
 	if err != nil {
-		glog.Errorf("Failed to validate boot image tags.")
-		os.Exit(1)
+		return nil, fmt.Errorf("failed to validate boot image tags.")
 	}
 
 	return s, err

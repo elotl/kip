@@ -18,7 +18,12 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/conmap"
 	"github.com/elotl/cloud-instance-provider/pkg/util/stats"
 	"github.com/golang/glog"
+	"github.com/virtual-kubelet/node-cli/manager"
+	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/kubernetes/third_party/forked/golang/expansion"
 )
 
 // make this configurable
@@ -39,8 +44,8 @@ type PodController struct {
 	podRegistry        *registry.PodRegistry
 	logRegistry        *registry.LogRegistry
 	metricsRegistry    *registry.MetricsRegistry
-	secretLister       registry.SecretLister
 	nodeLister         registry.NodeLister
+	resourceManager    *manager.ResourceManager
 	nodeDispenser      *nodemanager.NodeDispenser
 	nodeClientFactory  nodeclient.ItzoClientFactoryer
 	events             *events.EventSystem
@@ -190,20 +195,20 @@ func (c *PodController) markFailedPod(pod *api.Pod, startFailure bool, msg strin
 func (c *PodController) loadRegistryCredentials(pod *api.Pod) (map[string]api.RegistryCredentials, error) {
 	allCreds := make(map[string]api.RegistryCredentials)
 	for _, secretName := range pod.Spec.ImagePullSecrets {
-		s, err := c.secretLister.GetSecret(secretName)
+		s, err := c.resourceManager.GetSecret(secretName, pod.Namespace)
 		if err != nil {
-			return nil, util.WrapError(err, "Could not get secret %s from registry", secretName)
+			return nil, util.WrapError(err, "could not get secret %s from api server", secretName)
 		}
 		server := s.Data["server"]
 		username, exists := s.Data["username"]
 		if !exists {
 			return nil, fmt.Errorf(
-				"Could not find registry username in secret %s", secretName)
+				"could not find registry username in secret %s", secretName)
 		}
 		password, exists := s.Data["password"]
 		if !exists {
 			return nil, fmt.Errorf(
-				"Could not find registry password in secret %s", secretName)
+				"could not find registry password in secret %s", secretName)
 		}
 		creds := api.RegistryCredentials{
 			Server:   string(server),
@@ -270,32 +275,196 @@ func (c *PodController) resizeVolume(node *api.Node, pod *api.Pod, client nodecl
 	return nil
 }
 
-func (c *PodController) loadPodSecrets(pod *api.Pod) (map[string]map[string][]byte, error) {
-	secrets := make(map[string]map[string][]byte)
-	units := append(pod.Spec.Units, pod.Spec.InitUnits...)
-	for _, unit := range units {
-		for _, ev := range unit.Env {
-			if ev.ValueFrom != nil && ev.ValueFrom.SecretKeyRef != nil {
-				name := ev.ValueFrom.SecretKeyRef.Name
-				_, nameExists := secrets[name]
-				if !nameExists {
-					secrets[name] = make(map[string][]byte)
-				}
-				key := ev.ValueFrom.SecretKeyRef.Key
-				s, err := c.secretLister.GetSecret(name)
+// Todo: this could be pushed down into makeUnitEnvVars so
+// that we can cache configMaps and Secrets
+func (c *PodController) replacePodEnvVars(pod *api.Pod) error {
+	for i := range pod.Spec.InitUnits {
+		envVars, err := c.makeUnitEnvVars(pod, &pod.Spec.InitUnits[i])
+		if err != nil {
+			return err
+		}
+		pod.Spec.InitUnits[i].Env = envVars
+	}
+	for i := range pod.Spec.Units {
+		envVars, err := c.makeUnitEnvVars(pod, &pod.Spec.Units[i])
+		if err != nil {
+			return err
+		}
+		pod.Spec.Units[i].Env = envVars
+	}
+	return nil
+}
+
+// Make the environment variables for a pod in the given namespace.
+// Copied from k8s.io/kubernetes/pkg/kubelet/kubelet_pods.go:makeEnvironmentVariables
+func (c *PodController) makeUnitEnvVars(pod *api.Pod, unit *api.Unit) ([]api.EnvVar, error) {
+	var result []api.EnvVar
+	var (
+		configMaps = make(map[string]*v1.ConfigMap)
+		secrets    = make(map[string]*v1.Secret)
+		tmpEnv     = make(map[string]string)
+		err        error
+	)
+
+	// Env will override EnvFrom variables.
+	// Process EnvFrom first then allow Env to replace existing values.
+	for _, envFrom := range unit.EnvFrom {
+		switch {
+		case envFrom.ConfigMapRef != nil:
+			cm := envFrom.ConfigMapRef
+			name := cm.Name
+			configMap, ok := configMaps[name]
+			if !ok {
+				optional := cm.Optional != nil && *cm.Optional
+				configMap, err = c.resourceManager.GetConfigMap(name, pod.Namespace)
 				if err != nil {
-					return nil, util.WrapError(err, "Could not get secret %s from registry", name)
+					if errors.IsNotFound(err) && optional {
+						continue
+					}
+					return result, err
 				}
-				value, exists := s.Data[key]
-				if !exists {
-					return nil, fmt.Errorf(
-						"Could not find secret key %s in secret %s", key, name)
-				}
-				secrets[name][key] = value
+				configMaps[name] = configMap
 			}
+
+			invalidKeys := []string{}
+			for k, v := range configMap.Data {
+				if len(envFrom.Prefix) > 0 {
+					k = envFrom.Prefix + k
+				}
+				if errMsgs := utilvalidation.IsEnvVarName(k); len(errMsgs) != 0 {
+					invalidKeys = append(invalidKeys, k)
+					continue
+				}
+				tmpEnv[k] = v
+			}
+			// if len(invalidKeys) > 0 {
+			// 	sort.Strings(invalidKeys)
+			// 	kl.recorder.Eventf(pod, v1.EventTypeWarning, "InvalidEnvironmentVariableNames", "Keys [%s] from the EnvFrom configMap %s/%s were skipped since they are considered invalid environment variable names.", strings.Join(invalidKeys, ", "), pod.Namespace, name)
+			// }
+		case envFrom.SecretRef != nil:
+			s := envFrom.SecretRef
+			name := s.Name
+			secret, ok := secrets[name]
+			if !ok {
+				optional := s.Optional != nil && *s.Optional
+				secret, err = c.resourceManager.GetSecret(name, pod.Namespace)
+				if err != nil {
+					if errors.IsNotFound(err) && optional {
+						// ignore error when marked optional
+						continue
+					}
+					return result, err
+				}
+				secrets[name] = secret
+			}
+
+			invalidKeys := []string{}
+			for k, v := range secret.Data {
+				if len(envFrom.Prefix) > 0 {
+					k = envFrom.Prefix + k
+				}
+				if errMsgs := utilvalidation.IsEnvVarName(k); len(errMsgs) != 0 {
+					invalidKeys = append(invalidKeys, k)
+					continue
+				}
+				tmpEnv[k] = string(v)
+			}
+			// if len(invalidKeys) > 0 {
+			// 	sort.Strings(invalidKeys)
+			// 	kl.recorder.Eventf(pod, v1.EventTypeWarning, "InvalidEnvironmentVariableNames", "Keys [%s] from the EnvFrom secret %s/%s were skipped since they are considered invalid environment variable names.", strings.Join(invalidKeys, ", "), pod.Namespace, name)
+			// }
 		}
 	}
-	return secrets, nil
+	// Determine the final values of variables:
+	//
+	// 1.  Determine the final value of each variable:
+	//     a.  If the variable's Value is set, expand the `$(var)` references to other
+	//         variables in the .Value field; the sources of variables are the declared
+	//         variables of the container and the service environment variables
+	//     b.  If a source is defined for an environment variable, resolve the source
+	// 2.  Create the container's environment in the order variables are declared
+	// 3.  Add remaining service environment vars
+
+	var (
+		mappingFunc = expansion.MappingFuncFor(tmpEnv)
+	)
+
+	for _, envVar := range unit.Env {
+		runtimeVal := envVar.Value
+		if runtimeVal != "" {
+			runtimeVal = expansion.Expand(runtimeVal, mappingFunc)
+		} else if envVar.ValueFrom != nil {
+			switch {
+			// removed ValueFrom.FieldRef and ValueFrom.ResourceFieldRef
+			// those can be added back in when necessary
+			case envVar.ValueFrom.ConfigMapKeyRef != nil:
+				cm := envVar.ValueFrom.ConfigMapKeyRef
+				name := cm.Name
+				key := cm.Key
+				optional := cm.Optional != nil && *cm.Optional
+				configMap, ok := configMaps[name]
+				if !ok {
+					configMap, err = c.resourceManager.GetConfigMap(name, pod.Namespace)
+					if err != nil {
+						if errors.IsNotFound(err) && optional {
+							continue
+						}
+						return result, err
+					}
+					configMaps[name] = configMap
+				}
+				runtimeVal, ok = configMap.Data[key]
+				if !ok {
+					if optional {
+						continue
+					}
+					return result, fmt.Errorf("Couldn't find key %v in ConfigMap %v/%v", key, pod.Namespace, name)
+				}
+			case envVar.ValueFrom.SecretKeyRef != nil:
+				s := envVar.ValueFrom.SecretKeyRef
+				name := s.Name
+				key := s.Key
+				optional := s.Optional != nil && *s.Optional
+				secret, ok := secrets[name]
+				if !ok {
+					secret, err = c.resourceManager.GetSecret(name, pod.Namespace)
+					if err != nil {
+						if errors.IsNotFound(err) && optional {
+							continue
+						}
+						return result, err
+					}
+					secrets[name] = secret
+				}
+				runtimeValBytes, ok := secret.Data[key]
+				if !ok {
+					if optional {
+						continue
+					}
+					return result, fmt.Errorf("Couldn't find key %v in Secret %v/%v", key, pod.Namespace, name)
+				}
+				runtimeVal = string(runtimeValBytes)
+			}
+		}
+
+		// Todo: see if recent versions of k8s set service env vars
+
+		// Accesses apiserver+Pods.
+		// So, the master may set service env vars, or kubelet may.  In case both are doing
+		// it, we delete the key from the kubelet-generated ones so we don't have duplicate
+		// env vars.
+		// TODO: remove this next line once all platforms use apiserver+Pods.
+		// delete(serviceEnv, envVar.Name)
+
+		tmpEnv[envVar.Name] = runtimeVal
+	}
+
+	// Append the env vars
+	for k, v := range tmpEnv {
+		result = append(result, api.EnvVar{Name: k, Value: v})
+	}
+
+	return result, nil
 }
 
 func (c *PodController) updatePodUnits(pod *api.Pod) error {
@@ -304,16 +473,16 @@ func (c *PodController) updatePodUnits(pod *api.Pod) error {
 		return util.WrapError(err, "Error getting node %s for pod update", pod.Status.BoundNodeName)
 	}
 	client := c.nodeClientFactory.GetClient(node.Status.Addresses)
-	podSecrets, err := c.loadPodSecrets(pod)
-	if err != nil {
-		return util.WrapError(err, "Error getting pod %s secrets for pod update", pod.Name)
-	}
+	// podSecrets, err := c.loadPodSecrets(pod)
+	// if err != nil {
+	// 	return util.WrapError(err, "Error getting pod %s secrets for pod update", pod.Name)
+	// }
 	podCreds, err := c.loadRegistryCredentials(pod)
 	if err != nil {
 		return util.WrapError(err, "Unable to sync pod: %s bad Pod.Spec.ImagePullSecret", pod.Name)
 	}
 	podParams := api.PodParameters{
-		Secrets:     podSecrets,
+		//Secrets:     podSecrets,
 		Credentials: podCreds,
 		Spec:        pod.Spec,
 		PodName:     pod.Name,
@@ -364,6 +533,14 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 	if err != nil {
 		msg := fmt.Sprintf("Error updating pod units after dispatching pod to node: %v", err)
 		glog.Errorln(msg)
+		c.markFailedPod(pod, true, msg)
+		return
+	}
+
+	err = c.replacePodEnvVars(pod)
+	if err != nil {
+		msg := fmt.Sprintf("Error setting pod environment variables: %v", err)
+		glog.Error(msg)
 		c.markFailedPod(pod, true, msg)
 		return
 	}
