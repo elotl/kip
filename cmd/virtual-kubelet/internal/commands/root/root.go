@@ -19,8 +19,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/manager"
 	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/provider"
+	"github.com/elotl/cloud-instance-provider/pkg/manager"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/virtual-kubelet/virtual-kubelet/errdefs"

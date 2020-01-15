@@ -3,7 +3,7 @@ package provider
 import (
 	"sync"
 
-	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/manager"
+	"github.com/elotl/cloud-instance-provider/pkg/manager"
 	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
 )
 

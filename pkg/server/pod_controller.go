@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/cloud-instance-provider/pkg/manager"
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/server/events"
@@ -18,7 +19,6 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/conmap"
 	"github.com/elotl/cloud-instance-provider/pkg/util/stats"
 	"github.com/golang/glog"
-	"github.com/virtual-kubelet/node-cli/manager"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"

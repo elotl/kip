@@ -774,14 +774,6 @@
   version = "v2.21.1"
 
 [[projects]]
-  digest = "1:a20c755d1683048f9110d9cc83fdaa1e038c2964f51e6bfbf66300f839c9febf"
-  name = "github.com/virtual-kubelet/node-cli"
-  packages = ["manager"]
-  pruneopts = "UT"
-  revision = "cd8af9b9bc8c4cf6e49994bd677165c79d498320"
-  version = "v0.1.2"
-
-[[projects]]
   digest = "1:1e07b87bb137fe9833463d629af79a4cfc876c3a4069476c5b2fd2d3e7f8e261"
   name = "github.com/virtual-kubelet/virtual-kubelet"
   packages = [
@@ -1532,7 +1524,6 @@
     "github.com/spf13/pflag",
     "github.com/stretchr/testify/assert",
     "github.com/uber-go/atomic",
-    "github.com/virtual-kubelet/node-cli/manager",
     "github.com/virtual-kubelet/virtual-kubelet/errdefs",
     "github.com/virtual-kubelet/virtual-kubelet/log",
     "github.com/virtual-kubelet/virtual-kubelet/log/logrus",
@@ -1553,6 +1544,7 @@
     "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/util/errors",
     "k8s.io/apimachinery/pkg/util/sets",
+    "k8s.io/apimachinery/pkg/util/validation",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/client-go/informers",
     "k8s.io/client-go/kubernetes",
