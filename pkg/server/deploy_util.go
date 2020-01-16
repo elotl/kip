@@ -17,6 +17,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	defaultVolumeFileMode = int32(0644)
+)
+
 type packageFile struct {
 	data []byte
 	mode int32
@@ -59,7 +63,7 @@ func makeDeployPackage(contents map[string]packageFile) (*bytes.Buffer, error) {
 
 func getConfigMapFiles(cmVol *api.ConfigMapVolumeSource, cm *v1.ConfigMap) (map[string]packageFile, error) {
 	packageItems := make(map[string]packageFile)
-	defaultMode := int32(0644)
+	defaultMode := defaultVolumeFileMode
 	if cmVol.DefaultMode != nil {
 		defaultMode = *cmVol.DefaultMode
 	}
@@ -67,10 +71,10 @@ func getConfigMapFiles(cmVol *api.ConfigMapVolumeSource, cm *v1.ConfigMap) (map[
 	var items []api.KeyToPath
 	if len(cmVol.Items) == 0 {
 		items = make([]api.KeyToPath, 0, len(cm.Data)+len(cm.BinaryData))
-		for k, _ := range cm.Data {
+		for k := range cm.Data {
 			items = append(items, api.KeyToPath{Key: k})
 		}
-		for k, _ := range cm.BinaryData {
+		for k := range cm.BinaryData {
 			items = append(items, api.KeyToPath{Key: k})
 		}
 	} else {
@@ -109,7 +113,7 @@ func makeSecretPackage() error {
 	return nil
 }
 
-func deployVolumes(pod *api.Pod, node *api.Node, rm *manager.ResourceManager, nodeClientFactory nodeclient.ItzoClientFactoryer) error {
+func deployPodVolumes(pod *api.Pod, node *api.Node, rm *manager.ResourceManager, nodeClientFactory nodeclient.ItzoClientFactoryer) error {
 	client := nodeClientFactory.GetClient(node.Status.Addresses)
 	for _, vol := range pod.Spec.Volumes {
 		if vol.ConfigMap != nil {

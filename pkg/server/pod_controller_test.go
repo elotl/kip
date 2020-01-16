@@ -1049,20 +1049,6 @@ func TestMakeEnvironmentVariables(t *testing.T) {
 	ctl, closer := createPodController(client)
 	defer closer()
 	for _, tc := range testCases {
-		// create a resource manager
-		// add our clients into there...
-
-		//fakeRecorder := record.NewFakeRecorder(1)
-		// testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
-		// testKubelet.kubelet.recorder = fakeRecorder
-		// defer testKubelet.Cleanup()
-		// kl := testKubelet.kubelet
-		//kl.masterServiceNamespace = tc.masterServiceNs
-		// if tc.nilLister {
-		// 	kl.serviceLister = nil
-		// } else {
-		// 	kl.serviceLister = testServiceLister{services}
-		// }
 
 		indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 		if tc.configMap != nil {
@@ -1078,28 +1064,6 @@ func TestMakeEnvironmentVariables(t *testing.T) {
 			t.Fatal(err)
 		}
 		ctl.resourceManager = rm
-		// testKubelet.fakeKubeClient.AddReactor("get", "configmaps", func(action core.Action) (bool, runtime.Object, error) {
-		// 	var err error
-		// 	if tc.configMap == nil {
-		// 		err = apierrors.NewNotFound(action.GetResource().GroupResource(), "configmap-name")
-		// 	}
-		// 	return true, tc.configMap, err
-		// })
-		// testKubelet.fakeKubeClient.AddReactor("get", "secrets", func(action core.Action) (bool, runtime.Object, error) {
-		// 	var err error
-		// 	if tc.secret == nil {
-		// 		err = apierrors.NewNotFound(action.GetResource().GroupResource(), "secret-name")
-		// 	}
-		// 	return true, tc.secret, err
-		// })
-
-		// testKubelet.fakeKubeClient.AddReactor("get", "secrets", func(action core.Action) (bool, runtime.Object, error) {
-		// 	var err error
-		// 	if tc.secret == nil {
-		// 		err = errors.New("no secret defined")
-		// 	}
-		// 	return true, tc.secret, err
-		// })
 
 		testPod := &api.Pod{
 			ObjectMeta: api.ObjectMeta{
