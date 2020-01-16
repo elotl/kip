@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -750,8 +749,6 @@ func (p *InstanceProvider) MilpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
 		pod.Spec.Containers = append(pod.Spec.Containers, container)
 	}
 	pod.Status = p.getStatus(milpaPod)
-	podBytes, _ := json.Marshal(pod)
-	glog.Infof("pod %s", string(podBytes))
 	return pod, nil
 }
 
