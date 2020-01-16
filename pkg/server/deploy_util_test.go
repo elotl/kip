@@ -170,6 +170,7 @@ func TestDeployVolumes(t *testing.T) {
 		name          string
 		volumes       []api.Volume
 		configMap     *v1.ConfigMap
+		secret        *v1.Secret
 		expectedFiles map[string]packageFile
 		isErr         bool
 	}{
@@ -223,6 +224,36 @@ func TestDeployVolumes(t *testing.T) {
 			},
 			isErr: false,
 		},
+		{
+			name: "get secret, single item",
+			volumes: []api.Volume{
+				{
+					Name: "mytest",
+					VolumeSource: api.VolumeSource{
+						Secret: &api.SecretVolumeSource{
+							SecretName: "test-secret",
+							Items: []api.KeyToPath{
+								{Key: "bar"},
+							},
+						},
+					},
+				},
+			},
+			secret: &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-secret",
+					Namespace: "default",
+				},
+				Data: map[string][]byte{
+					"foo": []byte("YWJj"), // abc
+					"bar": []byte("MTIz"), // 123
+				},
+			},
+			expectedFiles: map[string]packageFile{
+				"bar": packageFile{data: []byte("123"), mode: defaultVolumeFileMode},
+			},
+			isErr: false,
+		},
 	}
 	for _, tc := range tests {
 		indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
@@ -230,7 +261,11 @@ func TestDeployVolumes(t *testing.T) {
 			assert.Nil(t, indexer.Add(tc.configMap))
 		}
 		configMapLister := corev1listers.NewConfigMapLister(indexer)
-		rm, err := manager.NewResourceManager(nil, nil, configMapLister, nil)
+		if tc.secret != nil {
+			assert.Nil(t, indexer.Add(tc.secret))
+		}
+		secretLister := corev1listers.NewSecretLister(indexer)
+		rm, err := manager.NewResourceManager(nil, secretLister, configMapLister, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
