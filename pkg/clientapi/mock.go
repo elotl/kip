@@ -12,20 +12,18 @@ import (
 )
 
 type MockMilpaClient struct {
-	GetVersioner        func(ctx context.Context, in *VersionRequest, opts ...grpc.CallOption) (*VersionReply, error)
-	Creator             func(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*APIReply, error)
-	Updater             func(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*APIReply, error)
-	Getter              func(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*APIReply, error)
-	Deleter             func(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*APIReply, error)
-	GetLogser           func(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*APIReply, error)
-	Dumper              func(ctx context.Context, in *DumpRequest, opts ...grpc.CallOption) (*APIReply, error)
-	SetupIPForwardinger func(ctx context.Context, in *SetupIPForwardingRequest, opts ...grpc.CallOption) (*APIReply, error)
-	Deployer            func(ctx context.Context, opts ...grpc.CallOption) (Milpa_DeployClient, error)
-	StreamLogser        func(ctx context.Context, in *StreamLogsRequest, opts ...grpc.CallOption) (Milpa_StreamLogsClient, error)
-	PortForwarder       func(ctx context.Context, opts ...grpc.CallOption) (Milpa_PortForwardClient, error)
-	Execer              func(ctx context.Context, opts ...grpc.CallOption) (Milpa_ExecClient, error)
-	Attacher            func(ctx context.Context, opts ...grpc.CallOption) (Milpa_AttachClient, error)
-	Leader              func(ctx context.Context, in *IsLeaderRequest, opts ...grpc.CallOption) (*IsLeaderReply, error)
+	GetVersioner func(ctx context.Context, in *VersionRequest, opts ...grpc.CallOption) (*VersionReply, error)
+	Creator      func(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*APIReply, error)
+	Updater      func(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*APIReply, error)
+	Getter       func(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*APIReply, error)
+	Deleter      func(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*APIReply, error)
+	GetLogser    func(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*APIReply, error)
+	Dumper       func(ctx context.Context, in *DumpRequest, opts ...grpc.CallOption) (*APIReply, error)
+	Deployer     func(ctx context.Context, opts ...grpc.CallOption) (Milpa_DeployClient, error)
+	StreamLogser func(ctx context.Context, in *StreamLogsRequest, opts ...grpc.CallOption) (Milpa_StreamLogsClient, error)
+	Execer       func(ctx context.Context, opts ...grpc.CallOption) (Milpa_ExecClient, error)
+	Attacher     func(ctx context.Context, opts ...grpc.CallOption) (Milpa_AttachClient, error)
+	Leader       func(ctx context.Context, in *IsLeaderRequest, opts ...grpc.CallOption) (*IsLeaderReply, error)
 }
 
 func (m MockMilpaClient) GetVersion(ctx context.Context, in *VersionRequest, opts ...grpc.CallOption) (*VersionReply, error) {
@@ -60,20 +58,12 @@ func (m MockMilpaClient) Dump(ctx context.Context, in *DumpRequest, opts ...grpc
 	return m.Dumper(ctx, in, opts...)
 }
 
-func (m MockMilpaClient) SetupIPForwarding(ctx context.Context, in *SetupIPForwardingRequest, opts ...grpc.CallOption) (*APIReply, error) {
-	return m.SetupIPForwardinger(ctx, in, opts...)
-}
-
 func (m MockMilpaClient) Deploy(ctx context.Context, opts ...grpc.CallOption) (Milpa_DeployClient, error) {
 	return m.Deployer(ctx, opts...)
 }
 
 func (m MockMilpaClient) StreamLogs(ctx context.Context, in *StreamLogsRequest, opts ...grpc.CallOption) (Milpa_StreamLogsClient, error) {
 	return m.StreamLogser(ctx, in, opts...)
-}
-
-func (m MockMilpaClient) PortForward(ctx context.Context, opts ...grpc.CallOption) (Milpa_PortForwardClient, error) {
-	return m.PortForwarder(ctx, opts...)
 }
 
 func (m MockMilpaClient) Exec(ctx context.Context, opts ...grpc.CallOption) (Milpa_ExecClient, error) {

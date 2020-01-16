@@ -34,9 +34,6 @@ service Milpa {
   // Dump controller status.
   rpc Dump (DumpRequest) returns (APIReply) {}
 
-  // Setup forwarding rules for kiyot
-  rpc SetupIPForwarding (SetupIPForwardingRequest) returns (APIReply) {}
-
   // Deploy a Milpa package for a unit in a running pod.
   rpc Deploy (stream DeployRequest) returns (APIReply) {}
 
@@ -44,7 +41,7 @@ service Milpa {
   rpc StreamLogs(StreamLogsRequest) returns (stream StreamMsg) {}
 
   // Connect a local port on the client to a remote port
-  rpc PortForward(stream StreamMsg) returns (stream StreamMsg) {}
+  //rpc PortForward(stream StreamMsg) returns (stream StreamMsg) {}
 
   // Execute a command in the context of a unit
   rpc Exec(stream StreamMsg) returns (stream StreamMsg) {}
@@ -84,11 +81,6 @@ message DeleteRequest {
 
 message DumpRequest {
   bytes kind = 1;
-}
-
-message SetupIPForwardingRequest {
-  bytes podName = 1;
-  bytes network = 2;
 }
 
 message APIReply {

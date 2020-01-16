@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"sort"
 	"sync"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/api/validation"
 	"github.com/elotl/cloud-instance-provider/pkg/certs"
+	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
 	"github.com/elotl/cloud-instance-provider/pkg/etcd"
 	"github.com/elotl/cloud-instance-provider/pkg/manager"
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
@@ -32,6 +34,7 @@ import (
 	vkapi "github.com/virtual-kubelet/virtual-kubelet/node/api"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
@@ -44,6 +47,8 @@ const (
 	containerNameKey      = "containerName"
 	etcdClusterRegionPath = "milpa/cluster/region"
 	kubernetesPodKey      = "elotl.co/kubernetes-pod"
+	defaultPort           = 54555
+	defaultProtocol       = "tcp"
 )
 
 var (
@@ -74,7 +79,7 @@ type InstanceProvider struct {
 }
 
 func validateWriteToEtcd(client *etcd.SimpleEtcd) error {
-	glog.Info("Validating write access to etcd (will block until we can connect)")
+	glog.Info("validating write access to etcd (will block until we can connect)")
 	wo := &store.WriteOptions{
 		IsDir: false,
 		TTL:   2 * time.Second,
@@ -93,7 +98,7 @@ func setupEtcd(configFile, dataDir string, quit <-chan struct{}, wg *sync.WaitGr
 	// change in the future if we want the embedded server to join
 	// existing etcd server, but, for now just don't start it.
 	var client *etcd.SimpleEtcd
-	glog.Infof("Starting Internal Etcd")
+	glog.Infof("starting internal etcd")
 	etcdServer := etcd.EtcdServer{
 		ConfigFile: configFile,
 		DataDir:    dataDir,
@@ -101,12 +106,12 @@ func setupEtcd(configFile, dataDir string, quit <-chan struct{}, wg *sync.WaitGr
 	err := etcdServer.Start(quit, wg)
 	if err != nil {
 		return nil, util.WrapError(
-			err, "Error creating internal etcd storage backend")
+			err, "error creating internal etcd storage backend")
 	}
 	client = etcdServer.Client
 	err = validateWriteToEtcd(client)
 	if err != nil {
-		return nil, util.WrapError(err, "Fatal Error: Could not write to etcd")
+		return nil, util.WrapError(err, "fatal error: Could not write to etcd")
 	}
 	return client, err
 }
@@ -344,13 +349,36 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		azureImageController.WaitForAvailable()
 	}
 
+	debugServer := true
+	if debugServer {
+		if err := s.setupDebugServer(); err != nil {
+			return nil, err
+		}
+	}
+
 	err = validateBootImageTags(
 		serverConfigFile.Cells.BootImageTags, cloudClient)
 	if err != nil {
-		return nil, fmt.Errorf("failed to validate boot image tags.")
+		return nil, fmt.Errorf("failed to validate boot image tags")
 	}
 
 	return s, err
+}
+
+func (p *InstanceProvider) setupDebugServer() error {
+	lis, err := net.Listen(defaultProtocol, fmt.Sprintf("127.0.0.1:%d", defaultPort))
+	if err != nil {
+		return fmt.Errorf("error setting up debug %s listener on port %d", defaultProtocol, defaultPort)
+	}
+	grpcServer := grpc.NewServer()
+	clientapi.RegisterMilpaServer(grpcServer, p)
+	go func() {
+		err := grpcServer.Serve(lis)
+		if err != nil {
+			glog.Errorln("Error returned from Serve:", err)
+		}
+	}()
+	return nil
 }
 
 func (p *InstanceProvider) Handle(ev events.Event) error {
