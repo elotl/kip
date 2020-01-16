@@ -73,6 +73,10 @@ spec:
         env:
         - name: KUBELET_PORT
           value: "10666"
+        - name: APISERVER_CERT_LOCATION
+          value: /etc/kubelet-pki/kubelet.crt
+        - name: APISERVER_KEY_LOCATION
+          value: /etc/kubelet-pki/kubelet.key
         resources:
           limits:
             cpu: "2"
@@ -83,10 +87,16 @@ spec:
         volumeMounts:
         - name: server-yml
           mountPath: /etc/virtual-kubelet
+        - name: kubelet-pki
+          mountPath: /etc/kubelet-pki
       restartPolicy: Always
       serviceAccountName: virtual-kubelet
       hostNetwork: true
       volumes:
+      - name: kubelet-pki
+        hostPath:
+          path: /var/lib/kubelet/pki
+          type: Directory
       - name: server-yml
         configMap:
           name: virtual-kubelet-config
