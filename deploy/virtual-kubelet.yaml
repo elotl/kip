@@ -1,5 +1,17 @@
 ---
 apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: provider-data
+  namespace: kube-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: virtual-kubelet-config
@@ -85,6 +97,8 @@ spec:
             cpu: "100m"
             memory: "100Mi"
         volumeMounts:
+        - name: data
+          mountPath: /opt/milpa/data
         - name: server-yml
           mountPath: /etc/virtual-kubelet
         - name: kubelet-pki
@@ -93,6 +107,9 @@ spec:
       serviceAccountName: virtual-kubelet
       hostNetwork: true
       volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: provider-data
       - name: kubelet-pki
         hostPath:
           path: /var/lib/kubelet/pki
