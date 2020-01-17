@@ -367,14 +367,6 @@ type Unit struct {
 	// List of environment variables that will be exported inside the Unit
 	// before start the application.
 	Env []EnvVar `json:"env,omitempty"`
-	// List of sources to populate environment variables in the
-	// container. The keys defined within a source must be a
-	// C_IDENTIFIER. All invalid keys will be reported as an event
-	// when the container is starting. When a key exists in multiple
-	// sources, the value associated with the last source will take
-	// precedence. Values defined by an Env with a duplicate key will
-	// take precedence. Cannot be updated.
-	EnvFrom []EnvFromSource `json:"envFrom,omitempty"`
 	// A list of Volumes that will be attached to the Unit.
 	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty"`
 	// A list of ports that will be opened up for this Unit.
@@ -428,22 +420,6 @@ type EnvVar struct {
 	Name string `json:"name"`
 	// Value of the environment variable.
 	Value string `json:"value,omitempty"`
-	// An environment variable may also come from a Secret.
-	ValueFrom *EnvVarSource `json:"valueFrom,omitempty"`
-}
-
-// EnvVarSource represents a source for the value of an EnvVar. Only one of its
-// fields may be set.
-type EnvVarSource struct {
-	// An optional identifier to prepend to each key in the ConfigMap.
-	// +optional
-	Prefix string `json:"prefix,omitempty"`
-
-	// Selector for the secret.
-	SecretKeyRef *SecretKeySelector `json:"secretKeyRef,omitempty"`
-
-	// Selects a key of a ConfigMap.
-	ConfigMapKeyRef *ConfigMapKeySelector `json:"configMapKeyRef,omitempty"`
 }
 
 // LocalObjectReference contains enough information to let you locate the referenced object inside the same namespace.
@@ -469,40 +445,6 @@ type SecretKeySelector struct {
 	// The key of the Secret to select from.  Must be a valid secret key.
 	Key string `json:"key"`
 	// Kubernetes allows optional Secrets.  We can add that soon
-	Optional *bool `json:"optional,omitempty"`
-}
-
-// EnvFromSource represents the source of a set of ConfigMaps
-type EnvFromSource struct {
-	// An optional identifier to prepend to each key in the ConfigMap. Must be a C_IDENTIFIER.
-	Prefix string `json:"prefix,omitempty"`
-	// The ConfigMap to select from
-	ConfigMapRef *ConfigMapEnvSource `json:"configMapRef,omitempty"`
-	// The Secret to select from
-	SecretRef *SecretEnvSource `json:"secretRef,omitempty"`
-}
-
-// ConfigMapEnvSource selects a ConfigMap to populate the environment
-// variables with.
-//
-// The contents of the target ConfigMap's Data field will represent the
-// key-value pairs as environment variables.
-type ConfigMapEnvSource struct {
-	// The ConfigMap to select from.
-	LocalObjectReference `json:",inline"`
-	// Specify whether the ConfigMap must be defined
-	Optional *bool `json:"optional,omitempty"`
-}
-
-// SecretEnvSource selects a Secret to populate the environment
-// variables with.
-//
-// The contents of the target Secret's Data field will represent the
-// key-value pairs as environment variables.
-type SecretEnvSource struct {
-	// The Secret to select from.
-	LocalObjectReference `json:",inline"`
-	// Specify whether the Secret must be defined
 	Optional *bool `json:"optional,omitempty"`
 }
 

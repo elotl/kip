@@ -205,40 +205,7 @@ func validateEnv(vars []api.EnvVar, fldPath *field.Path) field.ErrorList {
 				allErrs = append(allErrs, field.Invalid(idxPath.Child("name"), ev.Name, msg))
 			}
 		}
-		allErrs = append(allErrs, validateEnvVarValueFrom(ev, idxPath.Child("valueFrom"))...)
 	}
-	return allErrs
-}
-
-func validateEnvVarValueFrom(ev api.EnvVar, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-
-	if ev.ValueFrom == nil {
-		return allErrs
-	}
-	if ev.ValueFrom.SecretKeyRef != nil {
-		allErrs = append(allErrs, validateSecretKeySelector(ev.ValueFrom.SecretKeyRef, fldPath.Child("secretKeyRef"))...)
-	} else {
-		allErrs = append(allErrs, field.Invalid(fldPath, "", "must specify one of: `secretKeyRef`"))
-	}
-	return allErrs
-}
-
-func validateSecretKeySelector(s *api.SecretKeySelector, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-
-	nameFn := ValidateNameFunc(ValidateSecretName)
-	for _, msg := range nameFn(s.Name, false) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), s.Name, msg))
-	}
-	if len(s.Key) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("key"), ""))
-	} else {
-		for _, msg := range validation.IsConfigMapKey(s.Key) {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("key"), s.Key, msg))
-		}
-	}
-
 	return allErrs
 }
 

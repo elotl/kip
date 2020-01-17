@@ -18,11 +18,20 @@ TOP_DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 PKG_SRC=$(shell find $(TOP_DIR)pkg -type f -name '*.go')
 CMD_SRC=$(shell find $(TOP_DIR)cmd/virtual-kubelet -type f -name '*.go')
 VENDOR_SRC=$(shell find $(TOP_DIR)vendor -type f -name '*.go')
+GENERATED_SRC=$(TOP_DIR)pkg/clientapi/clientapi.pb.go \
+			  $(TOP_DIR)pkg/api/deepcopy_generated.go
 
 all: $(BINARIES)
 
-virtual-kubelet: $(PKG_SRC) $(VENDOR_SRC) $(CMD_SRC)
+virtual-kubelet: $(PKG_SRC) $(VENDOR_SRC) $(CMD_SRC) $(GENERATED_SRC)
 	CGO_ENABLED=0 go build $(LDFLAGS) -o $(TOP_DIR)$@ $(TOP_DIR)cmd/virtual-kubelet
+
+
+$(TOP_DIR)pkg/clientapi/clientapi.pb.go: $(TOP_DIR)pkg/clientapi/clientapi.proto
+	protoc -I=$(TOP_DIR) --go_out=plugins=grpc:. $(TOP_DIR)pkg/clientapi/clientapi.proto
+
+$(TOP_DIR)pkg/api/deepcopy_generated.go: $(TOP_DIR)pkg/api/types.go
+	deepcopy-gen --input-dirs=github.com/elotl/cloud-instance-provider/pkg/api
 
 img: $(BINARIES)
 	@echo "Checking if IMAGE_TAG is set" && test -n "$(IMAGE_TAG)"
