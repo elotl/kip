@@ -35,6 +35,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 )
@@ -672,7 +673,7 @@ func UnitToContainer(unit api.Unit, container *v1.Container) v1.Container {
 // For development, I'm making the assumption we can safely copy these
 // values instead of doing deep copies?
 // Todo: verify items coming out of our informers/listers are copies
-func k8sVolumeToMilpaVolume(vol v1.Volume) *api.Volume {
+func k8sToMilpaVolume(vol v1.Volume) *api.Volume {
 	convertKeyToPath := func(k8s []v1.KeyToPath) []api.KeyToPath {
 		milpa := make([]api.KeyToPath, len(k8s))
 		for i := range k8s {
@@ -740,6 +741,77 @@ func k8sVolumeToMilpaVolume(vol v1.Volume) *api.Volume {
 	return nil
 }
 
+// For development, I'm making the assumption we can safely copy these
+// values instead of doing deep copies?
+// Todo: verify items coming out of our informers/listers are copies
+func milpaToK8sVolume(vol api.Volume) *v1.Volume {
+	convertKeyToPath := func(milpa []api.KeyToPath) []v1.KeyToPath {
+		k8s := make([]v1.KeyToPath, len(milpa))
+		for i := range milpa {
+			k8s = append(k8s, v1.KeyToPath{
+				Key:  milpa[i].Key,
+				Path: milpa[i].Path,
+				Mode: milpa[i].Mode,
+			})
+		}
+		return k8s
+	}
+
+	if vol.Secret != nil {
+		return &v1.Volume{
+			Name: vol.Name,
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName:  vol.Secret.SecretName,
+					Items:       convertKeyToPath(vol.Secret.Items),
+					DefaultMode: vol.Secret.DefaultMode,
+					Optional:    vol.Secret.Optional,
+				},
+			},
+		}
+	} else if vol.ConfigMap != nil {
+		return &v1.Volume{
+			Name: vol.Name,
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: vol.ConfigMap.Name,
+					},
+					Items:       convertKeyToPath(vol.ConfigMap.Items),
+					DefaultMode: vol.ConfigMap.DefaultMode,
+					Optional:    vol.ConfigMap.Optional,
+				},
+			},
+		}
+	} else if vol.EmptyDir != nil {
+		var sizeLimit *resource.Quantity
+		if vol.EmptyDir.SizeLimit != 0 {
+			sizeLimit = resource.NewQuantity(vol.EmptyDir.SizeLimit, resource.BinarySI)
+		}
+		return &v1.Volume{
+			Name: vol.Name,
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{
+					Medium:    v1.StorageMedium(string(vol.EmptyDir.Medium)),
+					SizeLimit: sizeLimit,
+				},
+			},
+		}
+	} else {
+		glog.Warning("Unspported volume type for volume: %s", vol.Name)
+		return &v1.Volume{
+			Name: vol.Name,
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDir{
+					Medium: v1.StorageMediumMemory,
+				},
+			},
+		}
+	}
+
+	return nil
+}
+
 func (p *InstanceProvider) K8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 	milpapod := api.NewPod()
 	milpapod.Name = util.WithNamespace(pod.Namespace, pod.Name)
@@ -789,7 +861,7 @@ func (p *InstanceProvider) K8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 		milpapod.Spec.Units = append(milpapod.Spec.Units, unit)
 	}
 	for _, volume := range pod.Spec.Volumes {
-		volume := k8sVolumeToMilpaVolume(volume)
+		volume := k8sToMilpaVolume(volume)
 		if volume != nil {
 			milpapod.Spec.Volumes = append(milpapod.Spec.Volumes, *volume)
 		}
@@ -864,6 +936,12 @@ func (p *InstanceProvider) MilpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
 		}
 		container = UnitToContainer(unit, ptr)
 		pod.Spec.Containers = append(pod.Spec.Containers, container)
+	}
+	for _, volume := range milpaPod.Spec.Volumes {
+		volume := milpaToK8sVolume(volume)
+		if volume != nil {
+			pod.Spec.Volumes = append(pod.Spec.Volumes, *volume)
+		}
 	}
 	pod.Status = p.getStatus(milpaPod)
 	// podBytes, _ := json.Marshal(pod)
