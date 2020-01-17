@@ -802,7 +802,7 @@ func milpaToK8sVolume(vol api.Volume) *v1.Volume {
 		return &v1.Volume{
 			Name: vol.Name,
 			VolumeSource: v1.VolumeSource{
-				EmptyDir: &v1.EmptyDir{
+				EmptyDir: &v1.EmptyDirVolumeSource{
 					Medium: v1.StorageMediumMemory,
 				},
 			},
