@@ -245,8 +245,8 @@ func TestDeployVolumes(t *testing.T) {
 					Namespace: "default",
 				},
 				Data: map[string][]byte{
-					"foo": []byte("YWJj"), // abc
-					"bar": []byte("MTIz"), // 123
+					"foo": []byte("abc"), // abc -> YWJj
+					"bar": []byte("123"), // 123 -> MTIz
 				},
 			},
 			expectedFiles: map[string]packageFile{

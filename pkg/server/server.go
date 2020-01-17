@@ -727,7 +727,7 @@ func k8sToMilpaVolume(vol v1.Volume) *api.Volume {
 			},
 		}
 	} else {
-		glog.Warning("Unspported volume type for volume: %s", vol.Name)
+		glog.Warningf("Unspported volume type for volume: %s", vol.Name)
 		return &api.Volume{
 			Name: vol.Name,
 			VolumeSource: api.VolumeSource{
@@ -798,15 +798,7 @@ func milpaToK8sVolume(vol api.Volume) *v1.Volume {
 			},
 		}
 	} else {
-		glog.Warning("Unspported volume type for volume: %s", vol.Name)
-		return &v1.Volume{
-			Name: vol.Name,
-			VolumeSource: v1.VolumeSource{
-				EmptyDir: &v1.EmptyDirVolumeSource{
-					Medium: v1.StorageMediumMemory,
-				},
-			},
-		}
+		glog.Warningf("Unspported volume type for volume: %s", vol.Name)
 	}
 
 	return nil
