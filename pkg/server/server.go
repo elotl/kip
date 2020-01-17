@@ -757,6 +757,11 @@ func (p *InstanceProvider) getPodRegistry() *registry.PodRegistry {
 	return reg.(*registry.PodRegistry)
 }
 
+func (p *InstanceProvider) getNodeRegistry() *registry.NodeRegistry {
+	reg := p.Registries["Node"]
+	return reg.(*registry.NodeRegistry)
+}
+
 func (p *InstanceProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	ctx, span := trace.StartSpan(ctx, "CreatePod")
 	defer span.End()
@@ -842,14 +847,6 @@ func (p *InstanceProvider) GetContainerLogs(ctx context.Context, namespace, podN
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
 	log.G(ctx).Infof("GetContainerLogs %q", podName)
 	return nil, fmt.Errorf("not implemented")
-}
-
-func (p *InstanceProvider) RunInContainer(ctx context.Context, namespace, podName, containerName string, cmd []string, attach vkapi.AttachIO) error {
-	ctx, span := trace.StartSpan(ctx, "RunInContainer")
-	defer span.End()
-	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
-	log.G(ctx).Infof("RunInContainer %q %v", podName, cmd)
-	return fmt.Errorf("not implemented")
 }
 
 func (p *InstanceProvider) GetPodStatus(ctx context.Context, namespace, name string) (*v1.PodStatus, error) {
