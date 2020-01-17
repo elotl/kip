@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -603,7 +602,12 @@ func ContainerToUnit(container v1.Container) api.Unit {
 				Protocol: api.Protocol(string(port.Protocol)),
 			})
 	}
-	//container.VolumeMounts,
+	for _, vm := range container.VolumeMounts {
+		unit.VolumeMounts = append(unit.VolumeMounts, api.VolumeMount{
+			Name:      vm.Name,
+			MountPath: vm.MountPath,
+		})
+	}
 	//container.EnvFrom,
 	return unit
 }
@@ -655,7 +659,85 @@ func UnitToContainer(unit api.Unit, container *v1.Container) v1.Container {
 			csc.Capabilities = caps
 		}
 	}
+	for _, vm := range unit.VolumeMounts {
+		container.VolumeMounts = append(container.VolumeMounts, v1.VolumeMount{
+			Name:      vm.Name,
+			MountPath: vm.MountPath,
+		})
+	}
+
 	return *container
+}
+
+// For development, I'm making the assumption we can safely copy these
+// values instead of doing deep copies?
+// Todo: verify items coming out of our informers/listers are copies
+func k8sVolumeToMilpaVolume(vol v1.Volume) *api.Volume {
+	convertKeyToPath := func(k8s []v1.KeyToPath) []api.KeyToPath {
+		milpa := make([]api.KeyToPath, len(k8s))
+		for i := range k8s {
+			milpa = append(milpa, api.KeyToPath{
+				Key:  k8s[i].Key,
+				Path: k8s[i].Path,
+				Mode: k8s[i].Mode,
+			})
+		}
+		return milpa
+	}
+
+	if vol.Secret != nil {
+		return &api.Volume{
+			Name: vol.Name,
+			VolumeSource: api.VolumeSource{
+				Secret: &api.SecretVolumeSource{
+					SecretName:  vol.Secret.SecretName,
+					Items:       convertKeyToPath(vol.Secret.Items),
+					DefaultMode: vol.Secret.DefaultMode,
+					Optional:    vol.Secret.Optional,
+				},
+			},
+		}
+	} else if vol.ConfigMap != nil {
+		return &api.Volume{
+			Name: vol.Name,
+			VolumeSource: api.VolumeSource{
+				ConfigMap: &api.ConfigMapVolumeSource{
+					LocalObjectReference: api.LocalObjectReference{
+						Name: vol.ConfigMap.Name,
+					},
+					Items:       convertKeyToPath(vol.ConfigMap.Items),
+					DefaultMode: vol.ConfigMap.DefaultMode,
+					Optional:    vol.ConfigMap.Optional,
+				},
+			},
+		}
+	} else if vol.EmptyDir != nil {
+		var sizeLimit int64
+		if vol.EmptyDir.SizeLimit != nil {
+			sizeLimit, _ = vol.EmptyDir.SizeLimit.AsInt64()
+		}
+		return &api.Volume{
+			Name: vol.Name,
+			VolumeSource: api.VolumeSource{
+				EmptyDir: &api.EmptyDir{
+					Medium:    api.StorageMedium(string(vol.EmptyDir.Medium)),
+					SizeLimit: sizeLimit,
+				},
+			},
+		}
+	} else {
+		glog.Warning("Unspported volume type for volume: %s", vol.Name)
+		return &api.Volume{
+			Name: vol.Name,
+			VolumeSource: api.VolumeSource{
+				EmptyDir: &api.EmptyDir{
+					Medium: api.StorageMediumMemory,
+				},
+			},
+		}
+	}
+
+	return nil
 }
 
 func (p *InstanceProvider) K8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
@@ -705,6 +787,12 @@ func (p *InstanceProvider) K8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 	for _, container := range pod.Spec.Containers {
 		unit := ContainerToUnit(container)
 		milpapod.Spec.Units = append(milpapod.Spec.Units, unit)
+	}
+	for _, volume := range pod.Spec.Volumes {
+		volume := k8sVolumeToMilpaVolume(volume)
+		if volume != nil {
+			milpapod.Spec.Volumes = append(milpapod.Spec.Volumes, *volume)
+		}
 	}
 	return milpapod, nil
 }
@@ -778,8 +866,8 @@ func (p *InstanceProvider) MilpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
 		pod.Spec.Containers = append(pod.Spec.Containers, container)
 	}
 	pod.Status = p.getStatus(milpaPod)
-	podBytes, _ := json.Marshal(pod)
-	glog.Infof("pod %s", string(podBytes))
+	// podBytes, _ := json.Marshal(pod)
+	// glog.Infof("pod %s", string(podBytes))
 	return pod, nil
 }
 

@@ -226,9 +226,9 @@ type SecretVolumeSource struct {
 	// Directories within the path are not affected by this setting.
 	// This might be in conflict with other options that affect the file
 	// mode, like fsGroup, and the result can be other mode bits set.
-	DefaultMode *int32 `json:"defaultMode,omitempty" protobuf:"bytes,3,opt,name=defaultMode"`
+	DefaultMode *int32 `json:"defaultMode,omitempty"`
 	// Specify whether the Secret or its keys must be defined
-	Optional *bool `json:"optional,omitempty" protobuf:"varint,4,opt,name=optional"`
+	Optional *bool `json:"optional,omitempty"`
 }
 
 // Adapts a ConfigMap into a volume.

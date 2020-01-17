@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
-	"encoding/base64"
 	"fmt"
 	"path/filepath"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/manager"
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -129,20 +127,18 @@ func getSecretFiles(secVol *api.SecretVolumeSource, sec *v1.Secret) (map[string]
 	}
 
 	for _, item := range items {
-		var (
-			data []byte
-			err  error
-		)
+		var data []byte
 		if binaryData, ok := sec.Data[item.Key]; ok {
-			data, err = base64.StdEncoding.DecodeString(string(binaryData))
-			if err != nil {
-				msg := fmt.Sprintf("volume %s items %s/%s references improperly formatted key %s: %v", secVol.SecretName, sec.Namespace, sec.Name, item.Key, err)
-				if optional {
-					glog.Warning(msg)
-					continue
-				}
-				return nil, fmt.Errorf(msg)
-			}
+			data = binaryData
+			//data, err = base64.StdEncoding.DecodeString(string(binaryData))
+			// if err != nil {
+			// 	msg := fmt.Sprintf("volume %s items %s/%s references improperly formatted key %s: %v", secVol.SecretName, sec.Namespace, sec.Name, item.Key, err)
+			// 	if optional {
+			// 		glog.Warning(msg)
+			// 		continue
+			// 	}
+			// 	return nil, fmt.Errorf(msg)
+			// }
 		} else {
 			if optional {
 				continue

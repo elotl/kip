@@ -1049,7 +1049,6 @@ func TestMakeEnvironmentVariables(t *testing.T) {
 	ctl, closer := createPodController(client)
 	defer closer()
 	for _, tc := range testCases {
-
 		indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 		if tc.configMap != nil {
 			assert.Nil(t, indexer.Add(tc.configMap))
