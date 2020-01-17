@@ -3,7 +3,6 @@ package server
 import (
 	"flag"
 	"fmt"
-	"io"
 	"sort"
 	"sync"
 	"time"
@@ -28,7 +27,6 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/timeoutmap"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
 	"github.com/golang/glog"
-	vkapi "github.com/virtual-kubelet/virtual-kubelet/node/api"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	"golang.org/x/net/context"
 	"k8s.io/api/core/v1"
@@ -839,14 +837,6 @@ func (p *InstanceProvider) GetPod(ctx context.Context, namespace, name string) (
 		return nil, err
 	}
 	return pod, nil
-}
-
-func (p *InstanceProvider) GetContainerLogs(ctx context.Context, namespace, podName, containerName string, opts vkapi.ContainerLogOpts) (io.ReadCloser, error) {
-	ctx, span := trace.StartSpan(ctx, "GetContainerLogs")
-	defer span.End()
-	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
-	log.G(ctx).Infof("GetContainerLogs %q", podName)
-	return nil, fmt.Errorf("not implemented")
 }
 
 func (p *InstanceProvider) GetPodStatus(ctx context.Context, namespace, name string) (*v1.PodStatus, error) {
