@@ -16,3 +16,5 @@
 
 /virtual-kubelet
 cmd/virtual-kubelet/virtual-kubelet
+/milpactl
+staticcheck.conf

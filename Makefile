@@ -18,6 +18,7 @@ TOP_DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 PKG_SRC=$(shell find $(TOP_DIR)pkg -type f -name '*.go')
 CMD_SRC=$(shell find $(TOP_DIR)cmd/virtual-kubelet -type f -name '*.go')
 VENDOR_SRC=$(shell find $(TOP_DIR)vendor -type f -name '*.go')
+MILPACTL_SRC=$(shell find $(TOP_DIR)cmd/milpactl -type f -name '*.go')
 GENERATED_SRC=$(TOP_DIR)pkg/clientapi/clientapi.pb.go \
 			  $(TOP_DIR)pkg/api/deepcopy_generated.go
 
@@ -32,6 +33,10 @@ $(TOP_DIR)pkg/clientapi/clientapi.pb.go: $(TOP_DIR)pkg/clientapi/clientapi.proto
 
 $(TOP_DIR)pkg/api/deepcopy_generated.go: $(TOP_DIR)pkg/api/types.go
 	deepcopy-gen --input-dirs=github.com/elotl/cloud-instance-provider/pkg/api
+
+# milpactl is compiled staticly so it'll run on pods
+milpactl: $(PKG_SRC) $(VENDOR_SRC) $(MILPACTL_SRC)
+	cd cmd/milpactl && CGO_ENABLED=0 GOOS=linux go build $(LDFLAGS) -o $(TOP_DIR)milpactl
 
 img: $(BINARIES)
 	@echo "Checking if IMAGE_TAG is set" && test -n "$(IMAGE_TAG)"
