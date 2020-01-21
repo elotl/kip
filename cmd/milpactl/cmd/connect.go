@@ -3,8 +3,6 @@ package cmd
 import (
 	"fmt"
 	"math/rand"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
@@ -65,12 +63,6 @@ func isLeader(ctx context.Context, client clientapi.MilpaClient) (bool, error) {
 		return false, fmt.Errorf("Error querying milpa server: %v", err.Error())
 	}
 	return reply.IsLeader, nil
-}
-
-func getWorkingDir() string {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	dieIfError(err, "error checking working directory")
-	return dir
 }
 
 func connectToServer(ctx context.Context, serverAddress string, flags *pflag.FlagSet) (clientapi.MilpaClient, *grpc.ClientConn, error) {

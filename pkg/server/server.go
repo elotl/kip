@@ -150,8 +150,6 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		return nil, fmt.Errorf("invalid server config: %v", errs.ToAggregate())
 	}
 
-	// todo: systemQuit should get passed in...
-	//systemQuit, systemWG := SetupSignalHandler()
 	etcdClient, err := setupEtcd(
 		serverConfigFile.Etcd.Internal.ConfigFile,
 		serverConfigFile.Etcd.Internal.DataDir,
