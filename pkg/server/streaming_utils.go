@@ -22,12 +22,7 @@ type SendRecver interface {
 	Context() context.Context
 }
 
-func (s InstanceProvider) GetNodeForRunningPod(podName, unitName string) (*api.Node, error) {
-	reg, exists := s.Registries["Pod"]
-	if !exists {
-		return nil, fmt.Errorf("Fatal error: can't find pod registry in storage")
-	}
-	podRegistry := reg.(*registry.PodRegistry)
+func GetNodeForRunningPod(podName, unitName string, podRegistry *registry.PodRegistry, nodeRegistry *registry.NodeRegistry) (*api.Node, error) {
 	pod, err := podRegistry.GetPod(podName)
 	if err == store.ErrKeyNotFound {
 		return nil, fmt.Errorf("Could not find pod in registry")
@@ -54,11 +49,6 @@ func (s InstanceProvider) GetNodeForRunningPod(podName, unitName string) (*api.N
 	if pod.Status.BoundNodeName == "" {
 		return nil, fmt.Errorf("pod is unbound")
 	}
-	reg, exists = s.Registries["Node"]
-	if !exists {
-		return nil, fmt.Errorf("can't find node registry in storage")
-	}
-	nodeRegistry := reg.(*registry.NodeRegistry)
 	node, err := nodeRegistry.GetNode(pod.Status.BoundNodeName)
 	if err == store.ErrKeyNotFound {
 		return nil, fmt.Errorf("Could not find node in registry")
@@ -67,6 +57,20 @@ func (s InstanceProvider) GetNodeForRunningPod(podName, unitName string) (*api.N
 			err, "Could not get node from storage")
 	}
 	return node, nil
+}
+
+func (s InstanceProvider) GetNodeForRunningPod(podName, unitName string) (*api.Node, error) {
+	reg, exists := s.Registries["Pod"]
+	if !exists {
+		return nil, fmt.Errorf("can't find pod registry in storage")
+	}
+	podRegistry := reg.(*registry.PodRegistry)
+	reg, exists = s.Registries["Node"]
+	if !exists {
+		return nil, fmt.Errorf("can't find node registry in storage")
+	}
+	nodeRegistry := reg.(*registry.NodeRegistry)
+	return GetNodeForRunningPod(podName, unitName, podRegistry, nodeRegistry)
 }
 
 func getInitialParams(stream SendRecver, params interface{}) (*clientapi.StreamMsg, error) {

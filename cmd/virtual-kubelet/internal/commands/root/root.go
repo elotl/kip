@@ -21,6 +21,7 @@ import (
 
 	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/provider"
 	"github.com/elotl/cloud-instance-provider/pkg/manager"
+	"github.com/elotl/cloud-instance-provider/pkg/util/habitat"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
@@ -115,13 +116,25 @@ func runRootCommand(ctx context.Context, s *provider.Store, c Opts) error {
 		return err
 	}
 
+	internalIP := os.Getenv("VKUBELET_POD_IP")
+	if internalIP == "" {
+		internalIP = habitat.GetMyIP()
+		if internalIP == "" {
+			ips := habitat.GetIPAddresses()
+			if len(ips) > 0 {
+				internalIP = ips[0]
+			}
+		}
+	}
+	log.G(ctx).Infof("node internal IP address: %q", internalIP)
+
 	initConfig := provider.InitConfig{
 		ConfigPath:        c.ProviderConfigPath,
 		NodeName:          c.NodeName,
 		OperatingSystem:   c.OperatingSystem,
 		ResourceManager:   rm,
 		DaemonPort:        int32(c.ListenPort),
-		InternalIP:        os.Getenv("VKUBELET_POD_IP"),
+		InternalIP:        internalIP,
 		KubeClusterDomain: c.KubeClusterDomain,
 		StopChan:          ctx.Done(),
 	}
