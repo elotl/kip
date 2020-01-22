@@ -155,14 +155,6 @@
   version = "v0.2.1"
 
 [[projects]]
-  digest = "1:4b8558778053de4561b43cded8851a5f160574a9622e7723654d8661793d8380"
-  name = "github.com/containerd/containerd"
-  packages = ["log"]
-  pruneopts = "UT"
-  revision = "ff48f57fc83a8c44cf4ad5d672424a98ba37ded6"
-  version = "v1.3.2"
-
-[[projects]]
   digest = "1:f2ac2c724fc8214bb7b9dd6d4f5b7a983152051f5133320f228557182263cb94"
   name = "github.com/coreos/bbolt"
   packages = ["."]
@@ -275,6 +267,14 @@
   pruneopts = "UT"
   revision = "97fdf19511ea361ae1c100dd393cc47f8dcfa1e1"
   version = "v4"
+
+[[projects]]
+  digest = "1:e29335d5a78621ed7a539ed75e10785c3705bb67d916e48b03b1cdf9b727508d"
+  name = "github.com/creack/pty"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "3a6a957789163cacdfe0e291617a1c8e80612c11"
+  version = "v1.1.9"
 
 [[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
@@ -568,6 +568,14 @@
   pruneopts = "UT"
   revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
   version = "v1.0.2"
+
+[[projects]]
+  digest = "1:3e2fbf3f6d30c4c009be006f9d2a9eaefc804d8f6b991e88cb793b87318cc5bc"
+  name = "github.com/kr/pty"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "24b51915630e1d9d3c6adf15a3a96796bbc3cd43"
+  version = "v1.1.8"
 
 [[projects]]
   branch = "master"
@@ -1495,7 +1503,6 @@
     "github.com/aws/aws-sdk-go/service/ecr",
     "github.com/aws/aws-sdk-go/service/ecs",
     "github.com/aws/aws-sdk-go/service/elb",
-    "github.com/containerd/containerd/log",
     "github.com/coreos/etcd/clientv3",
     "github.com/coreos/etcd/compactor",
     "github.com/coreos/etcd/embed",
@@ -1515,6 +1522,7 @@
     "github.com/gorilla/websocket",
     "github.com/json-iterator/go",
     "github.com/justnoise/genny/generic",
+    "github.com/kr/pty",
     "github.com/mitchellh/go-homedir",
     "github.com/mitchellh/mapstructure",
     "github.com/pkg/errors",
@@ -1533,6 +1541,7 @@
     "github.com/virtual-kubelet/virtual-kubelet/trace/opencensus",
     "go.opencensus.io/trace",
     "go.opencensus.io/zpages",
+    "golang.org/x/crypto/ssh/terminal",
     "golang.org/x/net/context",
     "golang.org/x/sys/unix",
     "google.golang.org/grpc",
@@ -1544,7 +1553,6 @@
     "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/util/errors",
     "k8s.io/apimachinery/pkg/util/sets",
-    "k8s.io/apimachinery/pkg/util/validation",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/client-go/informers",
     "k8s.io/client-go/kubernetes",
@@ -1553,14 +1561,12 @@
     "k8s.io/client-go/kubernetes/typed/core/v1",
     "k8s.io/client-go/listers/core/v1",
     "k8s.io/client-go/rest",
-    "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/clientcmd/api",
     "k8s.io/client-go/tools/record",
     "k8s.io/client-go/util/workqueue",
     "k8s.io/klog",
     "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1",
-    "k8s.io/kubernetes/third_party/forked/golang/expansion",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
