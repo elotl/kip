@@ -3,13 +3,11 @@ package server
 import (
 	"flag"
 	"fmt"
-	"io"
 	"net"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/containerd/containerd/log"
 	"github.com/docker/libkv/store"
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/api/validation"
@@ -30,7 +28,6 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/timeoutmap"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
 	"github.com/golang/glog"
-	vkapi "github.com/virtual-kubelet/virtual-kubelet/node/api"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -142,7 +139,6 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndpointPort int32, rm *manager.ResourceManager, systemQuit <-chan struct{}) (*InstanceProvider, error) {
 	systemWG := &sync.WaitGroup{}
 
-	// TODO: change from glog to containerd/log to match VK.
 	flag.CommandLine.Parse([]string{"--logtostderr", "--v=3"})
 
 	serverConfigFile, err := ParseConfig(configFilePath)
@@ -155,8 +151,6 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		return nil, fmt.Errorf("invalid server config: %v", errs.ToAggregate())
 	}
 
-	// todo: systemQuit should get passed in...
-	//systemQuit, systemWG := SetupSignalHandler()
 	etcdClient, err := setupEtcd(
 		serverConfigFile.Etcd.Internal.ConfigFile,
 		serverConfigFile.Etcd.Internal.DataDir,
@@ -936,8 +930,6 @@ func (p *InstanceProvider) MilpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
 		}
 	}
 	pod.Status = p.getStatus(milpaPod)
-	// podBytes, _ := json.Marshal(pod)
-	// glog.Infof("pod %s", string(podBytes))
 	return pod, nil
 }
 
@@ -946,20 +938,25 @@ func (p *InstanceProvider) getPodRegistry() *registry.PodRegistry {
 	return reg.(*registry.PodRegistry)
 }
 
+func (p *InstanceProvider) getNodeRegistry() *registry.NodeRegistry {
+	reg := p.Registries["Node"]
+	return reg.(*registry.NodeRegistry)
+}
+
 func (p *InstanceProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	ctx, span := trace.StartSpan(ctx, "CreatePod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
-	log.G(ctx).Infof("CreatePod %q", pod.Name)
+	glog.Infof("CreatePod %q", pod.Name)
 	milpaPod, err := p.K8sToMilpaPod(pod)
 	if err != nil {
-		log.G(ctx).Errorf("CreatePod %q: %v", pod.Name, err)
+		glog.Errorf("CreatePod %q: %v", pod.Name, err)
 		return err
 	}
 	podRegistry := p.getPodRegistry()
 	_, err = podRegistry.CreatePod(milpaPod)
 	if err != nil {
-		log.G(ctx).Errorf("CreatePod %q: %v", pod.Name, err)
+		glog.Errorf("CreatePod %q: %v", pod.Name, err)
 		return err
 	}
 	p.notifier(pod)
@@ -970,16 +967,16 @@ func (p *InstanceProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	ctx, span := trace.StartSpan(ctx, "UpdatePod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
-	log.G(ctx).Infof("UpdatePod %q", pod.Name)
+	glog.Infof("UpdatePod %q", pod.Name)
 	milpaPod, err := p.K8sToMilpaPod(pod)
 	if err != nil {
-		log.G(ctx).Errorf("UpdatePod %q: %v", pod.Name, err)
+		glog.Errorf("UpdatePod %q: %v", pod.Name, err)
 		return err
 	}
 	podRegistry := p.getPodRegistry()
 	_, err = podRegistry.UpdatePodSpecAndLabels(milpaPod)
 	if err != nil {
-		log.G(ctx).Errorf("UpdatePod %q: %v", pod.Name, err)
+		glog.Errorf("UpdatePod %q: %v", pod.Name, err)
 		return err
 	}
 	p.notifier(pod)
@@ -990,16 +987,16 @@ func (p *InstanceProvider) DeletePod(ctx context.Context, pod *v1.Pod) (err erro
 	ctx, span := trace.StartSpan(ctx, "DeletePod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
-	log.G(ctx).Infof("DeletePod %q", pod.Name)
+	glog.Infof("DeletePod %q", pod.Name)
 	milpaPod, err := p.K8sToMilpaPod(pod)
 	if err != nil {
-		log.G(ctx).Errorf("DeletePod %q: %v", pod.Name, err)
+		glog.Errorf("DeletePod %q: %v", pod.Name, err)
 		return err
 	}
 	podRegistry := p.getPodRegistry()
 	_, err = podRegistry.Delete(milpaPod.Name)
 	if err != nil {
-		log.G(ctx).Errorf("DeletePod %q: %v", pod.Name, err)
+		glog.Errorf("DeletePod %q: %v", pod.Name, err)
 		return err
 	}
 	p.notifier(pod)
@@ -1010,51 +1007,35 @@ func (p *InstanceProvider) GetPod(ctx context.Context, namespace, name string) (
 	ctx, span := trace.StartSpan(ctx, "GetPod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, name)
-	log.G(ctx).Infof("GetPod %q", name)
+	glog.Infof("GetPod %q", name)
 	podRegistry := p.getPodRegistry()
 	milpaPod, err := podRegistry.GetPod(util.WithNamespace(namespace, name))
 	if err != nil {
-		log.G(ctx).Errorf("GetPod %q: %v", name, err)
+		glog.Errorf("GetPod %q: %v", name, err)
 		return nil, err
 	}
 	pod, err := p.MilpaToK8sPod(milpaPod)
 	if err != nil {
-		log.G(ctx).Errorf("GetPod %q: %v", name, err)
+		glog.Errorf("GetPod %q: %v", name, err)
 		return nil, err
 	}
 	return pod, nil
-}
-
-func (p *InstanceProvider) GetContainerLogs(ctx context.Context, namespace, podName, containerName string, opts vkapi.ContainerLogOpts) (io.ReadCloser, error) {
-	ctx, span := trace.StartSpan(ctx, "GetContainerLogs")
-	defer span.End()
-	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
-	log.G(ctx).Infof("GetContainerLogs %q", podName)
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (p *InstanceProvider) RunInContainer(ctx context.Context, namespace, podName, containerName string, cmd []string, attach vkapi.AttachIO) error {
-	ctx, span := trace.StartSpan(ctx, "RunInContainer")
-	defer span.End()
-	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
-	log.G(ctx).Infof("RunInContainer %q %v", podName, cmd)
-	return fmt.Errorf("not implemented")
 }
 
 func (p *InstanceProvider) GetPodStatus(ctx context.Context, namespace, name string) (*v1.PodStatus, error) {
 	ctx, span := trace.StartSpan(ctx, "GetPodStatus")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, name)
-	log.G(ctx).Infof("GetPodStatus %q", name)
+	glog.Infof("GetPodStatus %q", name)
 	podRegistry := p.getPodRegistry()
 	milpaPod, err := podRegistry.GetPod(util.WithNamespace(namespace, name))
 	if err != nil {
-		log.G(ctx).Errorf("GetPodStatus %q: %v", name, err)
+		glog.Errorf("GetPodStatus %q: %v", name, err)
 		return nil, err
 	}
 	pod, err := p.MilpaToK8sPod(milpaPod)
 	if err != nil {
-		log.G(ctx).Errorf("GetPodStatus %q: %v", name, err)
+		glog.Errorf("GetPodStatus %q: %v", name, err)
 		return nil, err
 	}
 	return &pod.Status, nil
@@ -1063,7 +1044,7 @@ func (p *InstanceProvider) GetPodStatus(ctx context.Context, namespace, name str
 func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 	ctx, span := trace.StartSpan(ctx, "GetPods")
 	defer span.End()
-	log.G(ctx).Infof("GetPods")
+	glog.Infof("GetPods")
 	podRegistry := p.getPodRegistry()
 	milpaPods, err := podRegistry.ListPods(func(pod *api.Pod) bool {
 		if pod.Status.Phase == api.PodRunning {
@@ -1072,14 +1053,14 @@ func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 		return false
 	})
 	if err != nil {
-		log.G(ctx).Errorf("GetPods: %v", err)
+		glog.Errorf("GetPods: %v", err)
 		return nil, err
 	}
 	pods := make([]*v1.Pod, len(milpaPods.Items))
 	for i, milpaPod := range milpaPods.Items {
 		pods[i], err = p.MilpaToK8sPod(milpaPod)
 		if err != nil {
-			log.G(ctx).Errorf("GetPods: %v", err)
+			glog.Errorf("GetPods: %v", err)
 			return nil, err
 		}
 	}
@@ -1089,7 +1070,7 @@ func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 func (p *InstanceProvider) ConfigureNode(ctx context.Context, n *v1.Node) {
 	ctx, span := trace.StartSpan(ctx, "ConfigureNode")
 	defer span.End()
-	log.G(ctx).Infof("ConfigureNode")
+	glog.Infof("ConfigureNode")
 	n.Status.Capacity = p.capacity()
 	n.Status.Allocatable = p.capacity()
 	n.Status.Conditions = p.nodeConditions()
