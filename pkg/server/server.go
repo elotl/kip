@@ -1047,10 +1047,7 @@ func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 	glog.Infof("GetPods")
 	podRegistry := p.getPodRegistry()
 	milpaPods, err := podRegistry.ListPods(func(pod *api.Pod) bool {
-		if pod.Status.Phase == api.PodRunning {
-			return true
-		}
-		return false
+		return true
 	})
 	if err != nil {
 		glog.Errorf("GetPods: %v", err)
