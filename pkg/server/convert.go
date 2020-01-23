@@ -256,7 +256,6 @@ func k8sToMilpaVolume(vol v1.Volume) *api.Volume {
 		}
 		return milpa
 	}
-
 	if vol.Secret != nil {
 		return &api.Volume{
 			Name: vol.Name,
@@ -298,7 +297,7 @@ func k8sToMilpaVolume(vol v1.Volume) *api.Volume {
 			},
 		}
 	} else {
-		glog.Warningf("Unspported volume type for volume: %s", vol.Name)
+		glog.Warningf("Unsupported volume type for volume: %s", vol.Name)
 		return &api.Volume{
 			Name: vol.Name,
 			VolumeSource: api.VolumeSource{
@@ -308,8 +307,6 @@ func k8sToMilpaVolume(vol v1.Volume) *api.Volume {
 			},
 		}
 	}
-
-	return nil
 }
 
 // For development, I'm making the assumption we can safely copy these
@@ -327,7 +324,6 @@ func milpaToK8sVolume(vol api.Volume) *v1.Volume {
 		}
 		return k8s
 	}
-
 	if vol.Secret != nil {
 		return &v1.Volume{
 			Name: vol.Name,
@@ -371,7 +367,6 @@ func milpaToK8sVolume(vol api.Volume) *v1.Volume {
 	} else {
 		glog.Warningf("Unspported volume type for volume: %s", vol.Name)
 	}
-
 	return nil
 }
 
