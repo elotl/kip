@@ -328,7 +328,14 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 	/// as a goroutine cause we don't care when it finishes
 	go c.TagNodeWithPodLabels(pod, node)
 
-	err := c.updatePodUnits(pod)
+	err := deployPodVolumes(pod, node, c.resourceManager, c.nodeClientFactory)
+	if err != nil {
+		msg := fmt.Sprintf("Error deploying volumes to node for pod %s: %v", pod.Name, err)
+		glog.Errorln(msg)
+		c.markFailedPod(pod, true, msg)
+		return
+	}
+	err = c.updatePodUnits(pod)
 	if err != nil {
 		msg := fmt.Sprintf("Error updating pod units after dispatching pod to node: %v", err)
 		glog.Errorln(msg)

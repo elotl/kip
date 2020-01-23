@@ -631,6 +631,10 @@ func validateVolumeSource(source *api.VolumeSource, fldPath *field.Path) field.E
 		allErrs = append(allErrs, validatePackagePathVolumeSource(source.PackagePath, fldPath)...)
 	}
 
+	if source.ConfigMap != nil || source.Secret != nil {
+		numVolumes++
+	}
+
 	// we will likely implement secret volumes at some point
 
 	// if source.Secret != nil {

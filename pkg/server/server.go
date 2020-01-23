@@ -3,6 +3,7 @@ package server
 import (
 	"flag"
 	"fmt"
+	"net"
 	"sort"
 	"sync"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/api/validation"
 	"github.com/elotl/cloud-instance-provider/pkg/certs"
+	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
 	"github.com/elotl/cloud-instance-provider/pkg/etcd"
 	"github.com/elotl/cloud-instance-provider/pkg/manager"
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
@@ -28,7 +30,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 )
@@ -40,6 +44,8 @@ const (
 	containerNameKey      = "containerName"
 	etcdClusterRegionPath = "milpa/cluster/region"
 	kubernetesPodKey      = "elotl.co/kubernetes-pod"
+	defaultPort           = 54555
+	defaultProtocol       = "tcp"
 )
 
 var (
@@ -70,7 +76,7 @@ type InstanceProvider struct {
 }
 
 func validateWriteToEtcd(client *etcd.SimpleEtcd) error {
-	glog.Info("Validating write access to etcd (will block until we can connect)")
+	glog.Info("validating write access to etcd (will block until we can connect)")
 	wo := &store.WriteOptions{
 		IsDir: false,
 		TTL:   2 * time.Second,
@@ -89,7 +95,7 @@ func setupEtcd(configFile, dataDir string, quit <-chan struct{}, wg *sync.WaitGr
 	// change in the future if we want the embedded server to join
 	// existing etcd server, but, for now just don't start it.
 	var client *etcd.SimpleEtcd
-	glog.Infof("Starting Internal Etcd")
+	glog.Infof("starting internal etcd")
 	etcdServer := etcd.EtcdServer{
 		ConfigFile: configFile,
 		DataDir:    dataDir,
@@ -97,12 +103,12 @@ func setupEtcd(configFile, dataDir string, quit <-chan struct{}, wg *sync.WaitGr
 	err := etcdServer.Start(quit, wg)
 	if err != nil {
 		return nil, util.WrapError(
-			err, "Error creating internal etcd storage backend")
+			err, "error creating internal etcd storage backend")
 	}
 	client = etcdServer.Client
 	err = validateWriteToEtcd(client)
 	if err != nil {
-		return nil, util.WrapError(err, "Fatal Error: Could not write to etcd")
+		return nil, util.WrapError(err, "fatal error: Could not write to etcd")
 	}
 	return client, err
 }
@@ -337,13 +343,36 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		azureImageController.WaitForAvailable()
 	}
 
+	debugServer := true
+	if debugServer {
+		if err := s.setupDebugServer(); err != nil {
+			return nil, err
+		}
+	}
+
 	err = validateBootImageTags(
 		serverConfigFile.Cells.BootImageTags, cloudClient)
 	if err != nil {
-		return nil, fmt.Errorf("failed to validate boot image tags.")
+		return nil, fmt.Errorf("failed to validate boot image tags")
 	}
 
 	return s, err
+}
+
+func (p *InstanceProvider) setupDebugServer() error {
+	lis, err := net.Listen(defaultProtocol, fmt.Sprintf("127.0.0.1:%d", defaultPort))
+	if err != nil {
+		return fmt.Errorf("error setting up debug %s listener on port %d", defaultProtocol, defaultPort)
+	}
+	grpcServer := grpc.NewServer()
+	clientapi.RegisterMilpaServer(grpcServer, p)
+	go func() {
+		err := grpcServer.Serve(lis)
+		if err != nil {
+			glog.Errorln("Error returned from Serve:", err)
+		}
+	}()
+	return nil
 }
 
 func (p *InstanceProvider) Handle(ev events.Event) error {
@@ -568,7 +597,12 @@ func ContainerToUnit(container v1.Container) api.Unit {
 				Protocol: api.Protocol(string(port.Protocol)),
 			})
 	}
-	//container.VolumeMounts,
+	for _, vm := range container.VolumeMounts {
+		unit.VolumeMounts = append(unit.VolumeMounts, api.VolumeMount{
+			Name:      vm.Name,
+			MountPath: vm.MountPath,
+		})
+	}
 	//container.EnvFrom,
 	return unit
 }
@@ -620,7 +654,148 @@ func UnitToContainer(unit api.Unit, container *v1.Container) v1.Container {
 			csc.Capabilities = caps
 		}
 	}
+	for _, vm := range unit.VolumeMounts {
+		container.VolumeMounts = append(container.VolumeMounts, v1.VolumeMount{
+			Name:      vm.Name,
+			MountPath: vm.MountPath,
+		})
+	}
+
 	return *container
+}
+
+// For development, I'm making the assumption we can safely copy these
+// values instead of doing deep copies?
+// Todo: verify items coming out of our informers/listers are copies
+func k8sToMilpaVolume(vol v1.Volume) *api.Volume {
+	convertKeyToPath := func(k8s []v1.KeyToPath) []api.KeyToPath {
+		milpa := make([]api.KeyToPath, len(k8s))
+		for i := range k8s {
+			milpa = append(milpa, api.KeyToPath{
+				Key:  k8s[i].Key,
+				Path: k8s[i].Path,
+				Mode: k8s[i].Mode,
+			})
+		}
+		return milpa
+	}
+
+	if vol.Secret != nil {
+		return &api.Volume{
+			Name: vol.Name,
+			VolumeSource: api.VolumeSource{
+				Secret: &api.SecretVolumeSource{
+					SecretName:  vol.Secret.SecretName,
+					Items:       convertKeyToPath(vol.Secret.Items),
+					DefaultMode: vol.Secret.DefaultMode,
+					Optional:    vol.Secret.Optional,
+				},
+			},
+		}
+	} else if vol.ConfigMap != nil {
+		return &api.Volume{
+			Name: vol.Name,
+			VolumeSource: api.VolumeSource{
+				ConfigMap: &api.ConfigMapVolumeSource{
+					LocalObjectReference: api.LocalObjectReference{
+						Name: vol.ConfigMap.Name,
+					},
+					Items:       convertKeyToPath(vol.ConfigMap.Items),
+					DefaultMode: vol.ConfigMap.DefaultMode,
+					Optional:    vol.ConfigMap.Optional,
+				},
+			},
+		}
+	} else if vol.EmptyDir != nil {
+		var sizeLimit int64
+		if vol.EmptyDir.SizeLimit != nil {
+			sizeLimit, _ = vol.EmptyDir.SizeLimit.AsInt64()
+		}
+		return &api.Volume{
+			Name: vol.Name,
+			VolumeSource: api.VolumeSource{
+				EmptyDir: &api.EmptyDir{
+					Medium:    api.StorageMedium(string(vol.EmptyDir.Medium)),
+					SizeLimit: sizeLimit,
+				},
+			},
+		}
+	} else {
+		glog.Warningf("Unspported volume type for volume: %s", vol.Name)
+		return &api.Volume{
+			Name: vol.Name,
+			VolumeSource: api.VolumeSource{
+				EmptyDir: &api.EmptyDir{
+					Medium: api.StorageMediumMemory,
+				},
+			},
+		}
+	}
+
+	return nil
+}
+
+// For development, I'm making the assumption we can safely copy these
+// values instead of doing deep copies?
+// Todo: verify items coming out of our informers/listers are copies
+func milpaToK8sVolume(vol api.Volume) *v1.Volume {
+	convertKeyToPath := func(milpa []api.KeyToPath) []v1.KeyToPath {
+		k8s := make([]v1.KeyToPath, len(milpa))
+		for i := range milpa {
+			k8s = append(k8s, v1.KeyToPath{
+				Key:  milpa[i].Key,
+				Path: milpa[i].Path,
+				Mode: milpa[i].Mode,
+			})
+		}
+		return k8s
+	}
+
+	if vol.Secret != nil {
+		return &v1.Volume{
+			Name: vol.Name,
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName:  vol.Secret.SecretName,
+					Items:       convertKeyToPath(vol.Secret.Items),
+					DefaultMode: vol.Secret.DefaultMode,
+					Optional:    vol.Secret.Optional,
+				},
+			},
+		}
+	} else if vol.ConfigMap != nil {
+		return &v1.Volume{
+			Name: vol.Name,
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: vol.ConfigMap.Name,
+					},
+					Items:       convertKeyToPath(vol.ConfigMap.Items),
+					DefaultMode: vol.ConfigMap.DefaultMode,
+					Optional:    vol.ConfigMap.Optional,
+				},
+			},
+		}
+	} else if vol.EmptyDir != nil {
+		var sizeLimit *resource.Quantity
+		if vol.EmptyDir.SizeLimit != 0 {
+			sizeLimit = resource.NewQuantity(vol.EmptyDir.SizeLimit, resource.BinarySI)
+		}
+		return &v1.Volume{
+			Name: vol.Name,
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{
+					Medium:    v1.StorageMedium(string(vol.EmptyDir.Medium)),
+					SizeLimit: sizeLimit,
+				},
+			},
+		}
+	} else {
+		glog.Warningf("Unspported volume type for volume: %s", vol.Name)
+	}
+
+	return nil
 }
 
 func (p *InstanceProvider) K8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
@@ -670,6 +845,12 @@ func (p *InstanceProvider) K8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 	for _, container := range pod.Spec.Containers {
 		unit := ContainerToUnit(container)
 		milpapod.Spec.Units = append(milpapod.Spec.Units, unit)
+	}
+	for _, volume := range pod.Spec.Volumes {
+		volume := k8sToMilpaVolume(volume)
+		if volume != nil {
+			milpapod.Spec.Volumes = append(milpapod.Spec.Volumes, *volume)
+		}
 	}
 	return milpapod, nil
 }
@@ -741,6 +922,12 @@ func (p *InstanceProvider) MilpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
 		}
 		container = UnitToContainer(unit, ptr)
 		pod.Spec.Containers = append(pod.Spec.Containers, container)
+	}
+	for _, volume := range milpaPod.Spec.Volumes {
+		volume := milpaToK8sVolume(volume)
+		if volume != nil {
+			pod.Spec.Volumes = append(pod.Spec.Volumes, *volume)
+		}
 	}
 	pod.Status = p.getStatus(milpaPod)
 	return pod, nil
