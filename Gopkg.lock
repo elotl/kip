@@ -782,13 +782,12 @@
   version = "v2.21.1"
 
 [[projects]]
-  digest = "1:1e07b87bb137fe9833463d629af79a4cfc876c3a4069476c5b2fd2d3e7f8e261"
+  digest = "1:ee29cb0ae9cc471817ddfdf0173e8706a8ec227f140c33e30634503917915ced"
   name = "github.com/virtual-kubelet/virtual-kubelet"
   packages = [
     "errdefs",
     "internal/manager",
     "log",
-    "log/logrus",
     "node",
     "node/api",
     "trace",
@@ -1553,7 +1552,6 @@
     "github.com/uber-go/atomic",
     "github.com/virtual-kubelet/virtual-kubelet/errdefs",
     "github.com/virtual-kubelet/virtual-kubelet/log",
-    "github.com/virtual-kubelet/virtual-kubelet/log/logrus",
     "github.com/virtual-kubelet/virtual-kubelet/node",
     "github.com/virtual-kubelet/virtual-kubelet/node/api",
     "github.com/virtual-kubelet/virtual-kubelet/trace",
