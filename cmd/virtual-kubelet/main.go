@@ -27,6 +27,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/commands/root"
 	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/commands/version"
 	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/provider"
+	"github.com/elotl/cloud-instance-provider/pkg/glog"
 	//ciprovider "github.com/elotl/cloud-instance-provider/pkg/provider"
 
 	"github.com/elotl/cloud-instance-provider/pkg/server"
@@ -34,7 +35,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/virtual-kubelet/virtual-kubelet/log"
-	logruslogger "github.com/virtual-kubelet/virtual-kubelet/log/logrus"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	"github.com/virtual-kubelet/virtual-kubelet/trace/opencensus"
 )
@@ -67,7 +67,9 @@ func main() {
 		cancel()
 	}()
 
-	log.L = logruslogger.FromLogrus(logrus.NewEntry(logrus.StandardLogger()))
+	//log.L = logruslogger.FromLogrus(logrus.NewEntry(logrus.StandardLogger()))
+	log.L = glog.NewGlogAdapter()
+
 	trace.T = opencensus.Adapter{}
 
 	var opts root.Opts
