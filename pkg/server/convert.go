@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
+	k8sutil "github.com/elotl/cloud-instance-provider/pkg/util/k8s"
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -10,54 +11,21 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (p *InstanceProvider) getStatus(milpaPod *api.Pod) v1.PodStatus {
-	isScheduled := v1.ConditionFalse
-	isInitialized := v1.ConditionFalse
-	isReady := v1.ConditionFalse
-	if milpaPod.Status.BoundNodeName != "" {
-		isScheduled = v1.ConditionTrue
-	}
+func (p *InstanceProvider) getStatus(milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
 	phase := v1.PodUnknown
 	switch milpaPod.Status.Phase {
 	case api.PodWaiting:
 		phase = v1.PodPending
 	case api.PodDispatching:
-		isScheduled = v1.ConditionTrue
 		phase = v1.PodPending
 	case api.PodRunning:
-		isScheduled = v1.ConditionTrue
-		isInitialized = v1.ConditionTrue
-		isReady = v1.ConditionTrue
 		phase = v1.PodRunning
 	case api.PodSucceeded:
-		isScheduled = v1.ConditionTrue
-		isInitialized = v1.ConditionTrue
-		isReady = v1.ConditionTrue
 		phase = v1.PodSucceeded
 	case api.PodFailed:
-		isScheduled = v1.ConditionTrue
-		isInitialized = v1.ConditionTrue
-		isReady = v1.ConditionTrue
 		phase = v1.PodFailed
 	case api.PodTerminated:
-		isScheduled = v1.ConditionTrue
-		isInitialized = v1.ConditionTrue
-		isReady = v1.ConditionTrue
 		phase = v1.PodFailed
-	}
-	conditions := []v1.PodCondition{
-		v1.PodCondition{
-			Type:   v1.PodScheduled,
-			Status: isScheduled,
-		},
-		v1.PodCondition{
-			Type:   v1.PodInitialized,
-			Status: isInitialized,
-		},
-		v1.PodCondition{
-			Type:   v1.PodReady,
-			Status: isReady,
-		},
 	}
 	startTime := metav1.Time{}
 	if milpaPod.Status.ReadyTime != nil {
@@ -77,6 +45,16 @@ func (p *InstanceProvider) getStatus(milpaPod *api.Pod) v1.PodStatus {
 	for i, st := range milpaPod.Status.UnitStatuses {
 		containerStatuses[i] = unitToContainerStatus(st)
 	}
+	// We use the implementation from Kubernetes here to determine conditions.
+	conditions := []v1.PodCondition{}
+	conditions = append(conditions, k8sutil.GeneratePodInitializedCondition(&pod.Spec, initContainerStatuses, pod.Status.Phase))
+	conditions = append(conditions, k8sutil.GeneratePodReadyCondition(&pod.Spec, conditions, containerStatuses, pod.Status.Phase))
+	conditions = append(conditions, k8sutil.GenerateContainersReadyCondition(&pod.Spec, containerStatuses, pod.Status.Phase))
+	// PodScheduled is always true when the pod gets to the kubelet.
+	conditions = append(conditions, v1.PodCondition{
+		Type:   v1.PodScheduled,
+		Status: v1.ConditionTrue,
+	})
 	return v1.PodStatus{
 		Phase:                 phase,
 		Conditions:            conditions,
@@ -504,6 +482,6 @@ func (p *InstanceProvider) milpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
 			pod.Spec.Volumes = append(pod.Spec.Volumes, *volume)
 		}
 	}
-	pod.Status = p.getStatus(milpaPod)
+	pod.Status = p.getStatus(milpaPod, pod)
 	return pod, nil
 }
