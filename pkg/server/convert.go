@@ -228,11 +228,11 @@ func k8sToMilpaVolume(vol v1.Volume) *api.Volume {
 	convertKeyToPath := func(k8s []v1.KeyToPath) []api.KeyToPath {
 		milpa := make([]api.KeyToPath, len(k8s))
 		for i := range k8s {
-			milpa = append(milpa, api.KeyToPath{
+			milpa[i] = api.KeyToPath{
 				Key:  k8s[i].Key,
 				Path: k8s[i].Path,
 				Mode: k8s[i].Mode,
-			})
+			}
 		}
 		return milpa
 	}
@@ -296,11 +296,11 @@ func milpaToK8sVolume(vol api.Volume) *v1.Volume {
 	convertKeyToPath := func(milpa []api.KeyToPath) []v1.KeyToPath {
 		k8s := make([]v1.KeyToPath, len(milpa))
 		for i := range milpa {
-			k8s = append(k8s, v1.KeyToPath{
+			k8s[i] = v1.KeyToPath{
 				Key:  milpa[i].Key,
 				Path: milpa[i].Path,
 				Mode: milpa[i].Mode,
-			})
+			}
 		}
 		return k8s
 	}
