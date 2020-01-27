@@ -83,7 +83,7 @@ func unitToContainerStatus(st api.UnitStatus) v1.ContainerStatus {
 		}
 	}
 	if st.State.Running != nil {
-		cst.Ready = true
+		cst.Ready = true // TODO: use readiness probe result.
 		cst.State.Running = &v1.ContainerStateRunning{
 			StartedAt: metav1.NewTime(st.State.Running.StartedAt.Time),
 		}
