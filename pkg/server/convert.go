@@ -117,12 +117,11 @@ func containerToUnit(container v1.Container) api.Unit {
 	//		v1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", *cntrDef.MemoryReservation)),
 	//	},
 	//},
-	unit.Env = make([]api.EnvVar, len(container.Env))
-	for i, e := range container.Env {
-		unit.Env[i] = api.EnvVar{
+	for _, e := range container.Env {
+		unit.Env = append(unit.Env, api.EnvVar{
 			Name:  e.Name,
 			Value: e.Value,
-		}
+		})
 	}
 	if container.SecurityContext != nil {
 		unit.SecurityContext = &api.SecurityContext{
