@@ -402,7 +402,7 @@ type Capabilities struct {
 	// List of capabilities to add.
 	Add []string `json:"add,omitempty"`
 	// List of capabilities to drop.
-	Drop []string `protobuf:"json:"drop,omitempty"`
+	Drop []string `json:"drop,omitempty"`
 }
 
 // VolumeMount specifies what Volumes to attach to the Unit and the path where
