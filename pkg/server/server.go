@@ -34,7 +34,6 @@ import (
 	"google.golang.org/grpc"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 )
 
 const (
@@ -442,6 +441,11 @@ func (p *InstanceProvider) getNodeRegistry() *registry.NodeRegistry {
 	return reg.(*registry.NodeRegistry)
 }
 
+func (p *InstanceProvider) getMetricsRegistry() *registry.MetricsRegistry {
+	reg := p.Registries["Metric"]
+	return reg.(*registry.MetricsRegistry)
+}
+
 func (p *InstanceProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	ctx, span := trace.StartSpan(ctx, "CreatePod")
 	defer span.End()
@@ -647,60 +651,6 @@ func (p *InstanceProvider) nodeDaemonEndpoints() v1.NodeDaemonEndpoints {
 			Port: p.daemonEndpointPort,
 		},
 	}
-}
-
-func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary, error) {
-	var span trace.Span
-	ctx, span = trace.StartSpan(ctx, "GetStatsSummary")
-	defer span.End()
-	res := &stats.Summary{}
-	res.Node = stats.NodeStats{
-		NodeName:  p.nodeName,
-		StartTime: metav1.NewTime(p.startTime),
-	}
-	//	time := metav1.NewTime(time.Now())
-	//	for _, pod := range p.pods {
-	//		var (
-	//			totalUsageNanoCores uint64
-	//			totalUsageBytes uint64
-	//		)
-	//		pss := stats.PodStats{
-	//			PodRef: stats.PodReference{
-	//				Name:      pod.Name,
-	//				Namespace: pod.Namespace,
-	//				UID:       string(pod.UID),
-	//			},
-	//			StartTime: pod.CreationTimestamp,
-	//		}
-	//		for _, container := range pod.Spec.Containers {
-	//			dummyUsageNanoCores := uint64(rand.Uint32())
-	//			totalUsageNanoCores += dummyUsageNanoCores
-	//			dummyUsageBytes := uint64(rand.Uint32())
-	//			totalUsageBytes += dummyUsageBytes
-	//			pss.Containers = append(pss.Containers, stats.ContainerStats{
-	//				Name:      container.Name,
-	//				StartTime: pod.CreationTimestamp,
-	//				CPU: &stats.CPUStats{
-	//					Time:           time,
-	//					UsageNanoCores: &dummyUsageNanoCores,
-	//				},
-	//				Memory: &stats.MemoryStats{
-	//					Time:       time,
-	//					UsageBytes: &dummyUsageBytes,
-	//				},
-	//			})
-	//		}
-	//		pss.CPU = &stats.CPUStats{
-	//			Time:           time,
-	//			UsageNanoCores: &totalUsageNanoCores,
-	//		}
-	//		pss.Memory = &stats.MemoryStats{
-	//			Time:       time,
-	//			UsageBytes: &totalUsageBytes,
-	//		}
-	//		res.Pods = append(res.Pods, pss)
-	//	}
-	return res, nil
 }
 
 // NotifyPods is called to set a pod notifier callback function. This should be
