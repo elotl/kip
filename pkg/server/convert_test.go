@@ -10,6 +10,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/rand"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func fakeInstanceProvider() *InstanceProvider {
@@ -576,4 +577,99 @@ func TestMilpaToK8sPod(t *testing.T) {
 	assert.Equal(t, milpaPod.TypeMeta, mPod.TypeMeta)
 	assert.Equal(t, milpaPod.ObjectMeta, mPod.ObjectMeta)
 	assert.Equal(t, milpaPod.Spec, mPod.Spec)
+}
+
+//func aggregateResources(spec v1.PodSpec) api.ResourceSpec
+func TestAggregateResources(t *testing.T) {
+	testCases := []struct {
+		requirements []v1.ResourceRequirements
+		resources    api.ResourceSpec
+	}{
+		{
+			requirements: []v1.ResourceRequirements{},
+			resources:    api.ResourceSpec{},
+		},
+		{
+			requirements: []v1.ResourceRequirements{
+				{
+					Limits: v1.ResourceList{
+						v1.ResourceCPU: resource.MustParse("500m"),
+					},
+				},
+			},
+			resources: api.ResourceSpec{
+				CPU: "0.50",
+			},
+		},
+		{
+			requirements: []v1.ResourceRequirements{
+				{
+					Requests: v1.ResourceList{
+						v1.ResourceMemory: resource.MustParse("512Mi"),
+					},
+				},
+			},
+			resources: api.ResourceSpec{
+				Memory: "0.50Gi",
+			},
+		},
+		{
+			requirements: []v1.ResourceRequirements{
+				{
+					Requests: v1.ResourceList{
+						v1.ResourceCPU:    resource.MustParse("500m"),
+						v1.ResourceMemory: resource.MustParse("1Gi"),
+					},
+				},
+			},
+			resources: api.ResourceSpec{
+				CPU:    "0.50",
+				Memory: "1.00Gi",
+			},
+		},
+		{
+			requirements: []v1.ResourceRequirements{
+				{
+					Limits: v1.ResourceList{
+						v1.ResourceCPU:    resource.MustParse("1500m"),
+						v1.ResourceMemory: resource.MustParse("1536Mi"),
+					},
+					Requests: v1.ResourceList{
+						v1.ResourceCPU:    resource.MustParse("1000m"),
+						v1.ResourceMemory: resource.MustParse("1024Mi"),
+					},
+				},
+			},
+			resources: api.ResourceSpec{
+				CPU:    "1.50",
+				Memory: "1.50Gi",
+			},
+		},
+		{
+			requirements: []v1.ResourceRequirements{
+				{
+					Limits: v1.ResourceList{
+						ResourceLimitsGPU: resource.MustParse("1"),
+					},
+					Requests: v1.ResourceList{
+						v1.ResourceCPU:    resource.MustParse("2000m"),
+						v1.ResourceMemory: resource.MustParse("2Gi"),
+					},
+				},
+			},
+			resources: api.ResourceSpec{
+				CPU:    "2.00",
+				Memory: "2.00Gi",
+				GPU:    "1",
+			},
+		},
+	}
+	for _, tc := range testCases {
+		containers := make([]v1.Container, len(tc.requirements))
+		for i, req := range tc.requirements {
+			containers[i].Resources = req
+		}
+		resources := aggregateResources(containers)
+		assert.Equal(t, tc.resources, resources)
+	}
 }
