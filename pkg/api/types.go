@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	uuid "github.com/satori/go.uuid"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 var (
@@ -375,6 +376,19 @@ type Unit struct {
 	WorkingDir string `json:"workingDir,omitempty"`
 	// Unit security context.
 	SecurityContext *SecurityContext `json:"securityContext,omitempty"`
+	// Periodic probe of container liveness.  Container will be
+	// restarted if the probe fails.  Cannot be updated.  More info:
+	// https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	LivenessProbe *Probe `json:"livenessProbe,omitempty"`
+	// Periodic probe of container service readiness.  Container will
+	// be removed from service endpoints if the probe fails.  Cannot
+	// be updated.  More info:
+	// https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	ReadinessProbe *Probe `json:"readinessProbe,omitempty"`
+	//StartupProbe indicates that the Pod has successfully
+	//initialized. If specified, no other probes are executed until
+	//this completes successfully.
+	StartupProbe *Probe `json:"startupProbe,omitempty"`
 }
 
 // Optional security context that overrides whatever is set for the pod.
@@ -403,6 +417,104 @@ type Capabilities struct {
 	Add []string `json:"add,omitempty"`
 	// List of capabilities to drop.
 	Drop []string `json:"drop,omitempty"`
+}
+
+// ExecAction describes a "run in container" action.
+type ExecAction struct {
+	// Command is the command line to execute inside the container,
+	// the working directory for the command is root ('/') in the
+	// container's filesystem. The command is simply exec'd, it is not
+	// run inside a shell, so traditional shell instructions ('|',
+	// etc) won't work. To use a shell, you need to explicitly call
+	// out to that shell.  Exit status of 0 is treated as live/healthy
+	// and non-zero is unhealthy.
+	Command []string `json:"command,omitempty"`
+}
+
+// URIScheme identifies the scheme used for connection to a host for Get actions
+type URIScheme string
+
+const (
+	// URISchemeHTTP means that the scheme used will be http://
+	URISchemeHTTP URIScheme = "HTTP"
+	// URISchemeHTTPS means that the scheme used will be https://
+	URISchemeHTTPS URIScheme = "HTTPS"
+)
+
+// HTTPHeader describes a custom header to be used in HTTP probes
+type HTTPHeader struct {
+	// The header field name
+	Name string `json:"name"`
+	// The header field value
+	Value string `json:"value"`
+}
+
+// HTTPGetAction describes an action based on HTTP Get requests.
+type HTTPGetAction struct {
+	// Path to access on the HTTP server.
+	Path string `json:"path,omitempty"`
+	// Name or number of the port to access on the container.
+	// Number must be in the range 1 to 65535.
+	// Name must be an IANA_SVC_NAME.
+	Port intstr.IntOrString `json:"port"`
+	// Host name to connect to, defaults to the pod IP. You probably want to set
+	// "Host" in httpHeaders instead.
+	Host string `json:"host,omitempty"`
+	// Scheme to use for connecting to the host.
+	// Defaults to HTTP.
+	Scheme URIScheme `json:"scheme,omitempty"`
+	// Custom headers to set in the request. HTTP allows repeated headers.
+	// +optional
+	HTTPHeaders []HTTPHeader `json:"httpHeaders,omitempty"`
+}
+
+// TCPSocketAction describes an action based on opening a socket
+type TCPSocketAction struct {
+	// Number or name of the port to access on the container.
+	// Number must be in the range 1 to 65535.
+	// Name must be an IANA_SVC_NAME.
+	Port intstr.IntOrString `json:"port"`
+	// Optional: Host name to connect to, defaults to the pod IP.
+	// +optional
+	Host string `json:"host,omitempty"`
+}
+
+// Handler defines a specific action that should be taken
+type Handler struct {
+	// One and only one of the following should be specified.
+	// Exec specifies the action to take.
+	Exec *ExecAction `json:"exec,omitempty"`
+	// HTTPGet specifies the http request to perform.
+	HTTPGet *HTTPGetAction `json:"httpGet,omitempty"`
+	// TCPSocket specifies an action involving a TCP port.
+	// TCP hooks not yet supported
+	TCPSocket *TCPSocketAction `json:"tcpSocket,omitempty"`
+}
+
+// Probe describes a health check to be performed against a container
+// to determine whether it is alive or ready to receive traffic.
+type Probe struct {
+	// The action taken to determine the health of a container
+	Handler `json:",inline"`
+	// Number of seconds after the container has started before
+	// liveness probes are initiated.  More info:
+	// https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	InitialDelaySeconds int32 `json:"initialDelaySeconds,omitempty"`
+	// Number of seconds after which the probe times out.  Defaults to
+	// 1 second. Minimum value is 1.  More info:
+	// https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty"`
+	// How often (in seconds) to perform the probe.  Default to 10
+	// seconds. Minimum value is 1.
+	PeriodSeconds int32 `json:"periodSeconds,omitempty"`
+	// Minimum consecutive successes for the probe to be considered
+	// successful after having failed.  Defaults to 1. Must be 1 for
+	// liveness. Minimum value is 1.
+	SuccessThreshold int32 `json:"successThreshold,omitempty"`
+	// Minimum consecutive failures for the probe to be considered
+	// failed after having succeeded.  Defaults to 3. Minimum value is
+	// 1.
+	FailureThreshold int32 `json:"failureThreshold,omitempty"`
 }
 
 // VolumeMount specifies what Volumes to attach to the Unit and the path where
@@ -490,9 +602,6 @@ type PodStatus struct {
 	Phase PodPhase `json:"phase"`
 	// Time of the last phase change
 	LastPhaseChange Time `json:"lastPhaseChange"`
-	// Time after the pod was dispatched when the all units in the pod
-	// were running.
-	ReadyTime *Time `json:"readyTime,omitempty"`
 	// Name of the node running this Pod.
 	BoundNodeName string `json:"boundNodeName"`
 	// ID of the node running this Pod.
@@ -925,6 +1034,8 @@ type UnitStatus struct {
 	State        UnitState `json:"state,omitempty"`
 	RestartCount int32     `json:"restartCount"`
 	Image        string    `json:"image"`
+	Ready        bool      `json:"ready"`
+	Started      *bool     `json:"started"`
 }
 
 // Usage holds usage information for a cloud resource (typically a

@@ -10,6 +10,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/rand"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func fakeInstanceProvider() *InstanceProvider {
@@ -576,4 +577,31 @@ func TestMilpaToK8sPod(t *testing.T) {
 	assert.Equal(t, milpaPod.TypeMeta, mPod.TypeMeta)
 	assert.Equal(t, milpaPod.ObjectMeta, mPod.ObjectMeta)
 	assert.Equal(t, milpaPod.Spec, mPod.Spec)
+}
+
+func TestConvertingProbes(t *testing.T) {
+	mp := &api.Probe{
+		Handler: api.Handler{
+			HTTPGet: &api.HTTPGetAction{
+				Path:   "foo",
+				Port:   intstr.FromInt(2),
+				Host:   "localhost",
+				Scheme: api.URISchemeHTTP,
+				HTTPHeaders: []api.HTTPHeader{
+					{
+						Name:  "x-name",
+						Value: "my value",
+					},
+				},
+			},
+		},
+		InitialDelaySeconds: 1,
+		TimeoutSeconds:      2,
+		PeriodSeconds:       3,
+		SuccessThreshold:    4,
+		FailureThreshold:    5,
+	}
+	kp := milpaProbeToK8sProbe(mp)
+	mp2 := k8sProbeToMilpaProbe(kp)
+	assert.Equal(t, mp, mp2)
 }

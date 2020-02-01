@@ -248,20 +248,12 @@ func updatePodWithStatus(pod *api.Pod, reply FullPodStatus) (changed, startFailu
 		}
 	}
 
-	updatedReadyTime := false
-	if pod.Status.ReadyTime == nil && podIsReady(pod) {
-		now := api.Now()
-		pod.Status.ReadyTime = &now
-		updatedReadyTime = true
-	}
-
 	// Performance: could be faster with a manual comparison but
 	// that's painful to maintain
 	statusSame := reflect.DeepEqual(pod.Status.UnitStatuses, reply.UnitStatuses) && reflect.DeepEqual(pod.Status.InitUnitStatuses, reply.InitUnitStatuses)
 	if podPhase == pod.Status.Phase &&
 		statusSame &&
-		!resetStartFailures &&
-		!updatedReadyTime {
+		!resetStartFailures {
 		// No change.
 		return false, false, ""
 	}

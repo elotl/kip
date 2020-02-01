@@ -27,10 +27,10 @@ func (p *InstanceProvider) getStatus(milpaPod *api.Pod, pod *v1.Pod) v1.PodStatu
 	case api.PodTerminated:
 		phase = v1.PodFailed
 	}
-	startTime := metav1.Time{}
-	if milpaPod.Status.ReadyTime != nil {
-		startTime = metav1.NewTime(milpaPod.Status.ReadyTime.Time)
-	}
+
+	// Todo: make the call if this should be the dispatch time of the
+	// pod in milpa.
+	startTime := metav1.NewTime(milpaPod.CreationTimestamp.Time)
 	privateIPv4Address := ""
 	for _, address := range milpaPod.Status.Addresses {
 		if address.Type == api.PrivateIP {
@@ -75,21 +75,20 @@ func unitToContainerStatus(st api.UnitStatus) v1.ContainerStatus {
 		Image:        st.Image,
 		ImageID:      st.Image,
 		RestartCount: st.RestartCount,
+		Ready:        st.Ready,
+		Started:      st.Started,
 	}
 	if st.State.Waiting != nil {
-		cst.Ready = false
 		cst.State.Waiting = &v1.ContainerStateWaiting{
 			Reason: st.State.Waiting.Reason,
 		}
 	}
 	if st.State.Running != nil {
-		cst.Ready = true // TODO: use readiness probe result.
 		cst.State.Running = &v1.ContainerStateRunning{
 			StartedAt: metav1.NewTime(st.State.Running.StartedAt.Time),
 		}
 	}
 	if st.State.Terminated != nil {
-		cst.Ready = false
 		cst.State.Terminated = &v1.ContainerStateTerminated{
 			ExitCode:   st.State.Terminated.ExitCode,
 			FinishedAt: metav1.NewTime(st.State.Terminated.FinishedAt.Time),
@@ -160,6 +159,10 @@ func containerToUnit(container v1.Container) api.Unit {
 		})
 	}
 	//container.EnvFrom,
+	unit.StartupProbe = k8sProbeToMilpaProbe(container.StartupProbe)
+	unit.ReadinessProbe = k8sProbeToMilpaProbe(container.ReadinessProbe)
+	unit.LivenessProbe = k8sProbeToMilpaProbe(container.LivenessProbe)
+
 	return unit
 }
 
@@ -217,6 +220,9 @@ func unitToContainer(unit api.Unit, container *v1.Container) v1.Container {
 			MountPath: vm.MountPath,
 		})
 	}
+	container.StartupProbe = milpaProbeToK8sProbe(unit.StartupProbe)
+	container.ReadinessProbe = milpaProbeToK8sProbe(unit.ReadinessProbe)
+	container.LivenessProbe = milpaProbeToK8sProbe(unit.LivenessProbe)
 
 	return *container
 }
@@ -486,4 +492,79 @@ func (p *InstanceProvider) milpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
 	}
 	pod.Status = p.getStatus(milpaPod, pod)
 	return pod, nil
+}
+
+func milpaProbeToK8sProbe(mp *api.Probe) *v1.Probe {
+	if mp == nil {
+		return nil
+	}
+	kp := &v1.Probe{
+		InitialDelaySeconds: mp.InitialDelaySeconds,
+		TimeoutSeconds:      mp.TimeoutSeconds,
+		PeriodSeconds:       mp.PeriodSeconds,
+		SuccessThreshold:    mp.SuccessThreshold,
+		FailureThreshold:    mp.FailureThreshold,
+	}
+	if mp.Exec != nil {
+		kp.Exec = &v1.ExecAction{
+			Command: mp.Exec.Command,
+		}
+	} else if mp.HTTPGet != nil {
+		kp.HTTPGet = &v1.HTTPGetAction{
+			Path:   mp.HTTPGet.Path,
+			Port:   mp.HTTPGet.Port,
+			Host:   mp.HTTPGet.Host,
+			Scheme: v1.URIScheme(string(mp.HTTPGet.Scheme)),
+		}
+		h := make([]v1.HTTPHeader, len(mp.HTTPGet.HTTPHeaders))
+		for i := range mp.HTTPGet.HTTPHeaders {
+			h[i].Name = mp.HTTPGet.HTTPHeaders[i].Name
+			h[i].Value = mp.HTTPGet.HTTPHeaders[i].Value
+		}
+		kp.HTTPGet.HTTPHeaders = h
+	} else if mp.TCPSocket != nil {
+		kp.TCPSocket = &v1.TCPSocketAction{
+			Port: mp.TCPSocket.Port,
+			Host: mp.TCPSocket.Host,
+		}
+	}
+	return kp
+}
+
+func k8sProbeToMilpaProbe(kp *v1.Probe) *api.Probe {
+	if kp == nil {
+		return nil
+	}
+	mp := &api.Probe{
+		InitialDelaySeconds: kp.InitialDelaySeconds,
+		TimeoutSeconds:      kp.TimeoutSeconds,
+		PeriodSeconds:       kp.PeriodSeconds,
+		SuccessThreshold:    kp.SuccessThreshold,
+		FailureThreshold:    kp.FailureThreshold,
+	}
+	if kp.Exec != nil {
+		mp.Exec = &api.ExecAction{
+			Command: kp.Exec.Command,
+		}
+	} else if kp.HTTPGet != nil {
+		mp.HTTPGet = &api.HTTPGetAction{
+			Path:   kp.HTTPGet.Path,
+			Port:   kp.HTTPGet.Port,
+			Host:   kp.HTTPGet.Host,
+			Scheme: api.URIScheme(string(kp.HTTPGet.Scheme)),
+		}
+		h := make([]api.HTTPHeader, len(kp.HTTPGet.HTTPHeaders))
+		for i := range kp.HTTPGet.HTTPHeaders {
+			h[i].Name = kp.HTTPGet.HTTPHeaders[i].Name
+			h[i].Value = kp.HTTPGet.HTTPHeaders[i].Value
+		}
+		mp.HTTPGet.HTTPHeaders = h
+	} else if kp.TCPSocket != nil {
+		mp.TCPSocket = &api.TCPSocketAction{
+			Port: kp.TCPSocket.Port,
+			Host: kp.TCPSocket.Host,
+		}
+	}
+	return mp
+
 }
