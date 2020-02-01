@@ -2,14 +2,6 @@
 
 
 [[projects]]
-  digest = "1:bcd1b2dd631e720b6129e801bf0766c50fb4d39455c0a255047e8fc71c31152f"
-  name = "contrib.go.opencensus.io/exporter/jaeger"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "540daef1da72376e9b3e1d52e4f90403d72f5c00"
-  version = "v0.2.0"
-
-[[projects]]
   digest = "1:892e39e5c083d0943f1e80ab8351690f183c6a5ab24e1d280adcad424c26255e"
   name = "contrib.go.opencensus.io/exporter/ocagent"
   packages = ["."]
@@ -449,7 +441,7 @@
   version = "v1.1.1"
 
 [[projects]]
-  digest = "1:75eb87381d25cc75212f52358df9c3a2719584eaa9685cd510ce28699122f39d"
+  digest = "1:e35285db21b7d730a52b891a959783e567ca516ea64f2748070f1f917fbccd82"
   name = "github.com/googleapis/gnostic"
   packages = [
     "OpenAPIv2",
@@ -457,7 +449,8 @@
     "extensions",
   ]
   pruneopts = "UT"
-  revision = "0c5108395e2debce0d731cf0287ddf7242066aba"
+  revision = "99384834bf8c58ce7ab88db353283bedcb53e1ca"
+  version = "v0.4.0"
 
 [[projects]]
   digest = "1:cbec35fe4d5a4fba369a656a8cd65e244ea2c743007d8f6c1ccb132acf9d1296"
@@ -769,17 +762,21 @@
   version = "v1.5.1"
 
 [[projects]]
-  digest = "1:be83cecd5ba066751e3f789c1faecf5a3229031c7986eb486f593a6e32446ac0"
-  name = "github.com/uber/jaeger-client-go"
+  digest = "1:1c4e09880df2900b30bf9b50cf32568817c3f5ce5ff7015a6cecf513d3a43dbc"
+  name = "github.com/virtual-kubelet/node-cli"
   packages = [
-    "thrift",
-    "thrift-gen/agent",
-    "thrift-gen/jaeger",
-    "thrift-gen/zipkincore",
+    ".",
+    "internal/commands/providers",
+    "internal/commands/root",
+    "internal/commands/version",
+    "manager",
+    "opencensus",
+    "opts",
+    "provider",
   ]
   pruneopts = "UT"
-  revision = "f2e1f58485aacf2975cdde9c9f5396e6d98c35ba"
-  version = "v2.21.1"
+  revision = "cd8af9b9bc8c4cf6e49994bd677165c79d498320"
+  version = "v0.1.2"
 
 [[projects]]
   digest = "1:ee29cb0ae9cc471817ddfdf0173e8706a8ec227f140c33e30634503917915ced"
@@ -1189,8 +1186,8 @@
   name = "k8s.io/apiextensions-apiserver"
   packages = ["pkg/features"]
   pruneopts = "UT"
-  revision = "ea07e0496fdfc3befebe481bd6f850febc41cdae"
-  version = "v0.17.0"
+  revision = "111e9ba415dac090eaeb5a7aed2b90cf94afc0d0"
+  version = "v0.17.2"
 
 [[projects]]
   digest = "1:cdd77e0255f0aab8559125ec721158115d242d01fe69fe4c8e29712407930f58"
@@ -1435,12 +1432,12 @@
   version = "kubernetes-1.17.0"
 
 [[projects]]
-  branch = "master"
   digest = "1:bb2e100c8957b6b6cf4a7523b645247c09bc450292b01dedfcdbfdc85aea371d"
   name = "k8s.io/component-base"
   packages = ["featuregate"]
   pruneopts = "UT"
-  revision = "e498b4d116ab16914fc2e8e655ed2cf266c01eb0"
+  revision = "47d744dd27ec8a51b725b948828652b8676896f1"
+  version = "v0.17.2"
 
 [[projects]]
   digest = "1:93e82f25d75aba18436ad1ac042cb49493f096011f2541075721ed6f9e05c044"
@@ -1451,11 +1448,12 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:03a96603922fc1f6895ae083e1e16d943b55ef0656b56965351bd87e7d90485f"
+  branch = "master"
+  digest = "1:22abb5d4204ab1a0dcc9cda64906a31c43965ff5159e8b9f766c9d2a162dbed5"
   name = "k8s.io/kube-openapi"
   packages = ["pkg/util/proto"]
   pruneopts = "UT"
-  revision = "b3a7cee44a305be0a69e1b9ac03018307287e1b0"
+  revision = "cdac1c71ff9fcb581b648dfea9ae0eb5c80afa25"
 
 [[projects]]
   digest = "1:40434bbfac60044b86b64e7b9e6b47225f5595ba17180c690a7782cef46d6f0e"
@@ -1501,7 +1499,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "contrib.go.opencensus.io/exporter/jaeger",
     "contrib.go.opencensus.io/exporter/ocagent",
     "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-10-01/compute",
     "github.com/Azure/azure-sdk-for-go/services/network/mgmt/2018-08-01/network",
@@ -1541,23 +1538,24 @@
     "github.com/json-iterator/go",
     "github.com/justnoise/genny/generic",
     "github.com/kr/pty",
-    "github.com/mitchellh/go-homedir",
     "github.com/mitchellh/mapstructure",
-    "github.com/pkg/errors",
     "github.com/satori/go.uuid",
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
     "github.com/stretchr/testify/assert",
     "github.com/uber-go/atomic",
+    "github.com/virtual-kubelet/node-cli",
+    "github.com/virtual-kubelet/node-cli/manager",
+    "github.com/virtual-kubelet/node-cli/opencensus",
+    "github.com/virtual-kubelet/node-cli/opts",
+    "github.com/virtual-kubelet/node-cli/provider",
     "github.com/virtual-kubelet/virtual-kubelet/errdefs",
     "github.com/virtual-kubelet/virtual-kubelet/log",
-    "github.com/virtual-kubelet/virtual-kubelet/node",
     "github.com/virtual-kubelet/virtual-kubelet/node/api",
     "github.com/virtual-kubelet/virtual-kubelet/trace",
     "github.com/virtual-kubelet/virtual-kubelet/trace/opencensus",
     "go.opencensus.io/trace",
-    "go.opencensus.io/zpages",
     "golang.org/x/crypto/ssh/terminal",
     "golang.org/x/net/context",
     "golang.org/x/sys/unix",
@@ -1566,23 +1564,15 @@
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/api/resource",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
-    "k8s.io/apimachinery/pkg/fields",
-    "k8s.io/apimachinery/pkg/labels",
+    "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/errors",
     "k8s.io/apimachinery/pkg/util/sets",
     "k8s.io/apimachinery/pkg/util/wait",
-    "k8s.io/client-go/informers",
-    "k8s.io/client-go/kubernetes",
-    "k8s.io/client-go/kubernetes/scheme",
-    "k8s.io/client-go/kubernetes/typed/coordination/v1beta1",
-    "k8s.io/client-go/kubernetes/typed/core/v1",
     "k8s.io/client-go/listers/core/v1",
-    "k8s.io/client-go/rest",
+    "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/clientcmd/api",
-    "k8s.io/client-go/tools/record",
     "k8s.io/client-go/util/workqueue",
-    "k8s.io/klog",
     "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1",
   ]
   solver-name = "gps-cdcl"

@@ -17,23 +17,14 @@ package main
 
 import (
 	"context"
-	"os"
-	"os/signal"
-	"path/filepath"
 	"strings"
-	"syscall"
 
-	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/commands/providers"
-	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/commands/root"
-	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/commands/version"
-	"github.com/elotl/cloud-instance-provider/cmd/virtual-kubelet/internal/provider"
 	"github.com/elotl/cloud-instance-provider/pkg/glog"
-	//ciprovider "github.com/elotl/cloud-instance-provider/pkg/provider"
-
 	"github.com/elotl/cloud-instance-provider/pkg/server"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	cli "github.com/virtual-kubelet/node-cli"
+	opencensuscli "github.com/virtual-kubelet/node-cli/opencensus"
+	"github.com/virtual-kubelet/node-cli/opts"
+	"github.com/virtual-kubelet/node-cli/provider"
 	"github.com/virtual-kubelet/virtual-kubelet/log"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	"github.com/virtual-kubelet/virtual-kubelet/trace/opencensus"
@@ -45,69 +36,51 @@ var (
 	k8sVersion   = "v1.14.0" // This should follow the version of k8s.io/kubernetes we are importing
 )
 
-func registerProvider(s *provider.Store) {
-	s.Register("cloud-instance-provider", func(cfg provider.InitConfig) (provider.Provider, error) {
-		return server.NewInstanceProvider(
-			cfg.ConfigPath,
-			cfg.NodeName,
-			cfg.InternalIP,
-			cfg.DaemonPort,
-			cfg.ResourceManager,
-			cfg.StopChan,
-		)
-	})
-}
-
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sig
-		cancel()
-	}()
+	ctx := cli.ContextWithCancelOnSignal(context.Background())
 
-	//log.L = logruslogger.FromLogrus(logrus.NewEntry(logrus.StandardLogger()))
 	log.L = glog.NewGlogAdapter()
 
 	trace.T = opencensus.Adapter{}
-
-	var opts root.Opts
-	optsErr := root.SetDefaultOpts(&opts)
-	opts.Version = strings.Join([]string{k8sVersion, "vk", buildVersion}, "-")
-
-	s := provider.NewStore()
-	registerProvider(s)
-
-	rootCmd := root.NewCommand(ctx, filepath.Base(os.Args[0]), s, opts)
-	rootCmd.AddCommand(version.NewCommand(buildVersion, buildTime), providers.NewCommand(s))
-	preRun := rootCmd.PreRunE
-
-	var logLevel string
-	rootCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
-		if optsErr != nil {
-			return optsErr
-		}
-		if preRun != nil {
-			return preRun(cmd, args)
-		}
-		return nil
+	traceConfig := opencensuscli.Config{
+		AvailableExporters: map[string]opencensuscli.ExporterInitFunc{
+			"ocagent": initOCAgent,
+		},
 	}
 
-	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", `set the log level, e.g. "debug", "info", "warn", "error"`)
+	o, err := opts.FromEnv()
+	if err != nil {
+		log.G(ctx).Fatal(err)
+	}
+	o.Provider = "cloud-instance-provider"
+	o.Version = strings.Join([]string{k8sVersion, "vk", buildVersion}, "-")
+	o.PodSyncWorkers = 10
 
-	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		if logLevel != "" {
-			lvl, err := logrus.ParseLevel(logLevel)
-			if err != nil {
-				return errors.Wrap(err, "could not parse log level")
-			}
-			logrus.SetLevel(lvl)
-		}
-		return nil
+	node, err := cli.New(ctx,
+		cli.WithBaseOpts(o),
+		cli.WithCLIVersion(buildVersion, buildTime),
+		cli.WithProvider("cloud-instance-provider",
+			func(cfg provider.InitConfig) (provider.Provider, error) {
+				return server.NewInstanceProvider(
+					cfg.ConfigPath,
+					cfg.NodeName,
+					cfg.InternalIP,
+					cfg.DaemonPort,
+					cfg.ResourceManager,
+					ctx.Done(),
+				)
+			}),
+		cli.WithPersistentFlags(traceConfig.FlagSet()),
+		cli.WithPersistentPreRunCallback(func() error {
+			return opencensuscli.Configure(ctx, &traceConfig, o)
+		}),
+	)
+
+	if err != nil {
+		log.G(ctx).Fatal(err)
 	}
 
-	if err := rootCmd.Execute(); err != nil && errors.Cause(err) != context.Canceled {
+	if err := node.Run(); err != nil {
 		log.G(ctx).Fatal(err)
 	}
 }

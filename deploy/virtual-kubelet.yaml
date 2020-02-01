@@ -90,6 +90,11 @@ spec:
           value: /etc/kubelet-pki/kubelet.crt
         - name: APISERVER_KEY_LOCATION
           value: /etc/kubelet-pki/kubelet.key
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
         resources:
           limits:
             cpu: "2"

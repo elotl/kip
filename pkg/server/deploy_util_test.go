@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/manager"
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
 	"github.com/stretchr/testify/assert"
+	"github.com/virtual-kubelet/node-cli/manager"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1listers "k8s.io/client-go/listers/core/v1"
