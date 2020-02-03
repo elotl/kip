@@ -136,7 +136,7 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 }
 
 // InstanceProvider should implement node.PodLifecycleHandler
-func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndpointPort int32, rm *manager.ResourceManager, systemQuit <-chan struct{}) (*InstanceProvider, error) {
+func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndpointPort int32, debugServer bool, rm *manager.ResourceManager, systemQuit <-chan struct{}) (*InstanceProvider, error) {
 	systemWG := &sync.WaitGroup{}
 
 	flag.CommandLine.Parse([]string{"--logtostderr", "--v=3"})
@@ -343,7 +343,6 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		azureImageController.WaitForAvailable()
 	}
 
-	debugServer := true
 	if debugServer {
 		if err := s.setupDebugServer(); err != nil {
 			return nil, err

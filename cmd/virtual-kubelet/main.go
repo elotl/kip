@@ -48,6 +48,8 @@ func main() {
 		},
 	}
 
+	serverConfig := &ServerConfig{}
+
 	o, err := opts.FromEnv()
 	if err != nil {
 		log.G(ctx).Fatal(err)
@@ -66,11 +68,13 @@ func main() {
 					cfg.NodeName,
 					cfg.InternalIP,
 					cfg.DaemonPort,
+					serverConfig.DebugServer,
 					cfg.ResourceManager,
 					ctx.Done(),
 				)
 			}),
 		cli.WithPersistentFlags(traceConfig.FlagSet()),
+		cli.WithPersistentFlags(serverConfig.FlagSet()),
 		cli.WithPersistentPreRunCallback(func() error {
 			return opencensuscli.Configure(ctx, &traceConfig, o)
 		}),

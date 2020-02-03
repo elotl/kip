@@ -62,6 +62,7 @@ type InitConfig struct {
 	OperatingSystem   string
 	InternalIP        string
 	DaemonPort        int32
+	DebugServer       bool
 	KubeClusterDomain string
 	ResourceManager   *manager.ResourceManager
 }
