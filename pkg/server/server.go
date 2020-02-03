@@ -26,6 +26,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/instanceselector"
 	"github.com/elotl/cloud-instance-provider/pkg/util/timeoutmap"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
+	"github.com/elotl/virtual-kubelet/errdefs"
 	"github.com/golang/glog"
 	"github.com/virtual-kubelet/node-cli/manager"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
@@ -510,6 +511,9 @@ func (p *InstanceProvider) GetPod(ctx context.Context, namespace, name string) (
 	podRegistry := p.getPodRegistry()
 	milpaPod, err := podRegistry.GetPod(util.WithNamespace(namespace, name))
 	if err != nil {
+		if err == store.ErrKeyNotFound {
+			return nil, errdefs.NotFoundf("pod %s/%s is not found", namespace, name)
+		}
 		glog.Errorf("GetPod %q: %v", name, err)
 		return nil, err
 	}
