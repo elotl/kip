@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	k8sutil "github.com/elotl/cloud-instance-provider/pkg/util/k8s"
@@ -9,6 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+)
+
+const (
+	ResourceLimitsGPU v1.ResourceName = "nvidia.com/gpu"
 )
 
 func (p *InstanceProvider) getStatus(milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
@@ -106,16 +112,6 @@ func containerToUnit(container v1.Container) api.Unit {
 		Args:       container.Args,
 		WorkingDir: container.WorkingDir,
 	}
-	//Resources: v1.ResourceRequirements{
-	//	Limits: v1.ResourceList{
-	//		v1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", *cntrDef.Cpu)),
-	//		v1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", *cntrDef.Memory)),
-	//	},
-	//	Requests: v1.ResourceList{
-	//		v1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", *cntrDef.Cpu)),
-	//		v1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", *cntrDef.MemoryReservation)),
-	//	},
-	//},
 	for _, e := range container.Env {
 		unit.Env = append(unit.Env, api.EnvVar{
 			Name:  e.Name,
@@ -412,7 +408,46 @@ func (p *InstanceProvider) k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 			milpapod.Spec.Volumes = append(milpapod.Spec.Volumes, *volume)
 		}
 	}
+	milpapod.Spec.Resources = aggregateResources(pod.Spec.Containers)
 	return milpapod, nil
+}
+
+func aggregateResources(containers []v1.Container) api.ResourceSpec {
+	allCpu := int64(0)
+	allMemory := int64(0)
+	gpus := int64(0)
+	for _, container := range containers {
+		cpu := container.Resources.Limits.Cpu().MilliValue()
+		if cpu <= 0 {
+			cpu = container.Resources.Requests.Cpu().MilliValue()
+		}
+		allCpu += cpu
+		memory := container.Resources.Limits.Memory().Value()
+		if memory <= 0 {
+			memory = container.Resources.Requests.Memory().Value()
+		}
+		allMemory += memory
+		gpu := container.Resources.Limits[ResourceLimitsGPU]
+		gpus += gpu.Value()
+	}
+	cpuStr := ""
+	if allCpu > 0 {
+		cpuStr = fmt.Sprintf("%.2f", float32(allCpu)/1000.0)
+	}
+	memoryStr := ""
+	if allMemory > 0 {
+		memoryStr = fmt.Sprintf(
+			"%.2fGi", float32(allMemory)/float32(1024*1024*1024))
+	}
+	gpuStr := ""
+	if gpus > 0 {
+		gpuStr = fmt.Sprintf("%d", gpus)
+	}
+	return api.ResourceSpec{
+		CPU:    cpuStr,
+		Memory: memoryStr,
+		GPU:    gpuStr,
+	}
 }
 
 func (p *InstanceProvider) milpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
