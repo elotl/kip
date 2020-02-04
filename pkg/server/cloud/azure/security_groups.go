@@ -172,3 +172,7 @@ func (az *AzureClient) EnsureSecurityGroup(sgName string, ports []api.ServicePor
 func (az *AzureClient) CreateSGName(svcName string) string {
 	return util.CreateSecurityGroupName(az.controllerID, "default", svcName)
 }
+
+func (az *AzureClient) AttachSecurityGroups(node *api.Node, groups []string) error {
+	return nil
+}

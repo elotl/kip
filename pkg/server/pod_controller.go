@@ -17,6 +17,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/conmap"
 	"github.com/elotl/cloud-instance-provider/pkg/util/stats"
+	"github.com/elotl/milpa/pkg/api/annotations"
 	"github.com/golang/glog"
 	"github.com/virtual-kubelet/node-cli/manager"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -323,6 +324,28 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		}
 	}
 
+	securityGroupsStr := pod.Annotations[annotations.PodSecurityGroups]
+	if len(securityGroupsStr) != 0 {
+		err := c.attachSecurityGroupsToNode(node, securityGroupsStr)
+		if err != nil {
+			msg := fmt.Sprintf("Error dispatching pod to node, could not attach security groups to pod %s: %s", pod.Name, err)
+			glog.Errorln(msg)
+			c.markFailedPod(pod, true, msg)
+			return
+		}
+	}
+
+	instanceProfile := pod.Annotations[annotations.PodInstanceProfile]
+	if len(instanceProfile) != 0 {
+		err := c.cloudClient.AssignInstanceProfile(node, instanceProfile)
+		if err != nil {
+			msg := fmt.Sprintf("Error dispatching pod to node, could not assign instance profile %s to pod %s: %s", instanceProfile, pod.Name, err)
+			glog.Errorln(msg)
+			c.markFailedPod(pod, true, msg)
+			return
+		}
+	}
+
 	// Add labels to the instance but don't fail if that fails, just
 	// warn to the user and continue...  Also, lets just launch this
 	/// as a goroutine cause we don't care when it finishes
@@ -350,6 +373,14 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		c.markFailedPod(pod, true, msg)
 		return
 	}
+}
+
+func (c *PodController) attachSecurityGroupsToNode(node *api.Node, securityGroupsStr string) error {
+	securityGroups := strings.Split(securityGroupsStr, ",")
+	if len(securityGroups) == 0 {
+		return nil
+	}
+	return c.cloudClient.AttachSecurityGroups(node, securityGroups)
 }
 
 func (c *PodController) SyncRunningPods() {
