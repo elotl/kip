@@ -13,6 +13,12 @@ import (
 	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 )
 
+type usageMetrics struct {
+	UsageNanoCores  uint64
+	UsageBytes      uint64
+	WorkingSetBytes uint64
+}
+
 func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary, error) {
 	var span trace.Span
 	ctx, span = trace.StartSpan(ctx, "GetStatsSummary")
@@ -54,15 +60,12 @@ func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary,
 			continue
 		}
 		// First metrics sample from the pod.
-		podMetrics := podMetricsItems[0]
-		startTime := metav1.NewTime(podMetrics.Timestamp.Time)
+		firstSample := podMetricsItems[0]
+		startTime := metav1.NewTime(firstSample.Timestamp.Time)
 		// Last sample from the pod, with the latest metrics.
-		podMetrics = podMetricsItems[len(podMetricsItems)-1]
-		podUsageNanoCores := uint64(0)
-		podUsageBytes := uint64(0)
-		podWorkingSetBytes := uint64(0)
+		lastSample := podMetricsItems[len(podMetricsItems)-1]
 		namespace, name := util.SplitNamespaceAndName(pod.Name)
-		timestamp := metav1.NewTime(podMetrics.Timestamp.Time)
+		timestamp := metav1.NewTime(lastSample.Timestamp.Time)
 		pss := stats.PodStats{
 			PodRef: stats.PodReference{
 				Name:      name,
@@ -71,63 +74,78 @@ func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary,
 			},
 			StartTime: startTime,
 			CPU: &stats.CPUStats{
-				Time:           timestamp,
-				UsageNanoCores: &podUsageNanoCores,
+				Time: timestamp,
 			},
 			Memory: &stats.MemoryStats{
-				Time:            timestamp,
-				UsageBytes:      &podUsageBytes,
-				WorkingSetBytes: &podWorkingSetBytes,
+				Time: timestamp,
 			},
 		}
-		for _, unit := range pod.Spec.Units {
-			usageNanoCores := uint64(0)
-			usageBytes := uint64(0)
-			workingSetBytes := uint64(0)
-			for k, v := range podMetrics.ResourceUsage {
-				if !strings.HasPrefix(k, unit.Name+".") {
-					continue
-				}
-				parts := strings.Split(k, ".")
-				if len(parts) != 2 {
-					continue
-				}
-				if parts[1] == "cpuUsage" {
-					usageNanoCores = uint64(v)
-				}
-				if parts[1] == "memoryUsage" {
-					usageBytes = uint64(v)
-					if workingSetBytes == 0 {
-						// Old itzo versions don't support this metric.
-						workingSetBytes = uint64(v)
-					}
-				}
-				if parts[1] == "memoryWorkingSet" {
-					workingSetBytes = uint64(v)
-				}
-			}
-			pss.Containers = append(pss.Containers, stats.ContainerStats{
-				Name:      unit.Name,
-				StartTime: startTime,
-				CPU: &stats.CPUStats{
-					Time:           timestamp,
-					UsageNanoCores: &usageNanoCores,
-				},
-				Memory: &stats.MemoryStats{
-					Time:            timestamp,
-					UsageBytes:      &usageBytes,
-					WorkingSetBytes: &workingSetBytes,
-				},
-			})
-			podUsageNanoCores += usageNanoCores
-			podUsageBytes += usageBytes
-			podWorkingSetBytes += workingSetBytes
-		}
-		if podWorkingSetBytes == 0 {
-			podWorkingSetBytes = podUsageBytes
-		}
+		var podUsage usageMetrics
+		podUsage, pss.Containers = getContainerStats(startTime, lastSample, pod.Spec.Units)
+		pss.CPU.UsageNanoCores = &podUsage.UsageNanoCores
+		pss.Memory.UsageBytes = &podUsage.UsageBytes
+		pss.Memory.WorkingSetBytes = &podUsage.WorkingSetBytes
 		res.Pods = append(res.Pods, pss)
 	}
 	glog.Infof("GetStatsSummary() %+v", res)
 	return res, nil
+}
+
+func getContainerStats(startTime metav1.Time, podMetrics *api.Metrics, units []api.Unit) (usageMetrics, []stats.ContainerStats) {
+	timestamp := metav1.NewTime(podMetrics.Timestamp.Time)
+	unitUsageMap := make(map[string]*usageMetrics)
+	for k, v := range podMetrics.ResourceUsage {
+		parts := strings.Split(k, ".")
+		if len(parts) != 2 {
+			continue
+		}
+		unitName := parts[0]
+		metric := parts[1]
+		usage, ok := unitUsageMap[unitName]
+		if !ok {
+			usage = &usageMetrics{}
+			unitUsageMap[unitName] = usage
+		}
+		if metric == "cpuUsage" {
+			usage.UsageNanoCores = uint64(v)
+		}
+		if metric == "memoryUsage" {
+			usage.UsageBytes = uint64(v)
+			if usage.WorkingSetBytes == 0 {
+				// Old itzo versions don't support this metric.
+				usage.WorkingSetBytes = usage.UsageBytes
+			}
+		}
+		if metric == "memoryWorkingSet" {
+			usage.WorkingSetBytes = uint64(v)
+		}
+	}
+	podUsage := usageMetrics{}
+	containerStats := make([]stats.ContainerStats, len(units))
+	for i, unit := range units {
+		usage, ok := unitUsageMap[unit.Name]
+		if !ok {
+			usage = &usageMetrics{}
+		}
+		containerStats[i] = stats.ContainerStats{
+			Name:      unit.Name,
+			StartTime: startTime,
+			CPU: &stats.CPUStats{
+				Time:           timestamp,
+				UsageNanoCores: &usage.UsageNanoCores,
+			},
+			Memory: &stats.MemoryStats{
+				Time:            timestamp,
+				UsageBytes:      &usage.UsageBytes,
+				WorkingSetBytes: &usage.WorkingSetBytes,
+			},
+		}
+		podUsage.UsageNanoCores += usage.UsageNanoCores
+		podUsage.UsageBytes += usage.UsageBytes
+		podUsage.WorkingSetBytes += usage.WorkingSetBytes
+	}
+	if podUsage.WorkingSetBytes == 0 {
+		podUsage.WorkingSetBytes = podUsage.UsageBytes
+	}
+	return podUsage, containerStats
 }
