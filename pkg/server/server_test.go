@@ -9,6 +9,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/etcd"
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/api/core/v1"
 )
 
 var runFunctional = flag.Bool("functional", false, "run functional tests")
@@ -60,4 +61,76 @@ func TestEnsureRegionUnchanged(t *testing.T) {
 	assert.Error(t, err)
 	err = ensureRegionUnchanged(etcdClient, "us-east-1")
 	assert.NoError(t, err)
+}
+
+//func getPortMappings(containers []v1.Container) []v1.ContainerPort
+func TestGetPortMappings(t *testing.T) {
+	testCases := []struct {
+		containers   []v1.Container
+		portMappings []v1.ContainerPort
+	}{
+		{
+			containers:   nil,
+			portMappings: nil,
+		},
+		{
+			containers: []v1.Container{
+				{
+					Ports: []v1.ContainerPort{},
+				},
+			},
+			portMappings: nil,
+		},
+		{
+			containers: []v1.Container{
+				{
+					Ports: []v1.ContainerPort{
+						{
+							HostPort:      0,
+							ContainerPort: 1111,
+						},
+						{
+							HostPort:      12345,
+							ContainerPort: 0,
+						},
+					},
+				},
+			},
+			portMappings: nil,
+		},
+		{
+			containers: []v1.Container{
+				{
+					Ports: []v1.ContainerPort{
+						{
+							HostPort:      1111,
+							ContainerPort: 1111,
+						},
+						{
+							HostPort:      2222,
+							ContainerPort: 3333,
+						},
+						{
+							HostPort:      0,
+							ContainerPort: 12345,
+						},
+					},
+				},
+			},
+			portMappings: []v1.ContainerPort{
+				{
+					HostPort:      1111,
+					ContainerPort: 1111,
+				},
+				{
+					HostPort:      2222,
+					ContainerPort: 3333,
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		pms := getPortMappings(tc.containers)
+		assert.Equal(t, tc.portMappings, pms)
+	}
 }
