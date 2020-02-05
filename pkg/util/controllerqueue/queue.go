@@ -74,7 +74,7 @@ func (cq *Queue) handleErr(err error, key interface{}) {
 	}
 
 	if cq.queue.NumRequeues(key) < cq.maxRetries {
-		klog.Infof("Error syncing %s %q, retrying. Error: %v", cq.name, key, err)
+		klog.V(2).Infof("Error syncing %s %q, retrying. Error: %v", cq.name, key, err)
 		cq.queue.AddRateLimited(key)
 		return
 	}

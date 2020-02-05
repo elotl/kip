@@ -41,7 +41,7 @@ func (s InstanceProvider) Create(context context.Context, request *clientapi.Cre
 		return errToAPIReply(util.WrapError(err, "Error creating resource")), nil
 	}
 
-	klog.Infof("Creating: %s", objectKind)
+	klog.V(2).Infof("Creating: %s", objectKind)
 	replyObj, err := store.Create(milpaObj)
 	if err != nil {
 		return errToAPIReply(util.WrapError(err, "Error creating resource")), nil

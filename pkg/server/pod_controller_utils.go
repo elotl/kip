@@ -267,7 +267,7 @@ func updatePodWithStatus(pod *api.Pod, reply FullPodStatus) (changed, startFailu
 	}
 
 	if podPhase != pod.Status.Phase {
-		klog.Infof("Changing pod %s phase %s -> %s",
+		klog.V(2).Infof("Changing pod %s phase %s -> %s",
 			pod.Name, pod.Status.Phase, podPhase)
 		pod.Status.Phase = podPhase
 		if podPhase == api.PodFailed {

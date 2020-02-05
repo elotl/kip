@@ -133,7 +133,7 @@ func (az *AzureClient) createNIC(instanceID string, ipID string) (string, error)
 }
 
 func (az *AzureClient) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	klog.Infof("Starting instance for node: %v", node)
+	klog.V(2).Infof("Starting instance for node: %v", node)
 	instanceID := makeInstanceID(az.controllerID, node.Name)
 	err := az.createResourceGroup(instanceID)
 	if err != nil {
@@ -299,7 +299,7 @@ func (az *AzureClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, err
 }
 
 func (az *AzureClient) SetSustainedCPU(node *api.Node, enabled bool) error {
-	klog.Infoln("Setting sustained CPU in Azure has no impact")
+	klog.V(2).Infoln("Setting sustained CPU in Azure has no impact")
 	return nil
 }
 

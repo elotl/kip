@@ -121,11 +121,11 @@ func (e *AwsEC2) ResizeVolume(node *api.Node, size int64) (error, bool) {
 			node.Name, vol), false
 	}
 	if *vol.Size >= size {
-		klog.Infof("Volume on node %s is %dGiB >= %dGiB",
+		klog.V(2).Infof("Volume on node %s is %dGiB >= %dGiB",
 			node.Name, *vol.Size, size)
 		return nil, false
 	}
-	klog.Infof("Resizing volume to %dGiB for node: %v", size, node)
+	klog.V(2).Infof("Resizing volume to %dGiB for node: %v", size, node)
 	result, err := e.client.ModifyVolume(&ec2.ModifyVolumeInput{
 		Size:     aws.Int64(size),
 		VolumeId: aws.String(*vol.VolumeId),
@@ -160,11 +160,11 @@ func (e *AwsEC2) ResizeVolume(node *api.Node, size int64) (error, bool) {
 				node.Name, vol), false
 		}
 		if *vol.Size >= size {
-			klog.Infof("Volume on node %s is %dGiB >= %dGiB",
+			klog.V(2).Infof("Volume on node %s is %dGiB >= %dGiB",
 				node.Name, *vol.Size, size)
 			return nil, true
 		} else {
-			klog.Infof("Resizing volume on %s: currently %dGiB, requested %dGiB",
+			klog.V(2).Infof("Resizing volume on %s: currently %dGiB, requested %dGiB",
 				node.Name, *vol.Size, size)
 		}
 	}
@@ -212,7 +212,7 @@ func (e *AwsEC2) GetImageId(tags cloud.BootImageTags) (string, error) {
 }
 
 func (e *AwsEC2) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	klog.Infof("Starting instance for node: %v", node)
+	klog.V(2).Infof("Starting instance for node: %v", node)
 	tags := e.getNodeTags(node)
 	tagSpec := ec2.TagSpecification{
 		ResourceType: aws.String("instance"),
@@ -221,7 +221,7 @@ func (e *AwsEC2) StartNode(node *api.Node, metadata string) (*cloud.StartNodeRes
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
 	devices := e.getBlockDeviceMapping(volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
-	klog.Infof("Starting node with security groups: %v subnet: '%s'",
+	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)
 	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
 		ImageId:             aws.String(node.Spec.BootImage),
@@ -250,7 +250,7 @@ func (e *AwsEC2) StartNode(node *api.Node, metadata string) (*cloud.StartNodeRes
 		return nil, fmt.Errorf("Could not get instance info at result.Instances")
 	}
 	cloudID := aws.StringValue(result.Instances[0].InstanceId)
-	klog.Infof("Started instance: %s", cloudID)
+	klog.V(2).Infof("Started instance: %s", cloudID)
 	startResult := &cloud.StartNodeResult{
 		InstanceID:       cloudID,
 		AvailabilityZone: e.availabilityZone,
@@ -261,7 +261,7 @@ func (e *AwsEC2) StartNode(node *api.Node, metadata string) (*cloud.StartNodeRes
 // This isn't terribly different from Start node but there are
 // some minor differences.  We'll capture errors correctly here and there
 func (e *AwsEC2) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	klog.Infof("Starting instance for node: %v", node)
+	klog.V(2).Infof("Starting instance for node: %v", node)
 	tags := e.getNodeTags(node)
 	tagSpec := ec2.TagSpecification{
 		ResourceType: aws.String("instance"),
@@ -269,11 +269,11 @@ func (e *AwsEC2) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNod
 	}
 	var err error
 	//var subnet *cloud.SubnetAttributes
-	klog.Infof("Starting spot node in: %s", e.subnetID)
+	klog.V(2).Infof("Starting spot node in: %s", e.subnetID)
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
 	devices := e.getBlockDeviceMapping(volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
-	klog.Infof("Starting node with security groups: %v subnet: '%s'",
+	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)
 	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
 		ImageId:             aws.String(node.Spec.BootImage),
@@ -312,7 +312,7 @@ func (e *AwsEC2) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNod
 		return nil, fmt.Errorf("Could not get instance info at result.Instances")
 	}
 	cloudID := aws.StringValue(result.Instances[0].InstanceId)
-	klog.Infof("Started instance: %s", cloudID)
+	klog.V(2).Infof("Started instance: %s", cloudID)
 	startResult := &cloud.StartNodeResult{
 		InstanceID:       cloudID,
 		AvailabilityZone: e.availabilityZone,

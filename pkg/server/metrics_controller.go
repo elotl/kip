@@ -51,7 +51,7 @@ func (c *MetricsController) runSyncLoop(quit <-chan struct{}, wg *sync.WaitGroup
 			}
 		case <-quit:
 			cleanTicker.Stop()
-			klog.Info("Exiting MetricsController Sync Loop")
+			klog.V(2).Info("Exiting MetricsController Sync Loop")
 			return
 		}
 	}

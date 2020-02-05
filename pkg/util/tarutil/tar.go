@@ -39,7 +39,7 @@ func CreatePackage(hostRootfs string, paths []string) (io.Reader, error) {
 }
 
 func AddFile(tw *tar.Writer, source, target string) error {
-	klog.Infof("Adding file %s->%s to package\n", source, target)
+	klog.V(2).Infof("Adding file %s->%s to package\n", source, target)
 	fi, err := os.Lstat(source)
 	if err != nil {
 		klog.Errorf("Error LStat()ing %s: %v", source, err)
@@ -87,7 +87,7 @@ func AddFile(tw *tar.Writer, source, target string) error {
 			source, target, err)
 		return err
 	}
-	klog.Infof("Copied %d bytes for %s->%s\n", n, source, target)
+	klog.V(2).Infof("Copied %d bytes for %s->%s\n", n, source, target)
 	return nil
 }
 

@@ -127,14 +127,14 @@ func (e *AwsEC2) assertVPCExists(vpcID string) (string, string, error) {
 		return "", "", err
 	}
 	// // if we found a VPC, grab the data out of it
-	klog.Infoln("Current vpc: ",
+	klog.V(2).Infoln("Current vpc: ",
 		aws.StringValue(vpcs[0].VpcId),
 		aws.StringValue(vpcs[0].CidrBlock))
 	return aws.StringValue(vpcs[0].VpcId), aws.StringValue(vpcs[0].CidrBlock), nil
 }
 
 func (e *AwsEC2) GetSubnets() ([]cloud.SubnetAttributes, error) {
-	klog.Infof("Getting subnets and availability zones for VPC %s", e.vpcID)
+	klog.V(2).Infof("Getting subnets and availability zones for VPC %s", e.vpcID)
 	vpcFilters := []*ec2.Filter{
 		{
 			Name: aws.String("vpc-id"),

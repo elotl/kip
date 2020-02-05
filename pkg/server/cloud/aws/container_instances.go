@@ -106,7 +106,7 @@ func (c *AwsEC2) EnsureContainerInstanceCluster() error {
 		return fmt.Errorf("error setting up ECS cluster, task long ARN formats is not enabled")
 	}
 
-	klog.Infof("Ensuring ECS cluster %s exists", c.ecsClusterName)
+	klog.V(2).Infof("Ensuring ECS cluster %s exists", c.ecsClusterName)
 	output, err := c.ecs.DescribeClusters(&ecs.DescribeClustersInput{
 		Clusters: aws.StringSlice([]string{c.ecsClusterName}),
 	})
@@ -115,7 +115,7 @@ func (c *AwsEC2) EnsureContainerInstanceCluster() error {
 	}
 
 	if len(output.Clusters) == 0 {
-		klog.Infof("Creating ECS cluster %s", c.ecsClusterName)
+		klog.V(2).Infof("Creating ECS cluster %s", c.ecsClusterName)
 		val := fmt.Sprintf("Milpa Controller %s", c.controllerID)
 		tags := []*ecs.Tag{{
 			Key:   aws.String("Created by Milpa Controller"),
@@ -498,7 +498,7 @@ func (c *AwsEC2) StopContainerInstance(containerInstanceID string) error {
 		return fmt.Errorf("cannot stop containerInstanceID %s: container instances client is not configured", containerInstanceID)
 	}
 
-	klog.Infof("Stopping container instance %s", containerInstanceID)
+	klog.V(2).Infof("Stopping container instance %s", containerInstanceID)
 	stopTaskInput := &ecs.StopTaskInput{
 		Cluster: aws.String(c.ecsClusterName),
 		Reason:  aws.String("Stopped by Milpa"),
@@ -523,7 +523,7 @@ func (c *AwsEC2) StopContainerInstance(containerInstanceID string) error {
 }
 
 func (c *AwsEC2) DeregisterTaskDefinition(taskARN string) error {
-	klog.Infof("Deregistering task definition %s", taskARN)
+	klog.V(2).Infof("Deregistering task definition %s", taskARN)
 	_, err := c.ecs.DeregisterTaskDefinition(
 		&ecs.DeregisterTaskDefinitionInput{
 			TaskDefinition: aws.String(taskARN),
@@ -535,7 +535,7 @@ func (c *AwsEC2) WaitForContainerInstanceRunning(pod *api.Pod) (*api.Pod, error)
 	if c.ecs == nil {
 		return nil, fmt.Errorf("Could not wait for container instance running: ECS client is not configured")
 	}
-	klog.Infof("Waiting for task %s to be running", pod.Status.BoundInstanceID)
+	klog.V(2).Infof("Waiting for task %s to be running", pod.Status.BoundInstanceID)
 	lastStatus := ""
 	observedPending := false
 	eniID := ""

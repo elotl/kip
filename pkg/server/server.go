@@ -78,7 +78,7 @@ type InstanceProvider struct {
 }
 
 func validateWriteToEtcd(client *etcd.SimpleEtcd) error {
-	klog.Info("validating write access to etcd (will block until we can connect)")
+	klog.V(2).Info("validating write access to etcd (will block until we can connect)")
 	wo := &store.WriteOptions{
 		IsDir: false,
 		TTL:   2 * time.Second,
@@ -88,7 +88,7 @@ func validateWriteToEtcd(client *etcd.SimpleEtcd) error {
 	if err != nil {
 		return err
 	}
-	klog.Info("Write to etcd successful")
+	klog.V(2).Info("write to etcd successful")
 	return nil
 }
 
@@ -97,7 +97,7 @@ func setupEtcd(configFile, dataDir string, quit <-chan struct{}, wg *sync.WaitGr
 	// change in the future if we want the embedded server to join
 	// existing etcd server, but, for now just don't start it.
 	var client *etcd.SimpleEtcd
-	klog.Infof("starting internal etcd")
+	klog.V(2).Infof("starting internal etcd")
 	etcdServer := etcd.EtcdServer{
 		ConfigFile: configFile,
 		DataDir:    dataDir,
@@ -116,7 +116,7 @@ func setupEtcd(configFile, dataDir string, quit <-chan struct{}, wg *sync.WaitGr
 }
 
 func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
-	klog.Infof("Ensuring region has not changed")
+	klog.V(2).Infof("ensuring region has not changed")
 	var savedRegion string
 	pair, err := etcdClient.Get(etcdClusterRegionPath)
 	if err != nil {
@@ -176,7 +176,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		nametag = controllerID
 	}
 
-	klog.Infof("ControllerID: %s", controllerID)
+	klog.V(2).Infof("ControllerID: %s", controllerID)
 
 	certFactory, err := certs.New(etcdClient)
 	if err != nil {
@@ -217,10 +217,10 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		return nil, fmt.Errorf("error validating server.yml: %v", errs.ToAggregate())
 	}
 
-	klog.Infof("Setting up events")
+	klog.V(2).Infof("setting up events")
 	eventSystem := events.NewEventSystem(systemQuit, systemWG)
 
-	klog.Infof("Setting up registry")
+	klog.V(2).Infof("setting up registry")
 	podRegistry := registry.NewPodRegistry(
 		etcdClient, api.VersioningCodec{}, eventSystem, statefulValidator)
 	nodeRegistry := registry.NewNodeRegistry(
@@ -344,7 +344,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 
 	if ctrl, ok := controllers["ImageController"]; ok {
 		azureImageController := ctrl.(*azure.ImageController)
-		klog.Infof("Downloading Milpa node image to local Azure subscription (this could take a few minutes)")
+		klog.V(2).Infof("downloading Milpa node image to local Azure subscription (this could take a few minutes)")
 		azureImageController.WaitForAvailable()
 	}
 
@@ -435,7 +435,7 @@ func (p *InstanceProvider) Handle(ev events.Event) error {
 			}
 		}
 	}
-	klog.Infof("milpa pod %s event %v", milpaPod.Name, ev)
+	klog.V(4).Infof("milpa pod %q event %v", milpaPod.Name, ev)
 	p.notifier(pod)
 	return nil
 }
@@ -457,7 +457,7 @@ func (p *InstanceProvider) Stop() {
 
 func waitForWaitGroup(wg *sync.WaitGroup, waitGroupDone chan struct{}) {
 	wg.Wait()
-	klog.Info("All controllers have exited")
+	klog.V(2).Info("all controllers have exited")
 	waitGroupDone <- struct{}{}
 }
 
@@ -501,7 +501,7 @@ func (p *InstanceProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	ctx, span := trace.StartSpan(ctx, "CreatePod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
-	klog.Infof("CreatePod %q", pod.Name)
+	klog.V(5).Infof("CreatePod %q", pod.Name)
 	milpaPod, err := p.k8sToMilpaPod(pod)
 	if err != nil {
 		klog.Errorf("CreatePod %q: %v", pod.Name, err)
@@ -521,7 +521,7 @@ func (p *InstanceProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	ctx, span := trace.StartSpan(ctx, "UpdatePod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
-	klog.Infof("UpdatePod %q", pod.Name)
+	klog.V(5).Infof("UpdatePod %q", pod.Name)
 	milpaPod, err := p.k8sToMilpaPod(pod)
 	if err != nil {
 		klog.Errorf("UpdatePod %q: %v", pod.Name, err)
@@ -541,7 +541,7 @@ func (p *InstanceProvider) DeletePod(ctx context.Context, pod *v1.Pod) (err erro
 	ctx, span := trace.StartSpan(ctx, "DeletePod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
-	klog.Infof("DeletePod %q", pod.Name)
+	klog.V(5).Infof("DeletePod %q", pod.Name)
 	milpaPod, err := p.k8sToMilpaPod(pod)
 	if err != nil {
 		klog.Errorf("DeletePod %q: %v", pod.Name, err)
@@ -561,7 +561,7 @@ func (p *InstanceProvider) GetPod(ctx context.Context, namespace, name string) (
 	ctx, span := trace.StartSpan(ctx, "GetPod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, name)
-	klog.Infof("GetPod %q", name)
+	klog.V(5).Infof("GetPod %q", name)
 	podRegistry := p.getPodRegistry()
 	milpaPod, err := podRegistry.GetPod(util.WithNamespace(namespace, name))
 	if err != nil {
@@ -583,7 +583,7 @@ func (p *InstanceProvider) GetPodStatus(ctx context.Context, namespace, name str
 	ctx, span := trace.StartSpan(ctx, "GetPodStatus")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, name)
-	klog.Infof("GetPodStatus %q", name)
+	klog.V(5).Infof("GetPodStatus %q", name)
 	podRegistry := p.getPodRegistry()
 	milpaPod, err := podRegistry.GetPod(util.WithNamespace(namespace, name))
 	if err != nil {
@@ -601,7 +601,7 @@ func (p *InstanceProvider) GetPodStatus(ctx context.Context, namespace, name str
 func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 	ctx, span := trace.StartSpan(ctx, "GetPods")
 	defer span.End()
-	klog.Infof("GetPods")
+	klog.V(5).Infof("GetPods")
 	podRegistry := p.getPodRegistry()
 	milpaPods, err := podRegistry.ListPods(func(pod *api.Pod) bool {
 		return true
@@ -624,7 +624,7 @@ func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 func (p *InstanceProvider) ConfigureNode(ctx context.Context, n *v1.Node) {
 	ctx, span := trace.StartSpan(ctx, "ConfigureNode")
 	defer span.End()
-	klog.Infof("ConfigureNode")
+	klog.V(5).Infof("ConfigureNode")
 	n.Status.Capacity = p.capacity()
 	n.Status.Allocatable = p.capacity()
 	n.Status.Conditions = p.nodeConditions()

@@ -81,7 +81,7 @@ func (cm *ControllerManager) WaitForShutdown(systemShutdown <-chan struct{}, sys
 
 	select {
 	case <-systemShutdown:
-		klog.Infof("Shutting down controllers")
+		klog.V(2).Infof("Shutting down controllers")
 		cm.StopControllers()
 		return
 	}
@@ -92,15 +92,15 @@ func (cm *ControllerManager) startControllersHelper() {
 		klog.Warning("Asked to start controllers but they are already running")
 		return
 	}
-	klog.Info("Starting controllers")
+	klog.V(2).Info("Starting controllers")
 	cm.controllerQuit = make(chan struct{})
 	cm.controllerWaitGroup = &sync.WaitGroup{}
 	cm.controllersRunning.Store(true)
 	for name, controller := range cm.controllers {
-		klog.Infof("Starting %s", name)
+		klog.V(2).Infof("Starting %s", name)
 		go controller.Start(cm.controllerQuit, cm.controllerWaitGroup)
 	}
-	klog.Info("Finished starting controllers")
+	klog.V(2).Info("Finished starting controllers")
 }
 
 func (cm *ControllerManager) stopControllersHelper() {
@@ -108,9 +108,9 @@ func (cm *ControllerManager) stopControllersHelper() {
 		klog.Warning("Asked to stop controllers but they are not running")
 		return
 	}
-	klog.Info("Starting to stop controllers")
+	klog.V(2).Info("Starting to stop controllers")
 	close(cm.controllerQuit)
 	cm.controllerWaitGroup.Wait()
 	cm.controllersRunning.Store(false)
-	klog.Info("All controllers stopped")
+	klog.V(2).Info("All controllers stopped")
 }

@@ -127,7 +127,7 @@ func FilterImages(images []Image, tags BootImageTags) []Image {
 		t := BootImageTags{}
 		t.Set(img.Name)
 		if t.Matches(tags) {
-			klog.Infof("Found image %s matching filter %+v", img.Name, tags)
+			klog.V(4).Infof("Found image %s matching filter %+v", img.Name, tags)
 			result = append(result, img)
 		}
 	}
@@ -175,7 +175,7 @@ func GetBestImage(images []Image, tags BootImageTags) (string, error) {
 		return "", err
 	}
 	latest := images[len(images)-1].Id
-	klog.Infof("Found image %s for tags %v", latest, tags)
+	klog.V(2).Infof("Found image %s for tags %v", latest, tags)
 	return latest, nil
 }
 

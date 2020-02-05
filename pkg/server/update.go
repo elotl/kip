@@ -16,7 +16,7 @@ func (s InstanceProvider) Update(context context.Context, request *clientapi.Upd
 		return notTheLeaderReply(), nil
 	}
 	_, objectKind, err := VersionAndKind(request.Manifest)
-	klog.Infof("Update request for: %s", objectKind)
+	klog.V(2).Infof("Update request for: %s", objectKind)
 	if err != nil {
 		return errToAPIReply(
 			util.WrapError(err, "Error determining manifest kind")), nil

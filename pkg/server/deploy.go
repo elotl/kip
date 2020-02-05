@@ -102,6 +102,6 @@ func (s InstanceProvider) Deploy(stream clientapi.Milpa_DeployServer) error {
 		Status: 200,
 		Body:   []byte("{}"),
 	}
-	klog.Infof("Deployed package %s for %s", name, pod)
+	klog.V(2).Infof("Deployed package %s for %s", name, pod)
 	return stream.SendAndClose(&reply)
 }

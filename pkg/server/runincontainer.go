@@ -26,7 +26,7 @@ func (p *InstanceProvider) RunInContainer(ctx context.Context, namespace, podNam
 	ctx, span := trace.StartSpan(ctx, "RunInContainer")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
-	klog.Infof("RunInContainer %q %v", podName, cmd)
+	klog.V(2).Infof("RunInContainer %q %v", podName, cmd)
 	tty := attach.TTY()
 	stdin := attach.Stdin()
 	stdout := attach.Stdout()
@@ -56,7 +56,7 @@ func (p *InstanceProvider) RunInContainer(ctx context.Context, namespace, podNam
 		// Send tty resize messages to the other side.
 		go func() {
 			for termsize := range resize {
-				klog.Infof("exec requesting window resize %+v", termsize)
+				klog.V(2).Infof("exec requesting window resize %+v", termsize)
 				err = sendWinSize(ws, WinSize{
 					Cols: termsize.Width,
 					Rows: termsize.Height,
@@ -115,7 +115,7 @@ func (p *InstanceProvider) muxToWS(ws *wsstream.WSStream, stdin io.Reader, stdou
 				return
 			}
 			if eof && n == 0 {
-				klog.Infof("exec stdin EOF")
+				klog.V(2).Infof("exec stdin EOF")
 				return
 			}
 			// CRLF conversion if a tty is used.
@@ -129,7 +129,7 @@ func (p *InstanceProvider) muxToWS(ws *wsstream.WSStream, stdin io.Reader, stdou
 				return
 			}
 			if eof {
-				klog.Infof("exec stdin EOF")
+				klog.V(2).Infof("exec stdin EOF")
 				return
 			}
 		}
@@ -162,7 +162,7 @@ func (p *InstanceProvider) muxToWS(ws *wsstream.WSStream, stdin io.Reader, stdou
 					klog.Errorf("exec invalid exit code %v", data)
 					continue
 				}
-				klog.Infof("exec got exit code %d", exitCode)
+				klog.V(2).Infof("exec got exit code %d", exitCode)
 				continue
 			default:
 				klog.Errorf("exec unknown channel %d from ws", ch)

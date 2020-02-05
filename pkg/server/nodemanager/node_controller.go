@@ -254,7 +254,7 @@ func (c *NodeController) startNodes(nodes []*api.Node) {
 	}
 	for i, newNode := range nodes {
 		if i >= MaxBootPerIteration {
-			klog.Infof("Rate limiting start requests to %d per iteration", MaxBootPerIteration)
+			klog.V(2).Infof("Rate limiting start requests to %d per iteration", MaxBootPerIteration)
 			break
 		}
 		newNode, err := c.NodeRegistry.CreateNode(newNode)
@@ -317,7 +317,7 @@ func (c *NodeController) finishNodeStart(node *api.Node) error {
 	// a describe instance here...
 	addresses, err := c.CloudClient.WaitForRunning(node)
 	if err != nil {
-		klog.Infof("Unhealthy wait for running, terminating node: %s", node.Name)
+		klog.V(2).Infof("Unhealthy wait for running, terminating node: %s", node.Name)
 		_ = c.stopSingleNode(node)
 		return util.WrapError(err, "Error waiting for node to be running")
 	}
@@ -329,7 +329,7 @@ func (c *NodeController) finishNodeStart(node *api.Node) error {
 
 func (c *NodeController) stopSingleNode(node *api.Node) error {
 	// to keep counts in sync, don't move this inside the goroutine
-	klog.Infof("Stopping node: %s", node.Name)
+	klog.V(2).Infof("Stopping node: %s", node.Name)
 
 	node.Status.Phase = api.NodeTerminating
 	_, err := c.NodeRegistry.UpdateStatus(node)
@@ -424,7 +424,7 @@ func (c *NodeController) StopCreatingNodes() {
 		klog.Errorf("Could not list nodes to check for creating nodes")
 	}
 	for _, node := range nodes.Items {
-		klog.Infof("Terminating creating node %s: it was likely lost at restart",
+		klog.V(2).Infof("Terminating creating node %s: it was likely lost at restart",
 			node.Name)
 		go func(n *api.Node) {
 			err := c.stopSingleNode(n)
@@ -448,14 +448,14 @@ func (c *NodeController) ResumeWaits() {
 	if err != nil {
 		klog.Errorf("Could not list nodes for resuming waits")
 	}
-	klog.Infof("Resume waiting on healty from %d instances", len(nodes.Items))
+	klog.V(2).Infof("Resume waiting on healty from %d instances", len(nodes.Items))
 	for _, node := range nodes.Items {
 		go func(node *api.Node) error {
 			if len(node.Status.Addresses) == 0 {
 				addresses, err := c.CloudClient.WaitForRunning(node)
 				c.Events.Emit(events.NodeRunning, "node-controller", node, "")
 				if err != nil {
-					klog.Infof("Unhealthy wait for running, terminating node: %s",
+					klog.V(2).Infof("Unhealthy wait for running, terminating node: %s",
 						node.Name)
 					_ = c.stopSingleNode(node)
 					return util.WrapError(
@@ -532,12 +532,12 @@ func (c *NodeController) waitForAvailableOrTerminate(node *api.Node, timeout tim
 		_ = c.stopSingleNode(node)
 		return err
 	}
-	klog.Infof("Waiting for available on node %s", node.Name)
+	klog.V(2).Infof("Waiting for available on node %s", node.Name)
 	client := c.NodeClientFactory.GetClient(node.Status.Addresses)
 	err := waitForHealthy(node, client, timeout)
 	if err != nil {
 		klog.Errorf("Error in node start: node unresponsive for %s seconds", timeout)
-		klog.Infof("Terminating node: %s", node.Name)
+		klog.V(2).Infof("Terminating node: %s", node.Name)
 		_ = c.stopSingleNode(node)
 		return util.WrapError(err, "Error waiting for healthy node")
 	}
@@ -545,7 +545,7 @@ func (c *NodeController) waitForAvailableOrTerminate(node *api.Node, timeout tim
 	_, err = c.NodeRegistry.UpdateStatus(node)
 	if err != nil {
 		klog.Errorf("Error setting node %s to available,", node.Name)
-		klog.Infof("Terminating node: %s", node.Name)
+		klog.V(2).Infof("Terminating node: %s", node.Name)
 		_ = c.stopSingleNode(node)
 		return util.WrapError(err, "Error waiting for healthy node")
 	}
@@ -659,7 +659,7 @@ func (c *NodeController) dispatchNodesLoop(quit <-chan struct{}, wg *sync.WaitGr
 			case nodeReq := <-c.NodeDispenser.NodeRequestChan:
 				nodeReq.ReplyChan <- c.requestNode(nodeReq, podNodeMap)
 			case returnedNodeMsg := <-c.NodeDispenser.NodeReturnChan:
-				klog.Infof("Got node %s back", returnedNodeMsg.NodeName)
+				klog.V(2).Infof("Got node %s back", returnedNodeMsg.NodeName)
 				if returnedNodeMsg.Unused {
 					go c.cleanUnusedNode(returnedNodeMsg.NodeName)
 				} else {
@@ -676,7 +676,7 @@ func (c *NodeController) dispatchNodesLoop(quit <-chan struct{}, wg *sync.WaitGr
 // the node can be reused, here we just mark the node as available and
 // wipe any info that might have been set.
 func (c *NodeController) cleanUnusedNode(name string) {
-	klog.Infof("Node %s is unused, returning to pool", name)
+	klog.V(2).Infof("Node %s is unused, returning to pool", name)
 	node, err := c.NodeRegistry.GetNode(name)
 	if err != nil {
 		klog.Errorln("Error retrieving unused node from registry", name)
@@ -738,7 +738,7 @@ func (c *NodeController) imageTagsToId(tags cloud.BootImageTags) (string, error)
 			func(obj interface{}) {
 				_, _ = c.imageTagsToId(tags)
 			})
-		klog.Infof("Latest image with tags %v: '%s'", tags, img)
+		klog.V(2).Infof("Latest image with tags %v: '%s'", tags, img)
 	}
 	return img, nil
 }
@@ -751,7 +751,7 @@ func (c *NodeController) bindNodeToPod(pod *api.Pod, node *api.Node) error {
 }
 
 func (c *NodeController) saveNodeLogs(node *api.Node) {
-	klog.Infof("Saving node logs")
+	klog.V(2).Infof("Saving node logs")
 	filename := "/var/log/itzo/itzo.log"
 	client := c.NodeClientFactory.GetClient(node.Status.Addresses)
 	data, err := client.GetFile(filename, 0, nodeclient.SAVE_LOG_BYTES)

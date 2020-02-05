@@ -66,7 +66,7 @@ func (c *GarbageController) GCLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 		// are timing out talking to etcd, lets give quit priority
 		select {
 		case <-quit:
-			klog.Info("Stopping GarbageController")
+			klog.V(2).Info("Stopping GarbageController")
 			return
 		default:
 		}
@@ -80,7 +80,7 @@ func (c *GarbageController) GCLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 		case <-cleanResourceGroupsTicker.C:
 			c.CleanAzureResourceGroups()
 		case <-quit:
-			klog.Info("Stopping GarbageController")
+			klog.V(2).Info("Stopping GarbageController")
 			return
 		}
 	}

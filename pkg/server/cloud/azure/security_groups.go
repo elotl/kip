@@ -32,7 +32,7 @@ func (az *AzureClient) EnsureMilpaNSG() error {
 		if err != nil {
 			return util.WrapError(err, "Error creating cluster network security group %s", nsgName)
 		}
-		klog.Infof("Creating cluster network security group %s", nsgName)
+		klog.V(2).Infof("Creating cluster network security group %s", nsgName)
 		timeoutCtx, cancel = context.WithTimeout(ctx, azureWaitTimeout)
 		defer cancel()
 		err = future.WaitForCompletionRef(timeoutCtx, az.nsgs.Client)

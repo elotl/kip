@@ -54,7 +54,7 @@ func (c *AwsEC2) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string) e
 		return util.WrapError(err, "Could not setup Milpa API cloud firewall rules")
 	}
 	ids := append(extraGroupIDs, apiGroup.ID)
-	klog.Infoln("security group name", apiGroupName, ids)
+	klog.V(2).Infoln("security group name", apiGroupName, ids)
 	c.SetBootSecurityGroupIDs(ids)
 	return nil
 }
@@ -207,7 +207,7 @@ func (e *AwsEC2) DeleteSecurityGroup(groupID string) error {
 	if err != nil {
 		return util.WrapError(err, "Could not delete security group")
 	}
-	klog.Infof("Deleted security group %s", groupID)
+	klog.V(2).Infof("Deleted security group %s", groupID)
 	return nil
 }
 

@@ -138,7 +138,7 @@ func (es *EventSystem) Run(quit <-chan struct{}, wg *sync.WaitGroup) {
 				}
 			}
 		case <-quit:
-			klog.Info("Stopping Events System")
+			klog.V(2).Info("Stopping Events System")
 			return
 		}
 	}

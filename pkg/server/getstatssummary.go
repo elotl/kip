@@ -23,7 +23,7 @@ func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary,
 	var span trace.Span
 	ctx, span = trace.StartSpan(ctx, "GetStatsSummary")
 	defer span.End()
-	klog.Infof("GetStatsSummary()")
+	klog.V(5).Infof("GetStatsSummary()")
 	zero := uint64(0)
 	now := metav1.NewTime(time.Now())
 	res := &stats.Summary{}
@@ -56,7 +56,7 @@ func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary,
 		podMetricsList := metricsRegistry.GetPodMetrics(pod.Name)
 		podMetricsItems := podMetricsList.Items
 		if len(podMetricsItems) < 1 {
-			klog.V(3).Infof("no metrics found for pod %s", pod.Name)
+			klog.V(2).Infof("no metrics found for pod %s", pod.Name)
 			continue
 		}
 		// First metrics sample from the pod.
@@ -87,7 +87,7 @@ func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary,
 		pss.Memory.WorkingSetBytes = &podUsage.WorkingSetBytes
 		res.Pods = append(res.Pods, pss)
 	}
-	klog.Infof("GetStatsSummary() %+v", res)
+	klog.V(5).Infof("GetStatsSummary() %+v", res)
 	return res, nil
 }
 

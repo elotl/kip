@@ -189,7 +189,7 @@ func (s InstanceProvider) GetLogs(context context.Context, request *clientapi.Lo
 	lines := int(request.Lines)
 	bytes := int(request.Limitbytes)
 
-	klog.Infof("Getting logs from %s/%s (max lines %d; limitbytes %d)",
+	klog.V(2).Infof("Getting logs from %s/%s (max lines %d; limitbytes %d)",
 		resourceName, itemName, lines, bytes)
 
 	foundLog, err := s.findLog(resourceName, itemName, lines, bytes)

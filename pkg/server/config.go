@@ -177,11 +177,11 @@ func setupAwsEnvVars(c *AWSConfig) error {
 			return err
 		}
 	}
-	klog.Infof("Validating connection to AWS")
+	klog.V(2).Infof("Validating connection to AWS")
 	if err := aws.CheckConnection(); err != nil {
 		return util.WrapError(err, "Error validationg connection to AWS")
 	}
-	klog.Infof("Validated access to AWS")
+	klog.V(2).Infof("Validated access to AWS")
 	return nil
 }
 
@@ -198,11 +198,11 @@ func setupAzureEnvVars(c *AzureConfig) error {
 	if err := os.Setenv("SUBSCRIPTION_ID", c.SubscriptionID); err != nil {
 		return err
 	}
-	klog.Infof("Validating connection to Azure")
+	klog.V(2).Infof("Validating connection to Azure")
 	if err := azure.CheckConnection(c.SubscriptionID); err != nil {
 		return util.WrapError(err, "Error validationg connection to Azure")
 	}
-	klog.Infof("Validated access to Azure")
+	klog.V(2).Infof("Validated access to Azure")
 	return nil
 }
 
@@ -301,9 +301,9 @@ func ConfigureCloud(configFile *ServerConfigFile, controllerID, nametag string) 
 
 	usePublicIPs := !cloudClient.ControllerInsideVPC()
 	if usePublicIPs {
-		klog.Infof("controller is outside the cloud network, connecting via public IPs")
+		klog.V(2).Infof("controller is outside the cloud network, connecting via public IPs")
 	} else {
-		klog.Infof("controller is inside the cloud network, connecting via private IPs")
+		klog.V(2).Infof("controller is inside the cloud network, connecting via private IPs")
 	}
 	err = cloudClient.EnsureMilpaSecurityGroups(
 		configFile.Cells.ExtraCIDRs,

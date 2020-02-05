@@ -33,7 +33,7 @@ func (s InstanceProvider) Delete(context context.Context, request *clientapi.Del
 		kind = kind[0 : len(kind)-1]
 	}
 	name := string(request.Name)
-	klog.Infof("Delete request for: %s - %s", kind, name)
+	klog.V(2).Infof("Delete request for: %s - %s", kind, name)
 	replyObj, err := s.deleteHelper(kind, name, request.Cascade)
 
 	if err != nil {

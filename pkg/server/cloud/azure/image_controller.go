@@ -71,7 +71,7 @@ func (ic *ImageController) FullSyncLoop(quit <-chan struct{}, wg *sync.WaitGroup
 				klog.Errorln("Error doing full sync of image controller", err)
 			}
 		case <-quit:
-			klog.Info("Exiting Azure Image Controller Sync Loop")
+			klog.V(2).Info("Exiting Azure Image Controller Sync Loop")
 			return
 		}
 	}
@@ -320,7 +320,7 @@ func (ic *ImageController) copyBlob(accountName, containerName, blobName string)
 		}
 		time.Sleep(3 * time.Second)
 	}
-	klog.Infof("Copying blob %s finished", blobName)
+	klog.V(2).Infof("Copying blob %s finished", blobName)
 	return dstBlob.String(), nil
 }
 
@@ -439,14 +439,14 @@ func (ic *ImageController) syncSingleBlob(blobName string) error {
 		return fmt.Errorf("Failed to finish creating image %s: %v\n",
 			imageName, err)
 	}
-	klog.Infof("Created image %s from blob %s", imageName, url)
+	klog.V(2).Infof("Created image %s from blob %s", imageName, url)
 	return nil
 }
 
 func (ic *ImageController) WaitForAvailable() {
 	for !ic.isSynced.Load() {
-		klog.Infoln("Waiting for azure disk image to sync")
+		klog.V(2).Infoln("Waiting for azure disk image to sync")
 		time.Sleep(3 * time.Second)
 	}
-	klog.Infoln("Image synced")
+	klog.V(2).Infoln("Image synced")
 }

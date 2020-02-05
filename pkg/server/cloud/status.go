@@ -241,7 +241,7 @@ func (s *LinkedAZSubnetStatus) AddUnavailableInstance(instanceType string, spot 
 }
 
 func (s *LinkedAZSubnetStatus) AddUnavailableZone(instanceType string, spot bool, zone string) {
-	klog.Infof("Adding unavailable zone %s for instance type %s", zone, instanceType)
+	klog.V(2).Infof("Adding unavailable zone %s for instance type %s", zone, instanceType)
 	s.RLock()
 	defer s.RUnlock()
 	for i, _ := range s.subnets {
@@ -252,7 +252,7 @@ func (s *LinkedAZSubnetStatus) AddUnavailableZone(instanceType string, spot bool
 }
 
 func (s *LinkedAZSubnetStatus) AddUnavailableSubnet(instanceType string, spot bool, subnetID string) {
-	klog.Infof("Adding unavailable subnet %s for instance type %s", subnetID, instanceType)
+	klog.V(2).Infof("Adding unavailable subnet %s for instance type %s", subnetID, instanceType)
 	key := makeUnavailableKey(instanceType, spot, subnetID)
 	// only update the entry if it doesn't already exist.  It might be
 	// tempting to always update the object but that could lead to a
@@ -399,7 +399,7 @@ func (s *AZSubnetStatus) GetAvailableSubnets(instanceType string, spot, privateI
 }
 
 func (s *AZSubnetStatus) AddUnavailableZone(instanceType string, spot bool, zone string) {
-	klog.Infof("Adding unavailable zone %s for instance type %s", zone, instanceType)
+	klog.V(2).Infof("Adding unavailable zone %s for instance type %s", zone, instanceType)
 	key := makeUnavailableKey(instanceType, spot, zone)
 	_, exists := s.unavailableZones.Get(key)
 	if !exists {
@@ -408,7 +408,7 @@ func (s *AZSubnetStatus) AddUnavailableZone(instanceType string, spot bool, zone
 }
 
 func (s *AZSubnetStatus) AddUnavailableSubnet(instanceType string, spot bool, subnetID string) {
-	klog.Infof("Adding unavailable subnet %s for instance type %s", subnetID, instanceType)
+	klog.V(2).Infof("Adding unavailable subnet %s for instance type %s", subnetID, instanceType)
 	key := makeUnavailableKey(instanceType, spot, subnetID)
 	// only update the entry if it doesn't already exist.  It might be
 	// tempting to always update the object but that could lead to a

@@ -68,7 +68,7 @@ type FullPodStatus struct {
 
 func (c *PodController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
 	c.kubernetesNodeName = os.Getenv("NODE_NAME")
-	klog.Infof("kubernetes node name: %q", c.kubernetesNodeName)
+	klog.V(2).Infof("kubernetes node name: %q", c.kubernetesNodeName)
 	if c.kubernetesNodeName == "" {
 		klog.Warningf("failed to get NODE_NAME; cell network agent won't run")
 	}
@@ -122,7 +122,7 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 
-	klog.Info("starting pod controller")
+	klog.V(2).Info("starting pod controller")
 	ticker := time.NewTicker(5 * time.Second)
 	cleanTicker := time.NewTicker(20 * time.Second)
 	fullSyncTicker := time.NewTicker(31 * time.Second)
@@ -134,7 +134,7 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 		// prefer quit in case there is a leader election
 		select {
 		case <-quit:
-			klog.Info("Stopping PodController")
+			klog.V(2).Info("Stopping PodController")
 			return
 		default:
 		}
@@ -157,7 +157,7 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 			c.handleReplyTimeouts()
 			c.cleanTimer.EndLoop()
 		case <-quit:
-			klog.Info("Stopping PodController")
+			klog.V(2).Info("Stopping PodController")
 			return
 		}
 	}
@@ -170,7 +170,7 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 // both cases in the same way might be a an issue for pods with
 // RestartPolicy == api.RestartPolicyNever
 func (c *PodController) markFailedPod(pod *api.Pod, startFailure bool, msg string) {
-	klog.Infof("Marking pod %s as failed", pod.Name)
+	klog.V(2).Infof("Marking pod %s as failed", pod.Name)
 	pod.Status.Phase = api.PodFailed
 	if startFailure {
 		klog.Warningf("Start failure for pod %s", pod.Name)
@@ -184,7 +184,7 @@ func (c *PodController) markFailedPod(pod *api.Pod, startFailure bool, msg strin
 	}
 	go func() {
 		c.savePodLogs(pod)
-		klog.Infof("Returning node %s", pod.Status.BoundNodeName)
+		klog.V(2).Infof("Returning node %s", pod.Status.BoundNodeName)
 		c.nodeDispenser.ReturnNode(pod.Status.BoundNodeName, false)
 	}()
 }
@@ -257,7 +257,7 @@ func (c *PodController) resizeVolume(node *api.Node, pod *api.Pod, client nodecl
 		return err
 	}
 	sizeGiB := util.ToGiBRoundUp(&size)
-	klog.Infof("Pod %s requested volume size of %s on node %s",
+	klog.V(2).Infof("Pod %s requested volume size of %s on node %s",
 		pod.Name, pod.Spec.Resources.VolumeSize, node.Name)
 	err, resizePerformed := c.cloudClient.ResizeVolume(node, int64(sizeGiB))
 	if err != nil {
@@ -266,7 +266,7 @@ func (c *PodController) resizeVolume(node *api.Node, pod *api.Pod, client nodecl
 	if resizePerformed {
 		// Itzo still needs to take care of enlarging the root partition to
 		// span the new, bigger volume.
-		klog.Infof("Resized volume on node %s, expanding partition", node.Name)
+		klog.V(2).Infof("Resized volume on node %s, expanding partition", node.Name)
 		return client.ResizeVolume()
 	}
 	return nil
@@ -299,7 +299,7 @@ func isBurstableMachine(machine string) bool {
 }
 
 func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
-	klog.Infof("Dispatching pod %s to node %s", pod.Name, node.Name)
+	klog.V(2).Infof("Dispatching pod %s to node %s", pod.Name, node.Name)
 	client := c.nodeClientFactory.GetClient(node.Status.Addresses)
 	resizableVolume := !c.cloudClient.GetAttributes().FixedSizeVolume
 	if resizableVolume && pod.Spec.Resources.VolumeSize != "" {
@@ -704,7 +704,7 @@ func (c *PodController) terminateBoundPod(pod *api.Pod) {
 	// run this in a goroutine in case it blocks (shouldn't ever happen)
 	go func() {
 		c.savePodLogs(pod)
-		klog.Infof("Returning node %s for pod %s", pod.Status.BoundNodeName, pod.Name)
+		klog.V(2).Infof("Returning node %s for pod %s", pod.Status.BoundNodeName, pod.Name)
 		c.nodeDispenser.ReturnNode(pod.Status.BoundNodeName, false)
 	}()
 }
@@ -805,22 +805,22 @@ func (c *PodController) checkRunningPodStatus() {
 // items in pod.Status can change behind the scenes.
 func (c *PodController) savePodLogs(pod *api.Pod) {
 	if pod.Status.BoundNodeName == "" {
-		klog.Infof("not saving pod logs, pod is not bound")
+		klog.V(2).Infof("not saving pod logs, pod is not bound")
 		return
 	}
 
 	node, err := c.nodeLister.GetNode(pod.Status.BoundNodeName)
 	if err != nil {
-		klog.Infof("not saving pod logs, bound to node %q: %v",
+		klog.V(2).Infof("not saving pod logs, bound to node %q: %v",
 			pod.Status.BoundNodeName, err)
 		return
 	}
 
-	klog.Infof("Saving pod logs")
+	klog.V(2).Infof("Saving pod logs")
 	podAddresses := node.Status.Addresses
 
 	if len(podAddresses) == 0 {
-		klog.Infof("pod %s has no bound instance, not gathering logs",
+		klog.V(2).Infof("pod %s has no bound instance, not gathering logs",
 			pod.Name)
 	}
 	client := c.nodeClientFactory.GetClient(podAddresses)

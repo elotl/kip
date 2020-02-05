@@ -354,7 +354,7 @@ func (c *ItzoClient) Deploy(pod, name string, data io.Reader) error {
 	go func() {
 		fullUrl := createUrl(
 			c.baseURL, fmt.Sprintf("rest/v1/deploy/%s/%s", pod, name))
-		klog.Infof("deploying package to %s", fullUrl)
+		klog.V(2).Infof("deploying package to %s", fullUrl)
 		req, err := http.NewRequest("POST", fullUrl, pr)
 		if err != nil {
 			klog.Errorf("Error creating new deploy POST request: %v\n", err)

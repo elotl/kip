@@ -51,7 +51,7 @@ func dumpStack() ([]byte, error) {
 }
 
 func (s InstanceProvider) Dump(context context.Context, request *clientapi.DumpRequest) (*clientapi.APIReply, error) {
-	klog.Infof("Dump request for: %s", request.Kind)
+	klog.V(2).Infof("Dump request for: %s", request.Kind)
 	kind := string(request.Kind)
 	var b []byte
 	var err error

@@ -84,7 +84,7 @@ func (reg *NodeRegistry) Delete(name string) (api.MilpaObject, error) {
 	// 	// we allow users to delete nodes?
 	// 	in.Status.Phase = api.NodeTerminating
 	// 	now := time.Now().UTC()
-	// 	klog.Infof("Setting deletion time")
+	// 	klog.V(2).Infof("Setting deletion time")
 	// 	in.DeletionTimestamp = &now
 	// 	return nil
 	// })
@@ -199,7 +199,7 @@ func (reg *NodeRegistry) listNodes(nodePath string, filter func(*api.Node) bool)
 }
 
 func (reg *NodeRegistry) PurgeNode(node *api.Node) (*api.Node, error) {
-	klog.Infof("Purging node %v", node)
+	klog.V(2).Infof("Purging node %v", node)
 	reg.eventSystem.Emit(events.NodePurged, "node-registry", node)
 
 	node.Status.Phase = api.NodeTerminated

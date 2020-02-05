@@ -40,7 +40,7 @@ func (loop *Loop) run(quit <-chan struct{}, wg *sync.WaitGroup) {
 			}
 		case <-quit:
 			tick.Stop()
-			klog.Infof("Exiting %s Loop", loop.name)
+			klog.V(2).Infof("Exiting %s Loop", loop.name)
 			return
 		}
 	}
