@@ -80,6 +80,8 @@ spec:
         - cloud-instance-provider
         - --provider-config
         - /etc/virtual-kubelet/server.yml
+        - --klog.logtostderr
+        - --klog.v=5
         image: elotl/virtual-kubelet:dev
         imagePullPolicy: Always
         name: virtual-kubelet
