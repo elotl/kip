@@ -7,7 +7,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/server/events"
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // The routines in here are shared between pod_controller and
@@ -89,7 +89,7 @@ func computePodPhase(policy api.RestartPolicy, unitstatus []api.UnitStatus, podN
 			// running state (or in the created state, if the helper in
 			// itzo is a bit slow to start up).
 			failMsg = fmt.Sprintf("Invalid unit status for unit %s", us.Name)
-			glog.Warningln(failMsg)
+			klog.Warningln(failMsg)
 			valid = false
 		}
 	case api.RestartPolicyNever:
@@ -126,13 +126,13 @@ func computePodPhase(policy api.RestartPolicy, unitstatus []api.UnitStatus, podN
 			}
 			if us.State.Terminated != nil && us.State.Terminated.ExitCode != 0 {
 				failMsg = fmt.Sprintf("Invalid unit status for unit %s", us.Name)
-				glog.Warningln(failMsg)
+				klog.Warningln(failMsg)
 				valid = false
 			}
 		}
 	}
 	if !valid {
-		glog.Warningf("Invalid unit state for pod %s. Setting pod phase to Failed", podName)
+		klog.Warningf("Invalid unit state for pod %s. Setting pod phase to Failed", podName)
 		phase = api.PodFailed
 	}
 	return phase, failMsg
@@ -190,7 +190,7 @@ func runningMaxLicensePods(podRegistry *registry.PodRegistry, maxResources int) 
 			p.Status.Phase == api.PodRunning)
 	})
 	if err != nil {
-		glog.Errorf("Error listing pods for checking license limits: %s", err.Error())
+		klog.Errorf("Error listing pods for checking license limits: %s", err.Error())
 		return true
 	}
 	if len(pods.Items) >= maxResources {
@@ -204,7 +204,7 @@ func remedyFailedPod(pod *api.Pod, podRegistry *registry.PodRegistry) {
 		pod.Spec.RestartPolicy != api.RestartPolicyNever {
 		msg := fmt.Sprintf("Pod %s has failed to start %d times, retrying",
 			pod.Name, pod.Status.StartFailures)
-		glog.Warningf("%s", msg)
+		klog.Warningf("%s", msg)
 		// reset most everything in the status
 		pod.Status = api.PodStatus{
 			Phase:         api.PodWaiting,
@@ -212,7 +212,7 @@ func remedyFailedPod(pod *api.Pod, podRegistry *registry.PodRegistry) {
 		}
 		podRegistry.UpdatePodStatus(pod, msg)
 	} else {
-		glog.Errorf("pod %s has failed to start %d times. Not trying again, pod has failed",
+		klog.Errorf("pod %s has failed to start %d times. Not trying again, pod has failed",
 			pod.Name, pod.Status.StartFailures)
 		podRegistry.TerminatePod(pod, api.PodFailed,
 			"Pod failed: too many start failures")
@@ -267,7 +267,7 @@ func updatePodWithStatus(pod *api.Pod, reply FullPodStatus) (changed, startFailu
 	}
 
 	if podPhase != pod.Status.Phase {
-		glog.Infof("Changing pod %s phase %s -> %s",
+		klog.Infof("Changing pod %s phase %s -> %s",
 			pod.Name, pod.Status.Phase, podPhase)
 		pod.Status.Phase = podPhase
 		if podPhase == api.PodFailed {
@@ -275,7 +275,7 @@ func updatePodWithStatus(pod *api.Pod, reply FullPodStatus) (changed, startFailu
 		}
 		if (podPhase == api.PodFailed || podPhase == api.PodSucceeded) &&
 			pod.Status.BoundNodeName == "" {
-			glog.Errorf("Programming error: unbound pod %s is %s",
+			klog.Errorf("Programming error: unbound pod %s is %s",
 				pod.Name, podPhase)
 		}
 	}

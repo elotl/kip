@@ -10,7 +10,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/etcd"
 	"github.com/elotl/cloud-instance-provider/pkg/server/events"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -84,7 +84,7 @@ func (reg *NodeRegistry) Delete(name string) (api.MilpaObject, error) {
 	// 	// we allow users to delete nodes?
 	// 	in.Status.Phase = api.NodeTerminating
 	// 	now := time.Now().UTC()
-	// 	glog.Infof("Setting deletion time")
+	// 	klog.Infof("Setting deletion time")
 	// 	in.DeletionTimestamp = &now
 	// 	return nil
 	// })
@@ -173,7 +173,7 @@ func (reg *NodeRegistry) listNodes(nodePath string, filter func(*api.Node) bool)
 	pairs, err := reg.Storer.List(nodePath)
 	nodelist := api.NewNodeList()
 	if err != nil {
-		glog.Errorf("Error listing nodes in storage: %v", err)
+		klog.Errorf("Error listing nodes in storage: %v", err)
 		return nodelist, err
 	}
 	nodelist.Items = make([]*api.Node, 0, len(pairs))
@@ -188,7 +188,7 @@ func (reg *NodeRegistry) listNodes(nodePath string, filter func(*api.Node) bool)
 		node := api.NewNode()
 		err = reg.Codec.Unmarshal(pair.Value, node)
 		if err != nil {
-			glog.Errorf("Error unmarshalling single node in list operation: %v", err)
+			klog.Errorf("Error unmarshalling single node in list operation: %v", err)
 			continue
 		}
 		if filter(node) {
@@ -199,7 +199,7 @@ func (reg *NodeRegistry) listNodes(nodePath string, filter func(*api.Node) bool)
 }
 
 func (reg *NodeRegistry) PurgeNode(node *api.Node) (*api.Node, error) {
-	glog.Infof("Purging node %v", node)
+	klog.Infof("Purging node %v", node)
 	reg.eventSystem.Emit(events.NodePurged, "node-registry", node)
 
 	node.Status.Phase = api.NodeTerminated
@@ -227,7 +227,7 @@ func (reg *NodeRegistry) PurgeNode(node *api.Node) (*api.Node, error) {
 			TTL:   trashTTL,
 		})
 	if err != nil {
-		glog.Warningf("Could not create deleted node %s in registry: %s",
+		klog.Warningf("Could not create deleted node %s in registry: %s",
 			node.Name, err.Error())
 	}
 	return node, nil
@@ -244,7 +244,7 @@ func validStateChange(old, new api.NodePhase) bool {
 				// a node failed to come up, somehow our initial update failed
 				// so we are shutting them down.  If the cloud is OK with it,
 				// we can let it pass.  Log it and carry on
-				glog.Warningf("Racy termination: attempting to terminate Creating node")
+				klog.Warningf("Racy termination: attempting to terminate Creating node")
 			}
 			return true
 		default:
@@ -295,7 +295,7 @@ func validStateChange(old, new api.NodePhase) bool {
 			return false
 		}
 	}
-	glog.Fatalf("Programming error: Reached end of state transition table")
+	klog.Fatalf("Programming error: Reached end of state transition table")
 	return false
 }
 

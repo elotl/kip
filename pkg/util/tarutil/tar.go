@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 func CreatePackage(hostRootfs string, paths []string) (io.Reader, error) {
@@ -39,10 +39,10 @@ func CreatePackage(hostRootfs string, paths []string) (io.Reader, error) {
 }
 
 func AddFile(tw *tar.Writer, source, target string) error {
-	glog.Infof("Adding file %s->%s to package\n", source, target)
+	klog.Infof("Adding file %s->%s to package\n", source, target)
 	fi, err := os.Lstat(source)
 	if err != nil {
-		glog.Errorf("Error LStat()ing %s: %v", source, err)
+		klog.Errorf("Error LStat()ing %s: %v", source, err)
 		return err
 	}
 	sldest := ""
@@ -50,7 +50,7 @@ func AddFile(tw *tar.Writer, source, target string) error {
 		// Check what the symlink points to.
 		sldest, err = os.Readlink(source)
 		if err != nil {
-			glog.Errorf("Error Readlink() %s: %v", source, err)
+			klog.Errorf("Error Readlink() %s: %v", source, err)
 			return err
 		}
 	}
@@ -60,14 +60,14 @@ func AddFile(tw *tar.Writer, source, target string) error {
 	}
 	header, err := tar.FileInfoHeader(fi, sldest)
 	if err != nil {
-		glog.Errorf("Error creating tar header for %s: %v", source, err)
+		klog.Errorf("Error creating tar header for %s: %v", source, err)
 		return err
 	}
 	// Files/directories are inside a top-level directory called "ROOTFS"
 	// in Milpa packages.
 	header.Name = filepath.Join(".", "ROOTFS", target)
 	if err = tw.WriteHeader(header); err != nil {
-		glog.Errorf("Error writing tar header for %s->%s: %v",
+		klog.Errorf("Error writing tar header for %s->%s: %v",
 			source, target, err)
 		return err
 	}
@@ -77,17 +77,17 @@ func AddFile(tw *tar.Writer, source, target string) error {
 	}
 	file, err := os.Open(source)
 	if err != nil {
-		glog.Errorf("Error trying to open %s: %v", source, err)
+		klog.Errorf("Error trying to open %s: %v", source, err)
 		return err
 	}
 	defer file.Close()
 	n, err := io.CopyN(tw, file, fi.Size())
 	if err != nil {
-		glog.Errorf("Error copying contents of %s->%s into tarball: %v",
+		klog.Errorf("Error copying contents of %s->%s into tarball: %v",
 			source, target, err)
 		return err
 	}
-	glog.Infof("Copied %d bytes for %s->%s\n", n, source, target)
+	klog.Infof("Copied %d bytes for %s->%s\n", n, source, target)
 	return nil
 }
 

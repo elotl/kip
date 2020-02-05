@@ -3,7 +3,7 @@ package util
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 type WrappedError struct {
@@ -29,7 +29,7 @@ func WrapError(err error, format string, args ...interface{}) error {
 			msg = err.Error()
 		}
 	} else {
-		glog.Errorln("WrapError: nil error:", s)
+		klog.Errorln("WrapError: nil error:", s)
 		msg = s
 	}
 	if we, ok := err.(WrappedError); ok {

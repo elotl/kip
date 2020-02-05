@@ -9,8 +9,8 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/klog"
 )
 
 const t2UnlimitedPrice float32 = 0.05
@@ -170,15 +170,15 @@ func findCheapestInstance(matches []InstanceData) string {
 func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec) (string, bool) {
 	memoryRequirement, err := instSel.parseMemorySpec(rs.Memory)
 	if err != nil {
-		glog.Errorf("Error parsing memory spec: %s", err)
+		klog.Errorf("Error parsing memory spec: %s", err)
 	}
 	cpuRequirements, err := parseCPUSpec(rs.CPU)
 	if err != nil {
-		glog.Errorf("Error parsing CPU spec: %s", err)
+		klog.Errorf("Error parsing CPU spec: %s", err)
 	}
 	gpuRequirements, err := parseGPUSpec(rs.GPU)
 	if err != nil {
-		glog.Errorf("Error parsing GPU spec: %s", err)
+		klog.Errorf("Error parsing GPU spec: %s", err)
 	}
 
 	matches := filterInstanceData(instSel.data, func(inst InstanceData) bool {
@@ -267,7 +267,7 @@ func ResourcesToInstanceType(ps *api.PodSpec) (string, bool, error) {
 	}
 	if selector == nil {
 		msg := "fatal: instanceselector has not been initialized"
-		glog.Errorf(msg)
+		klog.Errorf(msg)
 		return "", false, fmt.Errorf(msg)
 	}
 	if noResourceSpecified(ps) {

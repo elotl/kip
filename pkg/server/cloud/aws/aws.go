@@ -17,7 +17,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/errors"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -98,18 +98,18 @@ func CheckConnection() error {
 	if err != nil {
 		return util.WrapError(err, "Check connection failed setting up an ec2 client")
 	}
-	glog.Infof("Checking for credential errors")
+	klog.Infof("Checking for credential errors")
 	val, err := client.Config.Credentials.Get()
 	if err != nil {
 		return util.WrapError(err, "Error validating AWS credentials")
 	}
-	glog.Infof("Using credentials from %s", val.ProviderName)
+	klog.Infof("Using credentials from %s", val.ProviderName)
 	// Validate that region is set. I'm pretty sure that all our
 	// authentication methods need this to be set.
 	if client.Config.Region == nil || *client.Config.Region == "" {
 		return fmt.Errorf("Empty region in AWS configuraiton, please specify a region in the config file or environment")
 	}
-	glog.Infof("Validating read access")
+	klog.Infof("Validating read access")
 	_, err = client.DescribeInstances(nil)
 	return err
 }
@@ -291,7 +291,7 @@ func (c *AwsEC2) ValidateMarketplaceLicense() error {
 	}
 	for _, productCode := range doc.MarketplaceProductCodes {
 		if productDescription, ok := milpaMarketplaceCodes[productCode]; ok {
-			glog.Infof("Running on marketplace, product: %q (%s)",
+			klog.Infof("Running on marketplace, product: %q (%s)",
 				productDescription, productCode)
 			return nil
 		}

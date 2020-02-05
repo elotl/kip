@@ -10,7 +10,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/etcd"
 	"github.com/elotl/cloud-instance-provider/pkg/server/events"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -126,7 +126,7 @@ func (reg *LogRegistry) ListLogs(creatorName, logName string) (*api.LogFileList,
 	pairs, err := reg.Storer.List(key)
 	loglist := api.NewLogFileList()
 	if err != nil {
-		glog.Errorf("Error listing logs in storage: %v", err)
+		klog.Errorf("Error listing logs in storage: %v", err)
 		return loglist, err
 	}
 	for _, pair := range pairs {
@@ -139,7 +139,7 @@ func (reg *LogRegistry) ListLogs(creatorName, logName string) (*api.LogFileList,
 		log := api.NewLogFile()
 		err = reg.codec.Unmarshal(pair.Value, log)
 		if err != nil {
-			glog.Errorf("Error unmarshalling single log in list operation: %v", err)
+			klog.Errorf("Error unmarshalling single log in list operation: %v", err)
 			continue
 		}
 		loglist.Items = append(loglist.Items, log)

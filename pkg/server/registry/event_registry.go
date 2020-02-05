@@ -11,7 +11,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/etcd"
 	"github.com/elotl/cloud-instance-provider/pkg/server/events"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -81,7 +81,7 @@ func (reg *EventRegistry) Handle(e events.Event) error {
 	ev.Message = e.Message
 	_, err := reg.CreateEvent(ev)
 	if err != nil {
-		glog.Errorf("Error creating event %v in storage: %v", ev, err)
+		klog.Errorf("Error creating event %v in storage: %v", ev, err)
 		return err
 	}
 	return nil
@@ -137,7 +137,7 @@ func (reg *EventRegistry) ListEventsWithPrefix(prefix string, filter func(*api.E
 	pairs, err := reg.Storer.List(prefix)
 	eventList := api.NewEventList()
 	if err != nil {
-		glog.Errorf("Error listing events in storage with prefix %s: %v",
+		klog.Errorf("Error listing events in storage with prefix %s: %v",
 			prefix, err)
 		return eventList, err
 	}
@@ -149,7 +149,7 @@ func (reg *EventRegistry) ListEventsWithPrefix(prefix string, filter func(*api.E
 		e := api.NewEvent()
 		err = reg.codec.Unmarshal(pair.Value, e)
 		if err != nil {
-			glog.Errorf("Error unmarshalling single event in list operation: %v", err)
+			klog.Errorf("Error unmarshalling single event in list operation: %v", err)
 			continue
 		}
 		if filter(e) {
@@ -231,7 +231,7 @@ func (reg *EventRegistry) DeleteEvent(e *api.Event) (*api.Event, error) {
 			TTL:   reg.ttl,
 		})
 	if err != nil {
-		glog.Warningf("Could not create deleted event %s in registry: %v",
+		klog.Warningf("Could not create deleted event %s in registry: %v",
 			e.Name, err)
 	}
 	return e, nil

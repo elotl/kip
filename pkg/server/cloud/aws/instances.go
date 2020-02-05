@@ -11,8 +11,8 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
 	uuid "github.com/satori/go.uuid"
+	"k8s.io/klog"
 )
 
 const (
@@ -27,7 +27,7 @@ func (e *AwsEC2) StopInstance(instanceID string) error {
 		InstanceIds: awsInstanceIDs,
 	})
 	if err != nil {
-		glog.Errorf("Error terminating instance: %v", err)
+		klog.Errorf("Error terminating instance: %v", err)
 		// todo, check on status of instance, set status of instance
 		// based on that, prepare to come back and clean this
 		// inconsistency up
@@ -106,7 +106,7 @@ func (e *AwsEC2) getFirstVolume(instanceId string) *ec2.Volume {
 	}
 	result, err := e.client.DescribeVolumes(input)
 	if err != nil {
-		glog.Errorf("Error retrieving list of volumes attached to %s: %v",
+		klog.Errorf("Error retrieving list of volumes attached to %s: %v",
 			instanceId, err)
 		return nil
 	}
@@ -121,11 +121,11 @@ func (e *AwsEC2) ResizeVolume(node *api.Node, size int64) (error, bool) {
 			node.Name, vol), false
 	}
 	if *vol.Size >= size {
-		glog.Infof("Volume on node %s is %dGiB >= %dGiB",
+		klog.Infof("Volume on node %s is %dGiB >= %dGiB",
 			node.Name, *vol.Size, size)
 		return nil, false
 	}
-	glog.Infof("Resizing volume to %dGiB for node: %v", size, node)
+	klog.Infof("Resizing volume to %dGiB for node: %v", size, node)
 	result, err := e.client.ModifyVolume(&ec2.ModifyVolumeInput{
 		Size:     aws.Int64(size),
 		VolumeId: aws.String(*vol.VolumeId),
@@ -147,7 +147,7 @@ func (e *AwsEC2) ResizeVolume(node *api.Node, size int64) (error, bool) {
 		statusmsg = *result.VolumeModification.StatusMessage
 	}
 	if targetsize != size {
-		glog.Errorf("Error resizing volume for %v to %dGiB: state %s status %s",
+		klog.Errorf("Error resizing volume for %v to %dGiB: state %s status %s",
 			node, size, state, statusmsg)
 		return util.WrapError(err, "Failed to resize volume"), false
 	}
@@ -160,11 +160,11 @@ func (e *AwsEC2) ResizeVolume(node *api.Node, size int64) (error, bool) {
 				node.Name, vol), false
 		}
 		if *vol.Size >= size {
-			glog.Infof("Volume on node %s is %dGiB >= %dGiB",
+			klog.Infof("Volume on node %s is %dGiB >= %dGiB",
 				node.Name, *vol.Size, size)
 			return nil, true
 		} else {
-			glog.Infof("Resizing volume on %s: currently %dGiB, requested %dGiB",
+			klog.Infof("Resizing volume on %s: currently %dGiB, requested %dGiB",
 				node.Name, *vol.Size, size)
 		}
 	}
@@ -192,12 +192,12 @@ func (e *AwsEC2) GetImageId(tags cloud.BootImageTags) (string, error) {
 	}
 	resp, err := e.client.DescribeImages(input)
 	if err != nil {
-		glog.Errorf("Error getting image list for tags %v: %v", tags, err)
+		klog.Errorf("Error getting image list for tags %v: %v", tags, err)
 		return "", err
 	}
 	if len(resp.Images) == 0 {
 		msg := fmt.Sprintf("No images found for owner %v", e.imageOwnerID)
-		glog.Errorf("%s", msg)
+		klog.Errorf("%s", msg)
 		return "", fmt.Errorf("%s", msg)
 	}
 	var images []cloud.Image
@@ -212,7 +212,7 @@ func (e *AwsEC2) GetImageId(tags cloud.BootImageTags) (string, error) {
 }
 
 func (e *AwsEC2) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	glog.Infof("Starting instance for node: %v", node)
+	klog.Infof("Starting instance for node: %v", node)
 	tags := e.getNodeTags(node)
 	tagSpec := ec2.TagSpecification{
 		ResourceType: aws.String("instance"),
@@ -221,7 +221,7 @@ func (e *AwsEC2) StartNode(node *api.Node, metadata string) (*cloud.StartNodeRes
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
 	devices := e.getBlockDeviceMapping(volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
-	glog.Infof("Starting node with security groups: %v subnet: '%s'",
+	klog.Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)
 	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
 		ImageId:             aws.String(node.Spec.BootImage),
@@ -250,7 +250,7 @@ func (e *AwsEC2) StartNode(node *api.Node, metadata string) (*cloud.StartNodeRes
 		return nil, fmt.Errorf("Could not get instance info at result.Instances")
 	}
 	cloudID := aws.StringValue(result.Instances[0].InstanceId)
-	glog.Infof("Started instance: %s", cloudID)
+	klog.Infof("Started instance: %s", cloudID)
 	startResult := &cloud.StartNodeResult{
 		InstanceID:       cloudID,
 		AvailabilityZone: e.availabilityZone,
@@ -261,7 +261,7 @@ func (e *AwsEC2) StartNode(node *api.Node, metadata string) (*cloud.StartNodeRes
 // This isn't terribly different from Start node but there are
 // some minor differences.  We'll capture errors correctly here and there
 func (e *AwsEC2) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	glog.Infof("Starting instance for node: %v", node)
+	klog.Infof("Starting instance for node: %v", node)
 	tags := e.getNodeTags(node)
 	tagSpec := ec2.TagSpecification{
 		ResourceType: aws.String("instance"),
@@ -269,11 +269,11 @@ func (e *AwsEC2) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNod
 	}
 	var err error
 	//var subnet *cloud.SubnetAttributes
-	glog.Infof("Starting spot node in: %s", e.subnetID)
+	klog.Infof("Starting spot node in: %s", e.subnetID)
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
 	devices := e.getBlockDeviceMapping(volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
-	glog.Infof("Starting node with security groups: %v subnet: '%s'",
+	klog.Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)
 	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
 		ImageId:             aws.String(node.Spec.BootImage),
@@ -312,7 +312,7 @@ func (e *AwsEC2) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNod
 		return nil, fmt.Errorf("Could not get instance info at result.Instances")
 	}
 	cloudID := aws.StringValue(result.Instances[0].InstanceId)
-	glog.Infof("Started instance: %s", cloudID)
+	klog.Infof("Started instance: %s", cloudID)
 	startResult := &cloud.StartNodeResult{
 		InstanceID:       cloudID,
 		AvailabilityZone: e.availabilityZone,
@@ -485,7 +485,7 @@ func (e *AwsEC2) listInstancesHelper(filters []*ec2.Filter) ([]cloud.CloudInstan
 func (e *AwsEC2) AddInstanceTags(iid string, labels map[string]string) error {
 	awsTags, err := ec2TagsFromLabels(iid, labels)
 	if err != nil {
-		glog.Warning(err)
+		klog.Warning(err)
 	}
 	if len(awsTags) > 0 {
 		_, err = e.client.CreateTags(&ec2.CreateTagsInput{

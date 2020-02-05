@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -54,7 +54,7 @@ func getMetadataInstanceName() (string, string) {
 	}
 	err = json.Unmarshal([]byte(data), &vm)
 	if err != nil {
-		glog.Errorln("Could not unmarshal azure instance metadata", err.Error())
+		klog.Errorln("Could not unmarshal azure instance metadata", err.Error())
 		return "", ""
 	}
 	return vm.ResourceGroupName, vm.Name

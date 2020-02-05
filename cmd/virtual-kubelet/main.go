@@ -19,7 +19,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/elotl/cloud-instance-provider/pkg/glog"
+	"github.com/elotl/cloud-instance-provider/pkg/klog"
 	"github.com/elotl/cloud-instance-provider/pkg/server"
 	cli "github.com/virtual-kubelet/node-cli"
 	opencensuscli "github.com/virtual-kubelet/node-cli/opencensus"
@@ -39,7 +39,7 @@ var (
 func main() {
 	ctx := cli.ContextWithCancelOnSignal(context.Background())
 
-	log.L = glog.NewGlogAdapter()
+	log.L = klog.NewKlogAdapter()
 
 	trace.T = opencensus.Adapter{}
 	traceConfig := opencensuscli.Config{

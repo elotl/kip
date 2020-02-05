@@ -7,7 +7,7 @@ import (
 
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
 	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -27,7 +27,7 @@ func (c *MetricsController) Dump() []byte {
 	}
 	b, err := json.MarshalIndent(dumpStruct, "", "    ")
 	if err != nil {
-		glog.Errorln("Error dumping data from metrics controller", err)
+		klog.Errorln("Error dumping data from metrics controller", err)
 		return nil
 	}
 	return b
@@ -47,11 +47,11 @@ func (c *MetricsController) runSyncLoop(quit <-chan struct{}, wg *sync.WaitGroup
 		case <-cleanTicker.C:
 			err := c.cleanOldMetrics()
 			if err != nil {
-				glog.Errorf("Error cleaning old metrics: %s", err)
+				klog.Errorf("Error cleaning old metrics: %s", err)
 			}
 		case <-quit:
 			cleanTicker.Stop()
-			glog.Info("Exiting MetricsController Sync Loop")
+			klog.Info("Exiting MetricsController Sync Loop")
 			return
 		}
 	}

@@ -16,8 +16,8 @@ import (
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/docker/libkv/store"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
 	"golang.org/x/sys/unix"
+	"k8s.io/klog"
 )
 
 var (
@@ -37,7 +37,7 @@ func ensureEtcdDataDir(dataDir string) error {
 	errMsg := fmt.Sprintf("Could not create milpa storage directory at %s, please verify the directory exists and is writable by milpa. The error was", dataDir)
 	_, err := os.Stat(dataDir)
 	if os.IsNotExist(err) {
-		glog.Infof("Creating milpa data directory at %s", dataDir)
+		klog.Infof("Creating milpa data directory at %s", dataDir)
 		err := os.MkdirAll(dataDir, 0750)
 		if err != nil {
 			return util.WrapError(err, errMsg)
@@ -86,13 +86,13 @@ func (s *EtcdServer) Start(quit <-chan struct{}, wg *sync.WaitGroup) error {
 		cfg.LCUrls = []url.URL{}
 	}
 	if cfg.AutoCompactionMode == "" {
-		glog.Info("Setting etcd compaction mode to periodic")
+		klog.Info("Setting etcd compaction mode to periodic")
 		cfg.AutoCompactionMode = compactor.ModePeriodic
 	}
 	if cfg.AutoCompactionMode == compactor.ModePeriodic &&
 		cfg.AutoCompactionRetention == "" {
 		cfg.AutoCompactionRetention = "1"
-		glog.Info("Setting etcd compaction interval to 1 hour")
+		klog.Info("Setting etcd compaction interval to 1 hour")
 	}
 
 	err = s.reconcileDataDirectoryValues(cfg)
@@ -110,7 +110,7 @@ func (s *EtcdServer) Start(quit <-chan struct{}, wg *sync.WaitGroup) error {
 	}
 	select {
 	case <-s.Proc.Server.ReadyNotify():
-		glog.Info("Etcd server is ready to serve requests")
+		klog.Info("Etcd server is ready to serve requests")
 	case <-time.After(60 * time.Second):
 		s.Proc.Server.Stop()
 		s.Proc.Close()
@@ -127,7 +127,7 @@ func (s *EtcdServer) Start(quit <-chan struct{}, wg *sync.WaitGroup) error {
 		<-quit
 		// if we don't pause, clients will crash, it's a bad look.
 		pause := 2 * time.Second
-		glog.Infof("Pausing for %ds before shutting down etcd...", int(pause.Seconds()))
+		klog.Infof("Pausing for %ds before shutting down etcd...", int(pause.Seconds()))
 		time.Sleep(pause)
 		s.Proc.Server.Stop()
 		s.Proc.Close()

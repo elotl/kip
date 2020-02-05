@@ -3,8 +3,8 @@ package server
 import (
 	"sync"
 
-	"github.com/golang/glog"
 	"github.com/uber-go/atomic"
+	"k8s.io/klog"
 )
 
 // The ControllerManager was created to make the interaction
@@ -81,7 +81,7 @@ func (cm *ControllerManager) WaitForShutdown(systemShutdown <-chan struct{}, sys
 
 	select {
 	case <-systemShutdown:
-		glog.Infof("Shutting down controllers")
+		klog.Infof("Shutting down controllers")
 		cm.StopControllers()
 		return
 	}
@@ -89,28 +89,28 @@ func (cm *ControllerManager) WaitForShutdown(systemShutdown <-chan struct{}, sys
 
 func (cm *ControllerManager) startControllersHelper() {
 	if cm.ControllersRunning() {
-		glog.Warning("Asked to start controllers but they are already running")
+		klog.Warning("Asked to start controllers but they are already running")
 		return
 	}
-	glog.Info("Starting controllers")
+	klog.Info("Starting controllers")
 	cm.controllerQuit = make(chan struct{})
 	cm.controllerWaitGroup = &sync.WaitGroup{}
 	cm.controllersRunning.Store(true)
 	for name, controller := range cm.controllers {
-		glog.Infof("Starting %s", name)
+		klog.Infof("Starting %s", name)
 		go controller.Start(cm.controllerQuit, cm.controllerWaitGroup)
 	}
-	glog.Info("Finished starting controllers")
+	klog.Info("Finished starting controllers")
 }
 
 func (cm *ControllerManager) stopControllersHelper() {
 	if !cm.ControllersRunning() {
-		glog.Warning("Asked to stop controllers but they are not running")
+		klog.Warning("Asked to stop controllers but they are not running")
 		return
 	}
-	glog.Info("Starting to stop controllers")
+	klog.Info("Starting to stop controllers")
 	close(cm.controllerQuit)
 	cm.controllerWaitGroup.Wait()
 	cm.controllersRunning.Store(false)
-	glog.Info("All controllers stopped")
+	klog.Info("All controllers stopped")
 }

@@ -7,8 +7,8 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/yaml"
-	"github.com/golang/glog"
 	"golang.org/x/net/context"
+	"k8s.io/klog"
 )
 
 const bufferSize = 16000
@@ -41,7 +41,7 @@ func (s InstanceProvider) Create(context context.Context, request *clientapi.Cre
 		return errToAPIReply(util.WrapError(err, "Error creating resource")), nil
 	}
 
-	glog.Infof("Creating: %s", objectKind)
+	klog.Infof("Creating: %s", objectKind)
 	replyObj, err := store.Create(milpaObj)
 	if err != nil {
 		return errToAPIReply(util.WrapError(err, "Error creating resource")), nil

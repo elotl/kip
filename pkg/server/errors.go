@@ -8,7 +8,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -33,7 +33,7 @@ func errToAPIReplyHelper(origErr error, errMsg string) *clientapi.APIReply {
 	default:
 		output, marshallErr := json.Marshal(errMsg)
 		if marshallErr != nil {
-			glog.Errorf("Could not marshal error: %v", marshallErr)
+			klog.Errorf("Could not marshal error: %v", marshallErr)
 			// ain't json but thats ok, dont' call marshall recursively
 			output = []byte(marshallErr.Error())
 		}

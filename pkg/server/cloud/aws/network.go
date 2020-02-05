@@ -9,7 +9,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // Errors to be aware of in the future:
@@ -34,7 +34,7 @@ func detectCurrentVPC() (string, error) {
 		vpcPath := fmt.Sprintf("network/interfaces/macs/%s/vpc-id", mac)
 		vpcResponse, err := GetMetadata(vpcPath)
 		if err != nil {
-			glog.Errorf("Could not get vpc for mac address: %s\n", mac)
+			klog.Errorf("Could not get vpc for mac address: %s\n", mac)
 			continue
 		}
 		vpcs.Insert(vpcResponse)
@@ -60,7 +60,7 @@ func detectCurrentSubnet() (string, error) {
 		idPath := fmt.Sprintf("network/interfaces/macs/%s/subnet-id", mac)
 		response, err := GetMetadata(idPath)
 		if err != nil {
-			glog.Errorf("Could not get subnet ID for mac address %s, %v\n", mac, err)
+			klog.Errorf("Could not get subnet ID for mac address %s, %v\n", mac, err)
 			continue
 		}
 		subnetIDs.Insert(response)
@@ -127,14 +127,14 @@ func (e *AwsEC2) assertVPCExists(vpcID string) (string, string, error) {
 		return "", "", err
 	}
 	// // if we found a VPC, grab the data out of it
-	glog.Infoln("Current vpc: ",
+	klog.Infoln("Current vpc: ",
 		aws.StringValue(vpcs[0].VpcId),
 		aws.StringValue(vpcs[0].CidrBlock))
 	return aws.StringValue(vpcs[0].VpcId), aws.StringValue(vpcs[0].CidrBlock), nil
 }
 
 func (e *AwsEC2) GetSubnets() ([]cloud.SubnetAttributes, error) {
-	glog.Infof("Getting subnets and availability zones for VPC %s", e.vpcID)
+	klog.Infof("Getting subnets and availability zones for VPC %s", e.vpcID)
 	vpcFilters := []*ec2.Filter{
 		{
 			Name: aws.String("vpc-id"),
@@ -182,7 +182,7 @@ func makeMilpaSubnets(awsSubnets []*ec2.Subnet, rts []*ec2.RouteTable) ([]cloud.
 		addressType := cloud.PrivateAddress
 		isPublic, err := isSubnetPublic(rts, subnetID)
 		if err != nil {
-			glog.Errorf("could not compute if %s is public subnet: %v", subnetID, err)
+			klog.Errorf("could not compute if %s is public subnet: %v", subnetID, err)
 			continue
 		}
 		if isPublic {
@@ -240,7 +240,7 @@ func isSubnetPublic(rt []*ec2.RouteTable, subnetID string) (bool, error) {
 		for _, table := range rt {
 			for _, assoc := range table.Associations {
 				if aws.BoolValue(assoc.Main) == true {
-					glog.V(4).Infof("Assuming implicit use of main routing table %s for %s",
+					klog.V(4).Infof("Assuming implicit use of main routing table %s for %s",
 						aws.StringValue(table.RouteTableId), subnetID)
 					subnetTable = table
 					break

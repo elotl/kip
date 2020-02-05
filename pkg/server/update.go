@@ -7,8 +7,8 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/yaml"
-	"github.com/golang/glog"
 	"golang.org/x/net/context"
+	"k8s.io/klog"
 )
 
 func (s InstanceProvider) Update(context context.Context, request *clientapi.UpdateRequest) (*clientapi.APIReply, error) {
@@ -16,7 +16,7 @@ func (s InstanceProvider) Update(context context.Context, request *clientapi.Upd
 		return notTheLeaderReply(), nil
 	}
 	_, objectKind, err := VersionAndKind(request.Manifest)
-	glog.Infof("Update request for: %s", objectKind)
+	klog.Infof("Update request for: %s", objectKind)
 	if err != nil {
 		return errToAPIReply(
 			util.WrapError(err, "Error determining manifest kind")), nil

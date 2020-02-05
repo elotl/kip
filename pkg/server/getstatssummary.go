@@ -7,9 +7,9 @@ import (
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 )
 
@@ -23,7 +23,7 @@ func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary,
 	var span trace.Span
 	ctx, span = trace.StartSpan(ctx, "GetStatsSummary")
 	defer span.End()
-	glog.Infof("GetStatsSummary()")
+	klog.Infof("GetStatsSummary()")
 	zero := uint64(0)
 	now := metav1.NewTime(time.Now())
 	res := &stats.Summary{}
@@ -48,7 +48,7 @@ func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary,
 		return false
 	})
 	if err != nil {
-		glog.Errorf("listing pods for stats: %v", err)
+		klog.Errorf("listing pods for stats: %v", err)
 		return nil, util.WrapError(err, "listing pods for stats")
 	}
 	metricsRegistry := p.getMetricsRegistry()
@@ -56,7 +56,7 @@ func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary,
 		podMetricsList := metricsRegistry.GetPodMetrics(pod.Name)
 		podMetricsItems := podMetricsList.Items
 		if len(podMetricsItems) < 1 {
-			glog.V(3).Infof("no metrics found for pod %s", pod.Name)
+			klog.V(3).Infof("no metrics found for pod %s", pod.Name)
 			continue
 		}
 		// First metrics sample from the pod.
@@ -87,7 +87,7 @@ func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary,
 		pss.Memory.WorkingSetBytes = &podUsage.WorkingSetBytes
 		res.Pods = append(res.Pods, pss)
 	}
-	glog.Infof("GetStatsSummary() %+v", res)
+	klog.Infof("GetStatsSummary() %+v", res)
 	return res, nil
 }
 

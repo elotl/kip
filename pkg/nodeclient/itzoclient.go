@@ -23,8 +23,8 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/timeoutmap"
 	"github.com/elotl/wsstream"
-	"github.com/golang/glog"
 	"github.com/gorilla/websocket"
+	"k8s.io/klog"
 )
 
 var (
@@ -112,7 +112,7 @@ func (fac *ItzoClientFactory) GetWSStream(addy []api.NetworkAddress, path string
 			if bodyerr == nil {
 				e := fmt.Errorf("Websocket dial error: %v - %s",
 					err, string(bodyContents))
-				glog.Error(e)
+				klog.Error(e)
 				return nil, e
 			}
 		}
@@ -276,17 +276,17 @@ func (c *ItzoClient) GetLogs(unit string, lines, bytes int) ([]byte, error) {
 	}
 	resp, err := c.httpClient.Get(url)
 	if err != nil {
-		glog.Errorf("Error getting logs from %s: %s", c.instanceIp, err)
+		klog.Errorf("Error getting logs from %s: %s", c.instanceIp, err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		glog.Errorf("Error reading log reply from %s: %s", c.instanceIp, err)
+		klog.Errorf("Error reading log reply from %s: %s", c.instanceIp, err)
 		return nil, err
 	}
 	if resp.StatusCode/200 != 1 {
-		glog.Errorf("HTTP error getting log from %s: %s (%d); %s",
+		klog.Errorf("HTTP error getting log from %s: %s (%d); %s",
 			c.instanceIp, resp.Status, resp.StatusCode, string(body))
 		return nil, fmt.Errorf("Failed to fetch logs: %s (%d); %s",
 			resp.Status, resp.StatusCode, string(body))
@@ -309,17 +309,17 @@ func (c *ItzoClient) GetFile(path string, lines, bytes int) ([]byte, error) {
 	// Todo: combine with logs getter?
 	resp, err := c.httpClient.Get(url)
 	if err != nil {
-		glog.Errorf("Error getting file from %s: %s", c.instanceIp, err)
+		klog.Errorf("Error getting file from %s: %s", c.instanceIp, err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		glog.Errorf("Error reading file reply from %s: %s", c.instanceIp, err)
+		klog.Errorf("Error reading file reply from %s: %s", c.instanceIp, err)
 		return nil, err
 	}
 	if resp.StatusCode/200 != 1 {
-		glog.Errorf("HTTP error getting file from %s: %s (%d); %s",
+		klog.Errorf("HTTP error getting file from %s: %s (%d); %s",
 			c.instanceIp, resp.Status, resp.StatusCode, string(body))
 		return nil, fmt.Errorf("Failed to fetch file: %s (%d); %s",
 			resp.Status, resp.StatusCode, string(body))
@@ -337,7 +337,7 @@ func (c *ItzoClient) UpdateUnits(pp api.PodParameters) error {
 	resp, err := c.httpClient.Post(url, "application/json", buf)
 	_, err = handleResponse(resp, err)
 	if err != nil {
-		glog.Errorf("Error sending pod update to %s: %v", c.instanceIp, err)
+		klog.Errorf("Error sending pod update to %s: %v", c.instanceIp, err)
 		return util.WrapError(err, "Error sending pod update to %s",
 			c.instanceIp)
 	}
@@ -354,22 +354,22 @@ func (c *ItzoClient) Deploy(pod, name string, data io.Reader) error {
 	go func() {
 		fullUrl := createUrl(
 			c.baseURL, fmt.Sprintf("rest/v1/deploy/%s/%s", pod, name))
-		glog.Infof("deploying package to %s", fullUrl)
+		klog.Infof("deploying package to %s", fullUrl)
 		req, err := http.NewRequest("POST", fullUrl, pr)
 		if err != nil {
-			glog.Errorf("Error creating new deploy POST request: %v\n", err)
+			klog.Errorf("Error creating new deploy POST request: %v\n", err)
 			ch <- err
 			return
 		}
 		req.Header.Add("Content-Type", writer.FormDataContentType())
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
-			glog.Errorf("Error sending deploy POST request: %v\n", err)
+			klog.Errorf("Error sending deploy POST request: %v\n", err)
 			ch <- err
 			return
 		}
 		if _, err = handleResponse(resp, err); err != nil {
-			glog.Errorf("Error response %+v to deploy POST request: %v\n",
+			klog.Errorf("Error response %+v to deploy POST request: %v\n",
 				*resp, err)
 			ch <- err
 			return

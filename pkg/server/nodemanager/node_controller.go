@@ -20,7 +20,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/cloudinitfile"
 	"github.com/elotl/cloud-instance-provider/pkg/util/stats"
 	"github.com/elotl/cloud-instance-provider/pkg/util/timeoutmap"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // Making these vars makes it easier testing
@@ -83,7 +83,7 @@ func (c *NodeController) Dump() []byte {
 	t := c.PoolLoopTimer.Copy()
 	b, err := json.MarshalIndent(*t, "", "    ")
 	if err != nil {
-		glog.Errorln("Error dumping data from NodeController", err)
+		klog.Errorln("Error dumping data from NodeController", err)
 		return nil
 	}
 	return b
@@ -105,7 +105,7 @@ func (c *NodeController) updateBufferedNodesLoop(quit <-chan struct{}, wg *sync.
 				c.PoolLoopTimer.StartLoop()
 				updatedBindings, err := c.doPoolsCalculation()
 				if err != nil {
-					glog.Errorln("Error adjusting node pools", err.Error())
+					klog.Errorln("Error adjusting node pools", err.Error())
 				} else {
 					nodeBindingsUpdate <- updatedBindings
 				}
@@ -140,7 +140,7 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 		if BootImage == "" {
 			return nil, util.WrapError(err, "Could not get latest boot image")
 		} else {
-			glog.Warningf("Could not get latest boot image: %s, using stored value for boot image: %s", err, BootImage)
+			klog.Warningf("Could not get latest boot image: %s, using stored value for boot image: %s", err, BootImage)
 			newBootImage = BootImage
 		}
 	}
@@ -158,7 +158,7 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 	for _, node := range stopNodes {
 		err := c.stopSingleNode(node)
 		if err != nil {
-			glog.Warningln("Error stopping single node", err)
+			klog.Warningln("Error stopping single node", err)
 			continue
 		}
 	}
@@ -241,7 +241,7 @@ func (c *NodeController) startNodes(nodes []*api.Node) {
 	}
 	metadata, err := c.getCloudInitContents()
 	if err != nil {
-		glog.Errorf("Error creating node metadata: %s", err)
+		klog.Errorf("Error creating node metadata: %s", err)
 		return
 	}
 	// Randomize boot order to prevent getting stuck with 10 nodes at
@@ -254,12 +254,12 @@ func (c *NodeController) startNodes(nodes []*api.Node) {
 	}
 	for i, newNode := range nodes {
 		if i >= MaxBootPerIteration {
-			glog.Infof("Rate limiting start requests to %d per iteration", MaxBootPerIteration)
+			klog.Infof("Rate limiting start requests to %d per iteration", MaxBootPerIteration)
 			break
 		}
 		newNode, err := c.NodeRegistry.CreateNode(newNode)
 		if err != nil {
-			glog.Errorf("Error creating node in registry: %v", err)
+			klog.Errorf("Error creating node in registry: %v", err)
 			continue
 		}
 		go c.startSingleNode(newNode, metadata)
@@ -296,10 +296,10 @@ func (c *NodeController) startSingleNode(node *api.Node, cloudInitData string) e
 	}
 	if err != nil {
 		c.handleStartNodeError(node, err, false)
-		glog.Errorf("Error in node start: %v", err)
+		klog.Errorf("Error in node start: %v", err)
 		_, regError := c.NodeRegistry.PurgeNode(node)
 		if regError != nil {
-			glog.Errorf("Error marking node %s terminated after failed start: %s",
+			klog.Errorf("Error marking node %s terminated after failed start: %s",
 				node.Name, regError.Error())
 		}
 		return util.WrapError(err, "Error starting node")
@@ -317,7 +317,7 @@ func (c *NodeController) finishNodeStart(node *api.Node) error {
 	// a describe instance here...
 	addresses, err := c.CloudClient.WaitForRunning(node)
 	if err != nil {
-		glog.Infof("Unhealthy wait for running, terminating node: %s", node.Name)
+		klog.Infof("Unhealthy wait for running, terminating node: %s", node.Name)
 		_ = c.stopSingleNode(node)
 		return util.WrapError(err, "Error waiting for node to be running")
 	}
@@ -329,7 +329,7 @@ func (c *NodeController) finishNodeStart(node *api.Node) error {
 
 func (c *NodeController) stopSingleNode(node *api.Node) error {
 	// to keep counts in sync, don't move this inside the goroutine
-	glog.Infof("Stopping node: %s", node.Name)
+	klog.Infof("Stopping node: %s", node.Name)
 
 	node.Status.Phase = api.NodeTerminating
 	_, err := c.NodeRegistry.UpdateStatus(node)
@@ -343,7 +343,7 @@ func (c *NodeController) stopSingleNode(node *api.Node) error {
 		_ = c.CloudClient.StopInstance(n.Status.InstanceID)
 		_, err := c.NodeRegistry.PurgeNode(node)
 		if err != nil {
-			glog.Errorf("Could not mark node %s as terminated: %v", n.Name, err)
+			klog.Errorf("Could not mark node %s as terminated: %v", n.Name, err)
 		}
 	}(node)
 	return nil
@@ -368,7 +368,7 @@ func (c *NodeController) runHeartbeatsLoop(quit <-chan struct{}, wg *sync.WaitGr
 		case <-ticker.C:
 			allNodes, err := c.NodeRegistry.ListNodes(registry.MatchAllNodes)
 			if err != nil {
-				glog.Errorf("Error listing nodes for heartbeat: %s", err.Error())
+				klog.Errorf("Error listing nodes for heartbeat: %s", err.Error())
 				// Hack attack....
 				// The period of this ticker is pretty quick, if our
 				// ListNodes times out then we will not see the quit
@@ -381,10 +381,10 @@ func (c *NodeController) runHeartbeatsLoop(quit <-chan struct{}, wg *sync.WaitGr
 				}
 			}
 			if err := c.sendOutHeartbeats(allNodes, heartbeats); err != nil {
-				glog.Error(err.Error())
+				klog.Error(err.Error())
 			}
 			if err := c.markUnhealthyNodes(allNodes, LastHeartbeat); err != nil {
-				glog.Error(err.Error())
+				klog.Error(err.Error())
 			}
 			pruneHeartbeats(allNodes, LastHeartbeat)
 		case nodeName := <-heartbeats:
@@ -421,15 +421,15 @@ func (c *NodeController) StopCreatingNodes() {
 		return n.Status.Phase == api.NodeCreating
 	})
 	if err != nil {
-		glog.Errorf("Could not list nodes to check for creating nodes")
+		klog.Errorf("Could not list nodes to check for creating nodes")
 	}
 	for _, node := range nodes.Items {
-		glog.Infof("Terminating creating node %s: it was likely lost at restart",
+		klog.Infof("Terminating creating node %s: it was likely lost at restart",
 			node.Name)
 		go func(n *api.Node) {
 			err := c.stopSingleNode(n)
 			if err != nil {
-				glog.Errorln("Error stopping creating node", err)
+				klog.Errorln("Error stopping creating node", err)
 			}
 		}(node)
 	}
@@ -446,16 +446,16 @@ func (c *NodeController) ResumeWaits() {
 			n.Status.Phase == api.NodeCleaning)
 	})
 	if err != nil {
-		glog.Errorf("Could not list nodes for resuming waits")
+		klog.Errorf("Could not list nodes for resuming waits")
 	}
-	glog.Infof("Resume waiting on healty from %d instances", len(nodes.Items))
+	klog.Infof("Resume waiting on healty from %d instances", len(nodes.Items))
 	for _, node := range nodes.Items {
 		go func(node *api.Node) error {
 			if len(node.Status.Addresses) == 0 {
 				addresses, err := c.CloudClient.WaitForRunning(node)
 				c.Events.Emit(events.NodeRunning, "node-controller", node, "")
 				if err != nil {
-					glog.Infof("Unhealthy wait for running, terminating node: %s",
+					klog.Infof("Unhealthy wait for running, terminating node: %s",
 						node.Name)
 					_ = c.stopSingleNode(node)
 					return util.WrapError(
@@ -489,10 +489,10 @@ func (c *NodeController) markUnhealthyNodes(allNodes *api.NodeList, LastHeartbea
 		if now.Sub(last) < HealthyTimeout {
 			continue
 		}
-		glog.Warningf("No heartbeats from node %s. Set to terminate.", node.Name)
+		klog.Warningf("No heartbeats from node %s. Set to terminate.", node.Name)
 		node, err := c.NodeRegistry.MarkForTermination(node)
 		if err != nil {
-			glog.Errorf("Error marking node %s for termination", node.Name)
+			klog.Errorf("Error marking node %s for termination", node.Name)
 		}
 	}
 	return nil
@@ -519,7 +519,7 @@ func pruneHeartbeats(allNodes *api.NodeList, lastHeartbeat map[string]time.Time)
 func singleNodeHeartbeat(node *api.Node, client nodeclient.NodeClient, healthyReply chan string) {
 	err := client.Healthcheck()
 	if err != nil {
-		glog.Warningf("Heartbeat error from node %s: %s", node.Name, err.Error())
+		klog.Warningf("Heartbeat error from node %s: %s", node.Name, err.Error())
 		return
 	}
 	healthyReply <- node.Name
@@ -528,24 +528,24 @@ func singleNodeHeartbeat(node *api.Node, client nodeclient.NodeClient, healthyRe
 func (c *NodeController) waitForAvailableOrTerminate(node *api.Node, timeout time.Duration) error {
 	if len(node.Status.Addresses) == 0 {
 		err := fmt.Errorf("No IP address stored for node %s", node.Name)
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		_ = c.stopSingleNode(node)
 		return err
 	}
-	glog.Infof("Waiting for available on node %s", node.Name)
+	klog.Infof("Waiting for available on node %s", node.Name)
 	client := c.NodeClientFactory.GetClient(node.Status.Addresses)
 	err := waitForHealthy(node, client, timeout)
 	if err != nil {
-		glog.Errorf("Error in node start: node unresponsive for %s seconds", timeout)
-		glog.Infof("Terminating node: %s", node.Name)
+		klog.Errorf("Error in node start: node unresponsive for %s seconds", timeout)
+		klog.Infof("Terminating node: %s", node.Name)
 		_ = c.stopSingleNode(node)
 		return util.WrapError(err, "Error waiting for healthy node")
 	}
 	node.Status.Phase = api.NodeAvailable
 	_, err = c.NodeRegistry.UpdateStatus(node)
 	if err != nil {
-		glog.Errorf("Error setting node %s to available,", node.Name)
-		glog.Infof("Terminating node: %s", node.Name)
+		klog.Errorf("Error setting node %s to available,", node.Name)
+		klog.Infof("Terminating node: %s", node.Name)
 		_ = c.stopSingleNode(node)
 		return util.WrapError(err, "Error waiting for healthy node")
 	}
@@ -593,7 +593,7 @@ func (c NodeController) reaperLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 					n.Status.Phase != api.NodeTerminated)
 			})
 			if err != nil {
-				glog.Errorf("Error listing nodes for reaper loop: %s", err.Error())
+				klog.Errorf("Error listing nodes for reaper loop: %s", err.Error())
 				continue
 			}
 			for _, node := range nodes.Items {
@@ -612,12 +612,12 @@ func (c NodeController) reaperLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 func (c *NodeController) removePodFromNode(node *api.Node) {
 	pod, err := c.PodReader.GetPod(node.Status.BoundPodName)
 	if err != nil {
-		glog.Warningf("Could not find pod %s that was reported to be on node %s",
+		klog.Warningf("Could not find pod %s that was reported to be on node %s",
 			node.Status.BoundPodName, node.Name)
 		return
 	}
 	if pod.Status.BoundNodeName != node.Name {
-		glog.Warningf("Pod %s no longer on node %s", node.Status.BoundPodName, node.Name)
+		klog.Warningf("Pod %s no longer on node %s", node.Status.BoundPodName, node.Name)
 		return
 	}
 	c.Events.Emit(
@@ -627,7 +627,7 @@ func (c *NodeController) removePodFromNode(node *api.Node) {
 	node.Status.BoundPodName = ""
 	_, err = c.NodeRegistry.UpdateStatus(node)
 	if err != nil {
-		glog.Errorf("Error deleting bound pod on failed node %s: %v", node.Name, err.Error())
+		klog.Errorf("Error deleting bound pod on failed node %s: %v", node.Name, err.Error())
 	}
 }
 
@@ -659,7 +659,7 @@ func (c *NodeController) dispatchNodesLoop(quit <-chan struct{}, wg *sync.WaitGr
 			case nodeReq := <-c.NodeDispenser.NodeRequestChan:
 				nodeReq.ReplyChan <- c.requestNode(nodeReq, podNodeMap)
 			case returnedNodeMsg := <-c.NodeDispenser.NodeReturnChan:
-				glog.Infof("Got node %s back", returnedNodeMsg.NodeName)
+				klog.Infof("Got node %s back", returnedNodeMsg.NodeName)
 				if returnedNodeMsg.Unused {
 					go c.cleanUnusedNode(returnedNodeMsg.NodeName)
 				} else {
@@ -676,17 +676,17 @@ func (c *NodeController) dispatchNodesLoop(quit <-chan struct{}, wg *sync.WaitGr
 // the node can be reused, here we just mark the node as available and
 // wipe any info that might have been set.
 func (c *NodeController) cleanUnusedNode(name string) {
-	glog.Infof("Node %s is unused, returning to pool", name)
+	klog.Infof("Node %s is unused, returning to pool", name)
 	node, err := c.NodeRegistry.GetNode(name)
 	if err != nil {
-		glog.Errorln("Error retrieving unused node from registry", name)
+		klog.Errorln("Error retrieving unused node from registry", name)
 		return
 	}
 	node.Status.Phase = api.NodeAvailable
 	node.Status.BoundPodName = ""
 	_, err = c.NodeRegistry.UpdateStatus(node)
 	if err != nil {
-		glog.Errorf("Error updating node %s status for cleaning unused node: %v",
+		klog.Errorf("Error updating node %s status for cleaning unused node: %v",
 			name, err)
 		// if things went wrong when putting it back into available, try to
 		// clean it.
@@ -703,7 +703,7 @@ func (c *NodeController) requestNode(nodeReq NodeRequest, podNodeMapping map[str
 	boundNode, err := c.NodeRegistry.GetNode(boundNodeName)
 	if err != nil {
 		if err != store.ErrKeyNotFound {
-			glog.Errorln("Could not list nodes for dispensing to pod:", err)
+			klog.Errorln("Could not list nodes for dispensing to pod:", err)
 		}
 		return NodeReply{}
 
@@ -712,7 +712,7 @@ func (c *NodeController) requestNode(nodeReq NodeRequest, podNodeMapping map[str
 	}
 	err = c.bindNodeToPod(&nodeReq.requestingPod, boundNode)
 	if err != nil {
-		glog.Errorln("Error binding pod to available node", err)
+		klog.Errorln("Error binding pod to available node", err)
 		return NodeReply{}
 	}
 	return NodeReply{
@@ -730,7 +730,7 @@ func (c *NodeController) imageTagsToId(tags cloud.BootImageTags) (string, error)
 		var err error
 		img, err = c.CloudClient.GetImageId(tags)
 		if err != nil {
-			glog.Errorf("Error resolving image tags %v to image ID: %v",
+			klog.Errorf("Error resolving image tags %v to image ID: %v",
 				tags, err)
 			return "", err
 		}
@@ -738,7 +738,7 @@ func (c *NodeController) imageTagsToId(tags cloud.BootImageTags) (string, error)
 			func(obj interface{}) {
 				_, _ = c.imageTagsToId(tags)
 			})
-		glog.Infof("Latest image with tags %v: '%s'", tags, img)
+		klog.Infof("Latest image with tags %v: '%s'", tags, img)
 	}
 	return img, nil
 }
@@ -751,12 +751,12 @@ func (c *NodeController) bindNodeToPod(pod *api.Pod, node *api.Node) error {
 }
 
 func (c *NodeController) saveNodeLogs(node *api.Node) {
-	glog.Infof("Saving node logs")
+	klog.Infof("Saving node logs")
 	filename := "/var/log/itzo/itzo.log"
 	client := c.NodeClientFactory.GetClient(node.Status.Addresses)
 	data, err := client.GetFile(filename, 0, nodeclient.SAVE_LOG_BYTES)
 	if err != nil {
-		glog.Errorf("Error saving node %s log: %s", node.Name, err.Error())
+		klog.Errorf("Error saving node %s log: %s", node.Name, err.Error())
 		return
 	}
 	log := api.NewLogFile()
@@ -765,7 +765,7 @@ func (c *NodeController) saveNodeLogs(node *api.Node) {
 	log.Content = string(data)
 	_, err = c.LogRegistry.CreateLog(log)
 	if err != nil {
-		glog.Errorf("Error saving node %s log to registry: %s",
+		klog.Errorf("Error saving node %s log to registry: %s",
 			node.Name, err.Error())
 	}
 }
@@ -775,7 +775,7 @@ func (c *NodeController) cleanUsedNode(name string) error {
 	if err != nil {
 		err = util.WrapError(
 			err, "Error retrieving node %s for cleaning", name)
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		return err
 	}
 
@@ -792,7 +792,7 @@ func (c *NodeController) cleanUsedNode(name string) error {
 		// can't put the node into cleaning, then what should we do?
 		// Should we continue and hope for the best?
 		err = util.WrapError(err, "Error updating node to cleaning status")
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 	}
 	c.saveNodeLogs(node)
 	// We've decided to skip cleaning and just terminate.  if you
@@ -801,7 +801,7 @@ func (c *NodeController) cleanUsedNode(name string) error {
 	// to the node_controller emit a NodeCleaning event (or re-write the
 	// consumers of that event)
 	if err = c.stopSingleNode(node); err != nil {
-		glog.Errorf("Error in cleaning: could not terinate: %s", err.Error())
+		klog.Errorf("Error in cleaning: could not terinate: %s", err.Error())
 		return err
 	}
 	return nil

@@ -17,8 +17,8 @@ import (
 	vutil "github.com/elotl/cloud-instance-provider/pkg/util/validation"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
 	"github.com/elotl/cloud-instance-provider/pkg/util/yaml"
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/klog"
 )
 
 const (
@@ -177,11 +177,11 @@ func setupAwsEnvVars(c *AWSConfig) error {
 			return err
 		}
 	}
-	glog.Infof("Validating connection to AWS")
+	klog.Infof("Validating connection to AWS")
 	if err := aws.CheckConnection(); err != nil {
 		return util.WrapError(err, "Error validationg connection to AWS")
 	}
-	glog.Infof("Validated access to AWS")
+	klog.Infof("Validated access to AWS")
 	return nil
 }
 
@@ -198,11 +198,11 @@ func setupAzureEnvVars(c *AzureConfig) error {
 	if err := os.Setenv("SUBSCRIPTION_ID", c.SubscriptionID); err != nil {
 		return err
 	}
-	glog.Infof("Validating connection to Azure")
+	klog.Infof("Validating connection to Azure")
 	if err := azure.CheckConnection(c.SubscriptionID); err != nil {
 		return util.WrapError(err, "Error validationg connection to Azure")
 	}
-	glog.Infof("Validated access to Azure")
+	klog.Infof("Validated access to Azure")
 	return nil
 }
 
@@ -301,9 +301,9 @@ func ConfigureCloud(configFile *ServerConfigFile, controllerID, nametag string) 
 
 	usePublicIPs := !cloudClient.ControllerInsideVPC()
 	if usePublicIPs {
-		glog.Infof("controller is outside the cloud network, connecting via public IPs")
+		klog.Infof("controller is outside the cloud network, connecting via public IPs")
 	} else {
-		glog.Infof("controller is inside the cloud network, connecting via private IPs")
+		klog.Infof("controller is inside the cloud network, connecting via private IPs")
 	}
 	err = cloudClient.EnsureMilpaSecurityGroups(
 		configFile.Cells.ExtraCIDRs,
