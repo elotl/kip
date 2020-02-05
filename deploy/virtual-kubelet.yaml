@@ -109,6 +109,14 @@ spec:
           mountPath: /etc/virtual-kubelet
         - name: kubelet-pki
           mountPath: /etc/kubelet-pki
+        - name: xtables-lock
+          mountPath: /run/xtables.lock
+        - name: lib-modules
+          mountPath: /lib/modules
+          readOnly: true
+        securityContext:
+          privileged: true
+      dnsPolicy: ClusterFirst
       restartPolicy: Always
       serviceAccountName: virtual-kubelet
       hostNetwork: true
@@ -127,3 +135,11 @@ spec:
           - key: server.yml
             path: server.yml
             mode: 0600
+      - name: xtables-lock
+        hostPath:
+          path: /run/xtables.lock
+          type: FileOrCreate
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
+          type: ""
