@@ -22,6 +22,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/klog"
 	"github.com/elotl/cloud-instance-provider/pkg/server"
 	"github.com/elotl/cloud-instance-provider/pkg/util/habitat"
+	"github.com/elotl/cloud-instance-provider/pkg/util/k8s"
 	cli "github.com/virtual-kubelet/node-cli"
 	opencensuscli "github.com/virtual-kubelet/node-cli/opencensus"
 	"github.com/virtual-kubelet/node-cli/opts"
@@ -75,10 +76,17 @@ func main() {
 					}
 				}
 				log.G(ctx).Infof("node internal IP address: %q", internalIP)
+				serverURL := k8s.GetServerURL(o.KubeConfigPath)
+				if serverURL == "" {
+					log.G(ctx).Fatal("can't determine API server URL, " +
+						"please set --kubeconfig or MASTER_URI")
+				}
 				return server.NewInstanceProvider(
 					cfg.ConfigPath,
 					cfg.NodeName,
 					internalIP,
+					serverURL,
+					serverConfig.NetworkAgentSecret,
 					cfg.DaemonPort,
 					serverConfig.DebugServer,
 					cfg.ResourceManager,

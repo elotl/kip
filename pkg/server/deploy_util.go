@@ -15,6 +15,9 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/klog"
 )
 
 const (
@@ -213,11 +216,41 @@ func deployPodVolumes(pod *api.Pod, node *api.Node, rm *manager.ResourceManager,
 			if err != nil {
 				return util.WrapError(err, "error creating tar.gz package %s for %s", vol.Name, pod.Name)
 			}
-			client.Deploy(pod.Name, vol.Name, bufio.NewReader(payload))
+			err = client.Deploy(pod.Name, vol.Name, bufio.NewReader(payload))
 			if err != nil {
 				return util.WrapError(err, "error deploying package %s to %s", vol.Name, pod.Name)
 			}
 		}
+	}
+	return nil
+}
+
+func deployNetworkAgentToken(cfg *clientcmdapi.Config, pod *api.Pod, node *api.Node, nodeClientFactory nodeclient.ItzoClientFactoryer) error {
+	if cfg == nil {
+		klog.V(4).Infof("no network agent kubeconfig provided for %s", pod.Name)
+		return nil
+	}
+	data, err := clientcmd.Write(*cfg)
+	if err != nil {
+		return util.WrapError(err,
+			"error serializing network agent kubeconfig for %s", pod.Name)
+	}
+	packageFiles := map[string]packageFile{
+		"kubeconfig/kubeconfig": {
+			data: data,
+			mode: 0600,
+		},
+	}
+	payload, err := makeDeployPackage(packageFiles)
+	if err != nil {
+		return util.WrapError(err,
+			"error creating kubeconfig package for %s", pod.Name)
+	}
+	client := nodeClientFactory.GetClient(node.Status.Addresses)
+	err = client.Deploy(pod.Name, "kubeconfig", bufio.NewReader(payload))
+	if err != nil {
+		return util.WrapError(err,
+			"error deploying kubeconfig package for %s", pod.Name)
 	}
 	return nil
 }

@@ -35,8 +35,8 @@ func TestRefresh(t *testing.T) {
 	tokenFile := filepath.Join(tmpdir, "token")
 	origToken, err := ioutil.ReadFile(tokenFile)
 	assert.NoError(t, err)
-	assert.Len(t, kc.config.AuthInfos, 1)
-	for _, authInfo := range kc.config.AuthInfos {
+	assert.Len(t, kc.Config.AuthInfos, 1)
+	for _, authInfo := range kc.Config.AuthInfos {
 		assert.Equal(t, authInfo.Token, string(origToken))
 	}
 	newToken := "new-token"
@@ -44,8 +44,8 @@ func TestRefresh(t *testing.T) {
 	assert.NoError(t, err)
 	err = kc.Refresh()
 	assert.NoError(t, err)
-	assert.Len(t, kc.config.AuthInfos, 1)
-	for _, authInfo := range kc.config.AuthInfos {
+	assert.Len(t, kc.Config.AuthInfos, 1)
+	for _, authInfo := range kc.Config.AuthInfos {
 		assert.Equal(t, authInfo.Token, newToken)
 	}
 }
@@ -59,13 +59,13 @@ func TestJson(t *testing.T) {
 	assert.NoError(t, err)
 	loadedKc, err := LoadFromFile(kcFile)
 	assert.NoError(t, err)
-	for _, cluster := range loadedKc.config.Clusters {
+	for _, cluster := range loadedKc.Config.Clusters {
 		cluster.LocationOfOrigin = ""
 	}
-	for _, context := range loadedKc.config.Contexts {
+	for _, context := range loadedKc.Config.Contexts {
 		context.LocationOfOrigin = ""
 	}
-	for _, authInfo := range loadedKc.config.AuthInfos {
+	for _, authInfo := range loadedKc.Config.AuthInfos {
 		authInfo.LocationOfOrigin = ""
 	}
 	kcJson, err := kc.toJSON()
