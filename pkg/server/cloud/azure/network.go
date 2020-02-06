@@ -13,7 +13,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 type VirtualNetworkAttributes struct {
@@ -126,7 +126,7 @@ func (az *AzureClient) GetVMNetworks(vmResourceGroup, vmName string) (vNets, sub
 	defer cancel()
 	vm, err := az.vms.Get(timeoutCtx, vmResourceGroup, vmName, "")
 	if err != nil {
-		glog.Infof("Could not find controller VM %s/%s in subscription",
+		klog.V(2).Infof("Could not find controller VM %s/%s in subscription",
 			vmResourceGroup, vmName)
 		return
 	}
@@ -143,7 +143,7 @@ func (az *AzureClient) GetVMNetworks(vmResourceGroup, vmName string) (vNets, sub
 		}
 		details, err := azure.ParseResourceID(nicID)
 		if err != nil {
-			glog.Errorln("Error parsing resource ID for controller NIC", err)
+			klog.Errorln("Error parsing resource ID for controller NIC", err)
 			continue
 		}
 		nicResourceGroup := details.ResourceGroup
@@ -152,7 +152,7 @@ func (az *AzureClient) GetVMNetworks(vmResourceGroup, vmName string) (vNets, sub
 		defer cancel()
 		nic, err := az.nics.Get(timeoutCtx, nicResourceGroup, nicName, "")
 		if err != nil {
-			glog.Infof("Could not find controller NIC %s/%s in subscription",
+			klog.V(2).Infof("Could not find controller NIC %s/%s in subscription",
 				vmResourceGroup, vmName)
 			continue
 		}
@@ -192,13 +192,13 @@ func (az *AzureClient) getLocalInstanceNetwork() (VirtualNetworkAttributes, clou
 	} else if len(vNetNames) > 1 {
 		return vNet, subnet, fmt.Errorf("Multiple virtual networks are attached to this instance and it is impossible to tell which network nodes should be launched into. A virtualNetworkName will need to be specified in the cloud.azure section server.yml")
 	}
-	glog.Infof("local machine is connected to virtual network %s", vNetNames[0])
+	klog.V(2).Infof("local machine is connected to virtual network %s", vNetNames[0])
 	if len(subnetNames) == 0 {
 		return vNet, subnet, fmt.Errorf("could not detect which subnet the controller is attached to. A subnetName will need to be specified in server.yml")
 	} else if len(subnetNames) > 1 {
 		return vNet, subnet, fmt.Errorf("Multiple subnets are attached to this instance and it is impossible to tell which subnet nodes should be launched into. A subnetName will need to be specified in the cloud.azure section server.yml")
 	}
-	glog.Infof("local machine is connected to subnet %s", subnetNames[0])
+	klog.V(2).Infof("local machine is connected to subnet %s", subnetNames[0])
 
 	vNet, err := az.getVNet(vNetNames[0])
 	if err != nil {
@@ -245,7 +245,7 @@ func (az *AzureClient) ModifySourceDestinationCheck(instanceID string, isEnabled
 	if err != nil {
 		return err
 	}
-	glog.Infof("enabled src/dst check on %q", instanceID)
+	klog.V(2).Infof("enabled src/dst check on %q", instanceID)
 	return nil
 }
 
@@ -313,7 +313,7 @@ func (az *AzureClient) RemoveRoute(destinationCIDR string) error {
 			if err != nil {
 				return err
 			}
-			glog.Infof("removed route for %q", destinationCIDR)
+			klog.V(2).Infof("removed route for %q", destinationCIDR)
 		}
 	}
 	return nil
@@ -369,7 +369,7 @@ func (az *AzureClient) AddRoute(destinationCIDR, instanceID string) error {
 	if err != nil {
 		return util.WrapError(err, "adding route")
 	}
-	glog.Infof("created route %q via VM %q", destinationCIDR, instanceID)
+	klog.V(2).Infof("created route %q via VM %q", destinationCIDR, instanceID)
 	return nil
 }
 

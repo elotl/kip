@@ -4,7 +4,7 @@ package nodemanager
 
 import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 type NodeReply struct {
@@ -45,7 +45,7 @@ func NewNodeDispenser() *NodeDispenser {
 func (e *NodeDispenser) RequestNode(requestingPod api.Pod) NodeReply {
 	replyChan := make(chan NodeReply)
 	if e.NodeRequestChan == nil {
-		glog.Errorf("NodeRequestChan is nil!")
+		klog.Errorf("NodeRequestChan is nil!")
 		return NodeReply{
 			Node: nil,
 		}
@@ -57,7 +57,7 @@ func (e *NodeDispenser) RequestNode(requestingPod api.Pod) NodeReply {
 
 func (e *NodeDispenser) ReturnNode(nodeName string, unused bool) {
 	if nodeName == "" {
-		glog.Warningf("Got empty node name in ReturnNode")
+		klog.Warningf("Got empty node name in ReturnNode")
 		return
 	}
 	e.NodeReturnChan <- NodeReturn{

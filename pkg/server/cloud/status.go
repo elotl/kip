@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/elotl/cloud-instance-provider/pkg/util/timeoutmap"
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog"
 )
 
 const (
@@ -81,7 +81,7 @@ func (s *subnetPoller) runRefreshLoop() {
 		case <-ticker.C:
 			subnets, err := s.client.GetSubnets()
 			if err != nil {
-				glog.Errorf("Error refreshing cloud subnet info: %s, continuing with cached data", err)
+				klog.Errorf("Error refreshing cloud subnet info: %s, continuing with cached data", err)
 				continue
 			}
 			s.Lock()
@@ -90,7 +90,7 @@ func (s *subnetPoller) runRefreshLoop() {
 
 			availabilityZones, err := s.client.GetAvailabilityZones()
 			if err != nil {
-				glog.Errorf("Error refreshing cloud availability zone info: %s, continuing with cached data", err)
+				klog.Errorf("Error refreshing cloud availability zone info: %s, continuing with cached data", err)
 				continue
 			}
 			s.Lock()
@@ -159,7 +159,7 @@ func (s *LinkedAZSubnetStatus) Dump() []byte {
 	}
 	b, err := json.MarshalIndent(dumpStruct, "", "    ")
 	if err != nil {
-		glog.Errorln("Error dumping data from cloud.Status", err)
+		klog.Errorln("Error dumping data from cloud.Status", err)
 		return nil
 	}
 	return b
@@ -241,7 +241,7 @@ func (s *LinkedAZSubnetStatus) AddUnavailableInstance(instanceType string, spot 
 }
 
 func (s *LinkedAZSubnetStatus) AddUnavailableZone(instanceType string, spot bool, zone string) {
-	glog.Infof("Adding unavailable zone %s for instance type %s", zone, instanceType)
+	klog.V(2).Infof("Adding unavailable zone %s for instance type %s", zone, instanceType)
 	s.RLock()
 	defer s.RUnlock()
 	for i, _ := range s.subnets {
@@ -252,7 +252,7 @@ func (s *LinkedAZSubnetStatus) AddUnavailableZone(instanceType string, spot bool
 }
 
 func (s *LinkedAZSubnetStatus) AddUnavailableSubnet(instanceType string, spot bool, subnetID string) {
-	glog.Infof("Adding unavailable subnet %s for instance type %s", subnetID, instanceType)
+	klog.V(2).Infof("Adding unavailable subnet %s for instance type %s", subnetID, instanceType)
 	key := makeUnavailableKey(instanceType, spot, subnetID)
 	// only update the entry if it doesn't already exist.  It might be
 	// tempting to always update the object but that could lead to a
@@ -344,7 +344,7 @@ func (s *AZSubnetStatus) Dump() []byte {
 	}
 	b, err := json.MarshalIndent(dumpStruct, "", "    ")
 	if err != nil {
-		glog.Errorln("Error dumping data from cloud.Status", err)
+		klog.Errorln("Error dumping data from cloud.Status", err)
 		return nil
 	}
 	return b
@@ -399,7 +399,7 @@ func (s *AZSubnetStatus) GetAvailableSubnets(instanceType string, spot, privateI
 }
 
 func (s *AZSubnetStatus) AddUnavailableZone(instanceType string, spot bool, zone string) {
-	glog.Infof("Adding unavailable zone %s for instance type %s", zone, instanceType)
+	klog.V(2).Infof("Adding unavailable zone %s for instance type %s", zone, instanceType)
 	key := makeUnavailableKey(instanceType, spot, zone)
 	_, exists := s.unavailableZones.Get(key)
 	if !exists {
@@ -408,7 +408,7 @@ func (s *AZSubnetStatus) AddUnavailableZone(instanceType string, spot bool, zone
 }
 
 func (s *AZSubnetStatus) AddUnavailableSubnet(instanceType string, spot bool, subnetID string) {
-	glog.Infof("Adding unavailable subnet %s for instance type %s", subnetID, instanceType)
+	klog.V(2).Infof("Adding unavailable subnet %s for instance type %s", subnetID, instanceType)
 	key := makeUnavailableKey(instanceType, spot, subnetID)
 	// only update the entry if it doesn't already exist.  It might be
 	// tempting to always update the object but that could lead to a

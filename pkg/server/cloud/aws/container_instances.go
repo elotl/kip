@@ -15,7 +15,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/instanceselector"
 	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -106,7 +106,7 @@ func (c *AwsEC2) EnsureContainerInstanceCluster() error {
 		return fmt.Errorf("error setting up ECS cluster, task long ARN formats is not enabled")
 	}
 
-	glog.Infof("Ensuring ECS cluster %s exists", c.ecsClusterName)
+	klog.V(2).Infof("Ensuring ECS cluster %s exists", c.ecsClusterName)
 	output, err := c.ecs.DescribeClusters(&ecs.DescribeClustersInput{
 		Clusters: aws.StringSlice([]string{c.ecsClusterName}),
 	})
@@ -115,7 +115,7 @@ func (c *AwsEC2) EnsureContainerInstanceCluster() error {
 	}
 
 	if len(output.Clusters) == 0 {
-		glog.Infof("Creating ECS cluster %s", c.ecsClusterName)
+		klog.V(2).Infof("Creating ECS cluster %s", c.ecsClusterName)
 		val := fmt.Sprintf("Milpa Controller %s", c.controllerID)
 		tags := []*ecs.Tag{{
 			Key:   aws.String("Created by Milpa Controller"),
@@ -498,7 +498,7 @@ func (c *AwsEC2) StopContainerInstance(containerInstanceID string) error {
 		return fmt.Errorf("cannot stop containerInstanceID %s: container instances client is not configured", containerInstanceID)
 	}
 
-	glog.Infof("Stopping container instance %s", containerInstanceID)
+	klog.V(2).Infof("Stopping container instance %s", containerInstanceID)
 	stopTaskInput := &ecs.StopTaskInput{
 		Cluster: aws.String(c.ecsClusterName),
 		Reason:  aws.String("Stopped by Milpa"),
@@ -514,16 +514,16 @@ func (c *AwsEC2) StopContainerInstance(containerInstanceID string) error {
 	if stopTaskOutput.Task != nil {
 		err := c.DeregisterTaskDefinition(aws.StringValue(stopTaskOutput.Task.TaskDefinitionArn))
 		if err != nil {
-			glog.Warningf("Error deleting task definition: %s. The task definition will be cleaned up later", err.Error())
+			klog.Warningf("Error deleting task definition: %s. The task definition will be cleaned up later", err.Error())
 		}
 	} else {
-		glog.Warningf("Task definition could not be found for %s, defering deletion of task definition", containerInstanceID)
+		klog.Warningf("Task definition could not be found for %s, defering deletion of task definition", containerInstanceID)
 	}
 	return nil
 }
 
 func (c *AwsEC2) DeregisterTaskDefinition(taskARN string) error {
-	glog.Infof("Deregistering task definition %s", taskARN)
+	klog.V(2).Infof("Deregistering task definition %s", taskARN)
 	_, err := c.ecs.DeregisterTaskDefinition(
 		&ecs.DeregisterTaskDefinitionInput{
 			TaskDefinition: aws.String(taskARN),
@@ -535,7 +535,7 @@ func (c *AwsEC2) WaitForContainerInstanceRunning(pod *api.Pod) (*api.Pod, error)
 	if c.ecs == nil {
 		return nil, fmt.Errorf("Could not wait for container instance running: ECS client is not configured")
 	}
-	glog.Infof("Waiting for task %s to be running", pod.Status.BoundInstanceID)
+	klog.V(2).Infof("Waiting for task %s to be running", pod.Status.BoundInstanceID)
 	lastStatus := ""
 	observedPending := false
 	eniID := ""
@@ -574,7 +574,7 @@ func (c *AwsEC2) WaitForContainerInstanceRunning(pod *api.Pod) (*api.Pod, error)
 	if !pod.Spec.Resources.PrivateIPOnly {
 		addys, err := c.getENIAddresses(eniID)
 		if err != nil {
-			glog.Errorf("Error getting addresses from cloud for pod %s: %s", pod.Name, err.Error())
+			klog.Errorf("Error getting addresses from cloud for pod %s: %s", pod.Name, err.Error())
 		} else {
 			pod.Status.Addresses = append(pod.Status.Addresses, addys...)
 		}

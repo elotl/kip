@@ -9,7 +9,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 func (s InstanceProvider) deploy(podName, pkgName string, pkgData io.Reader) error {
@@ -65,7 +65,7 @@ func (s InstanceProvider) Deploy(stream clientapi.Milpa_DeployServer) error {
 			break
 		}
 		if err != nil {
-			glog.Errorf("Failed to receive deploy request: %v", err)
+			klog.Errorf("Failed to receive deploy request: %v", err)
 			return util.WrapError(err, "Failed to receive deploy request")
 		}
 		pod = req.ResourceName
@@ -102,6 +102,6 @@ func (s InstanceProvider) Deploy(stream clientapi.Milpa_DeployServer) error {
 		Status: 200,
 		Body:   []byte("{}"),
 	}
-	glog.Infof("Deployed package %s for %s", name, pod)
+	klog.V(2).Infof("Deployed package %s for %s", name, pod)
 	return stream.SendAndClose(&reply)
 }

@@ -10,26 +10,26 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/wsstream"
-	"github.com/golang/glog"
 	vkapi "github.com/virtual-kubelet/virtual-kubelet/node/api"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
+	"k8s.io/klog"
 )
 
 func (p *InstanceProvider) GetContainerLogs(ctx context.Context, namespace, podName, containerName string, opts vkapi.ContainerLogOpts) (io.ReadCloser, error) {
 	ctx, span := trace.StartSpan(ctx, "GetContainerLogs")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
-	glog.Infof("GetContainerLogs %+v", opts)
+	klog.V(5).Infof("GetContainerLogs %+v", opts)
 	// Pending PR: https://github.com/virtual-kubelet/virtual-kubelet/pull/806
 	// follow := opts.Follow
 	follow := false
 	podName = util.WithNamespace(namespace, podName)
 	node, err := p.GetNodeForRunningPod(podName, "")
 	if !follow || err != nil || node == nil || len(node.Status.Addresses) == 0 {
-		glog.V(4).Infof("pulling logs for pod %+v", opts)
+		klog.V(5).Infof("pulling logs for pod %+v", opts)
 		return p.getContainerLogs(podName, containerName, opts)
 	}
-	glog.V(4).Infof("tailing logs for pod %+v", opts)
+	klog.V(5).Infof("tailing logs for pod %+v", opts)
 	return p.tailContainerLogs(node, podName, containerName, opts)
 }
 
@@ -70,33 +70,33 @@ type containerLogs struct {
 }
 
 func (l *containerLogs) Read(buf []byte) (int, error) {
-	glog.V(4).Infof("reading logs from ws stream")
+	klog.V(5).Infof("reading logs from ws stream")
 	n := 0
 	if len(l.buf) > 0 {
-		glog.V(4).Infof("reading %d bytes from buffer", len(l.buf))
+		klog.V(5).Infof("reading %d bytes from buffer", len(l.buf))
 		n = copy(buf, l.buf)
 		l.buf = l.buf[n:]
 		return n, nil
 	}
 	select {
 	case <-l.ws.Closed():
-		glog.V(4).Infof("ws stream closed")
+		klog.V(5).Infof("ws stream closed")
 		return 0, io.EOF
 	case frame := <-l.ws.ReadMsg():
 		n, b, err := wsstream.UnpackMessage(frame)
 		if err != nil {
-			glog.Errorf("reading ws stream: %v", err)
+			klog.Errorf("reading ws stream: %v", err)
 			return 0, err
 		}
-		glog.V(4).Infof("read %d bytes from ws stream", n)
+		klog.V(5).Infof("read %d bytes from ws stream", n)
 		n = copy(buf, b)
 		l.buf = append(l.buf[:], b[n:]...)
-		glog.V(4).Infof("copied %d bytes from ws stream", n)
+		klog.V(5).Infof("copied %d bytes from ws stream", n)
 		return n, nil
 	}
 }
 
 func (l *containerLogs) Close() error {
-	glog.V(4).Infof("closing ws stream")
+	klog.V(5).Infof("closing ws stream")
 	return l.ws.CloseAndCleanup()
 }

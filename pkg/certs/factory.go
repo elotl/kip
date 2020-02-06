@@ -10,7 +10,7 @@ import (
 	"github.com/docker/libkv/store"
 	"github.com/elotl/cloud-instance-provider/pkg/etcd"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -33,7 +33,7 @@ func New(kvstore etcd.Storer) (*CertificateFactory, error) {
 	certFactory.kvstore.Put(CertificateDirectoryPlaceholder, []byte("."), nil)
 	err := certFactory.GetRootFromStore()
 	if err == store.ErrKeyNotFound {
-		glog.Infof("Initializing Milpa root certificate")
+		klog.V(2).Infof("Initializing Milpa root certificate")
 		certFactory.InitRootCert()
 	} else if err != nil {
 		return nil, util.WrapError(err, "Error creating Milpa PKI")

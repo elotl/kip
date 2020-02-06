@@ -13,7 +13,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
 	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
 	"github.com/elotl/cloud-instance-provider/pkg/util/stats"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 var lastUnknownInstances map[string]bool
@@ -46,7 +46,7 @@ func (c *GarbageController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
 func (c *GarbageController) Dump() []byte {
 	b, err := json.MarshalIndent(c.timer, "", "    ")
 	if err != nil {
-		glog.Errorln("Error dumping data from GarbageController", err)
+		klog.Errorln("Error dumping data from GarbageController", err)
 		return nil
 	}
 	return b
@@ -66,7 +66,7 @@ func (c *GarbageController) GCLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 		// are timing out talking to etcd, lets give quit priority
 		select {
 		case <-quit:
-			glog.Info("Stopping GarbageController")
+			klog.V(2).Info("Stopping GarbageController")
 			return
 		default:
 		}
@@ -80,7 +80,7 @@ func (c *GarbageController) GCLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 		case <-cleanResourceGroupsTicker.C:
 			c.CleanAzureResourceGroups()
 		case <-quit:
-			glog.Info("Stopping GarbageController")
+			klog.V(2).Info("Stopping GarbageController")
 			return
 		}
 	}
@@ -91,19 +91,19 @@ func (c *GarbageController) CleanTerminatedNodes() {
 		return n.Status.Phase == api.NodeTerminated
 	})
 	if err != nil {
-		glog.Errorln("Couldn't list terminated nodes", err)
+		klog.Errorln("Couldn't list terminated nodes", err)
 	}
 	now := api.Now()
 	for _, node := range nodes.Items {
 		if node.DeletionTimestamp == nil {
-			glog.Warningf("Found node with nil deletion timestamp")
+			klog.Warningf("Found node with nil deletion timestamp")
 			_, _ = c.nodeRegistry.SetNodeDeletionTimestamp(node)
 		}
 		if node.DeletionTimestamp != nil &&
 			node.DeletionTimestamp.Add(30*time.Second).Before(now) {
 			_, err = c.nodeRegistry.PurgeNode(node)
 			if err != nil {
-				glog.Errorf("Error purging terminated nodes")
+				klog.Errorf("Error purging terminated nodes")
 			}
 		}
 	}
@@ -113,7 +113,7 @@ func (c *GarbageController) CleanInstances() {
 	unknownInstances := make(map[string]bool)
 	nodes, err := c.nodeRegistry.ListNodes(registry.MatchAllNodes)
 	if err != nil {
-		glog.Errorf("Error listing nodes in GC: %s", err.Error())
+		klog.Errorf("Error listing nodes in GC: %s", err.Error())
 		return
 	}
 	nodeSet := make(map[string]bool)
@@ -121,12 +121,12 @@ func (c *GarbageController) CleanInstances() {
 		nodeSet[node.Name] = true
 	}
 	if err != nil {
-		glog.Errorf("Error listing nodes for instance cleaning: %s", err.Error())
+		klog.Errorf("Error listing nodes for instance cleaning: %s", err.Error())
 		return
 	}
 	instances, err := c.cloudClient.ListInstances()
 	if err != nil {
-		glog.Errorf("Error listing cloud instances: %s", err.Error())
+		klog.Errorf("Error listing cloud instances: %s", err.Error())
 		return
 	}
 	for _, inst := range instances {
@@ -136,11 +136,11 @@ func (c *GarbageController) CleanInstances() {
 	}
 	for iid, _ := range unknownInstances {
 		if lastUnknownInstances[iid] {
-			glog.Errorf("Stopping unknown cloud instance %s", iid)
+			klog.Errorf("Stopping unknown cloud instance %s", iid)
 			go func() {
 				err := c.cloudClient.StopInstance(iid)
 				if err != nil {
-					glog.Error(err)
+					klog.Error(err)
 				}
 			}()
 		}
@@ -155,7 +155,7 @@ func (c *GarbageController) CleanAzureResourceGroups() {
 	}
 	err := c.CleanAzureResourceGroupsHelper(az)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 	}
 }
 
@@ -169,7 +169,7 @@ func (c *GarbageController) cleanFargateTaskDefs() {
 	}
 	taskDefARNs, err := client.ListTaskDefinitions()
 	if err != nil {
-		glog.Errorln("Error listing ECS Fargate task definitions for cleanup:", err)
+		klog.Errorln("Error listing ECS Fargate task definitions for cleanup:", err)
 		return
 	}
 	if len(taskDefARNs) == 0 {
@@ -177,7 +177,7 @@ func (c *GarbageController) cleanFargateTaskDefs() {
 	}
 	pods, err := c.podRegistry.ListPods(registry.MatchAllPods)
 	if err != nil {
-		glog.Errorln("Error listing pods when cleaning up fargate task definitions", err)
+		klog.Errorln("Error listing pods when cleaning up fargate task definitions", err)
 	}
 	podNames := sets.NewString()
 	for i := range pods.Items {
@@ -188,7 +188,7 @@ func (c *GarbageController) cleanFargateTaskDefs() {
 	for _, taskDefARN := range doomedTaskDefARNs.List() {
 		err := client.DeregisterTaskDefinition(taskDefARN)
 		if err != nil {
-			glog.Errorln("Error cleaning up old task definition", taskDefARN)
+			klog.Errorln("Error cleaning up old task definition", taskDefARN)
 		}
 	}
 	c.lastOldTaskDefs = oldTaskDefs
@@ -259,12 +259,12 @@ func (c *GarbageController) CleanAzureResourceGroupsHelper(client ResourceGroupe
 	c.lastOrphanedAzureGroups = newOrphaned
 
 	if doomedGroups.Len() > 0 {
-		glog.Errorf("Deleting %d orphaned azure resource groups: %v", doomedGroups.Len(), doomedGroups.List())
+		klog.Errorf("Deleting %d orphaned azure resource groups: %v", doomedGroups.Len(), doomedGroups.List())
 	}
 	for _, groupName := range doomedGroups.List() {
 		err := client.DeleteResourceGroup(groupName)
 		if err != nil {
-			glog.Errorf("Error deleting orphaned resource group: %s", err.Error())
+			klog.Errorf("Error deleting orphaned resource group: %s", err.Error())
 		}
 	}
 	return nil

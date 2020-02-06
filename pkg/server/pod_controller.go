@@ -18,9 +18,9 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/conmap"
 	"github.com/elotl/cloud-instance-provider/pkg/util/stats"
-	"github.com/golang/glog"
 	"github.com/virtual-kubelet/node-cli/manager"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/klog"
 )
 
 // make this configurable
@@ -68,9 +68,9 @@ type FullPodStatus struct {
 
 func (c *PodController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
 	c.kubernetesNodeName = os.Getenv("NODE_NAME")
-	glog.Infof("kubernetes node name: %q", c.kubernetesNodeName)
+	klog.V(2).Infof("kubernetes node name: %q", c.kubernetesNodeName)
 	if c.kubernetesNodeName == "" {
-		glog.Warningf("failed to get NODE_NAME; cell network agent won't run")
+		klog.Warningf("failed to get NODE_NAME; cell network agent won't run")
 	}
 	c.registerEventHandlers()
 	c.failDispatchingPods()
@@ -96,7 +96,7 @@ func (c *PodController) podUpdated(e events.Event) error {
 		pod.Status.Phase == api.PodRunning {
 		err := c.updatePodUnits(pod)
 		if err != nil {
-			glog.Errorln("Error updating pod units:", err)
+			klog.Errorln("Error updating pod units:", err)
 		}
 	}
 	return nil
@@ -112,7 +112,7 @@ func (c *PodController) Dump() []byte {
 	}
 	b, err := json.MarshalIndent(dumpStruct, "", "    ")
 	if err != nil {
-		glog.Errorln("Error dumping data from PodController", err)
+		klog.Errorln("Error dumping data from PodController", err)
 		return nil
 	}
 	return b
@@ -122,7 +122,7 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 
-	glog.Info("starting pod controller")
+	klog.V(2).Info("starting pod controller")
 	ticker := time.NewTicker(5 * time.Second)
 	cleanTicker := time.NewTicker(20 * time.Second)
 	fullSyncTicker := time.NewTicker(31 * time.Second)
@@ -134,7 +134,7 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 		// prefer quit in case there is a leader election
 		select {
 		case <-quit:
-			glog.Info("Stopping PodController")
+			klog.V(2).Info("Stopping PodController")
 			return
 		default:
 		}
@@ -157,7 +157,7 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 			c.handleReplyTimeouts()
 			c.cleanTimer.EndLoop()
 		case <-quit:
-			glog.Info("Stopping PodController")
+			klog.V(2).Info("Stopping PodController")
 			return
 		}
 	}
@@ -170,21 +170,21 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 // both cases in the same way might be a an issue for pods with
 // RestartPolicy == api.RestartPolicyNever
 func (c *PodController) markFailedPod(pod *api.Pod, startFailure bool, msg string) {
-	glog.Infof("Marking pod %s as failed", pod.Name)
+	klog.V(2).Infof("Marking pod %s as failed", pod.Name)
 	pod.Status.Phase = api.PodFailed
 	if startFailure {
-		glog.Warningf("Start failure for pod %s", pod.Name)
+		klog.Warningf("Start failure for pod %s", pod.Name)
 		pod.Status.StartFailures += 1
 		// Note: spotFailure and other items in the status will get
 		// overwritten in remedyFailedPod
 	}
 	_, err := c.podRegistry.UpdatePodStatus(pod, msg)
 	if err != nil {
-		glog.Errorf("Error updating pod status: %v", err)
+		klog.Errorf("Error updating pod status: %v", err)
 	}
 	go func() {
 		c.savePodLogs(pod)
-		glog.Infof("Returning node %s", pod.Status.BoundNodeName)
+		klog.V(2).Infof("Returning node %s", pod.Status.BoundNodeName)
 		c.nodeDispenser.ReturnNode(pod.Status.BoundNodeName, false)
 	}()
 }
@@ -214,11 +214,11 @@ func (c *PodController) loadRegistryCredentials(pod *api.Pod) (map[string]api.Re
 		}
 		allCreds[string(server)] = creds
 		if creds.Username == "" {
-			glog.Warningf("Found empty username for image secret %s", secretName)
+			klog.Warningf("Found empty username for image secret %s", secretName)
 		}
 		if creds.Password == "" {
 			// Reviewer: do you think its bad to leak this info?
-			glog.Warningf("Found empty password for secret %s", secretName)
+			klog.Warningf("Found empty password for secret %s", secretName)
 		}
 	}
 
@@ -257,7 +257,7 @@ func (c *PodController) resizeVolume(node *api.Node, pod *api.Pod, client nodecl
 		return err
 	}
 	sizeGiB := util.ToGiBRoundUp(&size)
-	glog.Infof("Pod %s requested volume size of %s on node %s",
+	klog.V(2).Infof("Pod %s requested volume size of %s on node %s",
 		pod.Name, pod.Spec.Resources.VolumeSize, node.Name)
 	err, resizePerformed := c.cloudClient.ResizeVolume(node, int64(sizeGiB))
 	if err != nil {
@@ -266,7 +266,7 @@ func (c *PodController) resizeVolume(node *api.Node, pod *api.Pod, client nodecl
 	if resizePerformed {
 		// Itzo still needs to take care of enlarging the root partition to
 		// span the new, bigger volume.
-		glog.Infof("Resized volume on node %s, expanding partition", node.Name)
+		klog.V(2).Infof("Resized volume on node %s, expanding partition", node.Name)
 		return client.ResizeVolume()
 	}
 	return nil
@@ -299,7 +299,7 @@ func isBurstableMachine(machine string) bool {
 }
 
 func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
-	glog.Infof("Dispatching pod %s to node %s", pod.Name, node.Name)
+	klog.V(2).Infof("Dispatching pod %s to node %s", pod.Name, node.Name)
 	client := c.nodeClientFactory.GetClient(node.Status.Addresses)
 	resizableVolume := !c.cloudClient.GetAttributes().FixedSizeVolume
 	if resizableVolume && pod.Spec.Resources.VolumeSize != "" {
@@ -307,7 +307,7 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		if err != nil {
 			msg := fmt.Sprintf("Error resizing volume on node %s pod %s: %v",
 				node.Name, pod.Name, err)
-			glog.Errorf("%s", msg)
+			klog.Errorf("%s", msg)
 			c.markFailedPod(pod, true, msg)
 			return
 		}
@@ -318,7 +318,7 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		err := c.cloudClient.SetSustainedCPU(node, *pod.Spec.Resources.SustainedCPU)
 		if err != nil {
 			msg := fmt.Sprintf("Error dispatching pod to node, could not modify Sustained CPU settings: %s", err)
-			glog.Errorln(msg)
+			klog.Errorln(msg)
 			c.markFailedPod(pod, true, msg)
 			return
 		}
@@ -329,7 +329,7 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		err := c.attachSecurityGroupsToNode(node, securityGroupsStr)
 		if err != nil {
 			msg := fmt.Sprintf("Error dispatching pod to node, could not attach security groups to pod %s: %s", pod.Name, err)
-			glog.Errorln(msg)
+			klog.Errorln(msg)
 			c.markFailedPod(pod, true, msg)
 			return
 		}
@@ -340,7 +340,7 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		err := c.cloudClient.AssignInstanceProfile(node, instanceProfile)
 		if err != nil {
 			msg := fmt.Sprintf("Error dispatching pod to node, could not assign instance profile %s to pod %s: %s", instanceProfile, pod.Name, err)
-			glog.Errorln(msg)
+			klog.Errorln(msg)
 			c.markFailedPod(pod, true, msg)
 			return
 		}
@@ -354,14 +354,14 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 	err := deployPodVolumes(pod, node, c.resourceManager, c.nodeClientFactory)
 	if err != nil {
 		msg := fmt.Sprintf("Error deploying volumes to node for pod %s: %v", pod.Name, err)
-		glog.Errorln(msg)
+		klog.Errorln(msg)
 		c.markFailedPod(pod, true, msg)
 		return
 	}
 	err = c.updatePodUnits(pod)
 	if err != nil {
 		msg := fmt.Sprintf("Error updating pod units after dispatching pod to node: %v", err)
-		glog.Errorln(msg)
+		klog.Errorln(msg)
 		c.markFailedPod(pod, true, msg)
 		return
 	}
@@ -369,7 +369,7 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 	err = setPodRunning(pod, node.Name, c.podRegistry, c.events)
 	if err != nil {
 		msg := fmt.Sprintf("Error updating pod status to running: %v", err)
-		glog.Error(msg)
+		klog.Error(msg)
 		c.markFailedPod(pod, true, msg)
 		return
 	}
@@ -389,14 +389,14 @@ func (c *PodController) SyncRunningPods() {
 			p.Status.Phase == api.PodRunning
 	})
 	if err != nil {
-		glog.Errorf("Could not list running pods for full sync")
+		klog.Errorf("Could not list running pods for full sync")
 		return
 	}
 	for _, pod := range podList.Items {
 		go func(p *api.Pod) {
 			err := c.updatePodUnits(p)
 			if err != nil {
-				glog.Error(err)
+				klog.Error(err)
 			}
 		}(pod)
 	}
@@ -412,7 +412,7 @@ func (c *PodController) TagNodeWithPodLabels(pod *api.Pod, node *api.Node) {
 	}
 	err := c.cloudClient.AddInstanceTags(node.Status.InstanceID, cloudLabels)
 	if err != nil {
-		glog.Errorln("Error tagging node", node.Name, err)
+		klog.Errorln("Error tagging node", node.Name, err)
 	}
 }
 
@@ -421,7 +421,7 @@ func (c *PodController) failDispatchingPods() {
 		return p.Status.Phase == api.PodDispatching
 	})
 	if err != nil {
-		glog.Errorf("Could not list dispatching pods")
+		klog.Errorf("Could not list dispatching pods")
 		return
 	}
 	for _, pod := range podList.Items {
@@ -429,7 +429,7 @@ func (c *PodController) failDispatchingPods() {
 		pod.Status.Phase = api.PodFailed
 		_, err = c.podRegistry.UpdatePodStatus(pod, "Milpa resets/fails dispatching pods at system startup")
 		if err != nil {
-			glog.Errorf("Error updating pod status: %v", err)
+			klog.Errorf("Error updating pod status: %v", err)
 			continue
 		}
 	}
@@ -438,7 +438,7 @@ func (c *PodController) failDispatchingPods() {
 func (c *PodController) handlePodStatusReply(reply FullPodStatus) {
 	pod, err := c.podRegistry.GetPod(reply.Name)
 	if err != nil {
-		glog.Errorf("Error getting pod %s from registry: %v", reply.Name, err)
+		klog.Errorf("Error getting pod %s from registry: %v", reply.Name, err)
 		return
 	}
 	podIP := api.GetPrivateIP(pod.Status.Addresses)
@@ -446,7 +446,7 @@ func (c *PodController) handlePodStatusReply(reply FullPodStatus) {
 		pod.Status.Addresses = api.NewNetworkAddresses(reply.PodIP, "")
 	} else if reply.PodIP != "" && podIP != reply.PodIP {
 		// Reply came in after pod has been rescheduled.
-		glog.Errorf("IP for pod %s has changed %s -> %s",
+		klog.Errorf("IP for pod %s has changed %s -> %s",
 			reply.Name, reply.PodIP, podIP)
 		return
 	}
@@ -464,7 +464,7 @@ func (c *PodController) handlePodStatusReply(reply FullPodStatus) {
 			// and check the Status.Phase
 			savedPod, _ := c.podRegistry.GetPod(pod.Name)
 			if savedPod == nil || !api.IsTerminalPodPhase(savedPod.Status.Phase) {
-				glog.Errorf("Error updating pod %s status: %v", pod.Name, err)
+				klog.Errorf("Error updating pod %s status: %v", pod.Name, err)
 			}
 		}
 	}
@@ -484,7 +484,7 @@ func (c *PodController) pruneLastStatusReplies() {
 		return false
 	})
 	if err != nil {
-		glog.Errorf("Error getting list of pods from registry")
+		klog.Errorf("Error getting list of pods from registry")
 		return
 	}
 	for _, replyItem := range c.lastStatusReply.Items() {
@@ -502,7 +502,7 @@ func (c *PodController) handleReplyTimeouts() {
 		return p.Status.Phase == api.PodRunning
 	})
 	if err != nil {
-		glog.Errorf("Error getting list of pods from registry")
+		klog.Errorf("Error getting list of pods from registry")
 		return
 	}
 	now := time.Now().UTC()
@@ -523,7 +523,7 @@ func (c *PodController) maybeFailUnresponsivePod(pod *api.Pod) {
 	node, err := c.nodeLister.GetNode(pod.Status.BoundNodeName)
 	if err != nil {
 		msg := fmt.Sprintf("No node found for pod %s", pod.Name)
-		glog.Warningf(msg)
+		klog.Warningf(msg)
 		c.markFailedPod(pod, false, msg)
 		return
 	}
@@ -532,10 +532,10 @@ func (c *PodController) maybeFailUnresponsivePod(pod *api.Pod) {
 	if err != nil {
 		msg := fmt.Sprintf("No status reply from pod %s in %ds failing pod",
 			pod.Name, int(statusReplyTimeout.Seconds()))
-		glog.Warningf(msg)
+		klog.Warningf(msg)
 		c.markFailedPod(pod, false, msg)
 	} else {
-		glog.Warningf("Last chance healthcheck for pod %s saved the pod from failure. Pod status is possibly out of date", pod.Name)
+		klog.Warningf("Last chance healthcheck for pod %s saved the pod from failure. Pod status is possibly out of date", pod.Name)
 		c.lastStatusReply.Set(pod.Name, time.Now().UTC())
 	}
 }
@@ -562,7 +562,7 @@ func (c *PodController) checkClaimedNodes() {
 			p.Status.Phase == api.PodRunning
 	})
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return
 	}
 	podToNode := make(map[string]string)
@@ -572,7 +572,7 @@ func (c *PodController) checkClaimedNodes() {
 
 	nodeList, err := c.nodeLister.ListNodes(registry.MatchAllNodes)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return
 	}
 	for _, node := range nodeList.Items {
@@ -588,7 +588,7 @@ func (c *PodController) checkClaimedNodes() {
 	for nodeName, podName := range lastWrongPod {
 		lastPodName, exists := wrongPod[nodeName]
 		if exists && lastPodName == podName {
-			glog.Errorf("Found claimed node %s with incorrect pod assignment %s",
+			klog.Errorf("Found claimed node %s with incorrect pod assignment %s",
 				nodeName, podName)
 			c.nodeDispenser.ReturnNode(nodeName, false)
 		}
@@ -608,7 +608,7 @@ func (c *PodController) checkRunningPods() {
 
 	nodeList, err := c.nodeLister.ListNodes(registry.MatchAllNodes)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return
 	}
 	nodeToPod := make(map[string]string)
@@ -621,7 +621,7 @@ func (c *PodController) checkRunningPods() {
 		return p.Status.Phase == api.PodRunning
 	})
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return
 	}
 
@@ -636,16 +636,16 @@ func (c *PodController) checkRunningPods() {
 		if exists && lastNodeName == nodeName {
 			msg := fmt.Sprintf("Found running pod %s with incorrect node assignment %s",
 				podName, nodeName)
-			glog.Errorf("%s", msg)
+			klog.Errorf("%s", msg)
 			pod, err := c.podRegistry.GetPod(podName)
 			if err != nil {
-				glog.Errorf("Getting broken pod from registry: %v", err)
+				klog.Errorf("Getting broken pod from registry: %v", err)
 				continue
 			}
 			pod.Status.Phase = api.PodFailed
 			_, err = c.podRegistry.UpdatePodStatus(pod, msg)
 			if err != nil {
-				glog.Errorf("Error updating pod status: %v", err)
+				klog.Errorf("Error updating pod status: %v", err)
 				continue
 			}
 		}
@@ -687,7 +687,7 @@ func (c *PodController) schedulePod(pod *api.Pod) {
 	}
 	pod, err := c.setPodDispatchingParams(pod, nodeReply.Node)
 	if err != nil {
-		glog.Errorf("Error updating pod for dispatch to node: %s", err)
+		klog.Errorf("Error updating pod for dispatch to node: %s", err)
 		c.nodeDispenser.ReturnNode(nodeReply.Node.Name, true)
 		return
 	}
@@ -704,7 +704,7 @@ func (c *PodController) terminateBoundPod(pod *api.Pod) {
 	// run this in a goroutine in case it blocks (shouldn't ever happen)
 	go func() {
 		c.savePodLogs(pod)
-		glog.Infof("Returning node %s for pod %s", pod.Status.BoundNodeName, pod.Name)
+		klog.V(2).Infof("Returning node %s for pod %s", pod.Status.BoundNodeName, pod.Name)
 		c.nodeDispenser.ReturnNode(pod.Status.BoundNodeName, false)
 	}()
 }
@@ -784,14 +784,14 @@ func (c *PodController) checkRunningPodStatus() {
 		return p.Status.Phase == api.PodRunning
 	})
 	if err != nil {
-		glog.Errorln("Error listing running pods", err)
+		klog.Errorln("Error listing running pods", err)
 		return
 	}
 	for _, pod := range podList.Items {
 		go func(p *api.Pod) {
 			reply := c.queryPodStatus(p)
 			if reply.Error != nil {
-				glog.Errorf("Error getting status of pod %s: %v",
+				klog.Errorf("Error getting status of pod %s: %v",
 					reply.Name, reply.Error)
 			} else {
 				c.handlePodStatusReply(reply)
@@ -805,22 +805,22 @@ func (c *PodController) checkRunningPodStatus() {
 // items in pod.Status can change behind the scenes.
 func (c *PodController) savePodLogs(pod *api.Pod) {
 	if pod.Status.BoundNodeName == "" {
-		glog.Infof("not saving pod logs, pod is not bound")
+		klog.V(2).Infof("not saving pod logs, pod is not bound")
 		return
 	}
 
 	node, err := c.nodeLister.GetNode(pod.Status.BoundNodeName)
 	if err != nil {
-		glog.Infof("not saving pod logs, bound to node %q: %v",
+		klog.V(2).Infof("not saving pod logs, bound to node %q: %v",
 			pod.Status.BoundNodeName, err)
 		return
 	}
 
-	glog.Infof("Saving pod logs")
+	klog.V(2).Infof("Saving pod logs")
 	podAddresses := node.Status.Addresses
 
 	if len(podAddresses) == 0 {
-		glog.Infof("pod %s has no bound instance, not gathering logs",
+		klog.V(2).Infof("pod %s has no bound instance, not gathering logs",
 			pod.Name)
 	}
 	client := c.nodeClientFactory.GetClient(podAddresses)
@@ -829,7 +829,7 @@ func (c *PodController) savePodLogs(pod *api.Pod) {
 	for _, unit := range allUnits {
 		data, err := client.GetLogs(unit.Name, 0, nodeclient.SAVE_LOG_BYTES)
 		if err != nil {
-			glog.Errorf("Error saving pod %s log for unit %s: %s",
+			klog.Errorf("Error saving pod %s log for unit %s: %s",
 				pod.Name, unit.Name, err.Error())
 			continue
 		}
@@ -839,17 +839,17 @@ func (c *PodController) savePodLogs(pod *api.Pod) {
 		log.Content = string(data)
 		_, err = c.logRegistry.CreateLog(log)
 		if err != nil {
-			glog.Errorf("Error saving pod %s log for unit %s to registry: %s",
+			klog.Errorf("Error saving pod %s log for unit %s to registry: %s",
 				pod.Name, unit.Name, err.Error())
 		}
 	}
 }
 
 func (c *PodController) handlePodSucceeded(pod *api.Pod) {
-	glog.Errorf("Pod %s has succeeded", pod.Name)
+	klog.Errorf("Pod %s has succeeded", pod.Name)
 	_, err := c.podRegistry.TerminatePod(pod, api.PodSucceeded, "Pod succeeded")
 	if err != nil {
-		glog.Errorf("Error updating pod %s spec phase: %v",
+		klog.Errorf("Error updating pod %s spec phase: %v",
 			pod.Name, err)
 	}
 	// Pod's work is done...
@@ -869,7 +869,7 @@ func podNeedsControlling(p *api.Pod) bool {
 func (c *PodController) ControlPods() {
 	podlist, err := c.podRegistry.ListPods(podNeedsControlling)
 	if err != nil {
-		glog.Errorf("Error listing pods %v", err)
+		klog.Errorf("Error listing pods %v", err)
 	}
 	if len(podlist.Items) <= 0 {
 		return
@@ -886,18 +886,18 @@ func (c *PodController) ControlPods() {
 			case api.PodWaiting:
 				c.schedulePod(pod)
 			case api.PodDispatching:
-				glog.Warningf("Previously dispatching pod %s is not finished dispatching", pod.Name)
+				klog.Warningf("Previously dispatching pod %s is not finished dispatching", pod.Name)
 			case api.PodRunning:
-				glog.Warningf("Pod %s is already in desired state, no control necessary", pod.Name)
+				klog.Warningf("Pod %s is already in desired state, no control necessary", pod.Name)
 			case api.PodFailed:
 				remedyFailedPod(pod, c.podRegistry)
 			case api.PodSucceeded:
 				c.handlePodSucceeded(pod)
 			case api.PodTerminated:
 				// We've likely set this pod as dead after too many failures
-				glog.Warningf("pod %s is terminated but speced to be running", pod.Name)
+				klog.Warningf("pod %s is terminated but speced to be running", pod.Name)
 			default:
-				glog.Errorf("Unknown pod phase: %s", pod.Status.Phase)
+				klog.Errorf("Unknown pod phase: %s", pod.Status.Phase)
 			}
 		case api.PodTerminated:
 			// if waiting, just mark it as terminated

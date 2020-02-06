@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 func SetupEmbeddedEtcdTest() (*SimpleEtcd, func(), error) {
@@ -18,7 +18,7 @@ func SetupEmbeddedEtcdTest() (*SimpleEtcd, func(), error) {
 	closer := func() {
 		quit <- struct{}{}
 		if err := os.RemoveAll(dataDir); err != nil {
-			glog.Fatal("Error removing etcd data directory")
+			klog.Fatal("Error removing etcd data directory")
 		}
 	}
 	db := EtcdServer{

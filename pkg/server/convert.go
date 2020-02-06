@@ -6,11 +6,11 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	k8sutil "github.com/elotl/cloud-instance-provider/pkg/util/k8s"
-	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 )
 
 const (
@@ -279,7 +279,7 @@ func k8sToMilpaVolume(vol v1.Volume) *api.Volume {
 			},
 		}
 	} else {
-		glog.Warningf("Unsupported volume type for volume: %s", vol.Name)
+		klog.Warningf("Unsupported volume type for volume: %s", vol.Name)
 		return &api.Volume{
 			Name: vol.Name,
 			VolumeSource: api.VolumeSource{
@@ -347,7 +347,7 @@ func milpaToK8sVolume(vol api.Volume) *v1.Volume {
 			},
 		}
 	} else {
-		glog.Warningf("Unspported volume type for volume: %s", vol.Name)
+		klog.Warningf("Unspported volume type for volume: %s", vol.Name)
 	}
 	return nil
 }

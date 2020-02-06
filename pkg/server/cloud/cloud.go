@@ -10,7 +10,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const MilpaAPISGName = "NodeSecurityGroup"
@@ -127,7 +127,7 @@ func FilterImages(images []Image, tags BootImageTags) []Image {
 		t := BootImageTags{}
 		t.Set(img.Name)
 		if t.Matches(tags) {
-			glog.Infof("Found image %s matching filter %+v", img.Name, tags)
+			klog.V(4).Infof("Found image %s matching filter %+v", img.Name, tags)
 			result = append(result, img)
 		}
 	}
@@ -142,22 +142,22 @@ func SortImages(images []Image) {
 		bitI.Set(images[i].Name)
 		versionI, err := strconv.ParseUint(bitI.Version, 10, 32)
 		if err != nil {
-			glog.Warningf("Getting version for image %+v: %v", bitI, err)
+			klog.Warningf("Getting version for image %+v: %v", bitI, err)
 		}
 		dateI, err := bitI.Timestamp()
 		if err != nil {
-			glog.Warningf("Getting timestamp for image %+v: %v", bitI, err)
+			klog.Warningf("Getting timestamp for image %+v: %v", bitI, err)
 			dateI = time.Unix(0, 0)
 		}
 		bitJ := BootImageTags{}
 		bitJ.Set(images[j].Name)
 		versionJ, err := strconv.ParseUint(bitJ.Version, 10, 32)
 		if err != nil {
-			glog.Warningf("Getting version for image %+v: %v", bitI, err)
+			klog.Warningf("Getting version for image %+v: %v", bitI, err)
 		}
 		dateJ, err := bitJ.Timestamp()
 		if err != nil {
-			glog.Warningf("Getting timestamp for image %+v: %v", bitI, err)
+			klog.Warningf("Getting timestamp for image %+v: %v", bitI, err)
 			dateJ = time.Unix(0, 0)
 		}
 		if versionI != versionJ {
@@ -175,7 +175,7 @@ func GetBestImage(images []Image, tags BootImageTags) (string, error) {
 		return "", err
 	}
 	latest := images[len(images)-1].Id
-	glog.Infof("Found image %s for tags %v", latest, tags)
+	klog.V(2).Infof("Found image %s for tags %v", latest, tags)
 	return latest, nil
 }
 

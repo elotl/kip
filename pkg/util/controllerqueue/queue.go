@@ -3,9 +3,9 @@ package controllerqueue
 import (
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 )
 
 type QueueFunc func(interface{}) error
@@ -74,12 +74,12 @@ func (cq *Queue) handleErr(err error, key interface{}) {
 	}
 
 	if cq.queue.NumRequeues(key) < cq.maxRetries {
-		glog.Infof("Error syncing %s %q, retrying. Error: %v", cq.name, key, err)
+		klog.V(2).Infof("Error syncing %s %q, retrying. Error: %v", cq.name, key, err)
 		cq.queue.AddRateLimited(key)
 		return
 	}
 
-	glog.Warningf("Dropping %s %q out of the queue: %v", cq.name, key, err)
+	klog.Warningf("Dropping %s %q out of the queue: %v", cq.name, key, err)
 	cq.queue.Forget(key)
 }
 

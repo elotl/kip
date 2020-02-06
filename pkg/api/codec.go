@@ -4,7 +4,7 @@ package api
 import (
 	"github.com/json-iterator/go"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -37,7 +37,7 @@ func (c JsonCodec) Marshal(i interface{}) ([]byte, error) {
 func warnIfUnversioned(t TypeVersioner) {
 	version := t.GetAPIVersion()
 	if version == "" {
-		glog.Warningf("Found empty API version in registry for %v", t)
+		klog.Warningf("Found empty API version in registry for %v", t)
 	}
 }
 

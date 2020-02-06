@@ -11,8 +11,8 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
 	"golang.org/x/net/context"
+	"k8s.io/klog"
 )
 
 // Logs requests can take a couple of forms:
@@ -189,7 +189,7 @@ func (s InstanceProvider) GetLogs(context context.Context, request *clientapi.Lo
 	lines := int(request.Lines)
 	bytes := int(request.Limitbytes)
 
-	glog.Infof("Getting logs from %s/%s (max lines %d; limitbytes %d)",
+	klog.V(2).Infof("Getting logs from %s/%s (max lines %d; limitbytes %d)",
 		resourceName, itemName, lines, bytes)
 
 	foundLog, err := s.findLog(resourceName, itemName, lines, bytes)
