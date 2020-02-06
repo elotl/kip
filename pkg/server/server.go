@@ -15,6 +15,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
 	"github.com/elotl/cloud-instance-provider/pkg/etcd"
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
+	"github.com/elotl/cloud-instance-provider/pkg/portmanager"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud/azure"
 	"github.com/elotl/cloud-instance-provider/pkg/server/events"
@@ -34,6 +35,8 @@ import (
 	"google.golang.org/grpc"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
+	utilexec "k8s.io/utils/exec"
 )
 
 const (
@@ -72,6 +75,7 @@ type InstanceProvider struct {
 	kubeletConfig      KubeletConfig
 	startTime          time.Time
 	notifier           func(*v1.Pod)
+	portManager        *portmanager.PortManager
 }
 
 func validateWriteToEtcd(client *etcd.SimpleEtcd) error {
@@ -138,7 +142,11 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndpointPort int32, debugServer bool, rm *manager.ResourceManager, systemQuit <-chan struct{}) (*InstanceProvider, error) {
 	systemWG := &sync.WaitGroup{}
 
-	flag.CommandLine.Parse([]string{"--logtostderr", "--v=3"})
+	flag.CommandLine.Parse([]string{"--logtostderr", "--v=5"})
+
+	execer := utilexec.New()
+	ipt := utiliptables.New(execer, utiliptables.ProtocolIpv4)
+	portManager := portmanager.NewPortManager(ipt)
 
 	serverConfigFile, err := ParseConfig(configFilePath)
 	if err != nil {
@@ -325,6 +333,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		daemonEndpointPort: daemonEndpointPort,
 		kubeletConfig:      serverConfigFile.Kubelet,
 		startTime:          time.Now(),
+		portManager:        portManager,
 	}
 	eventSystem.RegisterHandler(events.PodRunning, s)
 	eventSystem.RegisterHandler(events.PodTerminated, s)
@@ -373,6 +382,37 @@ func (p *InstanceProvider) setupDebugServer() error {
 	return nil
 }
 
+func getPortMappings(containers []v1.Container) []v1.ContainerPort {
+	var portMappings []v1.ContainerPort
+	for _, container := range containers {
+		for _, pm := range container.Ports {
+			if pm.ContainerPort > 0 && pm.HostPort > 0 {
+				portMappings = append(portMappings, pm)
+			}
+		}
+	}
+	return portMappings
+}
+
+func (p *InstanceProvider) addOrRemovePodPortMappings(pod *v1.Pod, add bool) error {
+	portMappings := getPortMappings(
+		append(pod.Spec.InitContainers, pod.Spec.Containers...))
+	if len(portMappings) == 0 {
+		return nil
+	}
+	podIP := net.ParseIP(pod.Status.PodIP)
+	if podIP.IsUnspecified() {
+		return fmt.Errorf("empty pod IP for %q %+v", pod.Name, portMappings)
+	}
+	if add {
+		glog.V(4).Infof("adding %q port mappings %+v", pod.Name, portMappings)
+		return p.portManager.AddPodPortMappings(podIP.String(), portMappings)
+	}
+	glog.V(4).Infof("removing %q port mappings %+v", pod.Name, portMappings)
+	p.portManager.RemovePodPortMappings(podIP.String())
+	return nil
+}
+
 func (p *InstanceProvider) Handle(ev events.Event) error {
 	milpaPod, ok := ev.Object.(*api.Pod)
 	if !ok {
@@ -383,6 +423,20 @@ func (p *InstanceProvider) Handle(ev events.Event) error {
 	if err != nil {
 		glog.Errorf("converting milpa pod %s: %v", milpaPod.Name, err)
 		return nil
+	}
+	if ev.Status == events.PodUpdated {
+		if milpaPod.Status.Phase == api.PodRunning &&
+			pod.Status.PodIP != "" {
+			// Pod is up and running, let's set up its hostport mappings.
+			if err := p.addOrRemovePodPortMappings(pod, true); err != nil {
+				glog.Warningf("adding hostports %q: %v", milpaPod.Name, err)
+			}
+		} else if api.IsTerminalPodPhase(milpaPod.Status.Phase) {
+			// Remove port mappings if pod has been terminated or stopped.
+			if err := p.addOrRemovePodPortMappings(pod, false); err != nil {
+				glog.Warningf("removing hostports %q: %v", milpaPod.Name, err)
+			}
+		}
 	}
 	glog.Infof("milpa pod %s event %v", milpaPod.Name, ev)
 	p.notifier(pod)
