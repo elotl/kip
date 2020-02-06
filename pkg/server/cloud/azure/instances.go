@@ -503,3 +503,7 @@ func isInstanceConstrainedError(err error) bool {
 func isUnsupportedInstanceError(err error) bool {
 	return strings.Contains(err.Error(), "SkuNotAvailable")
 }
+
+func (az *AzureClient) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
+	return nil
+}

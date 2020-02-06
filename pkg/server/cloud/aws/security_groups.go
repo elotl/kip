@@ -299,3 +299,16 @@ func makeIPPermissions(rules []cloud.IngressRule) []*ec2.IpPermission {
 	}
 	return ipPermissions
 }
+
+func (e *AwsEC2) AttachSecurityGroups(node *api.Node, groups []string) error {
+	allGroups := append(e.bootSecurityGroupIDs, groups...)
+	for i := range allGroups {
+		allGroups[i] = strings.TrimSpace(allGroups[i])
+	}
+	_, err := e.client.ModifyInstanceAttribute(
+		&ec2.ModifyInstanceAttributeInput{
+			InstanceId: aws.String(node.Status.InstanceID),
+			Groups:     aws.StringSlice(allGroups),
+		})
+	return err
+}

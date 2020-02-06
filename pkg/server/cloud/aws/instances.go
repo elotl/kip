@@ -76,9 +76,9 @@ func (e *AwsEC2) getBlockDeviceMapping(volSizeGiB int32) []*ec2.BlockDeviceMappi
 func (e *AwsEC2) getInstanceNetworkSpec(privateIPOnly bool) []*ec2.InstanceNetworkInterfaceSpecification {
 	networkSpec := []*ec2.InstanceNetworkInterfaceSpecification{
 		&ec2.InstanceNetworkInterfaceSpecification{
-			AssociatePublicIpAddress:       aws.Bool(!privateIPOnly),
-			DeviceIndex:                    aws.Int64(0), // seems to work
-			Groups:                         aws.StringSlice(e.bootSecurityGroupIDs),
+			AssociatePublicIpAddress: aws.Bool(!privateIPOnly),
+			DeviceIndex:              aws.Int64(0), // seems to work
+			Groups:                   aws.StringSlice(e.bootSecurityGroupIDs),
 			SecondaryPrivateIpAddressCount: aws.Int64(1),
 		},
 	}
@@ -549,3 +549,14 @@ func isUnsupportedInstanceError(err error) bool {
 // InvalidParameter, InvalidParameterCombination, InvalidParameterValue
 // UnsupportedInstanceAttribute, UnsupportedOperation
 // InvalidAvailabilityZone
+
+func (e *AwsEC2) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
+	_, err := e.client.AssociateIamInstanceProfile(
+		&ec2.AssociateIamInstanceProfileInput{
+			IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+				Arn: aws.String(instanceProfile),
+			},
+			InstanceId: aws.String(node.Status.InstanceID),
+		})
+	return err
+}
