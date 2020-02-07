@@ -324,6 +324,23 @@
   revision = "449fdfce4d962303d702fec724ef0ad181c92528"
 
 [[projects]]
+  branch = "justnoise-working-branch"
+  digest = "1:54227e89561129c8714ac3f6d65a01b1decc5f812451063319b1a8f3ef12c9d5"
+  name = "github.com/elotl/node-cli"
+  packages = [
+    ".",
+    "internal/commands/providers",
+    "internal/commands/root",
+    "internal/commands/version",
+    "manager",
+    "opencensus",
+    "opts",
+    "provider",
+  ]
+  pruneopts = "UT"
+  revision = "cb928dc68d2063e744f6856226f2b3a0239efe0b"
+
+[[projects]]
   branch = "master"
   digest = "1:962bb9e64adb39123435a82e88485dc86d135db77c1402f4a0e1f4632f7ca740"
   name = "github.com/elotl/wsstream"
@@ -760,23 +777,6 @@
   pruneopts = "UT"
   revision = "40ae6a40a970ef4cdbffa7b24b280e316db8accc"
   version = "v1.5.1"
-
-[[projects]]
-  digest = "1:1c4e09880df2900b30bf9b50cf32568817c3f5ce5ff7015a6cecf513d3a43dbc"
-  name = "github.com/virtual-kubelet/node-cli"
-  packages = [
-    ".",
-    "internal/commands/providers",
-    "internal/commands/root",
-    "internal/commands/version",
-    "manager",
-    "opencensus",
-    "opts",
-    "provider",
-  ]
-  pruneopts = "UT"
-  revision = "cd8af9b9bc8c4cf6e49994bd677165c79d498320"
-  version = "v0.1.2"
 
 [[projects]]
   digest = "1:ee29cb0ae9cc471817ddfdf0173e8706a8ec227f140c33e30634503917915ced"
@@ -1529,6 +1529,11 @@
     "github.com/docker/libkv/store",
     "github.com/docker/libkv/store/boltdb",
     "github.com/docker/libkv/store/mock",
+    "github.com/elotl/node-cli",
+    "github.com/elotl/node-cli/manager",
+    "github.com/elotl/node-cli/opencensus",
+    "github.com/elotl/node-cli/opts",
+    "github.com/elotl/node-cli/provider",
     "github.com/elotl/wsstream",
     "github.com/fullsailor/pkcs7",
     "github.com/ghodss/yaml",
@@ -1545,11 +1550,6 @@
     "github.com/spf13/pflag",
     "github.com/stretchr/testify/assert",
     "github.com/uber-go/atomic",
-    "github.com/virtual-kubelet/node-cli",
-    "github.com/virtual-kubelet/node-cli/manager",
-    "github.com/virtual-kubelet/node-cli/opencensus",
-    "github.com/virtual-kubelet/node-cli/opts",
-    "github.com/virtual-kubelet/node-cli/provider",
     "github.com/virtual-kubelet/virtual-kubelet/errdefs",
     "github.com/virtual-kubelet/virtual-kubelet/log",
     "github.com/virtual-kubelet/virtual-kubelet/node/api",
@@ -1564,14 +1564,12 @@
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/api/resource",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
-    "k8s.io/apimachinery/pkg/fields",
-    "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/errors",
+    "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/apimachinery/pkg/util/sets",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/client-go/listers/core/v1",
-    "k8s.io/client-go/rest",
     "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/clientcmd/api",

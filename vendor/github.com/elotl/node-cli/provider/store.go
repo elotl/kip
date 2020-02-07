@@ -3,7 +3,7 @@ package provider
 import (
 	"sync"
 
-	"github.com/virtual-kubelet/node-cli/manager"
+	"github.com/elotl/node-cli/manager"
 )
 
 // Store is used for registering/fetching providers
@@ -62,7 +62,6 @@ type InitConfig struct {
 	OperatingSystem   string
 	InternalIP        string
 	DaemonPort        int32
-	DebugServer       bool
 	KubeClusterDomain string
 	ResourceManager   *manager.ResourceManager
 }

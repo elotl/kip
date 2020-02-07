@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"contrib.go.opencensus.io/exporter/ocagent"
-	opencensuscli "github.com/virtual-kubelet/node-cli/opencensus"
+	opencensuscli "github.com/elotl/node-cli/opencensus"
 	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
 	"go.opencensus.io/trace"
 )

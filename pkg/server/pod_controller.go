@@ -18,7 +18,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/conmap"
 	"github.com/elotl/cloud-instance-provider/pkg/util/stats"
 	"github.com/golang/glog"
-	"github.com/virtual-kubelet/node-cli/manager"
+	"github.com/elotl/node-cli/manager"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 

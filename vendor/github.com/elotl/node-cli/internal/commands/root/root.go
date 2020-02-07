@@ -22,9 +22,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/virtual-kubelet/node-cli/manager"
-	"github.com/virtual-kubelet/node-cli/opts"
-	"github.com/virtual-kubelet/node-cli/provider"
+	"github.com/elotl/node-cli/manager"
+	"github.com/elotl/node-cli/opts"
+	"github.com/elotl/node-cli/provider"
 	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
 	"github.com/virtual-kubelet/virtual-kubelet/log"
 	"github.com/virtual-kubelet/virtual-kubelet/node"
@@ -102,9 +102,6 @@ func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error 
 	secretInformer := scmInformerFactory.Core().V1().Secrets()
 	configMapInformer := scmInformerFactory.Core().V1().ConfigMaps()
 	serviceInformer := scmInformerFactory.Core().V1().Services()
-
-	go podInformerFactory.Start(ctx.Done())
-	go scmInformerFactory.Start(ctx.Done())
 
 	rm, err := manager.NewResourceManager(podInformer.Lister(), secretInformer.Lister(), configMapInformer.Lister(), serviceInformer.Lister())
 	if err != nil {
@@ -190,6 +187,9 @@ func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error 
 	if err != nil {
 		return errors.Wrap(err, "error setting up pod controller")
 	}
+
+	podInformerFactory.Start(ctx.Done())
+	scmInformerFactory.Start(ctx.Done())
 
 	cancelHTTP, err := setupHTTPServer(ctx, p, apiConfig)
 	if err != nil {
