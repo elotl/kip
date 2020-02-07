@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -60,7 +60,7 @@ func CreateContainerId(podName, unitName string) string {
 func ContainerIdToPodAndUnitName(containerId string) (string, string) {
 	parts := strings.Split(containerId, "..")
 	if len(parts) != 2 {
-		glog.Errorf("Invalid container ID %s", containerId)
+		klog.Errorf("Invalid container ID %s", containerId)
 		return "", ""
 	}
 	podName := parts[0]

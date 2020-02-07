@@ -3,8 +3,8 @@ package cloud
 import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/klog"
 )
 
 // Diffing rules got a little nasty... We take the cross of the
@@ -85,7 +85,7 @@ func ToSaneVolumeSize(volSizeSpec string) int32 {
 		// we're not carrying that values around anywhere.  We could
 		// somehow make that value a global var but it seemed like I
 		// would start abusing that out of lazyness.
-		glog.Errorln("Empty volume size found in resource spec, setting to reasonable value")
+		klog.Errorln("Empty volume size found in resource spec, setting to reasonable value")
 		volSizeGiB = 8
 	}
 	return volSizeGiB

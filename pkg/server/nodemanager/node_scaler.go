@@ -6,7 +6,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 type StatusUpdater interface {
@@ -259,7 +259,7 @@ func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.
 		}
 		_, err := s.nodeRegistry.UpdateStatus(node)
 		if err != nil {
-			glog.Errorf("Error updating node %s with pod bindings: %s",
+			klog.Errorf("Error updating node %s with pod bindings: %s",
 				node.Name, err)
 		}
 	}

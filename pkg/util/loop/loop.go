@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 type LoopFunc func() error
@@ -36,11 +36,11 @@ func (loop *Loop) run(quit <-chan struct{}, wg *sync.WaitGroup) {
 		case <-tick.C:
 			err := loop.f()
 			if err != nil {
-				glog.Errorf("Error executing %s Loop: %s", loop.name, err.Error())
+				klog.Errorf("Error executing %s Loop: %s", loop.name, err.Error())
 			}
 		case <-quit:
 			tick.Stop()
-			glog.Infof("Exiting %s Loop", loop.name)
+			klog.V(2).Infof("Exiting %s Loop", loop.name)
 			return
 		}
 	}

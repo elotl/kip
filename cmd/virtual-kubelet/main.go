@@ -19,8 +19,9 @@ import (
 	"context"
 	"strings"
 
-	"github.com/elotl/cloud-instance-provider/pkg/glog"
+	"github.com/elotl/cloud-instance-provider/pkg/klog"
 	"github.com/elotl/cloud-instance-provider/pkg/server"
+	"github.com/elotl/cloud-instance-provider/pkg/util/habitat"
 	cli "github.com/elotl/node-cli"
 	opencensuscli "github.com/elotl/node-cli/opencensus"
 	"github.com/elotl/node-cli/opts"
@@ -39,7 +40,7 @@ var (
 func main() {
 	ctx := cli.ContextWithCancelOnSignal(context.Background())
 
-	log.L = glog.NewGlogAdapter()
+	log.L = klog.NewKlogAdapter()
 
 	trace.T = opencensus.Adapter{}
 	traceConfig := opencensuscli.Config{
@@ -63,10 +64,21 @@ func main() {
 		cli.WithCLIVersion(buildVersion, buildTime),
 		cli.WithProvider("cloud-instance-provider",
 			func(cfg provider.InitConfig) (provider.Provider, error) {
+				internalIP := cfg.InternalIP
+				if internalIP == "" {
+					internalIP = habitat.GetMyIP()
+					if internalIP == "" {
+						ips := habitat.GetIPAddresses()
+						if len(ips) > 0 {
+							internalIP = ips[0]
+						}
+					}
+				}
+				log.G(ctx).Infof("node internal IP address: %q", internalIP)
 				return server.NewInstanceProvider(
 					cfg.ConfigPath,
 					cfg.NodeName,
-					cfg.InternalIP,
+					internalIP,
 					cfg.DaemonPort,
 					serverConfig.DebugServer,
 					cfg.ResourceManager,

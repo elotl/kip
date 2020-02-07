@@ -1190,7 +1190,7 @@
   version = "v0.17.2"
 
 [[projects]]
-  digest = "1:cdd77e0255f0aab8559125ec721158115d242d01fe69fe4c8e29712407930f58"
+  digest = "1:9520317bc9d16435baf144fbe4a3a50c8b5c6735647bfb9a1b2ee21d91052080"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -1232,6 +1232,7 @@
     "pkg/util/strategicpatch",
     "pkg/util/validation",
     "pkg/util/validation/field",
+    "pkg/util/version",
     "pkg/util/wait",
     "pkg/util/yaml",
     "pkg/version",
@@ -1456,7 +1457,7 @@
   revision = "cdac1c71ff9fcb581b648dfea9ae0eb5c80afa25"
 
 [[projects]]
-  digest = "1:40434bbfac60044b86b64e7b9e6b47225f5595ba17180c690a7782cef46d6f0e"
+  digest = "1:38ac5c8b90ef33610b52bf37a40edc93f3e95614b378bf190616371d48b4bf40"
   name = "k8s.io/kubernetes"
   packages = [
     "pkg/apis/core",
@@ -1468,6 +1469,7 @@
     "pkg/kubelet/apis/stats/v1alpha1",
     "pkg/kubelet/envvars",
     "pkg/kubelet/server/remotecommand",
+    "pkg/util/iptables",
     "third_party/forked/golang/expansion",
   ]
   pruneopts = "UT"
@@ -1575,6 +1577,8 @@
     "k8s.io/client-go/tools/clientcmd/api",
     "k8s.io/client-go/util/workqueue",
     "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1",
+    "k8s.io/kubernetes/pkg/util/iptables",
+    "k8s.io/utils/exec",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

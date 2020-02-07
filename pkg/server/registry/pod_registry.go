@@ -12,7 +12,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/instanceselector"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -138,7 +138,7 @@ func (reg *PodRegistry) isLivePod(name string) bool {
 	if err == store.ErrKeyNotFound {
 		return false
 	} else if err != nil {
-		glog.Errorf("Error getting pod: %s, assuming pod is alive", err)
+		klog.Errorf("Error getting pod: %s, assuming pod is alive", err)
 		return true
 	}
 
@@ -232,7 +232,7 @@ func (reg *PodRegistry) ListPods(filter func(*api.Pod) bool) (*api.PodList, erro
 	pairs, err := reg.Storer.List(PodPath)
 	podlist := api.NewPodList()
 	if err != nil {
-		glog.Errorf("Error listing pods in storage: %v", err)
+		klog.Errorf("Error listing pods in storage: %v", err)
 		return podlist, err
 	}
 	podlist.Items = make([]*api.Pod, 0, len(pairs))
@@ -246,7 +246,7 @@ func (reg *PodRegistry) ListPods(filter func(*api.Pod) bool) (*api.PodList, erro
 		pod := api.NewPod()
 		err = reg.Codec.Unmarshal(pair.Value, pod)
 		if err != nil {
-			glog.Errorf("Error unmarshalling single pod in list operation: %v", err)
+			klog.Errorf("Error unmarshalling single pod in list operation: %v", err)
 			continue
 		}
 		if filter(pod) {
@@ -296,7 +296,7 @@ func validStatusPhaseChange(old, new api.PodPhase) bool {
 	case api.PodTerminated:
 		return false
 	}
-	glog.Fatalf("Programming error: Reached end of state transition table")
+	klog.Fatalf("Programming error: Reached end of state transition table")
 	return false
 }
 
@@ -357,7 +357,7 @@ func (reg *PodRegistry) TerminatePod(pod *api.Pod, phase api.PodPhase, msg strin
 			TTL:   terminatedPodTTL,
 		})
 	if err != nil {
-		glog.Warningf("Could not updated terminated pod %s in registry: %s",
+		klog.Warningf("Could not updated terminated pod %s in registry: %s",
 			pod.Name, err.Error())
 	}
 

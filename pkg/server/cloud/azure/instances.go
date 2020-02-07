@@ -12,8 +12,8 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog"
 )
 
 var (
@@ -133,7 +133,7 @@ func (az *AzureClient) createNIC(instanceID string, ipID string) (string, error)
 }
 
 func (az *AzureClient) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	glog.Infof("Starting instance for node: %v", node)
+	klog.V(2).Infof("Starting instance for node: %v", node)
 	instanceID := makeInstanceID(az.controllerID, node.Name)
 	err := az.createResourceGroup(instanceID)
 	if err != nil {
@@ -142,7 +142,7 @@ func (az *AzureClient) StartNode(node *api.Node, metadata string) (*cloud.StartN
 	cleanup := func() {
 		err := az.DeleteResourceGroup(instanceID)
 		if err != nil {
-			glog.Errorln(
+			klog.Errorln(
 				"Error deleting azure resource group after start failure",
 				err,
 			)
@@ -299,7 +299,7 @@ func (az *AzureClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, err
 }
 
 func (az *AzureClient) SetSustainedCPU(node *api.Node, enabled bool) error {
-	glog.Infoln("Setting sustained CPU in Azure has no impact")
+	klog.V(2).Infoln("Setting sustained CPU in Azure has no impact")
 	return nil
 }
 
@@ -409,7 +409,7 @@ func getSecurityGroupsFromInterface(iface network.Interface) []cloud.SecurityGro
 func (az *AzureClient) AddInstanceTags(iid string, labels map[string]string) error {
 	newTags, err := filterLabelsForTags(iid, labels)
 	if err != nil {
-		glog.Warning(err)
+		klog.Warning(err)
 	}
 	if len(newTags) > 0 {
 		ctx := context.Background()
@@ -502,4 +502,8 @@ func isInstanceConstrainedError(err error) bool {
 
 func isUnsupportedInstanceError(err error) bool {
 	return strings.Contains(err.Error(), "SkuNotAvailable")
+}
+
+func (az *AzureClient) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
+	return nil
 }

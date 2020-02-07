@@ -12,7 +12,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 func (c *AwsEC2) SetBootSecurityGroupIDs(ids []string) {
@@ -54,7 +54,7 @@ func (c *AwsEC2) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string) e
 		return util.WrapError(err, "Could not setup Milpa API cloud firewall rules")
 	}
 	ids := append(extraGroupIDs, apiGroup.ID)
-	glog.Infoln("security group name", apiGroupName, ids)
+	klog.V(2).Infoln("security group name", apiGroupName, ids)
 	c.SetBootSecurityGroupIDs(ids)
 	return nil
 }
@@ -207,7 +207,7 @@ func (e *AwsEC2) DeleteSecurityGroup(groupID string) error {
 	if err != nil {
 		return util.WrapError(err, "Could not delete security group")
 	}
-	glog.Infof("Deleted security group %s", groupID)
+	klog.V(2).Infof("Deleted security group %s", groupID)
 	return nil
 }
 
@@ -298,4 +298,17 @@ func makeIPPermissions(rules []cloud.IngressRule) []*ec2.IpPermission {
 		}
 	}
 	return ipPermissions
+}
+
+func (e *AwsEC2) AttachSecurityGroups(node *api.Node, groups []string) error {
+	allGroups := append(e.bootSecurityGroupIDs, groups...)
+	for i := range allGroups {
+		allGroups[i] = strings.TrimSpace(allGroups[i])
+	}
+	_, err := e.client.ModifyInstanceAttribute(
+		&ec2.ModifyInstanceAttributeInput{
+			InstanceId: aws.String(node.Status.InstanceID),
+			Groups:     aws.StringSlice(allGroups),
+		})
+	return err
 }

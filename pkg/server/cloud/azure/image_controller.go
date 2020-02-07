@@ -16,8 +16,8 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/util/controllerqueue"
 	"github.com/elotl/cloud-instance-provider/pkg/util/jitter"
-	"github.com/golang/glog"
 	"github.com/uber-go/atomic"
+	"k8s.io/klog"
 )
 
 const (
@@ -62,16 +62,16 @@ func (ic *ImageController) FullSyncLoop(quit <-chan struct{}, wg *sync.WaitGroup
 	fullSyncTicker := jitter.NewTicker(20*time.Minute, 10*time.Minute)
 	defer fullSyncTicker.Stop()
 	if err := ic.syncBestBlob(); err != nil {
-		glog.Errorln("Error doing full sync of image controller:", err)
+		klog.Errorln("Error doing full sync of image controller:", err)
 	}
 	for {
 		select {
 		case <-fullSyncTicker.C:
 			if err := ic.syncBestBlob(); err != nil {
-				glog.Errorln("Error doing full sync of image controller", err)
+				klog.Errorln("Error doing full sync of image controller", err)
 			}
 		case <-quit:
-			glog.Info("Exiting Azure Image Controller Sync Loop")
+			klog.V(2).Info("Exiting Azure Image Controller Sync Loop")
 			return
 		}
 	}
@@ -195,7 +195,7 @@ func (ic *ImageController) Dump() []byte {
 	}
 	b, err := json.MarshalIndent(dumpStruct, "", "    ")
 	if err != nil {
-		glog.Errorln("Error dumping data from Azure Image Controller", err)
+		klog.Errorln("Error dumping data from Azure Image Controller", err)
 		return nil
 	}
 	return b
@@ -214,7 +214,7 @@ func (ic *ImageController) getAccountPrimaryKey(accountName string) string {
 	response, err := ic.az.storage.ListKeys(
 		timeoutCtx, ic.resourceGroupName, accountName)
 	if err != nil {
-		glog.Errorf("Failed to list account keys: %v", err)
+		klog.Errorf("Failed to list account keys: %v", err)
 		return ""
 	}
 	return *(((*response.Keys)[0]).Value)
@@ -276,7 +276,7 @@ func (ic *ImageController) ensureContainer(accountName, containername string) er
 		timeoutCtx, azblob.LeaseAccessConditions{})
 	if err != nil {
 		if !isContainerNotFoundError(err) {
-			glog.Errorf("Checking container %s failed: %v", containerName, err)
+			klog.Errorf("Checking container %s failed: %v", containerName, err)
 			return err
 		}
 		timeoutCtx, cancel = context.WithTimeout(ctx, azureDefaultTimeout)
@@ -284,7 +284,7 @@ func (ic *ImageController) ensureContainer(accountName, containername string) er
 		_, err = container.Create(
 			timeoutCtx, azblob.Metadata{}, azblob.PublicAccessNone)
 		if err != nil {
-			glog.Errorf("Creating container %s failed: %v", containerName, err)
+			klog.Errorf("Creating container %s failed: %v", containerName, err)
 			return err
 		}
 	}
@@ -320,7 +320,7 @@ func (ic *ImageController) copyBlob(accountName, containerName, blobName string)
 		}
 		time.Sleep(3 * time.Second)
 	}
-	glog.Infof("Copying blob %s finished", blobName)
+	klog.V(2).Infof("Copying blob %s finished", blobName)
 	return dstBlob.String(), nil
 }
 
@@ -342,7 +342,7 @@ func (ic *ImageController) syncSingleBlob(blobName string) error {
 	ctx := context.Background()
 	err := ic.ensureContainer(accountName, containerName)
 	if err != nil {
-		glog.Errorf("Error checking container %s: %v", containerName, err)
+		klog.Errorf("Error checking container %s: %v", containerName, err)
 		return err
 	}
 	timeoutCtx, cancel := context.WithTimeout(ctx, azureDefaultTimeout)
@@ -352,12 +352,12 @@ func (ic *ImageController) syncSingleBlob(blobName string) error {
 	_, err = blob.GetProperties(timeoutCtx, azblob.BlobAccessConditions{})
 	if err != nil {
 		if !isBlobNotFoundError(err) {
-			glog.Errorf("Error checking blob %s: %v", blobName, err)
+			klog.Errorf("Error checking blob %s: %v", blobName, err)
 			return err
 		}
 		url, err = ic.copyBlob(accountName, containerName, blobName)
 		if err != nil {
-			glog.Errorf("Error copying blob %s: %v", blobName, err)
+			klog.Errorf("Error copying blob %s: %v", blobName, err)
 			return err
 		}
 	} else {
@@ -368,7 +368,7 @@ func (ic *ImageController) syncSingleBlob(blobName string) error {
 	defer cancel()
 	img, err := ic.az.images.Get(timeoutCtx, ic.resourceGroupName, imageName, "")
 	if err != nil && !isNotFoundError(err) {
-		glog.Errorf("Error checking image %s: %v", imageName, err)
+		klog.Errorf("Error checking image %s: %v", imageName, err)
 		return err
 	} else if err == nil {
 		if ic.imageParametersMatch(img) {
@@ -378,7 +378,7 @@ func (ic *ImageController) syncSingleBlob(blobName string) error {
 		}
 		// Old image parameters don't match, warn the user that we
 		// are recreating the image
-		glog.Warningln("Image parameters are out of sync, recreating image")
+		klog.Warningln("Image parameters are out of sync, recreating image")
 		timeoutCtx, cancel = context.WithTimeout(ctx, azureDefaultTimeout)
 		defer cancel()
 		future, err := ic.az.images.Delete(
@@ -439,14 +439,14 @@ func (ic *ImageController) syncSingleBlob(blobName string) error {
 		return fmt.Errorf("Failed to finish creating image %s: %v\n",
 			imageName, err)
 	}
-	glog.Infof("Created image %s from blob %s", imageName, url)
+	klog.V(2).Infof("Created image %s from blob %s", imageName, url)
 	return nil
 }
 
 func (ic *ImageController) WaitForAvailable() {
 	for !ic.isSynced.Load() {
-		glog.Infoln("Waiting for azure disk image to sync")
+		klog.V(2).Infoln("Waiting for azure disk image to sync")
 		time.Sleep(3 * time.Second)
 	}
-	glog.Infoln("Image synced")
+	klog.V(2).Infoln("Image synced")
 }

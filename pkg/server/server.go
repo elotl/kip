@@ -1,7 +1,6 @@
 package server
 
 import (
-	"flag"
 	"fmt"
 	"net"
 	"sort"
@@ -15,6 +14,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
 	"github.com/elotl/cloud-instance-provider/pkg/etcd"
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
+	"github.com/elotl/cloud-instance-provider/pkg/portmanager"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud/azure"
 	"github.com/elotl/cloud-instance-provider/pkg/server/events"
@@ -26,7 +26,6 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/instanceselector"
 	"github.com/elotl/cloud-instance-provider/pkg/util/timeoutmap"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
-	"github.com/golang/glog"
 	"github.com/elotl/node-cli/manager"
 	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
@@ -34,6 +33,9 @@ import (
 	"google.golang.org/grpc"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
+	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
+	utilexec "k8s.io/utils/exec"
 )
 
 const (
@@ -72,10 +74,11 @@ type InstanceProvider struct {
 	kubeletConfig      KubeletConfig
 	startTime          time.Time
 	notifier           func(*v1.Pod)
+	portManager        *portmanager.PortManager
 }
 
 func validateWriteToEtcd(client *etcd.SimpleEtcd) error {
-	glog.Info("validating write access to etcd (will block until we can connect)")
+	klog.V(2).Info("validating write access to etcd (will block until we can connect)")
 	wo := &store.WriteOptions{
 		IsDir: false,
 		TTL:   2 * time.Second,
@@ -85,7 +88,7 @@ func validateWriteToEtcd(client *etcd.SimpleEtcd) error {
 	if err != nil {
 		return err
 	}
-	glog.Info("Write to etcd successful")
+	klog.V(2).Info("write to etcd successful")
 	return nil
 }
 
@@ -94,7 +97,7 @@ func setupEtcd(configFile, dataDir string, quit <-chan struct{}, wg *sync.WaitGr
 	// change in the future if we want the embedded server to join
 	// existing etcd server, but, for now just don't start it.
 	var client *etcd.SimpleEtcd
-	glog.Infof("starting internal etcd")
+	klog.V(2).Infof("starting internal etcd")
 	etcdServer := etcd.EtcdServer{
 		ConfigFile: configFile,
 		DataDir:    dataDir,
@@ -113,7 +116,7 @@ func setupEtcd(configFile, dataDir string, quit <-chan struct{}, wg *sync.WaitGr
 }
 
 func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
-	glog.Infof("Ensuring region has not changed")
+	klog.V(2).Infof("ensuring region has not changed")
 	var savedRegion string
 	pair, err := etcdClient.Get(etcdClusterRegionPath)
 	if err != nil {
@@ -138,7 +141,9 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndpointPort int32, debugServer bool, rm *manager.ResourceManager, systemQuit <-chan struct{}) (*InstanceProvider, error) {
 	systemWG := &sync.WaitGroup{}
 
-	flag.CommandLine.Parse([]string{"--logtostderr", "--v=3"})
+	execer := utilexec.New()
+	ipt := utiliptables.New(execer, utiliptables.ProtocolIpv4)
+	portManager := portmanager.NewPortManager(ipt)
 
 	serverConfigFile, err := ParseConfig(configFilePath)
 	if err != nil {
@@ -171,7 +176,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		nametag = controllerID
 	}
 
-	glog.Infof("ControllerID: %s", controllerID)
+	klog.V(2).Infof("ControllerID: %s", controllerID)
 
 	certFactory, err := certs.New(etcdClient)
 	if err != nil {
@@ -212,10 +217,10 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		return nil, fmt.Errorf("error validating server.yml: %v", errs.ToAggregate())
 	}
 
-	glog.Infof("Setting up events")
+	klog.V(2).Infof("setting up events")
 	eventSystem := events.NewEventSystem(systemQuit, systemWG)
 
-	glog.Infof("Setting up registry")
+	klog.V(2).Infof("setting up registry")
 	podRegistry := registry.NewPodRegistry(
 		etcdClient, api.VersioningCodec{}, eventSystem, statefulValidator)
 	nodeRegistry := registry.NewNodeRegistry(
@@ -325,6 +330,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		daemonEndpointPort: daemonEndpointPort,
 		kubeletConfig:      serverConfigFile.Kubelet,
 		startTime:          time.Now(),
+		portManager:        portManager,
 	}
 	eventSystem.RegisterHandler(events.PodRunning, s)
 	eventSystem.RegisterHandler(events.PodTerminated, s)
@@ -338,7 +344,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 
 	if ctrl, ok := controllers["ImageController"]; ok {
 		azureImageController := ctrl.(*azure.ImageController)
-		glog.Infof("Downloading Milpa node image to local Azure subscription (this could take a few minutes)")
+		klog.V(2).Infof("downloading Milpa node image to local Azure subscription (this could take a few minutes)")
 		azureImageController.WaitForAvailable()
 	}
 
@@ -367,24 +373,69 @@ func (p *InstanceProvider) setupDebugServer() error {
 	go func() {
 		err := grpcServer.Serve(lis)
 		if err != nil {
-			glog.Errorln("Error returned from Serve:", err)
+			klog.Errorln("Error returned from Serve:", err)
 		}
 	}()
+	return nil
+}
+
+func getPortMappings(containers []v1.Container) []v1.ContainerPort {
+	var portMappings []v1.ContainerPort
+	for _, container := range containers {
+		for _, pm := range container.Ports {
+			if pm.ContainerPort > 0 && pm.HostPort > 0 {
+				portMappings = append(portMappings, pm)
+			}
+		}
+	}
+	return portMappings
+}
+
+func (p *InstanceProvider) addOrRemovePodPortMappings(pod *v1.Pod, add bool) error {
+	portMappings := getPortMappings(
+		append(pod.Spec.InitContainers, pod.Spec.Containers...))
+	if len(portMappings) == 0 {
+		return nil
+	}
+	podIP := net.ParseIP(pod.Status.PodIP)
+	if podIP.IsUnspecified() {
+		return fmt.Errorf("empty pod IP for %q %+v", pod.Name, portMappings)
+	}
+	if add {
+		klog.V(4).Infof("adding %q port mappings %+v", pod.Name, portMappings)
+		return p.portManager.AddPodPortMappings(podIP.String(), portMappings)
+	}
+	klog.V(4).Infof("removing %q port mappings %+v", pod.Name, portMappings)
+	p.portManager.RemovePodPortMappings(podIP.String())
 	return nil
 }
 
 func (p *InstanceProvider) Handle(ev events.Event) error {
 	milpaPod, ok := ev.Object.(*api.Pod)
 	if !ok {
-		glog.Errorf("event %v with unknown object", ev)
+		klog.Errorf("event %v with unknown object", ev)
 		return nil
 	}
 	pod, err := p.milpaToK8sPod(milpaPod)
 	if err != nil {
-		glog.Errorf("converting milpa pod %s: %v", milpaPod.Name, err)
+		klog.Errorf("converting milpa pod %s: %v", milpaPod.Name, err)
 		return nil
 	}
-	glog.Infof("milpa pod %s event %v", milpaPod.Name, ev)
+	if ev.Status == events.PodUpdated {
+		if milpaPod.Status.Phase == api.PodRunning &&
+			pod.Status.PodIP != "" {
+			// Pod is up and running, let's set up its hostport mappings.
+			if err := p.addOrRemovePodPortMappings(pod, true); err != nil {
+				klog.Warningf("adding hostports %q: %v", milpaPod.Name, err)
+			}
+		} else if api.IsTerminalPodPhase(milpaPod.Status.Phase) {
+			// Remove port mappings if pod has been terminated or stopped.
+			if err := p.addOrRemovePodPortMappings(pod, false); err != nil {
+				klog.Warningf("removing hostports %q: %v", milpaPod.Name, err)
+			}
+		}
+	}
+	klog.V(4).Infof("milpa pod %q event %v", milpaPod.Name, ev)
 	p.notifier(pod)
 	return nil
 }
@@ -397,7 +448,7 @@ func (p *InstanceProvider) Stop() {
 	case <-waitGroupDone:
 		return
 	case <-time.After(time.Second * quitTimeout):
-		glog.Errorf(
+		klog.Errorf(
 			"Loops were still running after %d seconds, forcing exit",
 			quitTimeout)
 		return
@@ -406,7 +457,7 @@ func (p *InstanceProvider) Stop() {
 
 func waitForWaitGroup(wg *sync.WaitGroup, waitGroupDone chan struct{}) {
 	wg.Wait()
-	glog.Info("All controllers have exited")
+	klog.V(2).Info("all controllers have exited")
 	waitGroupDone <- struct{}{}
 }
 
@@ -450,16 +501,16 @@ func (p *InstanceProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	ctx, span := trace.StartSpan(ctx, "CreatePod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
-	glog.Infof("CreatePod %q", pod.Name)
+	klog.V(5).Infof("CreatePod %q", pod.Name)
 	milpaPod, err := p.k8sToMilpaPod(pod)
 	if err != nil {
-		glog.Errorf("CreatePod %q: %v", pod.Name, err)
+		klog.Errorf("CreatePod %q: %v", pod.Name, err)
 		return err
 	}
 	podRegistry := p.getPodRegistry()
 	_, err = podRegistry.CreatePod(milpaPod)
 	if err != nil {
-		glog.Errorf("CreatePod %q: %v", pod.Name, err)
+		klog.Errorf("CreatePod %q: %v", pod.Name, err)
 		return err
 	}
 	p.notifier(pod)
@@ -470,16 +521,16 @@ func (p *InstanceProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	ctx, span := trace.StartSpan(ctx, "UpdatePod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
-	glog.Infof("UpdatePod %q", pod.Name)
+	klog.V(5).Infof("UpdatePod %q", pod.Name)
 	milpaPod, err := p.k8sToMilpaPod(pod)
 	if err != nil {
-		glog.Errorf("UpdatePod %q: %v", pod.Name, err)
+		klog.Errorf("UpdatePod %q: %v", pod.Name, err)
 		return err
 	}
 	podRegistry := p.getPodRegistry()
 	_, err = podRegistry.UpdatePodSpecAndLabels(milpaPod)
 	if err != nil {
-		glog.Errorf("UpdatePod %q: %v", pod.Name, err)
+		klog.Errorf("UpdatePod %q: %v", pod.Name, err)
 		return err
 	}
 	p.notifier(pod)
@@ -490,16 +541,16 @@ func (p *InstanceProvider) DeletePod(ctx context.Context, pod *v1.Pod) (err erro
 	ctx, span := trace.StartSpan(ctx, "DeletePod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
-	glog.Infof("DeletePod %q", pod.Name)
+	klog.V(5).Infof("DeletePod %q", pod.Name)
 	milpaPod, err := p.k8sToMilpaPod(pod)
 	if err != nil {
-		glog.Errorf("DeletePod %q: %v", pod.Name, err)
+		klog.Errorf("DeletePod %q: %v", pod.Name, err)
 		return err
 	}
 	podRegistry := p.getPodRegistry()
 	_, err = podRegistry.Delete(milpaPod.Name)
 	if err != nil {
-		glog.Errorf("DeletePod %q: %v", pod.Name, err)
+		klog.Errorf("DeletePod %q: %v", pod.Name, err)
 		return err
 	}
 	p.notifier(pod)
@@ -510,19 +561,19 @@ func (p *InstanceProvider) GetPod(ctx context.Context, namespace, name string) (
 	ctx, span := trace.StartSpan(ctx, "GetPod")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, name)
-	glog.Infof("GetPod %q", name)
+	klog.V(5).Infof("GetPod %q", name)
 	podRegistry := p.getPodRegistry()
 	milpaPod, err := podRegistry.GetPod(util.WithNamespace(namespace, name))
 	if err != nil {
 		if err == store.ErrKeyNotFound {
 			return nil, errdefs.NotFoundf("pod %s/%s is not found", namespace, name)
 		}
-		glog.Errorf("GetPod %q: %v", name, err)
+		klog.Errorf("GetPod %q: %v", name, err)
 		return nil, err
 	}
 	pod, err := p.milpaToK8sPod(milpaPod)
 	if err != nil {
-		glog.Errorf("GetPod %q: %v", name, err)
+		klog.Errorf("GetPod %q: %v", name, err)
 		return nil, err
 	}
 	return pod, nil
@@ -532,16 +583,16 @@ func (p *InstanceProvider) GetPodStatus(ctx context.Context, namespace, name str
 	ctx, span := trace.StartSpan(ctx, "GetPodStatus")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, name)
-	glog.Infof("GetPodStatus %q", name)
+	klog.V(5).Infof("GetPodStatus %q", name)
 	podRegistry := p.getPodRegistry()
 	milpaPod, err := podRegistry.GetPod(util.WithNamespace(namespace, name))
 	if err != nil {
-		glog.Errorf("GetPodStatus %q: %v", name, err)
+		klog.Errorf("GetPodStatus %q: %v", name, err)
 		return nil, err
 	}
 	pod, err := p.milpaToK8sPod(milpaPod)
 	if err != nil {
-		glog.Errorf("GetPodStatus %q: %v", name, err)
+		klog.Errorf("GetPodStatus %q: %v", name, err)
 		return nil, err
 	}
 	return &pod.Status, nil
@@ -550,20 +601,20 @@ func (p *InstanceProvider) GetPodStatus(ctx context.Context, namespace, name str
 func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 	ctx, span := trace.StartSpan(ctx, "GetPods")
 	defer span.End()
-	glog.Infof("GetPods")
+	klog.V(5).Infof("GetPods")
 	podRegistry := p.getPodRegistry()
 	milpaPods, err := podRegistry.ListPods(func(pod *api.Pod) bool {
 		return true
 	})
 	if err != nil {
-		glog.Errorf("GetPods: %v", err)
+		klog.Errorf("GetPods: %v", err)
 		return nil, err
 	}
 	pods := make([]*v1.Pod, len(milpaPods.Items))
 	for i, milpaPod := range milpaPods.Items {
 		pods[i], err = p.milpaToK8sPod(milpaPod)
 		if err != nil {
-			glog.Errorf("GetPods: %v", err)
+			klog.Errorf("GetPods: %v", err)
 			return nil, err
 		}
 	}
@@ -573,7 +624,7 @@ func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 func (p *InstanceProvider) ConfigureNode(ctx context.Context, n *v1.Node) {
 	ctx, span := trace.StartSpan(ctx, "ConfigureNode")
 	defer span.End()
-	glog.Infof("ConfigureNode")
+	klog.V(5).Infof("ConfigureNode")
 	n.Status.Capacity = p.capacity()
 	n.Status.Allocatable = p.capacity()
 	n.Status.Conditions = p.nodeConditions()

@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // Watches a file on the local filesystem pointed to by path. This
@@ -49,12 +49,12 @@ func (fw *File) refresh() (changed bool) {
 	if fw.statTime.Add(fw.CheckPeriod).Before(now) {
 		info, err := os.Stat(fw.path)
 		if err != nil {
-			glog.Warningf("Error getting file info at %s: %s", fw.path, err)
+			klog.Warningf("Error getting file info at %s: %s", fw.path, err)
 		}
 		if info.ModTime().After(fw.modTime) {
 			c, err := ioutil.ReadFile(fw.path)
 			if err != nil {
-				glog.Warningf("Error reading contents of file at %s: %s", fw.path, err)
+				klog.Warningf("Error reading contents of file at %s: %s", fw.path, err)
 				return
 			}
 			changed = true

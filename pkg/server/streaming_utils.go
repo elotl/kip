@@ -12,8 +12,8 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
 	"golang.org/x/net/context"
+	"k8s.io/klog"
 )
 
 type SendRecver interface {
@@ -97,7 +97,7 @@ func (s InstanceProvider) grpcToWSPump(stream SendRecver, addresses []api.Networ
 	if err != nil {
 		if err != io.EOF {
 			wrappedErr := util.WrapError(err, "Error in websocket send")
-			glog.Error(wrappedErr)
+			klog.Error(wrappedErr)
 			return wrappedErr
 		}
 		return nil
@@ -116,14 +116,14 @@ func (s InstanceProvider) grpcToWSPump(stream SendRecver, addresses []api.Networ
 					// yuck, need to detect context being cancelled???
 					// I have a feeling I'm doing this wrong...
 				default:
-					glog.Errorf("Error in grpc receive: %v", err)
+					klog.Errorf("Error in grpc receive: %v", err)
 				}
 				return
 			}
 			err = ws.WriteRaw(clientData.Data)
 			if err != nil {
 				if err != io.EOF {
-					glog.Errorf("Error in websocket send: %v", err)
+					klog.Errorf("Error in websocket send: %v", err)
 				}
 				return
 			}

@@ -10,9 +10,9 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/wsstream"
-	"github.com/golang/glog"
 	vkapi "github.com/virtual-kubelet/virtual-kubelet/node/api"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
+	"k8s.io/klog"
 )
 
 type WinSize struct {
@@ -26,7 +26,7 @@ func (p *InstanceProvider) RunInContainer(ctx context.Context, namespace, podNam
 	ctx, span := trace.StartSpan(ctx, "RunInContainer")
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
-	glog.Infof("RunInContainer %q %v", podName, cmd)
+	klog.V(2).Infof("RunInContainer %q %v", podName, cmd)
 	tty := attach.TTY()
 	stdin := attach.Stdin()
 	stdout := attach.Stdout()
@@ -56,13 +56,13 @@ func (p *InstanceProvider) RunInContainer(ctx context.Context, namespace, podNam
 		// Send tty resize messages to the other side.
 		go func() {
 			for termsize := range resize {
-				glog.Infof("exec requesting window resize %+v", termsize)
+				klog.V(2).Infof("exec requesting window resize %+v", termsize)
 				err = sendWinSize(ws, WinSize{
 					Cols: termsize.Width,
 					Rows: termsize.Height,
 				})
 				if err != nil {
-					glog.Errorf("exec sending window resize: %v", err)
+					klog.Errorf("exec sending window resize: %v", err)
 					continue
 				}
 			}
@@ -111,11 +111,11 @@ func (p *InstanceProvider) muxToWS(ws *wsstream.WSStream, stdin io.Reader, stdou
 			n, err := stdin.Read(b)
 			eof := err == io.EOF
 			if err != nil && !eof {
-				glog.Errorf("exec reading stdin: %v", err)
+				klog.Errorf("exec reading stdin: %v", err)
 				return
 			}
 			if eof && n == 0 {
-				glog.Infof("exec stdin EOF")
+				klog.V(2).Infof("exec stdin EOF")
 				return
 			}
 			// CRLF conversion if a tty is used.
@@ -125,11 +125,11 @@ func (p *InstanceProvider) muxToWS(ws *wsstream.WSStream, stdin io.Reader, stdou
 			f := wsstream.PackMessage(wsstream.StdinChan, b)
 			err = ws.WriteRaw(f)
 			if err != nil {
-				glog.Errorf("exec ws send: %v", err)
+				klog.Errorf("exec ws send: %v", err)
 				return
 			}
 			if eof {
-				glog.Infof("exec stdin EOF")
+				klog.V(2).Infof("exec stdin EOF")
 				return
 			}
 		}
@@ -141,7 +141,7 @@ func (p *InstanceProvider) muxToWS(ws *wsstream.WSStream, stdin io.Reader, stdou
 		case msg := <-ws.ReadMsg():
 			ch, data, err := wsstream.UnpackMessage(msg)
 			if err != nil {
-				glog.Errorf("exec reading from ws: %v", err)
+				klog.Errorf("exec reading from ws: %v", err)
 				continue
 			}
 			var writer io.WriteCloser
@@ -159,18 +159,18 @@ func (p *InstanceProvider) muxToWS(ws *wsstream.WSStream, stdin io.Reader, stdou
 			case wsstream.ExitCodeChan:
 				exitCode, err := strconv.Atoi(string(data))
 				if err != nil {
-					glog.Errorf("exec invalid exit code %v", data)
+					klog.Errorf("exec invalid exit code %v", data)
 					continue
 				}
-				glog.Infof("exec got exit code %d", exitCode)
+				klog.V(2).Infof("exec got exit code %d", exitCode)
 				continue
 			default:
-				glog.Errorf("exec unknown channel %d from ws", ch)
+				klog.Errorf("exec unknown channel %d from ws", ch)
 				continue
 			}
 			_, err = writer.Write(data)
 			if err != nil {
-				glog.Errorf("exec writing to output %d: %v", ch, err)
+				klog.Errorf("exec writing to output %d: %v", ch, err)
 				break
 			}
 		}

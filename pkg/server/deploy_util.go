@@ -134,7 +134,7 @@ func getSecretFiles(secVol *api.SecretVolumeSource, sec *v1.Secret) (map[string]
 			// if err != nil {
 			// 	msg := fmt.Sprintf("volume %s items %s/%s references improperly formatted key %s: %v", secVol.SecretName, sec.Namespace, sec.Name, item.Key, err)
 			// 	if optional {
-			// 		glog.Warning(msg)
+			// 		klog.Warning(msg)
 			// 		continue
 			// 	}
 			// 	return nil, fmt.Errorf(msg)

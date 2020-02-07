@@ -9,7 +9,6 @@ import (
 )
 
 type MockCloudClient struct {
-	SecGroups          map[string]SecurityGroup
 	Instances          map[string]CloudInstance
 	ContainerInstances map[string]ContainerInstance
 
@@ -144,12 +143,6 @@ func (e *MockCloudClient) AddInstances(insts ...CloudInstance) {
 	}
 }
 
-func (e *MockCloudClient) AddSGs(sgs ...SecurityGroup) {
-	for _, sg := range sgs {
-		e.SecGroups[sg.Name] = sg
-	}
-}
-
 func (m *MockCloudClient) GetAttributes() CloudAttributes {
 	return CloudAttributes{
 		DiskProductName:           api.StorageGP2,
@@ -191,9 +184,16 @@ func (m *MockCloudClient) WaitForContainerInstanceRunning(pod *api.Pod) (*api.Po
 	return m.ContainerInstanceWaiter(pod)
 }
 
+func (m *MockCloudClient) AttachSecurityGroups(node *api.Node, groups []string) error {
+	return nil
+}
+
+func (m *MockCloudClient) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
+	return nil
+}
+
 func NewMockClient() *MockCloudClient {
 	net := &MockCloudClient{
-		SecGroups:          make(map[string]SecurityGroup),
 		Instances:          make(map[string]CloudInstance),
 		ContainerInstances: make(map[string]ContainerInstance),
 		ControllerID:       "test_cluster",

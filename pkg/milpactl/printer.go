@@ -18,8 +18,8 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/labels"
 	"github.com/ghodss/yaml"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 )
 
 // Most of this was taken from k8s at commit
@@ -134,7 +134,7 @@ func NewPrettyPrinter(noHeaders, wide, showAll, showLabels, absoluteTimestamps b
 func (h *PrettyPrinter) Handler(columns []string, printFunc interface{}) error {
 	printFuncValue := reflect.ValueOf(printFunc)
 	if err := h.validatePrintHandlerFunc(printFuncValue); err != nil {
-		glog.Errorf("Unable to add print handler: %v", err)
+		klog.Errorf("Unable to add print handler: %v", err)
 		return err
 	}
 	objType := printFuncValue.Type().In(0)

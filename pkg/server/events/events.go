@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 var ArbitraryChanSize = 10000
@@ -129,16 +129,16 @@ func (es *EventSystem) Run(quit <-chan struct{}, wg *sync.WaitGroup) {
 			for _, eh := range handlers {
 				eventCpy := copyEvent(event)
 				if reflect.ValueOf(eventCpy.Object).Kind() != reflect.Ptr {
-					glog.Errorf("Event objects must be pointers: %+v", event)
+					klog.Errorf("Event objects must be pointers: %+v", event)
 					break
 				}
 				err := eh.Handle(eventCpy)
 				if err != nil {
-					glog.Errorf("Error in %s event handler: %v", event.Status, err)
+					klog.Errorf("Error in %s event handler: %v", event.Status, err)
 				}
 			}
 		case <-quit:
-			glog.Info("Stopping Events System")
+			klog.V(2).Info("Stopping Events System")
 			return
 		}
 	}

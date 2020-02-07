@@ -10,7 +10,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 func (az *AzureClient) EnsureMilpaNSG() error {
@@ -32,7 +32,7 @@ func (az *AzureClient) EnsureMilpaNSG() error {
 		if err != nil {
 			return util.WrapError(err, "Error creating cluster network security group %s", nsgName)
 		}
-		glog.Infof("Creating cluster network security group %s", nsgName)
+		klog.V(2).Infof("Creating cluster network security group %s", nsgName)
 		timeoutCtx, cancel = context.WithTimeout(ctx, azureWaitTimeout)
 		defer cancel()
 		err = future.WaitForCompletionRef(timeoutCtx, az.nsgs.Client)
@@ -171,4 +171,8 @@ func (az *AzureClient) EnsureSecurityGroup(sgName string, ports []api.ServicePor
 
 func (az *AzureClient) CreateSGName(svcName string) string {
 	return util.CreateSecurityGroupName(az.controllerID, "default", svcName)
+}
+
+func (az *AzureClient) AttachSecurityGroups(node *api.Node, groups []string) error {
+	return nil
 }
