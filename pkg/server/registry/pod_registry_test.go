@@ -54,7 +54,7 @@ func TestTerminatePodAndReCreate(t *testing.T) {
 	p, err := podRegistry.CreatePod(origPod)
 	assert.NoError(t, err)
 
-	_, err = podRegistry.TerminatePod(p, api.PodTerminated, "")
+	err = podRegistry.TerminatePod(p, api.PodTerminated, "")
 	assert.NoError(t, err)
 
 	allPods, err := podRegistry.ListPods(MatchAllPods)
