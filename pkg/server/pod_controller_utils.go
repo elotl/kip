@@ -48,19 +48,12 @@ func setPodRunning(pod *api.Pod, nodeName string, podRegistry *registry.PodRegis
 	return err
 }
 
-// Notes for PR:
-// Updated this to simplify return values (and handling those return values
-// later on in updatePodStatus.  If a pod has an invalid status, we always
-// fail the pod.  We can do that at the end of this function and return
-// That simplifies code that depends on this function
-func computePodPhase(policy api.RestartPolicy, unitstatus []api.UnitStatus, podName string) (api.PodPhase, string) {
+func computePodPhase(policy api.RestartPolicy, unitstatus []api.UnitStatus, podName string) (phase api.PodPhase, failMsg string) {
 	// Note: we need to treat the "created" unit state the same way as the
 	// "running" state. Itzo will set the status of units to "created" right
 	// after creating them, and only to "running" once the application is
 	// started.
-	valid := true
-	phase := api.PodRunning
-	var failMsg string
+	phase = api.PodRunning
 	// We need to handle 0 units as "Running" for kiyot. If we no
 	// longer need kiyot, remove this and use validation to ensure
 	// pods always have > 1 unit
@@ -78,35 +71,18 @@ func computePodPhase(policy api.RestartPolicy, unitstatus []api.UnitStatus, podN
 
 	switch policy {
 	case api.RestartPolicyAlways:
-		// All unit status should be either running or waiting.
+		// Itzo should restart everything
+		// Pods that are waiting to be restarted will be in a terminated state
 		phase = api.PodRunning
-		for _, us := range unitstatus {
-			if us.State.Waiting != nil || us.State.Running != nil {
-				continue
-			}
-			// This should not happen - itzo will keep restarting units
-			// when RestartPolicy is always, so they all should be in the
-			// running state (or in the created state, if the helper in
-			// itzo is a bit slow to start up).
-			failMsg = fmt.Sprintf("Invalid unit status for unit %s", us.Name)
-			klog.Warningln(failMsg)
-			valid = false
-		}
 	case api.RestartPolicyNever:
 		// If all units have succeeded, pod has succeeded.
-		// If at least one unit is still running, pod is running.
-		// If at least one unit has failed, and no units are running, pod has
-		// failed.
+		// If at least one unit is waiting or still running, pod is running
 		phase = api.PodSucceeded
 		for _, us := range unitstatus {
-			if us.State.Running != nil {
+			if us.State.Waiting != nil || us.State.Running != nil {
 				failMsg = ""
 				phase = api.PodRunning
 				break
-			}
-			if us.State.Waiting != nil && phase != api.PodFailed {
-				failMsg = ""
-				phase = api.PodRunning
 			}
 			if us.State.Terminated != nil && us.State.Terminated.ExitCode != 0 {
 				failMsg = fmt.Sprintf("Unit %s terminated with non-zero exit code %d", us.Name, us.State.Terminated.ExitCode)
@@ -119,69 +95,16 @@ func computePodPhase(policy api.RestartPolicy, unitstatus []api.UnitStatus, podN
 		// Failed is not a valid status with this restart policy.
 		phase = api.PodSucceeded
 		for _, us := range unitstatus {
-			if us.State.Running != nil || us.State.Waiting != nil {
+			if us.State.Running != nil ||
+				us.State.Waiting != nil ||
+				(us.State.Terminated != nil && us.State.Terminated.ExitCode != 0) {
 				failMsg = ""
 				phase = api.PodRunning
 				break
 			}
-			if us.State.Terminated != nil && us.State.Terminated.ExitCode != 0 {
-				failMsg = fmt.Sprintf("Invalid unit status for unit %s", us.Name)
-				klog.Warningln(failMsg)
-				valid = false
-			}
 		}
-	}
-	if !valid {
-		klog.Warningf("Invalid unit state for pod %s. Setting pod phase to Failed", podName)
-		phase = api.PodFailed
 	}
 	return phase, failMsg
-}
-
-// Requirements for being ready:
-// All initUnit and all units have a unit status reported for them
-// All initUnits must have completed successfully
-// All units are either running or terminated in a way in which we consider
-// successful:
-//
-// Requirements for successful termination of a unit:
-// 1. RestartPolicyOnFailure and exitCode == 0
-// 2. RestartPolicyNever
-//
-// The way the tests are coded makes the assumption that the status
-// fields of the units are not invalid (all unit statuses have one
-// valid State field)
-func podIsReady(pod *api.Pod) bool {
-	if pod.Status.Phase != api.PodRunning {
-		return false
-	}
-	if len(pod.Spec.Units) > 0 {
-		if len(pod.Status.UnitStatuses) != len(pod.Spec.Units) {
-			return false
-		}
-		for i := range pod.Status.UnitStatuses {
-			if pod.Status.UnitStatuses[i].State.Waiting != nil {
-				return false
-			} else if pod.Status.UnitStatuses[i].State.Terminated != nil {
-				if pod.Spec.RestartPolicy == api.RestartPolicyAlways ||
-					(pod.Spec.RestartPolicy == api.RestartPolicyOnFailure &&
-						pod.Status.UnitStatuses[i].State.Terminated.ExitCode != 0) {
-					return false
-				}
-			}
-		}
-	} else if len(pod.Spec.InitUnits) > 0 {
-		if len(pod.Status.InitUnitStatuses) != len(pod.Spec.InitUnits) {
-			return false
-		}
-		for i := range pod.Status.InitUnitStatuses {
-			if pod.Status.InitUnitStatuses[i].State.Terminated == nil ||
-				pod.Status.InitUnitStatuses[i].State.Terminated.ExitCode != 0 {
-				return false
-			}
-		}
-	}
-	return true
 }
 
 func runningMaxLicensePods(podRegistry *registry.PodRegistry, maxResources int) bool {
