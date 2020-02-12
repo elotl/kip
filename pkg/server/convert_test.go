@@ -14,22 +14,19 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func fakeInstanceProvider() *InstanceProvider {
+func fakeInstanceProvider() (string, string) {
 	ipStr := fmt.Sprintf(
 		"%d.%d.%d.%d",
 		rand.Intn(256),
 		rand.Intn(256),
 		rand.Intn(256),
 		rand.Intn(256))
-	return &InstanceProvider{
-		nodeName:   rand.String(8),
-		internalIP: ipStr,
-	}
+	return rand.String(8), ipStr
 }
 
-//func (p *InstanceProvider) getStatus(milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus
+//func getStatus(milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus
 func TestGetStatus(t *testing.T) {
-	p := fakeInstanceProvider()
+	_, ip := fakeInstanceProvider()
 	milpaPod := api.GetFakePod()
 	pod := &v1.Pod{}
 	testCases := []struct {
@@ -63,7 +60,7 @@ func TestGetStatus(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		milpaPod.Status.Phase = tc.milpaPodPhase
-		podStatus := p.getStatus(milpaPod, pod)
+		podStatus := getStatus(ip, milpaPod, pod)
 		assert.Equal(t, podStatus.Phase, tc.k8sPodPhase)
 	}
 }
@@ -311,8 +308,51 @@ func TestUnitToContainer(t *testing.T) {
 			}
 		}
 		unit := containerToUnit(container)
+		removeResolvconfVolumeMount(&unit)
 		assert.Equal(t, tc.unit, unit)
 	}
+}
+
+func removeResolvconfVolume(pod *api.Pod) {
+	idx := -1
+	for i, vol := range pod.Spec.Volumes {
+		if vol.Name == resolvconfVolumeName {
+			idx = i
+			break
+		}
+	}
+	if idx != -1 {
+		pod.Spec.Volumes = append(
+			pod.Spec.Volumes[:idx], pod.Spec.Volumes[idx+1:]...)
+		if len(pod.Spec.Volumes) == 0 {
+			pod.Spec.Volumes = nil
+		}
+	}
+	for i := range pod.Spec.InitUnits {
+		removeResolvconfVolumeMount(&pod.Spec.InitUnits[i])
+	}
+	for i := range pod.Spec.Units {
+		removeResolvconfVolumeMount(&pod.Spec.Units[i])
+	}
+}
+
+func removeResolvconfVolumeMount(unit *api.Unit) {
+	idx := -1
+	for i, vol := range unit.VolumeMounts {
+		if vol.Name == resolvconfVolumeName {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return
+	}
+	if len(unit.VolumeMounts) == 1 {
+		unit.VolumeMounts = nil
+		return
+	}
+	unit.VolumeMounts = append(
+		unit.VolumeMounts[:idx], unit.VolumeMounts[idx+1:]...)
 }
 
 //func k8sToMilpaVolume(vol v1.Volume) *api.Volume
@@ -452,11 +492,11 @@ func TestMilpaToK8sVolume(t *testing.T) {
 	}
 }
 
-//func (p *InstanceProvider) k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error)
-//func (p *InstanceProvider) milpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error)
+//func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error)
+//func milpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error)
 func TestMilpaToK8sPod(t *testing.T) {
 	i64 := int64(rand.Intn(math.MaxInt64))
-	p := fakeInstanceProvider()
+	node, ip := fakeInstanceProvider()
 	milpaPod := api.NewPod()
 	milpaPod.Namespace = rand.String(16)
 	milpaPod.Name = util.WithNamespace(milpaPod.Namespace, rand.String(16))
@@ -530,7 +570,7 @@ func TestMilpaToK8sPod(t *testing.T) {
 			},
 		},
 	}
-	pod, err := p.milpaToK8sPod(milpaPod)
+	pod, err := milpaToK8sPod(node, ip, milpaPod)
 	assert.NoError(t, err)
 	assert.NotNil(t, pod)
 	assert.Equal(t, len(milpaPod.Spec.Units), len(pod.Spec.Containers))
@@ -572,9 +612,21 @@ func TestMilpaToK8sPod(t *testing.T) {
 		}
 		assert.Contains(t, pod.Spec.SecurityContext.Sysctls, sc)
 	}
-	mPod, err := p.k8sToMilpaPod(pod)
+	assert.Equal(t, len(milpaPod.Spec.Volumes), len(pod.Spec.Volumes))
+	for _, volume := range milpaPod.Spec.Volumes {
+		found := false
+		for _, vol := range pod.Spec.Volumes {
+			if vol.Name == volume.Name {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "volume %q is missing in k8s pod", volume.Name)
+	}
+	mPod, err := k8sToMilpaPod(pod)
 	assert.NoError(t, err)
 	assert.NotNil(t, mPod)
+	removeResolvconfVolume(mPod)
 	assert.Equal(t, milpaPod.TypeMeta, mPod.TypeMeta)
 	assert.Equal(t, milpaPod.ObjectMeta, mPod.ObjectMeta)
 	assert.Equal(t, milpaPod.Spec, mPod.Spec)

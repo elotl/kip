@@ -4,11 +4,17 @@ import (
 	"archive/tar"
 	"bufio"
 	"compress/gzip"
+	"fmt"
 	"io"
+	"io/ioutil"
+	"net"
+	"os"
 	"testing"
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
+	"github.com/elotl/cloud-instance-provider/pkg/util/k8s/eventrecorder"
+	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	"github.com/stretchr/testify/assert"
 	"github.com/virtual-kubelet/node-cli/manager"
 	"k8s.io/api/core/v1"
@@ -285,5 +291,167 @@ func TestDeployVolumes(t *testing.T) {
 		} else {
 			assert.NoError(t, err, tc.name)
 		}
+	}
+}
+
+func createFakeDNSConfigurer(dnsIP, resolvconfPath, clusterDomain string) *dns.Configurer {
+	loggingEventRecorder := eventrecorder.NewLoggingEventRecorder(4)
+	nodeRef := &v1.ObjectReference{
+		Kind:       "Node",
+		APIVersion: "v1",
+		Name:       "FakeNode",
+	}
+	clusterDNS := net.ParseIP(dnsIP)
+	return dns.NewConfigurer(
+		loggingEventRecorder,
+		nodeRef,
+		nil,
+		[]net.IP{clusterDNS},
+		clusterDomain,
+		resolvconfPath,
+	)
+}
+
+func stringPtr(s string) *string {
+	return &s
+}
+
+func TestCreateResolvconf(t *testing.T) {
+	resolverConfigF, err := ioutil.TempFile("", "resolv-conf-test")
+	assert.NoError(t, err)
+	resolvconfPath := resolverConfigF.Name()
+	resolverConfigF.Close()
+	defer os.Remove(resolvconfPath)
+	defaultDNS := "9.8.7.6"
+	defaultSearch := "foo.bar"
+	defaultOptions := "ndots:3"
+	defaultResolver := fmt.Sprintf(
+		"nameserver %s\nsearch %s\noptions %s\n",
+		defaultDNS,
+		defaultSearch,
+		defaultOptions,
+	)
+	ioutil.WriteFile(
+		resolvconfPath,
+		[]byte(defaultResolver),
+		0644,
+	)
+	clusterDNS := "1.2.3.4"
+	clusterDomain := "cluster.local"
+	clusterOptions := "ndots:5"
+	clusterResolver := fmt.Sprintf(
+		"nameserver %s\nsearch .svc.%s svc.%s %s foo.bar\noptions %s\n",
+		clusterDNS,
+		clusterDomain,
+		clusterDomain,
+		clusterDomain,
+		clusterOptions,
+	)
+	dnsConfigurer := createFakeDNSConfigurer(
+		clusterDNS, resolvconfPath, clusterDomain)
+	testCases := []struct {
+		DNSPolicy   v1.DNSPolicy
+		DNSConfig   *v1.PodDNSConfig
+		HostNetwork bool
+		Resolvconf  string
+	}{
+		{
+			DNSPolicy:  v1.DNSClusterFirstWithHostNet,
+			Resolvconf: clusterResolver,
+		},
+		{
+			DNSPolicy:  v1.DNSClusterFirst,
+			Resolvconf: clusterResolver,
+		},
+		{
+			DNSPolicy:  v1.DNSDefault,
+			Resolvconf: defaultResolver,
+		},
+		{
+			DNSPolicy:  v1.DNSNone,
+			Resolvconf: "",
+		},
+		{
+			DNSPolicy:   v1.DNSClusterFirstWithHostNet,
+			HostNetwork: true,
+			Resolvconf:  clusterResolver,
+		},
+		{
+			DNSPolicy:   v1.DNSClusterFirst,
+			HostNetwork: true,
+			Resolvconf:  defaultResolver,
+		},
+		{
+			DNSPolicy: v1.DNSClusterFirst,
+			DNSConfig: &v1.PodDNSConfig{
+				Nameservers: []string{
+					"11.11.11.11",
+					"22.22.22.22",
+				},
+				Searches: []string{
+					"a.b.c.d",
+					"e.f.g.h",
+				},
+				Options: []v1.PodDNSConfigOption{
+					{
+						Name:  "ndots",
+						Value: stringPtr("4"),
+					},
+				},
+			},
+			Resolvconf: "nameserver 1.2.3.4\nnameserver 11.11.11.11\nnameserver 22.22.22.22\nsearch .svc.cluster.local svc.cluster.local cluster.local foo.bar a.b.c.d e.f.g.h\noptions ndots:4\n",
+		},
+		{
+			DNSPolicy: v1.DNSDefault,
+			DNSConfig: &v1.PodDNSConfig{
+				Nameservers: []string{
+					"33.33.33.33",
+				},
+				Searches: []string{
+					"i.j.k.l",
+				},
+				Options: []v1.PodDNSConfigOption{
+					{
+						Name:  "timeout",
+						Value: stringPtr("10"),
+					},
+				},
+			},
+			Resolvconf: "nameserver 9.8.7.6\nnameserver 33.33.33.33\nsearch foo.bar i.j.k.l\noptions ndots:3 timeout:10\n",
+		},
+		{
+			DNSPolicy: v1.DNSNone,
+			DNSConfig: &v1.PodDNSConfig{
+				Nameservers: []string{
+					"44.44.44.44",
+				},
+				Searches: []string{
+					"m.n.o.p",
+				},
+				Options: []v1.PodDNSConfigOption{
+					{
+						Name: "debug",
+					},
+					{
+						Name:  "attempts",
+						Value: stringPtr("5"),
+					},
+				},
+			},
+			Resolvconf: "nameserver 44.44.44.44\nsearch m.n.o.p\noptions debug attempts:5\n",
+		},
+	}
+	for i, tc := range testCases {
+		pod := &v1.Pod{}
+		pod.Name = fmt.Sprintf("dnstest%d", i)
+		pod.Spec.DNSPolicy = tc.DNSPolicy
+		pod.Spec.DNSConfig = tc.DNSConfig
+		pod.Spec.HostNetwork = tc.HostNetwork
+		dnsconf, err := dnsConfigurer.GetPodDNS(pod)
+		assert.NoError(t, err)
+		Resolvconf, err := createResolvconf(pod.Name, dnsconf)
+		assert.NoError(t, err)
+		msg := fmt.Sprintf("Test case %d: %+v", i, tc)
+		assert.Equal(t, tc.Resolvconf, string(Resolvconf), msg)
 	}
 }
