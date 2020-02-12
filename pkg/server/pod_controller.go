@@ -17,9 +17,11 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/conmap"
+	"github.com/elotl/cloud-instance-provider/pkg/util/k8s"
 	"github.com/elotl/cloud-instance-provider/pkg/util/stats"
 	"github.com/virtual-kubelet/node-cli/manager"
 	"k8s.io/apimachinery/pkg/api/resource"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog"
 )
 
@@ -38,21 +40,24 @@ func init() {
 }
 
 type PodController struct {
-	podRegistry        *registry.PodRegistry
-	logRegistry        *registry.LogRegistry
-	metricsRegistry    *registry.MetricsRegistry
-	nodeLister         registry.NodeLister
-	resourceManager    *manager.ResourceManager
-	nodeDispenser      *nodemanager.NodeDispenser
-	nodeClientFactory  nodeclient.ItzoClientFactoryer
-	events             *events.EventSystem
-	cloudClient        cloud.CloudClient
-	controllerID       string
-	nametag            string
-	controlLoopTimer   stats.LoopTimer
-	cleanTimer         stats.LoopTimer
-	lastStatusReply    *conmap.StringTimeTime
-	kubernetesNodeName string
+	podRegistry            *registry.PodRegistry
+	logRegistry            *registry.LogRegistry
+	metricsRegistry        *registry.MetricsRegistry
+	nodeLister             registry.NodeLister
+	resourceManager        *manager.ResourceManager
+	nodeDispenser          *nodemanager.NodeDispenser
+	nodeClientFactory      nodeclient.ItzoClientFactoryer
+	events                 *events.EventSystem
+	cloudClient            cloud.CloudClient
+	controllerID           string
+	nametag                string
+	controlLoopTimer       stats.LoopTimer
+	cleanTimer             stats.LoopTimer
+	lastStatusReply        *conmap.StringTimeTime
+	kubernetesNodeName     string
+	serverURL              string
+	networkAgentSecret     string
+	networkAgentKubeconfig *clientcmdapi.Config
 }
 
 type FullPodStatus struct {
@@ -66,12 +71,53 @@ type FullPodStatus struct {
 	Error error
 }
 
-func (c *PodController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
+func (c *PodController) createNetworkAgentKubeconfig() {
+	defer func() {
+		if c.networkAgentKubeconfig == nil {
+			klog.Fatal("cell network agent won't run")
+		}
+	}()
+	klog.V(2).Infof("checking kubernetes node name")
 	c.kubernetesNodeName = os.Getenv("NODE_NAME")
-	klog.V(2).Infof("kubernetes node name: %q", c.kubernetesNodeName)
 	if c.kubernetesNodeName == "" {
-		klog.Warningf("failed to get NODE_NAME; cell network agent won't run")
+		klog.Warningf("failed to get NODE_NAME")
+		return
 	}
+	klog.V(2).Infof("creating cell network agent kubeconfig")
+	var (
+		kc  *clientcmdapi.Config
+		err error
+	)
+	err = util.Retry(
+		// Timeout.
+		15*time.Second,
+		func() error {
+			// Get kubeconfig. This will fail if the informers have not started
+			// up yet.
+			kc, err = k8s.CreateNetworkAgentKubeconfig(
+				c.resourceManager, c.serverURL, c.networkAgentSecret)
+			return err
+		},
+		func(err error) bool {
+			// Always retry.
+			return true
+		},
+	)
+	if err != nil {
+		klog.Warningf("creating kubeconfig: %v", err)
+		return
+	}
+	err = k8s.ValidateKubeconfig(kc)
+	if err != nil {
+		klog.Warningf("validating kubeconfig: %v", err)
+		return
+	}
+	c.networkAgentKubeconfig = kc
+	klog.V(2).Infof("created cell network agent kubeconfig")
+}
+
+func (c *PodController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
+	c.createNetworkAgentKubeconfig()
 	c.registerEventHandlers()
 	c.failDispatchingPods()
 	go c.ControlLoop(quit, wg)
@@ -358,6 +404,16 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		c.markFailedPod(pod, true, msg)
 		return
 	}
+
+	err = deployNetworkAgentToken(c.networkAgentKubeconfig, pod, node, c.nodeClientFactory)
+	if err != nil {
+		msg := fmt.Sprintf(
+			"deploying network agent kubeconfig for %q: %v", pod.Name, err)
+		klog.Error(msg)
+		c.markFailedPod(pod, true, msg)
+		return
+	}
+
 	err = c.updatePodUnits(pod)
 	if err != nil {
 		msg := fmt.Sprintf("Error updating pod units after dispatching pod to node: %v", err)

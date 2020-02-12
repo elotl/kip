@@ -5,7 +5,7 @@ import (
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	k8sutil "github.com/elotl/cloud-instance-provider/pkg/util/k8s"
+	"github.com/elotl/cloud-instance-provider/pkg/util/k8s/status"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,9 +53,9 @@ func (p *InstanceProvider) getStatus(milpaPod *api.Pod, pod *v1.Pod) v1.PodStatu
 	}
 	// We use the implementation from Kubernetes here to determine conditions.
 	conditions := []v1.PodCondition{}
-	conditions = append(conditions, k8sutil.GeneratePodInitializedCondition(&pod.Spec, initContainerStatuses, pod.Status.Phase))
-	conditions = append(conditions, k8sutil.GeneratePodReadyCondition(&pod.Spec, conditions, containerStatuses, pod.Status.Phase))
-	conditions = append(conditions, k8sutil.GenerateContainersReadyCondition(&pod.Spec, containerStatuses, pod.Status.Phase))
+	conditions = append(conditions, status.GeneratePodInitializedCondition(&pod.Spec, initContainerStatuses, pod.Status.Phase))
+	conditions = append(conditions, status.GeneratePodReadyCondition(&pod.Spec, conditions, containerStatuses, pod.Status.Phase))
+	conditions = append(conditions, status.GenerateContainersReadyCondition(&pod.Spec, containerStatuses, pod.Status.Phase))
 	// PodScheduled is always true when the pod gets to the kubelet.
 	conditions = append(conditions, v1.PodCondition{
 		Type:   v1.PodScheduled,

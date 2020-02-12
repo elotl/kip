@@ -12,10 +12,10 @@ import (
 )
 
 type Kubeconfig struct {
-	mutex     *sync.Mutex
-	config    *clientcmdapi.Config
-	userName  string
+	Config    *clientcmdapi.Config
+	UserName  string
 	tokenFile string
+	mutex     *sync.Mutex
 }
 
 // Create a new Kubeconfig object based on a token and CA cert.
@@ -38,11 +38,11 @@ func NewFromToken(userName, clusterName, serverURL, tokenFile, rootCAFile string
 	if err != nil {
 		return nil, err
 	}
-	cfg := createWithToken(serverURL, clusterName, userName, caCert, token)
+	cfg := CreateFromToken(serverURL, clusterName, userName, caCert, token)
 	return &Kubeconfig{
 		mutex:     &sync.Mutex{},
-		config:    cfg,
-		userName:  userName,
+		Config:    cfg,
+		UserName:  userName,
 		tokenFile: tokenFile,
 	}, nil
 }
@@ -55,7 +55,7 @@ func LoadFromFile(filename string) (*Kubeconfig, error) {
 	}
 	return &Kubeconfig{
 		mutex:  &sync.Mutex{},
-		config: kc,
+		Config: kc,
 	}, nil
 }
 
@@ -74,13 +74,13 @@ func (kc *Kubeconfig) Refresh() error {
 	}
 	kc.mutex.Lock()
 	defer kc.mutex.Unlock()
-	kc.config.AuthInfos[kc.userName] = &clientcmdapi.AuthInfo{
+	kc.Config.AuthInfos[kc.UserName] = &clientcmdapi.AuthInfo{
 		Token: string(token),
 	}
 	return nil
 }
 
-func createWithToken(serverURL, clusterName, userName string, caCert, token []byte) *clientcmdapi.Config {
+func CreateFromToken(serverURL, clusterName, userName string, caCert, token []byte) *clientcmdapi.Config {
 	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
 	config := &clientcmdapi.Config{
 		Clusters: map[string]*clientcmdapi.Cluster{
@@ -106,7 +106,7 @@ func createWithToken(serverURL, clusterName, userName string, caCert, token []by
 
 // Save kubeconfig to a file.
 func (kc *Kubeconfig) WriteToFile(filename string) error {
-	err := clientcmd.WriteToFile(*kc.config, filename)
+	err := clientcmd.WriteToFile(*kc.Config, filename)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func (kc *Kubeconfig) WriteToFile(filename string) error {
 
 // Serialize kubeconfig.
 func (kc *Kubeconfig) toJSON() ([]byte, error) {
-	data, err := json.Marshal(kc.config)
+	data, err := json.Marshal(kc.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -137,8 +137,8 @@ func fromJSON(data []byte) (*Kubeconfig, error) {
 		}
 	}
 	kc := Kubeconfig{
-		config:   &config,
-		userName: userName,
+		Config:   &config,
+		UserName: userName,
 	}
 	return &kc, nil
 }

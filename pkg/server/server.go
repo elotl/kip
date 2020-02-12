@@ -138,7 +138,7 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 }
 
 // InstanceProvider should implement node.PodLifecycleHandler
-func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndpointPort int32, debugServer bool, rm *manager.ResourceManager, systemQuit <-chan struct{}) (*InstanceProvider, error) {
+func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networkAgentSecret string, daemonEndpointPort int32, debugServer bool, rm *manager.ResourceManager, systemQuit <-chan struct{}) (*InstanceProvider, error) {
 	systemWG := &sync.WaitGroup{}
 
 	execer := utilexec.New()
@@ -243,18 +243,20 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP string, daemonEndp
 		&certFactory.Root, *clientCert, usePublicIPs)
 	nodeDispenser := nodemanager.NewNodeDispenser()
 	podController := &PodController{
-		podRegistry:       podRegistry,
-		logRegistry:       logRegistry,
-		metricsRegistry:   metricsRegistry,
-		nodeLister:        nodeRegistry,
-		resourceManager:   rm,
-		nodeDispenser:     nodeDispenser,
-		nodeClientFactory: itzoClientFactory,
-		events:            eventSystem,
-		cloudClient:       cloudClient,
-		controllerID:      controllerID,
-		nametag:           nametag,
-		lastStatusReply:   conmap.NewStringTimeTime(),
+		podRegistry:        podRegistry,
+		logRegistry:        logRegistry,
+		metricsRegistry:    metricsRegistry,
+		nodeLister:         nodeRegistry,
+		resourceManager:    rm,
+		nodeDispenser:      nodeDispenser,
+		nodeClientFactory:  itzoClientFactory,
+		events:             eventSystem,
+		cloudClient:        cloudClient,
+		controllerID:       controllerID,
+		nametag:            nametag,
+		lastStatusReply:    conmap.NewStringTimeTime(),
+		serverURL:          serverURL,
+		networkAgentSecret: networkAgentSecret,
 	}
 	imageIdCache := timeoutmap.New(false, nil)
 	cloudInitFile := cloudinitfile.New(serverConfigFile.Cells.CloudInitFile)
