@@ -1759,6 +1759,7 @@ func (in *UnitStateRunning) DeepCopy() *UnitStateRunning {
 func (in *UnitStateTerminated) DeepCopyInto(out *UnitStateTerminated) {
 	*out = *in
 	in.FinishedAt.DeepCopyInto(&out.FinishedAt)
+	in.StartedAt.DeepCopyInto(&out.StartedAt)
 	return
 }
 
@@ -1792,6 +1793,7 @@ func (in *UnitStateWaiting) DeepCopy() *UnitStateWaiting {
 func (in *UnitStatus) DeepCopyInto(out *UnitStatus) {
 	*out = *in
 	in.State.DeepCopyInto(&out.State)
+	in.LastTerminationState.DeepCopyInto(&out.LastTerminationState)
 	if in.Started != nil {
 		in, out := &in.Started, &out.Started
 		*out = new(bool)

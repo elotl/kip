@@ -1016,8 +1016,11 @@ type UnitStateRunning struct {
 }
 
 type UnitStateTerminated struct {
-	ExitCode   int32 `json:"exitCode"`
-	FinishedAt Time  `json:"finishedAt,omitempty"`
+	ExitCode   int32  `json:"exitCode"`
+	FinishedAt Time   `json:"finishedAt,omitempty"`
+	Reason     string `json:"reason,omitempty"`
+	Message    string `json:"message,omitempty"`
+	StartedAt  Time   `json:"startedAt,omitempty"`
 }
 
 // UnitState holds a possible state of a Pod Unit.  Only one of its
@@ -1030,12 +1033,13 @@ type UnitState struct {
 }
 
 type UnitStatus struct {
-	Name         string    `json:"name"`
-	State        UnitState `json:"state,omitempty"`
-	RestartCount int32     `json:"restartCount"`
-	Image        string    `json:"image"`
-	Ready        bool      `json:"ready"`
-	Started      *bool     `json:"started"`
+	Name                 string    `json:"name"`
+	State                UnitState `json:"state,omitempty"`
+	LastTerminationState UnitState `json:"lastState,omitempty"`
+	RestartCount         int32     `json:"restartCount"`
+	Image                string    `json:"image"`
+	Ready                bool      `json:"ready"`
+	Started              *bool     `json:"started"`
 }
 
 // Usage holds usage information for a cloud resource (typically a
