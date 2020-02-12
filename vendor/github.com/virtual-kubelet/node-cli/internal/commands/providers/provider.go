@@ -19,7 +19,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/elotl/node-cli/provider"
+	"github.com/virtual-kubelet/node-cli/provider"
 )
 
 // NewCommand creates a new providers subcommand

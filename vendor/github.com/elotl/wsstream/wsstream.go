@@ -10,10 +10,10 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log"
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/websocket"
 )
 
@@ -160,7 +160,7 @@ func (ws *WSStream) StartReader() {
 		if err != nil {
 			if !websocket.IsCloseError(err, websocket.CloseNormalClosure) &&
 				!strings.Contains(err.Error(), "closed network connection") {
-				glog.Errorln("Closing connection after error:", err)
+				log.Println("Closing connection after error:", err)
 				fmt.Printf("%#v\n", err)
 			}
 			close(ws.closed)
@@ -181,7 +181,7 @@ func (ws *WSStream) StartWriteLoop() {
 			_ = ws.conn.SetWriteDeadline(time.Now().Add(ws.params.writeWait))
 			err := ws.conn.WriteMessage(websocket.TextMessage, msg)
 			if err != nil {
-				glog.Errorln("Error writing msg:", err)
+				log.Println("Error writing msg:", err)
 			}
 		case <-ws.closeMsgChan:
 			_ = ws.conn.WriteMessage(websocket.CloseMessage,
@@ -192,7 +192,7 @@ func (ws *WSStream) StartWriteLoop() {
 			err := ws.conn.WriteMessage(websocket.PingMessage, []byte{})
 			if err != nil {
 				if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
-					glog.Errorln("Abnormal error in ping loop:", err)
+					log.Println("Abnormal error in ping loop:", err)
 				}
 				return
 			}

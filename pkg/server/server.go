@@ -26,7 +26,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/instanceselector"
 	"github.com/elotl/cloud-instance-provider/pkg/util/timeoutmap"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
-	"github.com/elotl/node-cli/manager"
+	"github.com/virtual-kubelet/node-cli/manager"
 	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	"golang.org/x/net/context"

@@ -19,7 +19,7 @@ import (
 	"os"
 
 	"github.com/spf13/pflag"
-	"github.com/elotl/node-cli/opts"
+	"github.com/virtual-kubelet/node-cli/opts"
 	"k8s.io/klog"
 )
 

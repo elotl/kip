@@ -69,10 +69,6 @@
   name = "github.com/stretchr/testify"
   version = "v1.4.0"
 
-[[constraint]]
-  name = "github.com/elotl/node-cli"
-  branch = "justnoise-working-branch"
-
 #[[constraint]]
 #  name = "github.com/gogo/protobuf"
 #  version = ">=v1.2.1"

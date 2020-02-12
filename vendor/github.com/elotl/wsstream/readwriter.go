@@ -3,8 +3,7 @@ package wsstream
 import (
 	"bytes"
 	"io"
-
-	"github.com/golang/glog"
+	"log"
 )
 
 type WSReadWriter struct {
@@ -57,7 +56,7 @@ func (ws *WSReadWriter) RunDispatch() {
 		case msg := <-ws.ReadMsg():
 			c, msg, err := UnpackMessage(msg)
 			if err != nil {
-				glog.Errorf("Error unpacking websocket msg: %v", err)
+				log.Printf("Error unpacking websocket msg: %v", err)
 			}
 			ws.doDispatch(c, msg)
 		}
