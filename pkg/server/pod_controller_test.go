@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/libkv/store"
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
@@ -333,13 +334,12 @@ func TestFailingToStartPod(t *testing.T) {
 		ctl.markFailedPod(p, true, "")
 		remedyFailedPod(p, ctl.podRegistry)
 		p, err := ctl.podRegistry.GetPod(p.Name)
-		assert.NoError(t, err)
-		assert.Equal(t, i+1, p.Status.StartFailures)
 		if i == allowedStartFailures {
-			assert.Equal(t, api.PodFailed, p.Spec.Phase)
-			assert.Equal(t, api.PodFailed, p.Status.Phase)
+			assert.Equal(t, store.ErrKeyNotFound, err)
 			break
 		} else {
+			assert.NoError(t, err)
+			assert.Equal(t, i+1, p.Status.StartFailures)
 			assert.Equal(t, api.PodRunning, p.Spec.Phase)
 			assert.Equal(t, api.PodWaiting, p.Status.Phase)
 		}

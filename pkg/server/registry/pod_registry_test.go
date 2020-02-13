@@ -45,25 +45,21 @@ func TestPodDoubleCreate(t *testing.T) {
 }
 
 func TestTerminatePodAndReCreate(t *testing.T) {
-	// unfortunately, using boltdb, we don't have TTLs
-	// so we can't test full deletion after X seconds here
 	podRegistry, closer := SetupTestPodRegistry()
 	defer closer()
 
 	origPod := api.GetFakePod()
 	p, err := podRegistry.CreatePod(origPod)
 	assert.NoError(t, err)
-
 	err = podRegistry.TerminatePod(p, api.PodTerminated, "")
 	assert.NoError(t, err)
-
 	allPods, err := podRegistry.ListPods(MatchAllPods)
 	assert.NoError(t, err)
-	assert.Len(t, allPods.Items, 1)
+	assert.Len(t, allPods.Items, 0)
 	allLivePods, err := podRegistry.ListPods(MatchAllLivePods)
 	assert.NoError(t, err)
 	assert.Len(t, allLivePods.Items, 0)
-	p, err = podRegistry.CreatePod(origPod)
+	_, err = podRegistry.CreatePod(origPod)
 	assert.NoError(t, err)
 	allLivePods, err = podRegistry.ListPods(MatchAllLivePods)
 	assert.NoError(t, err)

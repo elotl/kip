@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/docker/libkv/store"
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
 	"github.com/stretchr/testify/assert"
@@ -47,12 +48,13 @@ func TestRemedyFailedPod(t *testing.T) {
 		assert.NoError(t, err)
 		remedyFailedPod(pod, podReg)
 		p, err := podReg.GetPod(pod.Name)
-		assert.NoError(t, err)
-		msg := fmt.Sprintf("test %d", i)
-		assert.Equal(t, tc.expectedPhase, p.Status.Phase, msg)
-		assert.Equal(t, tc.startFails, p.Status.StartFailures, msg)
 		if tc.expectedPhase == api.PodFailed {
-			assert.Equal(t, api.PodFailed, p.Spec.Phase, msg)
+			assert.Equal(t, store.ErrKeyNotFound, err)
+		} else {
+			assert.NoError(t, err)
+			msg := fmt.Sprintf("test %d", i)
+			assert.Equal(t, tc.expectedPhase, p.Status.Phase, msg)
+			assert.Equal(t, tc.startFails, p.Status.StartFailures, msg)
 		}
 	}
 }
