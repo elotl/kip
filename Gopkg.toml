@@ -69,6 +69,10 @@
   name = "github.com/stretchr/testify"
   version = "v1.4.0"
 
+[[constraint]]
+  name = "github.com/virtual-kubelet/node-cli"
+  revision = "9472fbf04cefce6cfb91327497fab7efa6f344dc"
+
 #[[constraint]]
 #  name = "github.com/gogo/protobuf"
 #  version = ">=v1.2.1"
