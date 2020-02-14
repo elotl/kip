@@ -326,6 +326,7 @@ func (reg *PodRegistry) UpdatePodStatus(p *api.Pod, reason string) (*api.Pod, er
 }
 
 func (reg *PodRegistry) TerminatePod(pod *api.Pod, phase api.PodPhase, msg string) error {
+	reg.eventSystem.Emit(events.PodTerminated, "pod-registry", pod, msg)
 	return reg.Storer.Delete(makePodKey(pod.Name))
 }
 
