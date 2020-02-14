@@ -903,7 +903,7 @@ func (c *PodController) savePodLogs(pod *api.Pod) {
 
 func (c *PodController) handlePodSucceeded(pod *api.Pod) {
 	klog.Errorf("Pod %s has succeeded", pod.Name)
-	_, err := c.podRegistry.TerminatePod(pod, api.PodSucceeded, "Pod succeeded")
+	err := c.podRegistry.TerminatePod(pod, api.PodSucceeded, "Pod succeeded")
 	if err != nil {
 		klog.Errorf("Error updating pod %s spec phase: %v",
 			pod.Name, err)

@@ -325,47 +325,9 @@ func (reg *PodRegistry) UpdatePodStatus(p *api.Pod, reason string) (*api.Pod, er
 	return p, err
 }
 
-func (reg *PodRegistry) TerminatePod(pod *api.Pod, phase api.PodPhase, msg string) (*api.Pod, error) {
-	if !api.IsTerminalPodPhase(phase) {
-		return nil, fmt.Errorf("Invalid pod terminal state: %s", phase)
-	}
-	pUpdated, err := reg.AtomicUpdate(pod.Name, func(in *api.Pod) error {
-		now := api.Now()
-		pod.DeletionTimestamp = &now
-		in.Spec.Phase = phase
-		in.Status.Phase = phase
-		in.Status.LastPhaseChange = now
-		return nil
-	})
-	if err != nil {
-		return nil, util.WrapError(
-			err, "Error terminating pod, could not update status")
-	}
-
-	pod = pUpdated
-	key := makePodKey(pod.Name)
-	data, err := reg.Codec.Marshal(pod)
-	if err != nil {
-		return nil, err
-	}
-
-	err = reg.Storer.Put(
-		key,
-		data,
-		&store.WriteOptions{
-			IsDir: false,
-			TTL:   terminatedPodTTL,
-		})
-	if err != nil {
-		klog.Warningf("Could not updated terminated pod %s in registry: %s",
-			pod.Name, err.Error())
-	}
-
-	if err == nil {
-		reg.eventSystem.Emit(events.PodUpdated, "pod-registry", pod, msg)
-	}
-
-	return pod, err
+func (reg *PodRegistry) TerminatePod(pod *api.Pod, phase api.PodPhase, msg string) error {
+	reg.eventSystem.Emit(events.PodTerminated, "pod-registry", pod, msg)
+	return reg.Storer.Delete(makePodKey(pod.Name))
 }
 
 type modifyPodFunc func(*api.Pod) error

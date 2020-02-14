@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/docker/libkv/store"
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
 	"github.com/stretchr/testify/assert"
@@ -47,12 +48,13 @@ func TestRemedyFailedPod(t *testing.T) {
 		assert.NoError(t, err)
 		remedyFailedPod(pod, podReg)
 		p, err := podReg.GetPod(pod.Name)
-		assert.NoError(t, err)
-		msg := fmt.Sprintf("test %d", i)
-		assert.Equal(t, tc.expectedPhase, p.Status.Phase, msg)
-		assert.Equal(t, tc.startFails, p.Status.StartFailures, msg)
 		if tc.expectedPhase == api.PodFailed {
-			assert.Equal(t, api.PodFailed, p.Spec.Phase, msg)
+			assert.Equal(t, store.ErrKeyNotFound, err)
+		} else {
+			assert.NoError(t, err)
+			msg := fmt.Sprintf("test %d", i)
+			assert.Equal(t, tc.expectedPhase, p.Status.Phase, msg)
+			assert.Equal(t, tc.startFails, p.Status.StartFailures, msg)
 		}
 	}
 }
@@ -67,8 +69,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitRunning("foo"),
 				MakeUnitRunning("bar"),
 			},
-			phase:   api.PodRunning,
-			isValid: true,
+			phase: api.PodRunning,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyAlways,
@@ -76,8 +77,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitRunning("foo"),
 				MakeUnitWaiting("bar"),
 			},
-			phase:   api.PodRunning,
-			isValid: true,
+			phase: api.PodRunning,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyAlways,
@@ -85,7 +85,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitRunning("foo"),
 				MakeUnitFailed("bar"),
 			},
-			isValid: false,
+			phase: api.PodRunning,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyAlways,
@@ -93,24 +93,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitRunning("foo"),
 				MakeUnitSucceeded("bar"),
 			},
-			isValid: false,
-		},
-		podPhaseInput{
-			restartPolicy: api.RestartPolicyAlways,
-			units: []api.UnitStatus{
-				MakeUnitFailed("bar"),
-				MakeUnitRunning("foo"),
-			},
-			isValid: false,
-		},
-		podPhaseInput{
-			restartPolicy: api.RestartPolicyAlways,
-			units: []api.UnitStatus{
-				MakeUnitRunning("foo"),
-				MakeUnitSucceeded("bar"),
-			},
-			phase:   api.PodRunning,
-			isValid: false,
+			phase: api.PodRunning,
 		},
 		// RestartPolicyNever
 		podPhaseInput{
@@ -119,8 +102,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitRunning("foo"),
 				MakeUnitRunning("bar"),
 			},
-			phase:   api.PodRunning,
-			isValid: true,
+			phase: api.PodRunning,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyNever,
@@ -128,8 +110,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitRunning("foo"),
 				MakeUnitWaiting("bar"),
 			},
-			phase:   api.PodRunning,
-			isValid: true,
+			phase: api.PodRunning,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyNever,
@@ -137,8 +118,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitRunning("foo"),
 				MakeUnitFailed("bar"),
 			},
-			phase:   api.PodRunning,
-			isValid: true,
+			phase: api.PodRunning,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyNever,
@@ -146,8 +126,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitRunning("foo"),
 				MakeUnitSucceeded("bar"),
 			},
-			phase:   api.PodRunning,
-			isValid: true,
+			phase: api.PodRunning,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyNever,
@@ -155,8 +134,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitSucceeded("foo"),
 				MakeUnitSucceeded("bar"),
 			},
-			phase:   api.PodSucceeded,
-			isValid: true,
+			phase: api.PodSucceeded,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyNever,
@@ -164,8 +142,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitSucceeded("bar"),
 				MakeUnitSucceeded("foo"),
 			},
-			phase:   api.PodSucceeded,
-			isValid: true,
+			phase: api.PodSucceeded,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyNever,
@@ -173,8 +150,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitWaiting("bar"),
 				MakeUnitFailed("foo"),
 			},
-			phase:   api.PodFailed,
-			isValid: true,
+			phase: api.PodRunning,
 		},
 		// RestartPolicyOnFailure
 		podPhaseInput{
@@ -183,8 +159,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitRunning("foo"),
 				MakeUnitWaiting("bar"),
 			},
-			phase:   api.PodRunning,
-			isValid: true,
+			phase: api.PodRunning,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyOnFailure,
@@ -192,8 +167,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitRunning("foo"),
 				MakeUnitRunning("bar"),
 			},
-			phase:   api.PodRunning,
-			isValid: true,
+			phase: api.PodRunning,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyOnFailure,
@@ -201,8 +175,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitRunning("foo"),
 				MakeUnitFailed("bar"),
 			},
-			phase:   api.PodRunning,
-			isValid: true,
+			phase: api.PodRunning,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyOnFailure,
@@ -210,8 +183,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitRunning("foo"),
 				MakeUnitSucceeded("bar"),
 			},
-			phase:   api.PodRunning,
-			isValid: true,
+			phase: api.PodRunning,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyOnFailure,
@@ -219,8 +191,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitSucceeded("foo"),
 				MakeUnitSucceeded("bar"),
 			},
-			phase:   api.PodSucceeded,
-			isValid: true,
+			phase: api.PodSucceeded,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyOnFailure,
@@ -228,16 +199,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitSucceeded("foo"),
 				MakeUnitFailed("bar"),
 			},
-			isValid: false,
-		},
-		podPhaseInput{
-			restartPolicy: api.RestartPolicyOnFailure,
-			units: []api.UnitStatus{
-				MakeUnitSucceeded("foo"),
-				MakeUnitStartFailure("bar"),
-			},
-			phase:   api.PodFailed,
-			isValid: true,
+			phase: api.PodRunning,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyOnFailure,
@@ -245,7 +207,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitFailed("bar"),
 				MakeUnitSucceeded("foo"),
 			},
-			isValid: false,
+			phase: api.PodRunning,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyOnFailure,
@@ -253,8 +215,7 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitStartFailure("bar"),
 				MakeUnitSucceeded("foo"),
 			},
-			phase:   api.PodFailed,
-			isValid: true,
+			phase: api.PodFailed,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyOnFailure,
@@ -262,25 +223,24 @@ func TestComputePodPhase(t *testing.T) {
 				MakeUnitSucceeded("bar"),
 				MakeUnitSucceeded("foo"),
 			},
-			phase:   api.PodSucceeded,
-			isValid: true,
+			phase: api.PodSucceeded,
 		},
 		podPhaseInput{
 			restartPolicy: api.RestartPolicyOnFailure,
 			units: []api.UnitStatus{
 				MakeUnitSucceeded("foo"),
 			},
-			phase:   api.PodSucceeded,
-			isValid: true,
+			phase: api.PodSucceeded,
 		},
 	}
-	for _, inp := range inputs {
+	for i, inp := range inputs {
+		msg := fmt.Sprintf("test %d", i)
 		phase, failMsg := computePodPhase(inp.restartPolicy, inp.units, "testpod")
-		if !inp.isValid || inp.phase == api.PodFailed {
-			assert.NotEmpty(t, failMsg)
+		if inp.phase == api.PodFailed {
+			assert.NotEmpty(t, failMsg, msg)
 		} else {
-			assert.Empty(t, failMsg)
-			assert.Equal(t, inp.phase, phase)
+			assert.Empty(t, failMsg, msg)
+			assert.Equal(t, inp.phase, phase, msg)
 		}
 
 	}
@@ -334,161 +294,5 @@ func TestAllUnitsStarted(t *testing.T) {
 	}
 	for i, s := range started {
 		assert.True(t, allUnitsStarted(s), "started test %d", i)
-	}
-}
-
-func TestPodIsReady(t *testing.T) {
-	tests := []struct {
-		description string
-		podmod      func(*api.Pod)
-		ready       bool
-	}{
-		{
-			description: "pod is not in running phase",
-			podmod: func(pod *api.Pod) {
-				pod.Status.Phase = api.PodFailed
-			},
-			ready: false,
-		},
-		{
-			description: "empty pod should be ready",
-			podmod:      func(pod *api.Pod) {},
-			ready:       true,
-		},
-		{
-			description: "pod with initUnits but no status is not ready",
-			podmod: func(pod *api.Pod) {
-				pod.Spec.InitUnits = []api.Unit{api.Unit{}}
-			},
-			ready: false,
-		},
-		{
-			description: "pod with units but no status is not ready",
-			podmod: func(pod *api.Pod) {
-				pod.Spec.Units = []api.Unit{api.Unit{}}
-			},
-			ready: false,
-		},
-		{
-			description: "pod with units and running status is ready",
-			podmod: func(pod *api.Pod) {
-				pod.Spec.Units = []api.Unit{api.Unit{}}
-				pod.Status.UnitStatuses = []api.UnitStatus{api.UnitStatus{}}
-				pod.Status.UnitStatuses[0].State.Running = &api.UnitStateRunning{}
-			},
-			ready: true,
-		},
-		{
-			description: "pod with units and waiting status is not ready",
-			podmod: func(pod *api.Pod) {
-				pod.Spec.Units = []api.Unit{api.Unit{}}
-				pod.Status.UnitStatuses = []api.UnitStatus{api.UnitStatus{}}
-				pod.Status.UnitStatuses[0].State.Waiting = &api.UnitStateWaiting{}
-			},
-			ready: false,
-		},
-		{
-			description: "pod with waiting initunitsis not ready",
-			podmod: func(pod *api.Pod) {
-				pod.Spec.InitUnits = []api.Unit{api.Unit{}}
-				pod.Status.InitUnitStatuses = []api.UnitStatus{api.UnitStatus{}}
-				pod.Status.InitUnitStatuses[0].State.Waiting = &api.UnitStateWaiting{}
-			},
-			ready: false,
-		},
-		{
-			description: "pod with failed initunits is not ready",
-			podmod: func(pod *api.Pod) {
-				pod.Spec.InitUnits = []api.Unit{api.Unit{}}
-				pod.Status.InitUnitStatuses = []api.UnitStatus{api.UnitStatus{}}
-				pod.Status.InitUnitStatuses[0].State.Terminated = &api.UnitStateTerminated{ExitCode: 2}
-			},
-			ready: false,
-		},
-		{
-			description: "pod with running initunits is not ready",
-			podmod: func(pod *api.Pod) {
-				pod.Spec.InitUnits = []api.Unit{api.Unit{}}
-				pod.Status.InitUnitStatuses = []api.UnitStatus{api.UnitStatus{}}
-				pod.Status.InitUnitStatuses[0].State.Running = &api.UnitStateRunning{}
-			},
-			ready: false,
-		},
-		{
-			description: "pod with finished initunits and waiting pods is not ready",
-			podmod: func(pod *api.Pod) {
-				pod.Spec.InitUnits = []api.Unit{api.Unit{}}
-				pod.Status.InitUnitStatuses = []api.UnitStatus{api.UnitStatus{}}
-				pod.Status.InitUnitStatuses[0].State.Terminated = &api.UnitStateTerminated{ExitCode: 0}
-				pod.Spec.Units = []api.Unit{api.Unit{}}
-				pod.Status.UnitStatuses = []api.UnitStatus{api.UnitStatus{}}
-				pod.Status.UnitStatuses[0].State.Waiting = &api.UnitStateWaiting{}
-			},
-			ready: false,
-		},
-		{
-			description: "pod with finished initunits and running pods is ready",
-			podmod: func(pod *api.Pod) {
-				pod.Spec.InitUnits = []api.Unit{api.Unit{}}
-				pod.Status.InitUnitStatuses = []api.UnitStatus{api.UnitStatus{}}
-				pod.Status.InitUnitStatuses[0].State.Terminated = &api.UnitStateTerminated{ExitCode: 0}
-				pod.Spec.Units = []api.Unit{api.Unit{}}
-				pod.Status.UnitStatuses = []api.UnitStatus{api.UnitStatus{}}
-				pod.Status.UnitStatuses[0].State.Running = &api.UnitStateRunning{}
-			},
-			ready: true,
-		},
-		{
-			description: "pod with one waiting and one running pods is not ready",
-			podmod: func(pod *api.Pod) {
-				pod.Spec.Units = []api.Unit{api.Unit{}, api.Unit{}}
-				pod.Status.UnitStatuses = []api.UnitStatus{api.UnitStatus{}, api.UnitStatus{}}
-				pod.Status.UnitStatuses[0].State.Running = &api.UnitStateRunning{}
-				pod.Status.UnitStatuses[1].State.Waiting = &api.UnitStateWaiting{}
-			},
-			ready: false,
-		},
-		{
-			description: "pod with one waiting and one termianted pod (RestartPolicyAlways) is not ready",
-			podmod: func(pod *api.Pod) {
-				pod.Spec.Units = []api.Unit{api.Unit{}, api.Unit{}}
-				pod.Status.UnitStatuses = []api.UnitStatus{api.UnitStatus{}, api.UnitStatus{}}
-				pod.Status.UnitStatuses[0].State.Running = &api.UnitStateRunning{}
-				pod.Status.UnitStatuses[1].State.Terminated = &api.UnitStateTerminated{ExitCode: 0}
-			},
-			ready: false,
-		},
-		{
-			description: "pod with one waiting and one termianted pod (RestartPolicyOnFailure) is ready",
-			podmod: func(pod *api.Pod) {
-				pod.Spec.RestartPolicy = api.RestartPolicyOnFailure
-				pod.Spec.Units = []api.Unit{api.Unit{}, api.Unit{}}
-				pod.Status.UnitStatuses = []api.UnitStatus{api.UnitStatus{}, api.UnitStatus{}}
-				pod.Status.UnitStatuses[0].State.Running = &api.UnitStateRunning{}
-				pod.Status.UnitStatuses[1].State.Terminated = &api.UnitStateTerminated{ExitCode: 0}
-			},
-			ready: true,
-		},
-		{
-			description: "pod with one waiting and one termianted pod (RestartPolicyNever) is ready",
-			podmod: func(pod *api.Pod) {
-				pod.Spec.RestartPolicy = api.RestartPolicyNever
-				pod.Spec.Units = []api.Unit{api.Unit{}, api.Unit{}}
-				pod.Status.UnitStatuses = []api.UnitStatus{api.UnitStatus{}, api.UnitStatus{}}
-				pod.Status.UnitStatuses[0].State.Running = &api.UnitStateRunning{}
-				pod.Status.UnitStatuses[1].State.Terminated = &api.UnitStateTerminated{ExitCode: 1}
-			},
-			ready: true,
-		},
-	}
-	for i, tc := range tests {
-		pod := api.NewPod()
-		pod.Status.Phase = api.PodRunning
-		tc.podmod(pod)
-		isReady := podIsReady(pod)
-		if tc.ready != isReady {
-			msg := fmt.Sprintf("test PodIsReady %d: %s failed", i, tc.description)
-			assert.Fail(t, msg)
-		}
 	}
 }

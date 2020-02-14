@@ -75,6 +75,30 @@ func (p *InstanceProvider) getStatus(milpaPod *api.Pod, pod *v1.Pod) v1.PodStatu
 	}
 }
 
+func unitStateToContainerState(st api.UnitState) v1.ContainerState {
+	k8s := v1.ContainerState{}
+	if st.Waiting != nil {
+		k8s.Waiting = &v1.ContainerStateWaiting{
+			Reason: st.Waiting.Reason,
+		}
+	}
+	if st.Running != nil {
+		k8s.Running = &v1.ContainerStateRunning{
+			StartedAt: metav1.NewTime(st.Running.StartedAt.Time),
+		}
+	}
+	if st.Terminated != nil {
+		k8s.Terminated = &v1.ContainerStateTerminated{
+			ExitCode:   st.Terminated.ExitCode,
+			FinishedAt: metav1.NewTime(st.Terminated.FinishedAt.Time),
+			Reason:     st.Terminated.Reason,
+			Message:    st.Terminated.Message,
+			StartedAt:  metav1.NewTime(st.Terminated.StartedAt.Time),
+		}
+	}
+	return k8s
+}
+
 func unitToContainerStatus(st api.UnitStatus) v1.ContainerStatus {
 	cst := v1.ContainerStatus{
 		Name:         st.Name,
@@ -84,23 +108,8 @@ func unitToContainerStatus(st api.UnitStatus) v1.ContainerStatus {
 		Ready:        st.Ready,
 		Started:      st.Started,
 	}
-	if st.State.Waiting != nil {
-		cst.State.Waiting = &v1.ContainerStateWaiting{
-			Reason: st.State.Waiting.Reason,
-		}
-	}
-	if st.State.Running != nil {
-		cst.State.Running = &v1.ContainerStateRunning{
-			StartedAt: metav1.NewTime(st.State.Running.StartedAt.Time),
-		}
-	}
-	if st.State.Terminated != nil {
-		cst.State.Terminated = &v1.ContainerStateTerminated{
-			ExitCode:   st.State.Terminated.ExitCode,
-			FinishedAt: metav1.NewTime(st.State.Terminated.FinishedAt.Time),
-			//ContainerID:
-		}
-	}
+	cst.State = unitStateToContainerState(st.State)
+	cst.LastTerminationState = unitStateToContainerState(st.LastTerminationState)
 	return cst
 }
 
