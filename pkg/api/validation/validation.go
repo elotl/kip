@@ -631,6 +631,11 @@ func validateVolumeSource(source *api.VolumeSource, fldPath *field.Path) field.E
 		allErrs = append(allErrs, validatePackagePathVolumeSource(source.PackagePath, fldPath)...)
 	}
 
+	if source.HostPath != nil {
+		numVolumes++
+		allErrs = append(allErrs, validateHostPathVolumeSource(source.HostPath, fldPath)...)
+	}
+
 	if source.ConfigMap != nil || source.Secret != nil {
 		numVolumes++
 	}
@@ -659,6 +664,14 @@ func validatePackagePathVolumeSource(packagePath *api.PackagePath, fldPath *fiel
 	allErrs := field.ErrorList{}
 	if len(packagePath.Path) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("packagePath.path"), ""))
+	}
+	return allErrs
+}
+
+func validateHostPathVolumeSource(hostPath *api.HostPathVolumeSource, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if len(hostPath.Path) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("hostPath.path"), ""))
 	}
 	return allErrs
 }

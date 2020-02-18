@@ -355,6 +355,10 @@ func removeResolvconfVolumeMount(unit *api.Unit) {
 		unit.VolumeMounts[:idx], unit.VolumeMounts[idx+1:]...)
 }
 
+func hostPathTypePtr(hpt api.HostPathType) *api.HostPathType {
+	return &hpt
+}
+
 //func k8sToMilpaVolume(vol v1.Volume) *api.Volume
 //func milpaToK8sVolume(vol api.Volume) *v1.Volume
 func TestMilpaToK8sVolume(t *testing.T) {
@@ -407,6 +411,17 @@ func TestMilpaToK8sVolume(t *testing.T) {
 						},
 						DefaultMode: &i32,
 						Optional:    &bTrue,
+					},
+				},
+			},
+		},
+		{
+			volume: api.Volume{
+				Name: rand.String(16),
+				VolumeSource: api.VolumeSource{
+					HostPath: &api.HostPathVolumeSource{
+						Path: rand.String(16),
+						Type: hostPathTypePtr(api.HostPathDirectoryOrCreate),
 					},
 				},
 			},
@@ -485,6 +500,19 @@ func TestMilpaToK8sVolume(t *testing.T) {
 					Mode: item.Mode,
 				}
 				assert.Contains(t, vol.Secret.Items, ktp)
+			}
+		}
+		if tc.volume.HostPath != nil {
+			assert.NotNil(t, vol.HostPath)
+			assert.Equal(t, tc.volume.HostPath.Path, vol.HostPath.Path)
+			if tc.volume.HostPath.Type != nil {
+				assert.NotNil(t, vol.HostPath.Type)
+				assert.Equal(
+					t,
+					string(*tc.volume.HostPath.Type),
+					string(*vol.HostPath.Type))
+			} else {
+				assert.Nil(t, vol.HostPath.Type)
 			}
 		}
 		milpaVolume := k8sToMilpaVolume(*vol)

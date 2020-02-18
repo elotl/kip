@@ -266,6 +266,21 @@ func k8sToMilpaVolume(vol v1.Volume) *api.Volume {
 				},
 			},
 		}
+	} else if vol.HostPath != nil {
+		var hostPathTypePtr *api.HostPathType
+		if vol.HostPath.Type != nil {
+			hostPathType := api.HostPathType(string(*vol.HostPath.Type))
+			hostPathTypePtr = &hostPathType
+		}
+		return &api.Volume{
+			Name: vol.Name,
+			VolumeSource: api.VolumeSource{
+				HostPath: &api.HostPathVolumeSource{
+					Path: vol.HostPath.Path,
+					Type: hostPathTypePtr,
+				},
+			},
+		}
 	} else if vol.ConfigMap != nil {
 		return &api.Volume{
 			Name: vol.Name,
@@ -331,6 +346,21 @@ func milpaToK8sVolume(vol api.Volume) *v1.Volume {
 					Items:       convertKeyToPath(vol.Secret.Items),
 					DefaultMode: vol.Secret.DefaultMode,
 					Optional:    vol.Secret.Optional,
+				},
+			},
+		}
+	} else if vol.HostPath != nil {
+		var hostPathTypePtr *v1.HostPathType
+		if vol.HostPath.Type != nil {
+			hostPathType := v1.HostPathType(string(*vol.HostPath.Type))
+			hostPathTypePtr = &hostPathType
+		}
+		return &v1.Volume{
+			Name: vol.Name,
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Path: vol.HostPath.Path,
+					Type: hostPathTypePtr,
 				},
 			},
 		}
