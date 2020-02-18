@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	ResourceLimitsGPU v1.ResourceName = "nvidia.com/gpu"
+	ResourceLimitsGPU    v1.ResourceName = "nvidia.com/gpu"
+	resolvconfVolumeName                 = "resolvconf"
 )
 
-func (p *InstanceProvider) getStatus(milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
+func getStatus(internalIP string, milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
 	phase := v1.PodUnknown
 	switch milpaPod.Status.Phase {
 	case api.PodWaiting:
@@ -33,7 +34,6 @@ func (p *InstanceProvider) getStatus(milpaPod *api.Pod, pod *v1.Pod) v1.PodStatu
 	case api.PodTerminated:
 		phase = v1.PodFailed
 	}
-
 	// Todo: make the call if this should be the dispatch time of the
 	// pod in milpa.
 	startTime := metav1.NewTime(milpaPod.CreationTimestamp.Time)
@@ -66,7 +66,7 @@ func (p *InstanceProvider) getStatus(milpaPod *api.Pod, pod *v1.Pod) v1.PodStatu
 		Conditions:            conditions,
 		Message:               "",
 		Reason:                "",
-		HostIP:                p.internalIP,
+		HostIP:                internalIP,
 		PodIP:                 privateIPv4Address,
 		StartTime:             &startTime,
 		InitContainerStatuses: initContainerStatuses,
@@ -163,6 +163,10 @@ func containerToUnit(container v1.Container) api.Unit {
 			MountPath: vm.MountPath,
 		})
 	}
+	unit.VolumeMounts = append(unit.VolumeMounts, api.VolumeMount{
+		Name:      resolvconfVolumeName,
+		MountPath: "/etc/resolv.conf",
+	})
 	//container.EnvFrom,
 	unit.StartupProbe = k8sProbeToMilpaProbe(container.StartupProbe)
 	unit.ReadinessProbe = k8sProbeToMilpaProbe(container.ReadinessProbe)
@@ -220,6 +224,9 @@ func unitToContainer(unit api.Unit, container *v1.Container) v1.Container {
 		}
 	}
 	for _, vm := range unit.VolumeMounts {
+		if vm.Name == resolvconfVolumeName {
+			continue
+		}
 		container.VolumeMounts = append(container.VolumeMounts, v1.VolumeMount{
 			Name:      vm.Name,
 			MountPath: vm.MountPath,
@@ -355,13 +362,15 @@ func milpaToK8sVolume(vol api.Volume) *v1.Volume {
 				},
 			},
 		}
+	} else if vol.PackagePath != nil {
+		klog.V(4).Infof("skipping PackagePath %q", vol.PackagePath.Path)
 	} else {
 		klog.Warningf("Unspported volume type for volume: %s", vol.Name)
 	}
 	return nil
 }
 
-func (p *InstanceProvider) k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
+func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 	milpapod := api.NewPod()
 	milpapod.Name = util.WithNamespace(pod.Namespace, pod.Name)
 	milpapod.Namespace = pod.Namespace
@@ -403,6 +412,24 @@ func (p *InstanceProvider) k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 		}
 		milpapod.Spec.SecurityContext = mpsc
 	}
+	milpapod.Spec.DNSPolicy = api.DNSPolicy(string(pod.Spec.DNSPolicy))
+	if pod.Spec.DNSConfig != nil {
+		milpapod.Spec.DNSConfig = &api.PodDNSConfig{}
+		milpapod.Spec.DNSConfig.Nameservers = append(
+			[]string(nil), pod.Spec.DNSConfig.Nameservers...)
+		milpapod.Spec.DNSConfig.Searches = append(
+			[]string(nil), pod.Spec.DNSConfig.Searches...)
+		if len(pod.Spec.DNSConfig.Options) > 0 {
+			milpapod.Spec.DNSConfig.Options = make(
+				[]api.PodDNSConfigOption, len(pod.Spec.DNSConfig.Options))
+		}
+		for i, o := range pod.Spec.DNSConfig.Options {
+			milpapod.Spec.DNSConfig.Options[i] = api.PodDNSConfigOption{
+				Name:  o.Name,
+				Value: o.Value,
+			}
+		}
+	}
 	for _, initContainer := range pod.Spec.InitContainers {
 		initUnit := containerToUnit(initContainer)
 		milpapod.Spec.InitUnits = append(milpapod.Spec.InitUnits, initUnit)
@@ -417,6 +444,15 @@ func (p *InstanceProvider) k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 			milpapod.Spec.Volumes = append(milpapod.Spec.Volumes, *volume)
 		}
 	}
+	// A package will be generated for this by the pod controller.
+	milpapod.Spec.Volumes = append(milpapod.Spec.Volumes, api.Volume{
+		Name: resolvconfVolumeName,
+		VolumeSource: api.VolumeSource{
+			PackagePath: &api.PackagePath{
+				Path: "/etc/resolv.conf",
+			},
+		},
+	})
 	milpapod.Spec.Resources = aggregateResources(pod.Spec.Containers)
 	return milpapod, nil
 }
@@ -459,7 +495,7 @@ func aggregateResources(containers []v1.Container) api.ResourceSpec {
 	}
 }
 
-func (p *InstanceProvider) milpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
+func milpaToK8sPod(nodeName, internalIP string, milpaPod *api.Pod) (*v1.Pod, error) {
 	namespace, name := util.SplitNamespaceAndName(milpaPod.Name)
 	pod := &v1.Pod{}
 	pod.Kind = "Pod"
@@ -470,7 +506,7 @@ func (p *InstanceProvider) milpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
 	pod.CreationTimestamp = metav1.NewTime(milpaPod.CreationTimestamp.Time)
 	pod.Labels = milpaPod.Labels
 	pod.Annotations = milpaPod.Annotations
-	pod.Spec.NodeName = p.nodeName
+	pod.Spec.NodeName = nodeName
 	pod.Spec.Volumes = []v1.Volume{}
 	pod.Spec.RestartPolicy = v1.RestartPolicy(string(milpaPod.Spec.RestartPolicy))
 	mpsc := milpaPod.Spec.SecurityContext
@@ -501,6 +537,24 @@ func (p *InstanceProvider) milpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
 			}
 		}
 		pod.Spec.SecurityContext = psc
+	}
+	pod.Spec.DNSPolicy = v1.DNSPolicy(string(milpaPod.Spec.DNSPolicy))
+	if milpaPod.Spec.DNSConfig != nil {
+		pod.Spec.DNSConfig = &v1.PodDNSConfig{}
+		pod.Spec.DNSConfig.Nameservers = append(
+			[]string(nil), milpaPod.Spec.DNSConfig.Nameservers...)
+		pod.Spec.DNSConfig.Searches = append(
+			[]string(nil), milpaPod.Spec.DNSConfig.Searches...)
+		if len(milpaPod.Spec.DNSConfig.Options) > 0 {
+			pod.Spec.DNSConfig.Options = make(
+				[]v1.PodDNSConfigOption, len(milpaPod.Spec.DNSConfig.Options))
+		}
+		for i, o := range milpaPod.Spec.DNSConfig.Options {
+			pod.Spec.DNSConfig.Options[i] = v1.PodDNSConfigOption{
+				Name:  o.Name,
+				Value: o.Value,
+			}
+		}
 	}
 	initContainerMap := make(map[string]v1.Container)
 	for _, initContainer := range pod.Spec.InitContainers {
@@ -534,7 +588,7 @@ func (p *InstanceProvider) milpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error) {
 			pod.Spec.Volumes = append(pod.Spec.Volumes, *volume)
 		}
 	}
-	pod.Status = p.getStatus(milpaPod, pod)
+	pod.Status = getStatus(internalIP, milpaPod, pod)
 	return pod, nil
 }
 

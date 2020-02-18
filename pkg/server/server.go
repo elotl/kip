@@ -59,15 +59,14 @@ type Controller interface {
 }
 
 type InstanceProvider struct {
-	Registries        map[string]registry.Registryer
-	Encoder           api.MilpaCodec
-	SystemQuit        <-chan struct{}
-	SystemWaitGroup   *sync.WaitGroup
-	Controllers       map[string]Controller
-	ItzoClientFactory nodeclient.ItzoClientFactoryer
-	cloudClient       cloud.CloudClient
-	controllerManager *ControllerManager
-	// Unsure how many of these are actually needed here...
+	Registries         map[string]registry.Registryer
+	Encoder            api.MilpaCodec
+	SystemQuit         <-chan struct{}
+	SystemWaitGroup    *sync.WaitGroup
+	Controllers        map[string]Controller
+	ItzoClientFactory  nodeclient.ItzoClientFactoryer
+	cloudClient        cloud.CloudClient
+	controllerManager  *ControllerManager
 	nodeName           string
 	internalIP         string
 	daemonEndpointPort int32
@@ -257,6 +256,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		lastStatusReply:    conmap.NewStringTimeTime(),
 		serverURL:          serverURL,
 		networkAgentSecret: networkAgentSecret,
+		kubernetesNodeName: nodeName,
 	}
 	imageIdCache := timeoutmap.New(false, nil)
 	cloudInitFile := cloudinitfile.New(serverConfigFile.Cells.CloudInitFile)
@@ -418,7 +418,7 @@ func (p *InstanceProvider) Handle(ev events.Event) error {
 		klog.Errorf("event %v with unknown object", ev)
 		return nil
 	}
-	pod, err := p.milpaToK8sPod(milpaPod)
+	pod, err := milpaToK8sPod(p.nodeName, p.internalIP, milpaPod)
 	if err != nil {
 		klog.Errorf("converting milpa pod %s: %v", milpaPod.Name, err)
 		return nil
@@ -504,7 +504,7 @@ func (p *InstanceProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
 	klog.V(5).Infof("CreatePod %q", pod.Name)
-	milpaPod, err := p.k8sToMilpaPod(pod)
+	milpaPod, err := k8sToMilpaPod(pod)
 	if err != nil {
 		klog.Errorf("CreatePod %q: %v", pod.Name, err)
 		return err
@@ -524,7 +524,7 @@ func (p *InstanceProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
 	klog.V(5).Infof("UpdatePod %q", pod.Name)
-	milpaPod, err := p.k8sToMilpaPod(pod)
+	milpaPod, err := k8sToMilpaPod(pod)
 	if err != nil {
 		klog.Errorf("UpdatePod %q: %v", pod.Name, err)
 		return err
@@ -544,7 +544,7 @@ func (p *InstanceProvider) DeletePod(ctx context.Context, pod *v1.Pod) (err erro
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
 	klog.V(5).Infof("DeletePod %q", pod.Name)
-	milpaPod, err := p.k8sToMilpaPod(pod)
+	milpaPod, err := k8sToMilpaPod(pod)
 	if err != nil {
 		klog.Errorf("DeletePod %q: %v", pod.Name, err)
 		return err
@@ -573,7 +573,7 @@ func (p *InstanceProvider) GetPod(ctx context.Context, namespace, name string) (
 		klog.Errorf("GetPod %q: %v", name, err)
 		return nil, err
 	}
-	pod, err := p.milpaToK8sPod(milpaPod)
+	pod, err := milpaToK8sPod(p.nodeName, p.internalIP, milpaPod)
 	if err != nil {
 		klog.Errorf("GetPod %q: %v", name, err)
 		return nil, err
@@ -592,7 +592,7 @@ func (p *InstanceProvider) GetPodStatus(ctx context.Context, namespace, name str
 		klog.Errorf("GetPodStatus %q: %v", name, err)
 		return nil, err
 	}
-	pod, err := p.milpaToK8sPod(milpaPod)
+	pod, err := milpaToK8sPod(p.nodeName, p.internalIP, milpaPod)
 	if err != nil {
 		klog.Errorf("GetPodStatus %q: %v", name, err)
 		return nil, err
@@ -614,7 +614,7 @@ func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 	}
 	pods := make([]*v1.Pod, len(milpaPods.Items))
 	for i, milpaPod := range milpaPods.Items {
-		pods[i], err = p.milpaToK8sPod(milpaPod)
+		pods[i], err = milpaToK8sPod(p.nodeName, p.internalIP, milpaPod)
 		if err != nil {
 			klog.Errorf("GetPods: %v", err)
 			return nil, err

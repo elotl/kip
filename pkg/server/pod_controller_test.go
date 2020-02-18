@@ -14,6 +14,8 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/server/nodemanager"
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
 	"github.com/elotl/cloud-instance-provider/pkg/util/conmap"
+	"github.com/elotl/cloud-instance-provider/pkg/util/k8s/eventrecorder"
+	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,6 +38,14 @@ func createPodController(c nodeclient.ItzoClientFactoryer) (*PodController, func
 		cloudClient:       cloud.NewMockClient(),
 		lastStatusReply:   conmap.NewStringTimeTime(),
 	}
+	controller.dnsConfigurer = dns.NewConfigurer(
+		eventrecorder.NewLoggingEventRecorder(5),
+		nil,
+		nil,
+		nil,
+		"",
+		"",
+	)
 	return controller, closer
 }
 

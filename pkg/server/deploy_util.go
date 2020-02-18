@@ -7,16 +7,19 @@ import (
 	"compress/gzip"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	"github.com/virtual-kubelet/node-cli/manager"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/klog"
 )
 
@@ -190,7 +193,7 @@ func deployPodVolumes(pod *api.Pod, node *api.Node, rm *manager.ResourceManager,
 			if err != nil {
 				return util.WrapError(err, "error creating tar.gz package %s for %s", vol.Name, pod.Name)
 			}
-			client.Deploy(pod.Name, vol.Name, bufio.NewReader(payload))
+			err = client.Deploy(pod.Name, vol.Name, bufio.NewReader(payload))
 			if err != nil {
 				return util.WrapError(err, "error deploying package %s to %s", vol.Name, pod.Name)
 			}
@@ -253,4 +256,66 @@ func deployNetworkAgentToken(cfg *clientcmdapi.Config, pod *api.Pod, node *api.N
 			"error deploying kubeconfig package for %s", pod.Name)
 	}
 	return nil
+}
+
+func deployResolvconf(pod *api.Pod, node *api.Node, dnsConfigurer *dns.Configurer, nodeClientFactory nodeclient.ItzoClientFactoryer) error {
+	if dnsConfigurer == nil {
+		return fmt.Errorf("no DNS configurer")
+	}
+	client := nodeClientFactory.GetClient(node.Status.Addresses)
+	k8spod, err := milpaToK8sPod("", "", pod)
+	if err != nil {
+		return util.WrapError(err, "converting pod to generate DNS config")
+	}
+	dnsconf, err := dnsConfigurer.GetPodDNS(k8spod)
+	if err != nil {
+		return util.WrapError(err, "creating pod DNS config")
+	}
+	data, err := createResolvconf(pod.Name, dnsconf)
+	if err != nil {
+		return util.WrapError(err, "creating pod resolv.conf")
+	}
+	payload, err := makeDeployPackage(map[string]packageFile{
+		"/etc/resolv.conf": packageFile{
+			data: data,
+			mode: 0644,
+		},
+	})
+	if err != nil {
+		return util.WrapError(err, "creating pod resolv.conf package")
+	}
+	err = client.Deploy(pod.Name, resolvconfVolumeName, bufio.NewReader(payload))
+	if err != nil {
+		return util.WrapError(
+			err, "error deploying resolv.conf package to %s", pod.Name)
+	}
+	return nil
+}
+
+func createResolvconf(podName string, dnsconf *runtimeapi.DNSConfig) ([]byte, error) {
+	buf := bytes.Buffer{}
+	for _, srv := range dnsconf.Servers {
+		_, err := buf.WriteString(fmt.Sprintf("nameserver %s\n", srv))
+		if err != nil {
+			return nil, util.WrapError(
+				err, "creating DNS config for pod %q", podName)
+		}
+	}
+	search := strings.Join(dnsconf.Searches, " ")
+	if len(dnsconf.Searches) > 0 {
+		_, err := buf.WriteString(fmt.Sprintf("search %s\n", search))
+		if err != nil {
+			return nil, util.WrapError(
+				err, "creating DNS config for pod %q", podName)
+		}
+	}
+	options := strings.Join(dnsconf.Options, " ")
+	if len(dnsconf.Options) > 0 {
+		_, err := buf.WriteString(fmt.Sprintf("options %s\n", options))
+		if err != nil {
+			return nil, util.WrapError(
+				err, "creating DNS config for pod %q", podName)
+		}
+	}
+	return buf.Bytes(), nil
 }
