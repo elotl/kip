@@ -172,7 +172,6 @@ var podColumns = []string{"NAME", "UNITS", "RUNNING", "STATUS", "RESTARTS", "NOD
 var nodeColumns = []string{"NAME", "STATUS", "INSTANCE-TYPE", "INSTANCE", "IP", "AGE"}
 var serviceColumns = []string{"NAME", "PORT(S)", "SOURCES", "INGRESS ADDRESS", "AGE"}
 var eventColumns = []string{"TIMESTAMP", "NAME", "KIND", "STATUS", "SOURCE", "MESSAGE"}
-var secretColumns = []string{"NAME", "DATA", "AGE"}
 var usageReportColumns = []string{"USAGE", "TYPE", "HOURS"}
 var usageColumns = []string{"CATEGORY", "TYPE", "HOURS"}
 var metricsColumns = []string{"NAME", "TIMESTAMP", "CPU", "MEMORY", "DISK", "WINDOW"}
@@ -182,15 +181,8 @@ func (h *PrettyPrinter) addDefaultHandlers() {
 	h.Handler(podColumns, printPodList)
 	h.Handler(nodeColumns, printNode)
 	h.Handler(nodeColumns, printNodeList)
-	h.Handler(serviceColumns, printService)
-	h.Handler(serviceColumns, printServiceList)
 	h.Handler(eventColumns, printEvent)
 	h.Handler(eventColumns, printEventList)
-	h.Handler(secretColumns, printSecret)
-	h.Handler(secretColumns, printSecretList)
-	h.Handler(usageReportColumns, printUsageReport)
-	h.Handler(usageColumns, printUsage)
-	h.Handler(usageColumns, printUsageList)
 	h.Handler(metricsColumns, printMetrics)
 	h.Handler(metricsColumns, printMetricsList)
 }
@@ -306,42 +298,6 @@ func printPodList(podList *api.PodList, w io.Writer, options PrintOptions) error
 	return nil
 }
 
-func printService(svc *api.Service, w io.Writer, options PrintOptions) error {
-	name := svc.Name
-	kind := options.KindName
-	if options.WithKind {
-		name = kind + "/" + name
-	}
-
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s",
-		name,
-		makePortString(svc.Spec.Ports),
-		strings.Join(svc.Spec.SourceRanges, ", "),
-		translateTimestamp(svc.CreationTimestamp),
-	); err != nil {
-		return err
-	}
-	if options.Wide {
-		if _, err := fmt.Fprintf(w, "\t%s", api.FormatLabelSelector(&svc.Spec.Selector)); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprint(w, AppendLabels(svc.Labels, options.ColumnLabels)); err != nil {
-		return err
-	}
-	_, err := fmt.Fprint(w, AppendAllLabels(options.ShowLabels, svc.Labels))
-	return err
-}
-
-func printServiceList(list *api.ServiceList, w io.Writer, options PrintOptions) error {
-	for _, svc := range list.Items {
-		if err := printService(svc, w, options); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func printEvent(event *api.Event, w io.Writer, options PrintOptions) error {
 	name := event.InvolvedObject.Name
 	kind := options.KindName
@@ -382,101 +338,6 @@ func printEventList(list *api.EventList, w io.Writer, options PrintOptions) erro
 	return nil
 }
 
-func printSecret(item *api.Secret, w io.Writer, options PrintOptions) error {
-	name := item.Name
-	kind := options.KindName
-	if options.WithKind {
-		name = kind + "/" + name
-	}
-	if _, err := fmt.Fprintf(w, "%s\t%v\t%s", name, len(item.Data), translateTimestamp(item.CreationTimestamp)); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprint(w, AppendLabels(item.Labels, options.ColumnLabels)); err != nil {
-		return err
-	}
-	_, err := fmt.Fprint(w, AppendAllLabels(options.ShowLabels, item.Labels))
-	return err
-}
-
-func printSecretList(list *api.SecretList, w io.Writer, options PrintOptions) error {
-	for _, item := range list.Items {
-		if err := printSecret(item, w, options); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func layoutUsageItems(w io.Writer, u map[string]float64, header string) {
-	type usageItem struct {
-		label string
-		value float64
-	}
-
-	vals := make([]usageItem, 0, len(u))
-	for k, v := range u {
-		vals = append(vals, usageItem{k, v})
-	}
-	sort.Slice(vals, func(i, j int) bool {
-		// we want to be reversed so we'll do this funky
-		return vals[i].value > vals[j].value
-	})
-	for _, item := range vals {
-		fmt.Fprintf(w, "%s\t%s\t%f\n", header, item.label, item.value)
-		header = ""
-	}
-}
-
-func printUsageReport(usage *api.UsageReport, w io.Writer, options PrintOptions) error {
-	// todo: sort the usage by values or alphabetical
-	layoutUsageItems(w, usage.Instance.Usage, "Instance")
-	layoutUsageItems(w, usage.Storage.Usage, "Storage")
-	layoutUsageItems(w, usage.Peripheral.Usage, "Peripheral")
-	layoutUsageItems(w, usage.Network.Usage, "Network")
-
-	fmt.Fprint(w, "\n")
-	fmt.Fprintf(w, "Report Period Start Date: %s\n", usage.PeriodStart)
-	fmt.Fprintf(w, "Report Period End Date: %s\n", usage.PeriodEnd)
-	return nil
-}
-
-func printUsage(usage *api.Usage, w io.Writer, options PrintOptions) error {
-	type usageItem struct {
-		category     string
-		specificType string
-	}
-	duration := usage.DeletionTimestamp.Sub(usage.CreationTimestamp)
-	hours := duration.Hours()
-	vals := make([]usageItem, 0, 4)
-	if usage.Instance != nil {
-		vals = append(vals, usageItem{"Instance", usage.Instance.Type})
-	}
-	if usage.Peripheral != nil {
-		vals = append(vals, usageItem{"Peripheral", string(usage.Peripheral.Type)})
-	}
-	if usage.Storage != nil {
-		vals = append(vals, usageItem{"Storage", string(usage.Storage.Type)})
-	}
-	if usage.Network != nil {
-		vals = append(vals, usageItem{"Network", string(usage.Network.Type)})
-	}
-	for _, val := range vals {
-		if _, err := fmt.Fprintf(w, "%s\t%s\t%f\n", val.category, val.specificType, hours); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func printUsageList(list *api.UsageList, w io.Writer, options PrintOptions) error {
-	for _, usage := range list.Items {
-		if err := printUsage(usage, w, options); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func printMetrics(metrics *api.Metrics, w io.Writer, options PrintOptions) error {
 	d := metrics.Window.Round(time.Second)
 	ts := metrics.Timestamp.UTC().Format(time.Stamp)
@@ -497,38 +358,6 @@ func printMetricsList(list *api.MetricsList, w io.Writer, options PrintOptions) 
 		if err := printMetrics(metrics, w, options); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func makePortString(ports []api.ServicePort) string {
-	pieces := make([]string, len(ports))
-	for ix, port := range ports {
-		if port.PortRangeSize > 1 {
-			pieces[ix] = fmt.Sprintf(
-				"%d-%d/%s", port.Port, port.Port+port.PortRangeSize-1, port.Protocol)
-		} else {
-			pieces[ix] = fmt.Sprintf("%d/%s", port.Port, port.Protocol)
-		}
-	}
-	return strings.Join(pieces, ",")
-}
-
-func layoutUnits(units []api.Unit, w io.Writer) error {
-	var namesBuffer bytes.Buffer
-	var imagesBuffer bytes.Buffer
-
-	for i, unit := range units {
-		namesBuffer.WriteString(unit.Name)
-		imagesBuffer.WriteString(unit.Image)
-		if i != len(units)-1 {
-			namesBuffer.WriteString(",")
-			imagesBuffer.WriteString(",")
-		}
-	}
-	_, err := fmt.Fprintf(w, "\t%s\t%s", namesBuffer.String(), imagesBuffer.String())
-	if err != nil {
-		return err
 	}
 	return nil
 }

@@ -93,7 +93,7 @@ func TestAwsSGToMilpa(t *testing.T) {
 			sg: cloud.SecurityGroup{
 				ID:   "1",
 				Name: "Foo",
-				Ports: []api.ServicePort{{
+				Ports: []cloud.InstancePort{{
 					Name:          "",
 					Protocol:      api.ProtocolTCP,
 					Port:          10,
@@ -116,7 +116,7 @@ func TestAwsSGToMilpa(t *testing.T) {
 			sg: cloud.SecurityGroup{
 				ID:   "1",
 				Name: "Foo",
-				Ports: []api.ServicePort{{
+				Ports: []cloud.InstancePort{{
 					Name:          "",
 					Protocol:      api.ProtocolUDP,
 					Port:          10,

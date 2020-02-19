@@ -27,15 +27,6 @@ type PodLister interface {
 	ListPods(func(*api.Pod) bool) (*api.PodList, error)
 }
 
-type ServiceLister interface {
-	GetService(string) (*api.Service, error)
-	ListServices(func(*api.Service) bool) (*api.ServiceList, error)
-}
-
-type SecretLister interface {
-	GetSecret(string) (*api.Secret, error)
-}
-
 type NodeLister interface {
 	GetNode(string) (*api.Node, error)
 	ListNodes(func(*api.Node) bool) (*api.NodeList, error)

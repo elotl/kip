@@ -31,7 +31,6 @@ const isNotPositiveErrorMsg string = `must be greater than or equal to 1`
 const invalidPathMsg string = "path must exist"
 const totalAnnotationSizeLimitB int = 256 * (1 << 10) // 256 kB
 const RestAPIPort = 6421
-const MaxSecretSize = 1 * 1024 * 1024
 
 // ValidateNameFunc validates that the provided name is valid for a
 // given resource type.  Not all resources have the same validation
@@ -55,8 +54,6 @@ func maskTrailingDash(name string) string {
 // generation, in which case trailing dashes are allowed.
 var ValidatePodName = NameIsValidPodName
 var ValidateNodeName = NameIsDNSSubdomain
-var ValidateServiceName = NameIsDNS952Label
-var ValidateSecretName = NameIsDNSSubdomain
 
 // Pod names are unique, they get to have slashes in them
 func NameIsValidPodName(name string, prefix bool) []string {
@@ -321,7 +318,6 @@ func validateUnits(units []api.Unit, volumes sets.String, fldPath *field.Path) f
 
 	// in milpa, you can have 0 units and it's all good
 	allNames := sets.String{}
-	allPorts := []api.ServicePort{}
 	for i, unit := range units {
 		idxPath := fldPath.Index(i)
 		namePath := idxPath.Child("name")
@@ -343,20 +339,12 @@ func validateUnits(units []api.Unit, volumes sets.String, fldPath *field.Path) f
 			msg := "Invalid image format: must be one of ACCOUNT.dkr.ecr.REGION.amazonaws.com/reponame, url/namespace/reponame, namespace/reponame or reponame"
 			allErrs = append(allErrs, field.Invalid(idxPath.Child("image"), unit.Image, msg))
 		}
-		portsPath := idxPath.Child("ports")
-		for i, port := range unit.Ports {
-			portPath := portsPath.Index(i)
-			allErrs = append(allErrs, ValidateServicePort(&port, false, portPath)...)
-			allPorts = append(allPorts, port)
-		}
 		allErrs = append(allErrs, validateEnv(unit.Env, idxPath.Child("env"))...)
 		allErrs = append(allErrs, validateVolumeMounts(unit.VolumeMounts, volumes, idxPath.Child("volumeMounts"))...)
 		//
 		// todo: validate probes when we get probes
 		//
 	}
-	allErrs = append(allErrs, validateServicePortUniqueness(allPorts, false, fldPath)...)
-	allErrs = append(allErrs, validateServicePortOverlap(allPorts, fldPath)...)
 	return allErrs
 }
 
@@ -394,157 +382,6 @@ func ValidateNode(node *api.Node) field.ErrorList {
 	return allErrs
 }
 
-// ValidateService tests if required fields in the service are set.
-func ValidateService(service *api.Service) field.ErrorList {
-	allErrs := ValidateObjectMeta(&service.ObjectMeta, true, ValidateServiceName, field.NewPath("metadata"))
-
-	if service.Name == util.MilpaSvcName {
-		msg := fmt.Sprintf("Service names cannot be called %s, that suffix is reserved for internal use by milpa", util.MilpaSvcName)
-		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata.name"), service.Name, msg))
-	}
-
-	specPath := field.NewPath("spec")
-	if len(service.Spec.Ports) == 0 {
-		allErrs = append(allErrs, field.Required(specPath.Child("ports"), ""))
-	}
-
-	portsPath := specPath.Child("ports")
-	for i := range service.Spec.Ports {
-		portPath := portsPath.Index(i)
-		allErrs = append(allErrs, ValidateServicePort(&service.Spec.Ports[i], len(service.Spec.Ports) > 1, portPath)...)
-	}
-
-	allErrs = append(allErrs, ValidateLabelSelector(&service.Spec.Selector, specPath.Child("selector"))...)
-	_, err := api.LabelSelectorAsSelector(&service.Spec.Selector)
-	if err != nil {
-		allErrs = append(allErrs, field.Invalid(specPath.Child("selector"), service.Spec.Selector, "invalid label selector in service."))
-	}
-
-	portsPath = specPath.Child("ports")
-	allErrs = append(allErrs, validateServicePortUniqueness(service.Spec.Ports, true, portsPath)...)
-	allErrs = append(allErrs, validateServicePortOverlap(service.Spec.Ports, portsPath)...)
-
-	sourceRangesPath := specPath.Child("sourceRanges")
-	sourceRangeSet := sets.NewString()
-	for i, sr := range service.Spec.SourceRanges {
-		idxPath := sourceRangesPath.Index(i)
-		cidrStr := sr
-		if sr != "VPC" {
-			_, ipnet, err := net.ParseCIDR(sr)
-			if err != nil {
-				allErrs = append(allErrs, field.Invalid(idxPath, sr, "sourceRange items must be a CIDR network address"))
-				continue
-			}
-			cidrStr = ipnet.String()
-		}
-		if sourceRangeSet.Has(cidrStr) {
-			allErrs = append(allErrs, field.Duplicate(idxPath, sr))
-		}
-		sourceRangeSet.Insert(cidrStr)
-	}
-
-	// Todo: service name + cluster + namespace + 2 periods must be <=
-	// 63 chars in GCE.  For node ports the hashed name takes up 26 chars so,
-	// name + cluster + periods must fit in 37 chars.  Cluster name and
-	// namespace must have a total length of <= 35 chars
-	// Load balancers add 2 characters to this, add this validation
-	// to our stateful validation code
-
-	return allErrs
-}
-
-func validateServicePortUniqueness(ports []api.ServicePort, validateName bool, fldPath *field.Path) field.ErrorList {
-	nodePorts := make(map[api.ServicePort]bool)
-	allErrs := field.ErrorList{}
-	allNames := sets.NewString()
-	for i, port := range ports {
-		portPath := fldPath.Index(i)
-		var key api.ServicePort
-		key.Protocol = port.Protocol
-		key.Port = port.Port
-		_, found := nodePorts[key]
-		if found {
-			allErrs = append(allErrs, field.Duplicate(portPath, port.Port))
-		}
-		if validateName && allNames.Has(port.Name) {
-			allErrs = append(allErrs, field.Duplicate(portPath, port.Port))
-		}
-		allNames.Insert(port.Name)
-		nodePorts[key] = true
-	}
-	return allErrs
-}
-
-func validateServicePortOverlap(ports []api.ServicePort, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-	for i := range ports {
-		portPath := fldPath.Index(i)
-		for j := i + 1; j < len(ports); j++ {
-			if i == j {
-				continue
-			}
-			if ports[i].Protocol != ports[j].Protocol {
-				continue
-			}
-			p1Start := ports[i].Port
-			p1End := p1Start + ports[i].PortRangeSize - 1
-			p2Start := ports[j].Port
-			p2End := p2Start + ports[j].PortRangeSize - 1
-			if p1Start <= p2End && p2Start <= p1End {
-				msg := fmt.Sprintf(
-					"Port ranges overlap: Port %d: %d-%d, Port %d: %d-%d",
-					i, p1Start, p1End,
-					j, p2Start, p2End)
-				allErrs = append(allErrs, field.Invalid(portPath, ports[i], msg))
-			}
-		}
-	}
-	return allErrs
-}
-
-var supportedPortProtocols = sets.NewString(string(api.ProtocolTCP), string(api.ProtocolUDP), string(api.ProtocolICMP))
-
-var supportedLoadBalancerProtocols = sets.NewString(string(api.ProtocolTCP))
-
-// Made this exported since we call it in server.config.go
-func ValidateServicePort(sp *api.ServicePort, requireName bool, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-	allNames := sets.NewString()
-	if requireName && len(sp.Name) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
-	} else if len(sp.Name) != 0 {
-		allErrs = append(allErrs, ValidateDNS1123Label(sp.Name, fldPath.Child("name"))...)
-		// We'll force names to be unique
-		if allNames.Has(sp.Name) {
-			allErrs = append(allErrs, field.Duplicate(fldPath.Child("name"), sp.Name))
-		} else {
-			allNames.Insert(sp.Name)
-		}
-	}
-	if sp.Protocol == api.ProtocolICMP {
-		for _, msg := range validation.IsValidICMPPortRange(sp.Port, sp.PortRangeSize) {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("port"), sp.Port, msg))
-		}
-	} else {
-		allErrs = append(allErrs, ValidatePositiveField(sp.PortRangeSize, fldPath.Child("portRangeSize"))...)
-		for _, msg := range validation.IsValidPortRange(sp.Port, sp.PortRangeSize) {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("port"), sp.Port, msg))
-		}
-	}
-	if sp.Protocol == api.ProtocolTCP && (sp.Port == RestAPIPort || sp.NodePort == RestAPIPort) {
-		msg := fmt.Sprintf("a service cannot use port %d since it is used by Milpa", RestAPIPort)
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("port"), sp.Port, msg))
-	}
-
-	if len(sp.Protocol) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("protocol"), ""))
-	} else if !supportedPortProtocols.Has(string(sp.Protocol)) {
-		allErrs = append(allErrs, field.NotSupported(fldPath.Child("protocol"), sp.Protocol, supportedPortProtocols.List()))
-	}
-
-	return allErrs
-}
-
 func ValidateLabelSelector(ps *api.LabelSelector, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if ps == nil {
@@ -572,24 +409,6 @@ func ValidateLabelSelectorRequirement(sr api.LabelSelectorRequirement, fldPath *
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("operator"), sr.Operator, "not a valid selector operator"))
 	}
 	allErrs = append(allErrs, ValidateLabelName(sr.Key, fldPath.Child("key"))...)
-	return allErrs
-}
-
-func ValidateSecret(obj *api.Secret) field.ErrorList {
-	allErrs := ValidateObjectMeta(&obj.ObjectMeta, true, ValidateSecretName, field.NewPath("metadata"))
-
-	dataPath := field.NewPath("data")
-	totalSize := 0
-	for key, value := range obj.Data {
-		for _, msg := range validation.IsConfigMapKey(key) {
-			allErrs = append(allErrs, field.Invalid(dataPath.Key(key), key, msg))
-		}
-		totalSize += len(value)
-	}
-	if totalSize > MaxSecretSize {
-		allErrs = append(allErrs, field.TooLong(dataPath, "", MaxSecretSize))
-	}
-
 	return allErrs
 }
 

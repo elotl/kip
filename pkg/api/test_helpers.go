@@ -41,32 +41,6 @@ func GetFakeEvent() *Event {
 	return e
 }
 
-func GetFakeService() *Service {
-	s := NewService()
-	s.Name = "test-service-" + uuid.NewV4().String()
-	s.Name = s.Name[:24]
-	s.Spec.Selector = LabelSelector{
-		MatchLabels: map[string]string{"app": "myapp"},
-	}
-	s.Spec.Ports = []ServicePort{{
-		Name:          "port",
-		Protocol:      "TCP",
-		Port:          5432,
-		PortRangeSize: 1,
-	}}
-	s.Spec.SourceRanges = []string{"10.0.0.0/8"}
-	return s
-}
-
-func GetFakeSecret(name string, keyvalues ...string) *Secret {
-	s := NewSecret()
-	s.Name = name
-	for i := 0; i < len(keyvalues)-1; i += 2 {
-		s.Data[keyvalues[i]] = []byte(keyvalues[i+1])
-	}
-	return s
-}
-
 func GetFakeLog() *LogFile {
 	log := NewLogFile()
 	log.Name = "test-log-file-" + uuid.NewV4().String()
@@ -74,15 +48,4 @@ func GetFakeLog() *LogFile {
 	log.ParentObject = ToObjectReference(node)
 	log.Content = "log data"
 	return log
-}
-
-func GetFakeUsage() *Usage {
-	usage := NewUsage()
-	usage.Name = uuid.NewV4().String()
-	usage.Provider = "AWS"
-	usage.Instance = &InstanceUsage{
-		Type: "t2.nano",
-		Spot: false,
-	}
-	return usage
 }
