@@ -240,12 +240,12 @@ type SecurityGroupIdentifier struct {
 type SecurityGroup struct {
 	ID           string
 	Name         string
-	Ports        []api.ServicePort
+	Ports        []InstancePort
 	SourceRanges []string
 }
 
-func NewSecurityGroup(id, name string, ports []api.ServicePort, sources []string) SecurityGroup {
-	sort.Sort(api.SortableSliceOfPorts(ports))
+func NewSecurityGroup(id, name string, ports []InstancePort, sources []string) SecurityGroup {
+	sort.Sort(SortableSliceOfPorts(ports))
 	sort.Strings(sources)
 	return SecurityGroup{
 		ID:           id,
@@ -260,7 +260,7 @@ type LoadBalancer struct {
 	ServiceName      string
 	LoadBalancerName string
 	Instances        sets.String
-	Ports            []api.ServicePort
+	Ports            []InstancePort
 	SecurityGroupID  string
 	Internal         bool
 	Annotations      map[string]string

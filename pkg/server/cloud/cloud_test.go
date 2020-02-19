@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func makeIR(p api.ServicePort, sr []string) []IngressRule {
+func makeIR(p InstancePort, sr []string) []IngressRule {
 	return []IngressRule{NewIngressRule(p, sr[0])}
 }
 
@@ -15,65 +15,65 @@ func TestMergeSecurityGroupsSimple(t *testing.T) {
 	// create table of cases
 	vpcSourceRange := []string{"172.0.0.0/8"}
 	publicSourceRange := []string{"0.0.0.0/0"}
-	a := api.ServicePort{Port: 1, Protocol: api.ProtocolTCP, PortRangeSize: 1}
-	b := api.ServicePort{Port: 2, Protocol: api.ProtocolTCP, PortRangeSize: 1}
-	c := api.ServicePort{Port: 3, Protocol: api.ProtocolTCP, PortRangeSize: 1}
-	d := api.ServicePort{Port: 1, Protocol: api.ProtocolUDP, PortRangeSize: 1}
-	e := api.ServicePort{Port: 2, Protocol: api.ProtocolUDP, PortRangeSize: 1}
-	f := api.ServicePort{Port: 3, Protocol: api.ProtocolUDP, PortRangeSize: 1}
+	a := InstancePort{Port: 1, Protocol: api.ProtocolTCP, PortRangeSize: 1}
+	b := InstancePort{Port: 2, Protocol: api.ProtocolTCP, PortRangeSize: 1}
+	c := InstancePort{Port: 3, Protocol: api.ProtocolTCP, PortRangeSize: 1}
+	d := InstancePort{Port: 1, Protocol: api.ProtocolUDP, PortRangeSize: 1}
+	e := InstancePort{Port: 2, Protocol: api.ProtocolUDP, PortRangeSize: 1}
+	f := InstancePort{Port: 3, Protocol: api.ProtocolUDP, PortRangeSize: 1}
 	sgEmpty := SecurityGroup{}
 	sgA := SecurityGroup{
-		Ports:        []api.ServicePort{a},
+		Ports:        []InstancePort{a},
 		SourceRanges: vpcSourceRange,
 	}
 	sgAB := SecurityGroup{
-		Ports:        []api.ServicePort{a, b},
+		Ports:        []InstancePort{a, b},
 		SourceRanges: vpcSourceRange,
 	}
 	sgABCD := SecurityGroup{
-		Ports:        []api.ServicePort{a, b, c, d},
+		Ports:        []InstancePort{a, b, c, d},
 		SourceRanges: vpcSourceRange,
 	}
 	//only new
-	add, delete := MergeSecurityGroups(sgEmpty, []api.ServicePort{a}, vpcSourceRange)
+	add, delete := MergeSecurityGroups(sgEmpty, []InstancePort{a}, vpcSourceRange)
 	assert.Len(t, add, 1)
 	assert.Len(t, delete, 0)
 	assert.ElementsMatch(t, add, makeIR(a, vpcSourceRange))
 	// only old
-	add, delete = MergeSecurityGroups(sgA, []api.ServicePort{}, vpcSourceRange)
+	add, delete = MergeSecurityGroups(sgA, []InstancePort{}, vpcSourceRange)
 	assert.Len(t, add, 0)
 	assert.Len(t, delete, 1)
 	assert.ElementsMatch(t, delete, makeIR(a, vpcSourceRange))
 	//one new, one old
-	add, delete = MergeSecurityGroups(sgA, []api.ServicePort{b}, vpcSourceRange)
+	add, delete = MergeSecurityGroups(sgA, []InstancePort{b}, vpcSourceRange)
 	assert.Len(t, add, 1)
 	assert.Len(t, delete, 1)
 	assert.ElementsMatch(t, makeIR(b, vpcSourceRange), add)
 	assert.ElementsMatch(t, makeIR(a, vpcSourceRange), delete)
 	// equal
-	add, delete = MergeSecurityGroups(sgA, []api.ServicePort{a}, vpcSourceRange)
+	add, delete = MergeSecurityGroups(sgA, []InstancePort{a}, vpcSourceRange)
 	assert.Len(t, add, 0)
 	assert.Len(t, delete, 0)
 	// two equal
-	add, delete = MergeSecurityGroups(sgAB, []api.ServicePort{a, b}, vpcSourceRange)
+	add, delete = MergeSecurityGroups(sgAB, []InstancePort{a, b}, vpcSourceRange)
 	assert.Len(t, add, 0)
 	assert.Len(t, delete, 0)
 	// one new, one common, one old
-	add, delete = MergeSecurityGroups(sgAB, []api.ServicePort{b, c}, vpcSourceRange)
+	add, delete = MergeSecurityGroups(sgAB, []InstancePort{b, c}, vpcSourceRange)
 	assert.Len(t, add, 1)
 	assert.Len(t, delete, 1)
 	assert.ElementsMatch(t, makeIR(c, vpcSourceRange), add)
 	assert.ElementsMatch(t, makeIR(a, vpcSourceRange), delete)
 
 	// two new, two common, two old
-	add, delete = MergeSecurityGroups(sgABCD, []api.ServicePort{c, d, e, f}, vpcSourceRange)
+	add, delete = MergeSecurityGroups(sgABCD, []InstancePort{c, d, e, f}, vpcSourceRange)
 	assert.Len(t, add, 2)
 	assert.Len(t, delete, 2)
 	assert.ElementsMatch(t, append(makeIR(e, vpcSourceRange), makeIR(f, vpcSourceRange)...), add)
 	assert.ElementsMatch(t, append(makeIR(a, vpcSourceRange), makeIR(b, vpcSourceRange)...), delete)
 
 	//public -> private returns everything
-	add, delete = MergeSecurityGroups(sgAB, []api.ServicePort{a, b}, publicSourceRange)
+	add, delete = MergeSecurityGroups(sgAB, []InstancePort{a, b}, publicSourceRange)
 	assert.Len(t, add, 2)
 	assert.Len(t, delete, 2)
 }
@@ -87,14 +87,14 @@ func TestMergeSecurityGroupSourceRanges(t *testing.T) {
 	sD := "0.0.0.0/0"
 	srA := []string{sA, sB}
 	srB := []string{sB, sC, sD}
-	a := api.ServicePort{Port: 1, Protocol: api.ProtocolTCP}
-	b := api.ServicePort{Port: 2, Protocol: api.ProtocolTCP}
-	c := api.ServicePort{Port: 3, Protocol: api.ProtocolTCP}
+	a := InstancePort{Port: 1, Protocol: api.ProtocolTCP}
+	b := InstancePort{Port: 2, Protocol: api.ProtocolTCP}
+	c := InstancePort{Port: 3, Protocol: api.ProtocolTCP}
 	sgA := SecurityGroup{
-		Ports:        []api.ServicePort{a, b},
+		Ports:        []InstancePort{a, b},
 		SourceRanges: srA,
 	}
-	add, delete := MergeSecurityGroups(sgA, []api.ServicePort{b, c}, srB)
+	add, delete := MergeSecurityGroups(sgA, []InstancePort{b, c}, srB)
 	assert.Len(t, add, 5)
 	assert.Len(t, delete, 3)
 }
@@ -209,4 +209,43 @@ func TestFilterImages(t *testing.T) {
 	res = FilterImages(images, tags)
 	assert.Len(t, res, 1)
 	assert.Contains(t, res, images[2])
+}
+
+func TestComparePorts(t *testing.T) {
+	tests := []struct {
+		a    InstancePort
+		b    InstancePort
+		less bool
+	}{
+		{
+			a:    InstancePort{Port: 5},
+			b:    InstancePort{Port: 7},
+			less: true,
+		},
+		{
+			a:    InstancePort{Port: 7},
+			b:    InstancePort{Port: 5},
+			less: false,
+		},
+		{
+			a:    InstancePort{Port: 5, PortRangeSize: 1, Protocol: api.ProtocolUDP},
+			b:    InstancePort{Port: 5, PortRangeSize: 3, Protocol: api.ProtocolTCP},
+			less: true,
+		},
+		{
+			a:    InstancePort{Port: 5, PortRangeSize: 4, Protocol: api.ProtocolUDP},
+			b:    InstancePort{Port: 5, PortRangeSize: 3, Protocol: api.ProtocolTCP},
+			less: false,
+		},
+		{
+			a:    InstancePort{Port: 5, PortRangeSize: 3, Protocol: api.ProtocolUDP},
+			b:    InstancePort{Port: 5, PortRangeSize: 3, Protocol: api.ProtocolTCP},
+			less: false,
+		},
+	}
+	for i, test := range tests {
+		if lessPorts(test.a, test.b) != test.less {
+			t.Errorf("Test %d failed: %v", i, test)
+		}
+	}
 }

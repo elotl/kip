@@ -49,58 +49,6 @@ func NewPodList() *PodList {
 	return &list
 }
 
-func (p *ServicePort) UnmarshalJSON(data []byte) error {
-	// prevent recursive calls
-	type servicePortAlias ServicePort
-	s := &servicePortAlias{
-		Protocol:      ProtocolTCP,
-		PortRangeSize: 1,
-	}
-	err := json.Unmarshal(data, s)
-	if err != nil {
-		return err
-	}
-	*p = ServicePort(*s)
-	return nil
-}
-
-func NewService() *Service {
-	svc := Service{
-		TypeMeta: TypeMeta{Kind: "Service"},
-	}
-	svc.ObjectMeta.Create()
-	svc.TypeMeta.Create()
-	return &svc
-}
-
-func NewServiceList() *ServiceList {
-	list := ServiceList{
-		TypeMeta: TypeMeta{Kind: "ServiceList"},
-		Items:    make([]*Service, 0),
-	}
-	list.TypeMeta.Create()
-	return &list
-}
-
-func NewSecret() *Secret {
-	s := Secret{
-		TypeMeta: TypeMeta{Kind: "Secret"},
-		Data:     map[string][]byte{},
-	}
-	s.ObjectMeta.Create()
-	s.TypeMeta.Create()
-	return &s
-}
-
-func NewSecretList() *SecretList {
-	list := SecretList{
-		TypeMeta: TypeMeta{Kind: "SecretList"},
-		Items:    make([]*Secret, 0),
-	}
-	list.TypeMeta.Create()
-	return &list
-}
-
 func NewEvent() *Event {
 	e := Event{
 		TypeMeta: TypeMeta{Kind: "Event"},
@@ -132,24 +80,6 @@ func NewLogFileList() *LogFileList {
 	list := LogFileList{
 		TypeMeta: TypeMeta{Kind: "LogFileList"},
 		Items:    make([]*LogFile, 0),
-	}
-	list.TypeMeta.Create()
-	return &list
-}
-
-func NewUsage() *Usage {
-	u := Usage{
-		TypeMeta: TypeMeta{Kind: "Usage"},
-	}
-	u.TypeMeta.Create()
-	u.ObjectMeta.Create()
-	return &u
-}
-
-func NewUsageList() *UsageList {
-	list := UsageList{
-		TypeMeta: TypeMeta{Kind: "UsageList"},
-		Items:    make([]*Usage, 0),
 	}
 	list.TypeMeta.Create()
 	return &list

@@ -24,7 +24,7 @@ func (c *AwsEC2) GetBootSecurityGroupIDs() []string {
 }
 
 func (c *AwsEC2) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string) error {
-	milpaPorts := []api.ServicePort{
+	milpaPorts := []cloud.InstancePort{
 		{
 			Protocol:      api.ProtocolTCP,
 			Port:          cloud.RestAPIPort,
@@ -97,7 +97,7 @@ func (e *AwsEC2) FindSecurityGroup(sgName string) (*cloud.SecurityGroup, error) 
 // security group.  If it's used more, we'll need to do something else
 // (possibly return the changes from UpdateSecurityGroup and see if we
 // need to re-fetch the SG.
-func (e *AwsEC2) EnsureSecurityGroup(sgName string, ports []api.ServicePort, sourceRanges []string) (*cloud.SecurityGroup, error) {
+func (e *AwsEC2) EnsureSecurityGroup(sgName string, ports []cloud.InstancePort, sourceRanges []string) (*cloud.SecurityGroup, error) {
 	sg, err := e.FindSecurityGroup(sgName)
 	if err != nil {
 		return nil, util.WrapError(err, "Error finding security group")
@@ -150,7 +150,7 @@ func (e *AwsEC2) tagSecurityGroup(groupName, groupID string) error {
 	return err
 }
 
-func (e *AwsEC2) CreateSecurityGroup(sgName string, ports []api.ServicePort, sourceRanges []string) (*cloud.SecurityGroup, error) {
+func (e *AwsEC2) CreateSecurityGroup(sgName string, ports []cloud.InstancePort, sourceRanges []string) (*cloud.SecurityGroup, error) {
 	createRes, err := e.client.CreateSecurityGroup(&ec2.CreateSecurityGroupInput{
 		GroupName:   aws.String(sgName),
 		Description: aws.String(fmt.Sprintf("MilpaSG %s %s", e.nametag, sgName)),
@@ -214,7 +214,7 @@ func (e *AwsEC2) DeleteSecurityGroup(groupID string) error {
 func awsSGToMilpa(sg *ec2.SecurityGroup) cloud.SecurityGroup {
 	// We protect against ports with extra CIDRs here.  We
 	sourceRangesSet := sets.NewString()
-	ports := make([]api.ServicePort, len(sg.IpPermissions))
+	ports := make([]cloud.InstancePort, len(sg.IpPermissions))
 
 	for i := 0; i < len(sg.IpPermissions); i++ {
 		port := int(*(sg.IpPermissions[i].FromPort))
@@ -222,7 +222,7 @@ func awsSGToMilpa(sg *ec2.SecurityGroup) cloud.SecurityGroup {
 		if portRangeSize <= 0 {
 			portRangeSize = 1
 		}
-		ports[i] = api.ServicePort{
+		ports[i] = cloud.InstancePort{
 			Port:          port,
 			PortRangeSize: portRangeSize,
 			Protocol:      api.MakeProtocol(*sg.IpPermissions[i].IpProtocol),
@@ -242,7 +242,7 @@ func awsSGToMilpa(sg *ec2.SecurityGroup) cloud.SecurityGroup {
 // existing rules that aren't changing sincec services might depend on
 // those rules.  We have to be careful because AWS doesn't allow
 // duplicate rules to exist (but does allow overlapping rules)
-func (e *AwsEC2) UpdateSecurityGroup(cloudSG cloud.SecurityGroup, specPorts []api.ServicePort, sourceRanges []string) error {
+func (e *AwsEC2) UpdateSecurityGroup(cloudSG cloud.SecurityGroup, specPorts []cloud.InstancePort, sourceRanges []string) error {
 	addIngress, deleteIngress := cloud.MergeSecurityGroups(cloudSG, specPorts, sourceRanges)
 	// performance: these two calls could be in parallel
 	var errMsg string

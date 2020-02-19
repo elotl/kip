@@ -60,7 +60,7 @@ func (az *AzureClient) GetBootSecurityGroupIDs() []string {
 }
 
 func (az *AzureClient) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string) error {
-	milpaPorts := []api.ServicePort{
+	milpaPorts := []cloud.InstancePort{
 		{
 			Protocol:      api.ProtocolTCP,
 			Port:          cloud.RestAPIPort,
@@ -125,7 +125,7 @@ func (az *AzureClient) setClusterNSG(rules []network.SecurityRule) error {
 	return err
 }
 
-func (az *AzureClient) EnsureSecurityGroup(sgName string, ports []api.ServicePort, sourceRanges []string) (*cloud.SecurityGroup, error) {
+func (az *AzureClient) EnsureSecurityGroup(sgName string, ports []cloud.InstancePort, sourceRanges []string) (*cloud.SecurityGroup, error) {
 	grpID := 0
 	rules := []NSGRule{}
 	for _, port := range ports {

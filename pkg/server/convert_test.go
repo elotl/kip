@@ -195,20 +195,18 @@ func TestUnitToContainer(t *testing.T) {
 			unit: api.Unit{
 				Name:  rand.String(16),
 				Image: fmt.Sprintf("elotl/%s:latest", rand.String(8)),
-				Ports: []api.ServicePort{
+				Ports: []api.ContainerPort{
 					{
 						Name:          "my-tcp-port",
 						Protocol:      api.ProtocolTCP,
-						Port:          80,
-						NodePort:      8880,
-						PortRangeSize: 1,
+						ContainerPort: 80,
+						HostPort:      8880,
 					},
 					{
 						Name:          "my-udp-port",
 						Protocol:      api.ProtocolUDP,
-						Port:          53,
-						NodePort:      5353,
-						PortRangeSize: 1,
+						ContainerPort: 53,
+						HostPort:      5353,
 					},
 				},
 			},
@@ -269,8 +267,8 @@ func TestUnitToContainer(t *testing.T) {
 			port := v1.ContainerPort{
 				Name:          p.Name,
 				Protocol:      v1.Protocol(string(p.Protocol)),
-				HostPort:      int32(p.Port),
-				ContainerPort: int32(p.NodePort),
+				HostPort:      int32(p.HostPort),
+				ContainerPort: int32(p.ContainerPort),
 			}
 			assert.Contains(t, container.Ports, port)
 		}
