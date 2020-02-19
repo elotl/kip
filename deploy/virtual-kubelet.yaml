@@ -9,33 +9,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 2Gi
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: virtual-kubelet-config
-  namespace: kube-system
-data:
-  server.yml: |
-    apiVersion: v1
-    cloud:
-      aws:
-        region: "us-east-1"
-        accessKeyID: ""
-        secretAccessKey: ""
-        imageOwnerID: 689494258501
-    etcd:
-      internal:
-        dataDir: /opt/milpa/data
-    cells:
-      defaultInstanceType: "t3.nano"
-      defaultVolumeSize: "20G"
-      nametag: virtual-kubelet
-    kubelet:
-      cpu: "20"
-      memory: "512Gi"
-      pods: "200"
+      storage: 5Gi
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -146,7 +120,7 @@ spec:
         - --network-agent-secret
         - kube-system/vk-network-agent
         - --klog.logtostderr
-        - --klog.v=5
+        - --klog.v=2
         image: elotl/virtual-kubelet:dev
         imagePullPolicy: Always
         name: virtual-kubelet

@@ -1,0 +1,26 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: virtual-kubelet-config
+  namespace: kube-system
+data:
+  server.yml: |
+    apiVersion: v1
+    cloud:
+      aws:
+        region: "us-east-1"
+        accessKeyID: ${aws_access_key_id}
+        secretAccessKey: ${aws_secret_access_key}
+        imageOwnerID: 689494258501
+    etcd:
+      internal:
+        dataDir: /opt/milpa/data
+    cells:
+      defaultInstanceType: "t3.nano"
+      defaultVolumeSize: "20G"
+      nametag: virtual-kubelet
+    kubelet:
+      cpu: "20"
+      memory: "512Gi"
+      pods: "200"
