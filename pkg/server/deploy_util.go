@@ -105,7 +105,7 @@ func getConfigMapFiles(cmVol *api.ConfigMapVolumeSource, cm *v1.ConfigMap) (map[
 		}
 		archivePath := item.Key
 		if item.Path != "" {
-			archivePath = filepath.Join(item.Path, item.Key)
+			archivePath = item.Path
 		}
 		packageItems[archivePath] = packageFile{
 			data: data,
@@ -157,7 +157,7 @@ func getSecretFiles(secVol *api.SecretVolumeSource, sec *v1.Secret) (map[string]
 		}
 		archivePath := item.Key
 		if item.Path != "" {
-			archivePath = filepath.Join(item.Path, item.Key)
+			archivePath = item.Path
 		}
 		packageItems[archivePath] = packageFile{
 			data: data,
