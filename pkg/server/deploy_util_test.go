@@ -145,7 +145,7 @@ func TestGetConfigMapFiles(t *testing.T) {
 			cm:    simpleConfigMap,
 			isErr: false,
 			expectedFiles: map[string]packageFile{
-				"path/to/bar": packageFile{
+				"path/to": packageFile{
 					data: []byte("barcontent"),
 					mode: allPermsVal,
 				},
