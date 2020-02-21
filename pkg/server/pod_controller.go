@@ -528,6 +528,9 @@ func (c *PodController) handlePodStatusReply(reply FullPodStatus) {
 			c.markFailedPod(pod, startFailure, failMsg)
 			return
 		}
+		if api.IsTerminalPodPhase(pod.Status.Phase) {
+			c.savePodLogs(pod)
+		}
 		_, err = c.podRegistry.UpdatePodStatus(pod, "Updating pod unit statuses")
 		if err != nil {
 			// The update will fail if we have termianted the pod so don't
@@ -774,7 +777,7 @@ func (c *PodController) terminateBoundPod(pod *api.Pod) {
 
 	// run this in a goroutine in case it blocks (shouldn't ever happen)
 	go func() {
-		c.savePodLogs(pod)
+		//c.savePodLogs(pod)
 		klog.V(2).Infof("Returning node %s for pod %s", pod.Status.BoundNodeName, pod.Name)
 		c.nodeDispenser.ReturnNode(pod.Status.BoundNodeName, false)
 	}()
@@ -925,7 +928,7 @@ func (c *PodController) handlePodSucceeded(pod *api.Pod) {
 	}
 	// Pod's work is done...
 	go func() {
-		c.savePodLogs(pod)
+		// c.savePodLogs(pod)
 		c.nodeDispenser.ReturnNode(pod.Status.BoundNodeName, false)
 	}()
 	//c.deleteFinishedPod(pod)
