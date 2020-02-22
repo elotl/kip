@@ -472,7 +472,7 @@ type Unit struct {
 	// A list of Volumes that will be attached to the Unit.
 	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty"`
 	// A list of ports that will be opened up for this Unit.
-	Ports []ServicePort `json:"ports,omitempty"`
+	Ports []ContainerPort `json:"ports,omitempty"`
 	// Working directory to change to before running the command for the Unit.
 	WorkingDir string `json:"workingDir,omitempty"`
 	// Unit security context.
@@ -839,80 +839,29 @@ type NodeList struct {
 	Items    []*Node `json:"items"`
 }
 
-// Service port definition. This is a TCP or UDP port that a Service uses.
-type ServicePort struct {
-	// Name of the Service port.
-	Name string `json:"name"`
-	// Protocol. Can be "TCP", "UDP" or "ICMP".
-	Protocol Protocol `json:"protocol"`
-	// Port number. Not used for "ICMP".
-	Port int `json:"port"`
-	// Optional: The Node port on Pods selected by a Service of type
-	// LoadBalancer.  If this is not specified, the value of the
-	// 'port' field is used.
-	NodePort int `json:"nodePort,omitempty"`
-	// portRangeSize is the contiguous ports number that are exposed
-	// by this service. Given port = 80 and portRangeSize = 100, the
-	// ServicePort will represent a range of ports from 80-179 (100
-	// ports in total). In this case, port means the starting port of
-	// a range.
-	PortRangeSize int `json:"portRangeSize,omitempty"`
-}
-
-//Allow ports to be sorted
-type SortableSliceOfPorts []ServicePort
-
-func (p SortableSliceOfPorts) Len() int           { return len(p) }
-func (p SortableSliceOfPorts) Less(i, j int) bool { return lessPorts(p[i], p[j]) }
-func (p SortableSliceOfPorts) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-func lessPorts(lhs, rhs ServicePort) bool {
-	if lhs.Port != rhs.Port {
-		return lhs.Port < rhs.Port
-	} else if lhs.Protocol < rhs.Protocol {
-		return lhs.Protocol < rhs.Protocol
-	} else if lhs.NodePort != rhs.NodePort {
-		return lhs.NodePort < rhs.NodePort
-	} else if lhs.PortRangeSize != rhs.PortRangeSize {
-		return lhs.PortRangeSize < rhs.PortRangeSize
-	} else {
-		return lhs.Name < rhs.Name
-	}
-}
-
-// Service defines a service that is exposed from Pods.
-type Service struct {
-	TypeMeta `json:",inline,squash"`
-	// Object metadata.
-	ObjectMeta `json:"metadata"`
-	// Spec is the specification for this Service.
-	Spec ServiceSpec `json:"spec"`
-	// Status holds the status of this Service.
-	Status ServiceStatus `json:"status"`
-}
-
-type ServiceType string
-
-// Service specification.
-type ServiceSpec struct {
-	// Type determines how the service will be exposed.  If type is
-	// empty, a service will register backing Pods in service
-	// discovery and apply security groups.  If Type == LoadBalancer,
-	// a cloud load balancer will be created to balance requests for
-	// the Service.
-	Type ServiceType `json:"type,omitempty"`
-	// A label selector is a label query over a set of resources. It is used to
-	// match this service to Pods.
-	Selector LabelSelector `json:"selector,omitempty"`
-	// List of ports that this Service uses.
-	Ports []ServicePort `json:"ports,omitempty"`
-	// Source of traffic. Can be a network CIDR or "VPC" to limit ranges
-	// the vpc of the Milpa cluster.
-	SourceRanges []string `json:"sourceRanges,omitempty"`
-}
-
-type ServiceList struct {
-	TypeMeta `json:",inline"`
-	Items    []*Service `json:"items"`
+// ContainerPort represents a network port in a single container.
+type ContainerPort struct {
+	// If specified, this must be an IANA_SVC_NAME and unique within the pod. Each
+	// named port in a pod must have a unique name. Name for the port that can be
+	// referred to by services.
+	// +optional
+	Name string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
+	// Number of port to expose on the host.
+	// If specified, this must be a valid port number, 0 < x < 65536.
+	// If HostNetwork is specified, this must match ContainerPort.
+	// Most containers do not need this.
+	// +optional
+	HostPort int32 `json:"hostPort,omitempty" protobuf:"varint,2,opt,name=hostPort"`
+	// Number of port to expose on the pod's IP address.
+	// This must be a valid port number, 0 < x < 65536.
+	ContainerPort int32 `json:"containerPort" protobuf:"varint,3,opt,name=containerPort"`
+	// Protocol for port. Must be UDP, TCP, or SCTP.
+	// Defaults to "TCP".
+	// +optional
+	Protocol Protocol `json:"protocol,omitempty" protobuf:"bytes,4,opt,name=protocol,casttype=Protocol"`
+	// What host IP to bind the external port to.
+	// +optional
+	HostIP string `json:"hostIP,omitempty" protobuf:"bytes,5,opt,name=hostIP"`
 }
 
 // Protocol defines network protocols supported for things like ports.
@@ -925,6 +874,7 @@ func MakeProtocol(p string) Protocol {
 const (
 	ProtocolTCP  Protocol = "TCP"
 	ProtocolUDP  Protocol = "UDP"
+	ProtocolSCTP Protocol = "SCTP"
 	ProtocolICMP Protocol = "ICMP"
 )
 
@@ -963,27 +913,12 @@ type PodTemplateSpec struct {
 	Spec PodSpec `json:"spec,omitempty"`
 }
 
-// Secret holds secret data.
-type Secret struct {
-	TypeMeta `json:",inline,squash"`
-	// Object metadata.
-	ObjectMeta `json:"metadata"`
-	// A dictionary of secret data. The binary data itself should be base64
-	// encoded.
-	//
-	// Example:
-	//
-	// ```
-	// data:
-	//   password: cGFzc3dvcmQ=
-	// ```
-	Data map[string][]byte `json:"data"`
-}
+type StorageType string
 
-type SecretList struct {
-	TypeMeta `json:",inline"`
-	Items    []*Secret `json:"items"`
-}
+const (
+	StorageGP2         StorageType = "gp2"
+	StorageStandardSSD StorageType = "StandardSSD"
+)
 
 // There are two different styles of label selectors used in versioned types:
 // an older style which is represented as just a string in versioned types, and
@@ -1033,17 +968,10 @@ func (p Pod) IsMilpaObject()         {}
 func (p PodList) IsMilpaObject()     {}
 func (p Node) IsMilpaObject()        {}
 func (p NodeList) IsMilpaObject()    {}
-func (p Service) IsMilpaObject()     {}
-func (p ServiceList) IsMilpaObject() {}
-func (p Secret) IsMilpaObject()      {}
-func (p SecretList) IsMilpaObject()  {}
 func (p Event) IsMilpaObject()       {}
 func (p EventList) IsMilpaObject()   {}
 func (p LogFile) IsMilpaObject()     {}
 func (p LogFileList) IsMilpaObject() {}
-func (p Usage) IsMilpaObject()       {}
-func (p UsageList) IsMilpaObject()   {}
-func (p UsageReport) IsMilpaObject() {}
 func (p Metrics) IsMilpaObject()     {}
 func (p MetricsList) IsMilpaObject() {}
 
@@ -1141,118 +1069,6 @@ type UnitStatus struct {
 	Image                string    `json:"image"`
 	Ready                bool      `json:"ready"`
 	Started              *bool     `json:"started"`
-}
-
-// Usage holds usage information for a cloud resource (typically a
-// node)
-type Usage struct {
-	TypeMeta   `json:",inline,squash"`
-	ObjectMeta `json:"metadata"`
-	// Name of the cloud provider (AWS, Google, etc.)
-	Provider string `json:"provider,omitempty"`
-	// Keeps track of our instance usage.
-	Instance *InstanceUsage `json:"instance,omitempty"`
-	// Keeps track of the usage of additional attached resources like
-	// GPU, TPU, etc. Does not track GPUs that are part of an AWS
-	// machine type.
-	Peripheral *PeripheralUsage `json:"peripheral,omitempty"`
-	// Usage of attached disk storage.
-	Storage *StorageUsage `json:"storage,omitempty"`
-	// Tracks usage of network resources like VPN endpoints, NAT
-	//gateways and ELBs.
-	Network *NetworkUsage `json:"network,omitempty"`
-}
-
-type InstanceUsage struct {
-	// Name of the cloud instance type.
-	Type string `json:"type"`
-	// Spot will be true if the instance is a spot instance.
-	Spot bool `json:"spot"`
-}
-
-type PeripheralType string
-
-const (
-	PeripheralGPU PeripheralType = "GPU"
-	PeripheralTPU PeripheralType = "TPU"
-)
-
-type PeripheralUsage struct {
-	// The type of peripheral that is being used with a cloud
-	// instance.  Examples would be an Elastic GPU, external GPU or
-	// TPU but not the GPUs that automatically come with a gpu
-	// instance.
-	Type PeripheralType `json:"type"`
-	// Number of attached resources of the given type.
-	Count int64 `json:"count"`
-}
-
-type StorageType string
-
-const (
-	StorageGP2         StorageType = "gp2"
-	StorageStandardSSD StorageType = "StandardSSD"
-)
-
-type StorageUsage struct {
-	// Question: do we want a storage type AND subtype?  Do we need that?
-
-	// The type of storage being used by an instance.
-	Type StorageType `json:"type"`
-	// The size of the Storage resource
-	Size int64 `json:"size"`
-}
-
-type NetworkType string
-
-const (
-	NetworkTypeELB NetworkType = "ELB-Classic"
-)
-
-type NetworkUsage struct {
-	// The type of network resource we are using.  Examples would be a
-	// cloud NAT instance or a cloud load balancer.
-	Type  NetworkType `json:"type"`
-	Count int64       `json:"count"`
-}
-
-type UsageReport struct {
-	TypeMeta   `json:",inline,squash"`
-	ObjectMeta `json:"metadata"`
-	// Other options for report time window names:
-	// Start, End
-	// ReportStart, ReportEnd
-	// ReportPeriodStart, ReportPeriodEnd
-	// UsageStart, UsageEnd
-	// WindowStart, WindowEnd
-	PeriodStart Time             `json:"periodStart"`
-	PeriodEnd   Time             `json:"periodEnd"`
-	Instance    InstanceReport   `json:"instance"`
-	Peripheral  PeripheralReport `json:"peripheral"`
-	Storage     StorageReport    `json:"storage"`
-	Network     NetworkReport    `json:"network"`
-	TotalCost   float32          `json:"totalCost"`
-}
-
-type InstanceReport struct {
-	Usage map[string]float64 `json:"usage"`
-}
-
-type PeripheralReport struct {
-	Usage map[string]float64 `json:"usage"`
-}
-
-type StorageReport struct {
-	Usage map[string]float64 `json:"usage"`
-}
-
-type NetworkReport struct {
-	Usage map[string]float64 `json:"usage"`
-}
-
-type UsageList struct {
-	TypeMeta `json:",inline"`
-	Items    []*Usage `json:"items"`
 }
 
 type Metrics struct {

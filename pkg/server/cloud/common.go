@@ -7,6 +7,40 @@ import (
 	"k8s.io/klog"
 )
 
+// Service port definition. This is a TCP or UDP port that a Service uses.
+type InstancePort struct {
+	// Name of the Service port.
+	Name string `json:"name"`
+	// Protocol. Can be "TCP", "UDP" or "ICMP".
+	Protocol api.Protocol `json:"protocol"`
+	// Port number. Not used for "ICMP".
+	Port int `json:"port"`
+	// portRangeSize is the contiguous ports number that are exposed
+	// by this service. Given port = 80 and portRangeSize = 100, the
+	// InstancePort will represent a range of ports from 80-179 (100
+	// ports in total). In this case, port means the starting port of
+	// a range.
+	PortRangeSize int `json:"portRangeSize,omitempty"`
+}
+
+//Allow ports to be sorted
+type SortableSliceOfPorts []InstancePort
+
+func (p SortableSliceOfPorts) Len() int           { return len(p) }
+func (p SortableSliceOfPorts) Less(i, j int) bool { return lessPorts(p[i], p[j]) }
+func (p SortableSliceOfPorts) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func lessPorts(lhs, rhs InstancePort) bool {
+	if lhs.Port != rhs.Port {
+		return lhs.Port < rhs.Port
+	} else if lhs.Protocol < rhs.Protocol {
+		return lhs.Protocol < rhs.Protocol
+	} else if lhs.PortRangeSize != rhs.PortRangeSize {
+		return lhs.PortRangeSize < rhs.PortRangeSize
+	} else {
+		return lhs.Name < rhs.Name
+	}
+}
+
 // Diffing rules got a little nasty... We take the cross of the
 // service ports and sourceRanges and each value becomes an
 // IngressRule
@@ -38,7 +72,7 @@ func ingressRuleDiff(spec, status map[IngressRule]struct{}) ([]IngressRule, []In
 	return add, delete
 }
 
-func makeIngressRulesMap(ports []api.ServicePort, sourceRanges []string) map[IngressRule]struct{} {
+func makeIngressRulesMap(ports []InstancePort, sourceRanges []string) map[IngressRule]struct{} {
 	rules := make(map[IngressRule]struct{})
 	for _, port := range ports {
 		for _, source := range sourceRanges {
@@ -48,7 +82,7 @@ func makeIngressRulesMap(ports []api.ServicePort, sourceRanges []string) map[Ing
 	return rules
 }
 
-func MakeIngressRules(ports []api.ServicePort, sourceRanges []string) []IngressRule {
+func MakeIngressRules(ports []InstancePort, sourceRanges []string) []IngressRule {
 	rules := make([]IngressRule, 0, len(ports)*len(sourceRanges))
 	for _, port := range ports {
 		for _, source := range sourceRanges {
@@ -58,7 +92,7 @@ func MakeIngressRules(ports []api.ServicePort, sourceRanges []string) []IngressR
 	return rules
 }
 
-func NewIngressRule(port api.ServicePort, source string) IngressRule {
+func NewIngressRule(port InstancePort, source string) IngressRule {
 	return IngressRule{
 		Port:          port.Port,
 		PortRangeSize: port.PortRangeSize,
@@ -67,7 +101,7 @@ func NewIngressRule(port api.ServicePort, source string) IngressRule {
 	}
 }
 
-func MergeSecurityGroups(cloudSG SecurityGroup, specPorts []api.ServicePort, specSourceRanges []string) ([]IngressRule, []IngressRule) {
+func MergeSecurityGroups(cloudSG SecurityGroup, specPorts []InstancePort, specSourceRanges []string) ([]IngressRule, []IngressRule) {
 	// Explode the cross of ports and sources into IngressRules
 	// Do a diff of those and use that for updating rules
 	status := makeIngressRulesMap(cloudSG.Ports, cloudSG.SourceRanges)

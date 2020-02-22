@@ -230,13 +230,15 @@ func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.
 	standbyToNumNeeded := make(map[StandbyNodeSpec]int)
 	for _, standbySpec := range s.standbyNodes {
 		neededNodes := standbySpec.Count
-		for i, node := range unboundNodes {
+		for i := 0; i < len(unboundNodes); i++ {
+			node := unboundNodes[i]
 			if neededNodes == 0 {
 				break
 			}
 			if s.nodeMatchesStandbySpec(node, &standbySpec) {
 				neededNodes -= 1
 				unboundNodes = append(unboundNodes[:i], unboundNodes[i+1:]...)
+				i--
 			}
 		}
 		standbyToNumNeeded[standbySpec] = neededNodes

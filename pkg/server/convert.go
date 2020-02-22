@@ -149,12 +149,12 @@ func containerToUnit(container v1.Container) api.Unit {
 	}
 	for _, port := range container.Ports {
 		unit.Ports = append(unit.Ports,
-			api.ServicePort{
+			api.ContainerPort{
 				Name:          port.Name,
-				Port:          int(port.HostPort),
-				NodePort:      int(port.ContainerPort),
+				HostPort:      port.HostPort,
+				ContainerPort: port.ContainerPort,
 				Protocol:      api.Protocol(string(port.Protocol)),
-				PortRangeSize: 1,
+				HostIP:        port.HostIP,
 			})
 	}
 	for _, vm := range container.VolumeMounts {
@@ -195,9 +195,10 @@ func unitToContainer(unit api.Unit, container *v1.Container) v1.Container {
 		container.Ports = append(container.Ports,
 			v1.ContainerPort{
 				Name:          port.Name,
-				ContainerPort: int32(port.NodePort),
-				HostPort:      int32(port.Port),
+				ContainerPort: port.ContainerPort,
+				HostPort:      port.HostPort,
 				Protocol:      v1.Protocol(string(port.Protocol)),
+				HostIP:        port.HostIP,
 			})
 	}
 	usc := unit.SecurityContext

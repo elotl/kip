@@ -90,18 +90,3 @@ func TestValidateStatefulPodSpecSustainedCPU(t *testing.T) {
 		assert.Len(t, errs, testCase.numErrs, "test %d failed", i)
 	}
 }
-
-func TestValidateAzureICMPPorts(t *testing.T) {
-	svc := api.GetFakeService()
-	sv := StatefulValidator{cloudProvider: cloud.ProviderAzure}
-	errs := sv.ValidateService(svc)
-	assert.Len(t, errs, 0)
-	svc.Spec.Ports = append(svc.Spec.Ports,
-		api.ServicePort{
-			Name:     "foo",
-			Protocol: api.ProtocolICMP,
-			Port:     -1,
-		})
-	errs = sv.ValidateService(svc)
-	assert.Len(t, errs, 1)
-}
