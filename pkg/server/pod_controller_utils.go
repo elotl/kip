@@ -27,7 +27,7 @@ func setPodRunning(pod *api.Pod, nodeName string, podRegistry *registry.PodRegis
 		pod.Status.InitUnitStatuses[i] = api.UnitStatus{
 			Name: pod.Spec.InitUnits[i].Name,
 			State: api.UnitState{
-				Waiting: &api.UnitStateWaiting{Reason: "Initializing"},
+				Waiting: &api.UnitStateWaiting{Reason: "PodInitializing"},
 			},
 			Image: pod.Spec.InitUnits[i].Image,
 		}
@@ -37,7 +37,7 @@ func setPodRunning(pod *api.Pod, nodeName string, podRegistry *registry.PodRegis
 		pod.Status.UnitStatuses[i] = api.UnitStatus{
 			Name: pod.Spec.Units[i].Name,
 			State: api.UnitState{
-				Waiting: &api.UnitStateWaiting{Reason: "Initializing"},
+				Waiting: &api.UnitStateWaiting{Reason: "PodInitializing"},
 			},
 			Image: pod.Spec.Units[i].Image,
 		}
