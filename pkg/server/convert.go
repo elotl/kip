@@ -19,6 +19,28 @@ const (
 )
 
 func getStatus(internalIP string, milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
+	// Todo: make the call if this should be the dispatch time of the
+	// pod in milpa.
+	startTime := metav1.NewTime(milpaPod.CreationTimestamp.Time)
+	privateIPv4Address := ""
+	for _, address := range milpaPod.Status.Addresses {
+		if address.Type == api.PrivateIP {
+			privateIPv4Address = address.Address
+		}
+	}
+	initComplete := true
+	initContainerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.InitUnitStatuses))
+	for i, st := range milpaPod.Status.InitUnitStatuses {
+		initContainerStatuses[i] = unitToContainerStatus(st)
+		if st.State.Terminated == nil ||
+			st.State.Terminated.ExitCode != int32(0) {
+			initComplete = false
+		}
+	}
+	containerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.UnitStatuses))
+	for i, st := range milpaPod.Status.UnitStatuses {
+		containerStatuses[i] = unitToContainerStatus(st)
+	}
 	phase := v1.PodUnknown
 	switch milpaPod.Status.Phase {
 	case api.PodWaiting:
@@ -34,22 +56,9 @@ func getStatus(internalIP string, milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
 	case api.PodTerminated:
 		phase = v1.PodFailed
 	}
-	// Todo: make the call if this should be the dispatch time of the
-	// pod in milpa.
-	startTime := metav1.NewTime(milpaPod.CreationTimestamp.Time)
-	privateIPv4Address := ""
-	for _, address := range milpaPod.Status.Addresses {
-		if address.Type == api.PrivateIP {
-			privateIPv4Address = address.Address
-		}
-	}
-	initContainerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.InitUnitStatuses))
-	for i, st := range milpaPod.Status.InitUnitStatuses {
-		initContainerStatuses[i] = unitToContainerStatus(st)
-	}
-	containerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.UnitStatuses))
-	for i, st := range milpaPod.Status.UnitStatuses {
-		containerStatuses[i] = unitToContainerStatus(st)
+	// in k8s, a pod that has init containers running is in Pending phase
+	if phase == v1.PodRunning && !initComplete {
+		phase = v1.PodPending
 	}
 	// We use the implementation from Kubernetes here to determine conditions.
 	conditions := []v1.PodCondition{}
@@ -310,6 +319,38 @@ func k8sToMilpaVolume(vol v1.Volume) *api.Volume {
 				},
 			},
 		}
+	} else if vol.Projected != nil {
+		projVol := &api.ProjectedVolumeSource{
+			DefaultMode: vol.Projected.DefaultMode,
+		}
+		projVol.Sources = make([]api.VolumeProjection, len(vol.Projected.Sources))
+		for i, src := range vol.Projected.Sources {
+			if src.Secret != nil {
+				apiSecret := &api.SecretProjection{
+					LocalObjectReference: api.LocalObjectReference{
+						Name: src.Secret.Name,
+					},
+					Items:    convertKeyToPath(src.Secret.Items),
+					Optional: src.Secret.Optional,
+				}
+				projVol.Sources[i].Secret = apiSecret
+			} else if src.ConfigMap != nil {
+				apiCM := &api.ConfigMapProjection{
+					LocalObjectReference: api.LocalObjectReference{
+						Name: src.ConfigMap.Name,
+					},
+					Items:    convertKeyToPath(src.ConfigMap.Items),
+					Optional: src.ConfigMap.Optional,
+				}
+				projVol.Sources[i].ConfigMap = apiCM
+			}
+		}
+		return &api.Volume{
+			Name: vol.Name,
+			VolumeSource: api.VolumeSource{
+				Projected: projVol,
+			},
+		}
 	} else {
 		klog.Warningf("Unsupported volume type for volume: %s", vol.Name)
 		return &api.Volume{
@@ -391,6 +432,38 @@ func milpaToK8sVolume(vol api.Volume) *v1.Volume {
 					Medium:    v1.StorageMedium(string(vol.EmptyDir.Medium)),
 					SizeLimit: sizeLimit,
 				},
+			},
+		}
+	} else if vol.Projected != nil {
+		projVol := &v1.ProjectedVolumeSource{
+			DefaultMode: vol.Projected.DefaultMode,
+		}
+		projVol.Sources = make([]v1.VolumeProjection, len(vol.Projected.Sources))
+		for i, src := range vol.Projected.Sources {
+			if src.Secret != nil {
+				k8Secret := &v1.SecretProjection{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: src.Secret.Name,
+					},
+					Items:    convertKeyToPath(src.Secret.Items),
+					Optional: src.Secret.Optional,
+				}
+				projVol.Sources[i].Secret = k8Secret
+			} else if src.ConfigMap != nil {
+				k8CM := &v1.ConfigMapProjection{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: src.ConfigMap.Name,
+					},
+					Items:    convertKeyToPath(src.ConfigMap.Items),
+					Optional: src.ConfigMap.Optional,
+				}
+				projVol.Sources[i].ConfigMap = k8CM
+			}
+		}
+		return &v1.Volume{
+			Name: vol.Name,
+			VolumeSource: v1.VolumeSource{
+				Projected: projVol,
 			},
 		}
 	} else if vol.PackagePath != nil {
