@@ -335,12 +335,20 @@ func (c *PodController) updatePodUnits(pod *api.Pod) error {
 	if err != nil {
 		return util.WrapError(err, "Unable to sync pod: %s bad Pod.Spec.ImagePullSecret", pod.Name)
 	}
+	ns, name := util.SplitNamespaceAndName(pod.Name)
+	podHostname, err := util.GeneratePodHostname(
+		c.dnsConfigurer, name, ns, pod.Spec.Hostname, pod.Spec.Subdomain)
+	if err != nil {
+		return util.WrapError(err,
+			"unable to sync pod %s: generating hostname: %v", pod.Name, err)
+	}
 	podParams := api.PodParameters{
 		Credentials: podCreds,
 		Spec:        pod.Spec,
 		PodName:     pod.Name,
 		NodeName:    c.kubernetesNodeName,
 		PodIP:       api.GetPodIP(node.Status.Addresses),
+		PodHostname: podHostname,
 	}
 	return client.UpdateUnits(podParams)
 }
@@ -415,6 +423,14 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 	err = deployResolvconf(pod, node, c.dnsConfigurer, c.nodeClientFactory)
 	if err != nil {
 		msg := fmt.Sprintf("Error deploying resolv.conf to node for pod %s: %v", pod.Name, err)
+		klog.Errorln(msg)
+		c.markFailedPod(pod, true, msg)
+		return
+	}
+
+	err = deployEtcHosts(pod, node, c.dnsConfigurer, c.nodeClientFactory)
+	if err != nil {
+		msg := fmt.Sprintf("Error deploying /etc/hosts to node for pod %s: %v", pod.Name, err)
 		klog.Errorln(msg)
 		c.markFailedPod(pod, true, msg)
 		return

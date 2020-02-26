@@ -319,3 +319,40 @@ func createResolvconf(podName string, dnsconf *runtimeapi.DNSConfig) ([]byte, er
 	}
 	return buf.Bytes(), nil
 }
+
+func deployEtcHosts(pod *api.Pod, node *api.Node, dnsConfigurer *dns.Configurer, nodeClientFactory nodeclient.ItzoClientFactoryer) error {
+	if dnsConfigurer == nil {
+		return fmt.Errorf("no DNS configurer")
+	}
+	client := nodeClientFactory.GetClient(node.Status.Addresses)
+	namespace, podName := util.SplitNamespaceAndName(pod.Name)
+	podIPs := []string{api.GetPodIP(node.Status.Addresses)}
+	useHostNetwork := api.IsHostNetwork(pod.Spec.SecurityContext)
+	data, err := util.CreateEtcHosts(
+		dnsConfigurer,
+		podName,
+		namespace,
+		pod.Spec.Hostname,
+		pod.Spec.Subdomain,
+		podIPs,
+		pod.Spec.HostAliases,
+		useHostNetwork)
+	if err != nil {
+		return util.WrapError(err, "creating pod /etc/hosts")
+	}
+	payload, err := makeDeployPackage(map[string]packageFile{
+		"/etc/hosts": packageFile{
+			data: data,
+			mode: 0644,
+		},
+	})
+	if err != nil {
+		return util.WrapError(err, "creating pod /etc/hosts package")
+	}
+	err = client.Deploy(pod.Name, etchostsVolumeName, bufio.NewReader(payload))
+	if err != nil {
+		return util.WrapError(
+			err, "error deploying /etc/hosts package to %s", pod.Name)
+	}
+	return nil
+}
