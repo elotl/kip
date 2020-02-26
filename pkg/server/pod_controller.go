@@ -344,7 +344,7 @@ func (c *PodController) updatePodUnits(pod *api.Pod) error {
 	}
 	podParams := api.PodParameters{
 		Credentials: podCreds,
-		Spec:        pod.Spec,
+		Spec:        util.ExpandCommandAndArgs(pod.Spec),
 		PodName:     pod.Name,
 		NodeName:    c.kubernetesNodeName,
 		PodIP:       api.GetPodIP(node.Status.Addresses),
