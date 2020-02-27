@@ -25,7 +25,7 @@ variable "k8s-version" {
   default = ""
 }
 
-variable "worker-disk-size" {
+variable "node-disk-size" {
   default = 15
 }
 
@@ -34,7 +34,7 @@ variable "blacklisted-azs" {
   default = ["use1-az3"]
 }
 
-variable "worker-ami" {
+variable "node-ami" {
   default = ""
 }
 

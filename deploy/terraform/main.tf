@@ -39,7 +39,7 @@ resource "aws_internet_gateway" "gw" {
 
   provisioner "local-exec" {
     when        = destroy
-    command     = "./cleanup-vpc.sh ${self.id} ${var.cluster-name}"
+    command     = "./cleanup-vpc.sh ${self.vpc_id} ${var.cluster-name}"
     interpreter = ["/bin/bash", "-c"]
     environment = {
       "AWS_REGION"         = var.region
@@ -115,8 +115,8 @@ resource "aws_security_group" "kubernetes" {
   tags = local.k8s_cluster_tags
 }
 
-resource "aws_iam_role" "k8s-master" {
-  name               = "k8s-master-${var.cluster-name}"
+resource "aws_iam_role" "k8s-node" {
+  name               = "k8s-node-${var.cluster-name}"
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -133,9 +133,9 @@ resource "aws_iam_role" "k8s-master" {
 EOF
 }
 
-resource "aws_iam_role_policy" "k8s-master" {
-  name = "k8s-master-${var.cluster-name}"
-  role = aws_iam_role.k8s-master.id
+resource "aws_iam_role_policy" "k8s-node" {
+  name = "k8s-node-${var.cluster-name}"
+  role = aws_iam_role.k8s-node.id
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -159,57 +159,77 @@ resource "aws_iam_role_policy" "k8s-master" {
         "ec2:DeleteRoute",
         "ec2:DeleteSecurityGroup",
         "ec2:DeleteVolume",
+        "ec2:DescribeAddresses",
+        "ec2:DescribeElasticGpus",
+        "ec2:DescribeImages",
         "ec2:DescribeInstances",
         "ec2:DescribeNetworkInterfaces",
         "ec2:DescribeRegions",
         "ec2:DescribeRouteTables",
         "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSpotPriceHistory",
         "ec2:DescribeSubnets",
         "ec2:DescribeTags",
         "ec2:DescribeVolumes",
+        "ec2:DescribeVpcAttribute",
         "ec2:DescribeVpcs",
         "ec2:DetachNetworkInterface",
         "ec2:DetachVolume",
         "ec2:ModifyInstanceAttribute",
+        "ec2:ModifyInstanceCreditSpecification",
         "ec2:ModifyNetworkInterfaceAttribute",
         "ec2:ModifyVolume",
+        "ec2:ModifyVpcAttribute",
+        "ec2:RequestSpotInstances",
         "ec2:RevokeSecurityGroupIngress",
+        "ec2:RunInstances",
+        "ec2:TerminateInstances",
         "ec2:UnassignPrivateIpAddresses",
-        "ecr:GetAuthorizationToken",
         "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:DescribeRepositories",
+        "ecr:GetAuthorizationToken",
         "ecr:GetDownloadUrlForLayer",
         "ecr:GetRepositoryPolicy",
-        "ecr:DescribeRepositories",
         "ecr:ListImages",
-        "ecr:BatchGetImage",
+        "ecs:CreateCluster",
+        "ecs:DeregisterTaskDefinition",
+        "ecs:DescribeClusters",
+        "ecs:DescribeTasks",
+        "ecs:ListAccountSettings",
+        "ecs:ListTaskDefinitions",
+        "ecs:ListTasks",
+        "ecs:PutAccountSetting",
+        "ecs:RegisterTaskDefinition",
+        "ecs:RunTask",
+        "ecs:StopTask",
         "elasticloadbalancing:AddTags",
-        "elasticloadbalancing:AttachLoadBalancerToSubnets",
         "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
-        "elasticloadbalancing:CreateLoadBalancer",
-        "elasticloadbalancing:CreateLoadBalancerPolicy",
-        "elasticloadbalancing:CreateLoadBalancerListeners",
+        "elasticloadbalancing:AttachLoadBalancerToSubnets",
         "elasticloadbalancing:ConfigureHealthCheck",
-        "elasticloadbalancing:DeleteLoadBalancer",
-        "elasticloadbalancing:DeleteLoadBalancerListeners",
-        "elasticloadbalancing:DescribeLoadBalancers",
-        "elasticloadbalancing:DescribeLoadBalancerAttributes",
-        "elasticloadbalancing:DetachLoadBalancerFromSubnets",
-        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-        "elasticloadbalancing:ModifyLoadBalancerAttributes",
-        "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
-        "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
-        "elasticloadbalancing:AddTags",
         "elasticloadbalancing:CreateListener",
+        "elasticloadbalancing:CreateLoadBalancer",
+        "elasticloadbalancing:CreateLoadBalancerListeners",
+        "elasticloadbalancing:CreateLoadBalancerPolicy",
         "elasticloadbalancing:CreateTargetGroup",
         "elasticloadbalancing:DeleteListener",
+        "elasticloadbalancing:DeleteLoadBalancer",
+        "elasticloadbalancing:DeleteLoadBalancerListeners",
         "elasticloadbalancing:DeleteTargetGroup",
+        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
         "elasticloadbalancing:DescribeListeners",
+        "elasticloadbalancing:DescribeLoadBalancerAttributes",
         "elasticloadbalancing:DescribeLoadBalancerPolicies",
+        "elasticloadbalancing:DescribeLoadBalancers",
         "elasticloadbalancing:DescribeTargetGroups",
         "elasticloadbalancing:DescribeTargetHealth",
+        "elasticloadbalancing:DetachLoadBalancerFromSubnets",
         "elasticloadbalancing:ModifyListener",
+        "elasticloadbalancing:ModifyLoadBalancerAttributes",
         "elasticloadbalancing:ModifyTargetGroup",
+        "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
         "elasticloadbalancing:RegisterTargets",
+        "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
         "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
         "iam:CreateServiceLinkedRole",
         "kms:DescribeKey"
@@ -223,101 +243,9 @@ resource "aws_iam_role_policy" "k8s-master" {
 EOF
 }
 
-resource "aws_iam_instance_profile" "k8s-master" {
-  name = "k8s-master-${var.cluster-name}"
-  role = aws_iam_role.k8s-master.name
-}
-
-resource "aws_iam_role" "k8s-worker" {
-  name               = "k8s-worker-${var.cluster-name}"
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy" "k8s-worker" {
-  name = "k8s-worker-${var.cluster-name}"
-  role = aws_iam_role.k8s-worker.id
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "ec2",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:AssignPrivateIpAddresses",
-        "ec2:AttachNetworkInterface",
-        "ec2:AuthorizeSecurityGroupIngress",
-        "ec2:CreateNetworkInterface",
-        "ec2:CreateRoute",
-        "ec2:CreateSecurityGroup",
-        "ec2:CreateTags",
-        "ec2:CreateVolume",
-        "ec2:DeleteNetworkInterface",
-        "ec2:DeleteRoute",
-        "ec2:DeleteSecurityGroup",
-        "ec2:DescribeAddresses",
-        "ec2:DescribeElasticGpus",
-        "ec2:DescribeImages",
-        "ec2:DescribeInstances",
-        "ec2:DescribeNetworkInterfaces",
-        "ec2:DescribeRouteTables",
-        "ec2:DescribeSecurityGroups",
-        "ec2:DescribeSpotPriceHistory",
-        "ec2:DescribeSubnets",
-        "ec2:DescribeTags",
-        "ec2:DescribeVolumes",
-        "ec2:DescribeVpcAttribute",
-        "ec2:DescribeVpcs",
-        "ec2:DetachNetworkInterface",
-        "ec2:ModifyInstanceAttribute",
-        "ec2:ModifyInstanceCreditSpecification",
-        "ec2:ModifyNetworkInterfaceAttribute",
-        "ec2:ModifyVolume",
-        "ec2:ModifyVpcAttribute",
-        "ec2:RequestSpotInstances",
-        "ec2:RevokeSecurityGroupIngress",
-        "ec2:RunInstances",
-        "ec2:TerminateInstances",
-        "ec2:UnassignPrivateIpAddresses",
-        "ecr:BatchGetImage",
-        "ecr:GetAuthorizationToken",
-        "ecr:GetDownloadUrlForLayer",
-        "ecr:GetDownloadUrlForLayer",
-        "ecs:CreateCluster",
-        "ecs:DeregisterTaskDefinition",
-        "ecs:DescribeClusters",
-        "ecs:DescribeTasks",
-        "ecs:ListAccountSettings",
-        "ecs:ListTaskDefinitions",
-        "ecs:ListTasks",
-        "ecs:PutAccountSetting",
-        "ecs:RegisterTaskDefinition",
-        "ecs:RunTask",
-        "ecs:StopTask"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_instance_profile" "k8s-worker" {
-  name = "k8s-worker-${var.cluster-name}"
-  role = aws_iam_role.k8s-worker.name
+resource "aws_iam_instance_profile" "k8s-node" {
+  name = "k8s-node-${var.cluster-name}"
+  role = aws_iam_role.k8s-node.name
 }
 
 resource "random_id" "k8stoken-prefix" {
@@ -336,8 +264,8 @@ locals {
   )
 }
 
-data "template_file" "master-userdata" {
-  template = file("master.sh")
+data "template_file" "node-userdata" {
+  template = file("node.sh")
 
   vars = {
     k8stoken                  = local.k8stoken
@@ -345,16 +273,6 @@ data "template_file" "master-userdata" {
     pod_cidr                  = var.pod-cidr
     service_cidr              = var.service-cidr
     virtual_kubelet_manifest  = base64encode(file(var.virtual-kubelet-manifest))
-  }
-}
-
-data "template_file" "worker-userdata" {
-  template = file("worker.sh")
-
-  vars = {
-    k8stoken        = local.k8stoken
-    k8s_version     = var.k8s-version
-    masterIP        = aws_instance.k8s-master.private_ip
   }
 }
 
@@ -374,44 +292,27 @@ data "aws_ami" "ubuntu" {
   owners = ["099720109477"] # Canonical.
 }
 
-resource "aws_instance" "k8s-master" {
-  ami                         = data.aws_ami.ubuntu.id
-  instance_type               = "t3.medium"
-  subnet_id                   = aws_subnet.subnet.id
-  user_data                   = data.template_file.master-userdata.rendered
-  key_name                    = var.ssh-key-name
-  associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.kubernetes.id]
-  iam_instance_profile        = aws_iam_instance_profile.k8s-master.id
-  source_dest_check           = false
-
-  depends_on = [aws_internet_gateway.gw]
-
-  tags = merge(local.k8s_cluster_tags,
-    {"Name" = "${var.cluster-name}-master"})
-}
-
 locals {
-  worker_ami = length(var.worker-ami) > 0 ? var.worker-ami : data.aws_ami.ubuntu.id
+  node_ami = length(var.node-ami) > 0 ? var.node-ami : data.aws_ami.ubuntu.id
 }
 
-resource "aws_instance" "k8s-worker" {
-  ami                         = local.worker_ami
+resource "aws_instance" "k8s-node" {
+  ami                         = local.node_ami
   instance_type               = "t3.medium"
   subnet_id                   = aws_subnet.subnet.id
-  user_data                   = data.template_file.worker-userdata.rendered
+  user_data                   = data.template_file.node-userdata.rendered
   key_name                    = var.ssh-key-name
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.kubernetes.id]
-  iam_instance_profile        = aws_iam_instance_profile.k8s-worker.id
+  iam_instance_profile        = aws_iam_instance_profile.k8s-node.id
   source_dest_check           = false
 
   root_block_device {
-    volume_size = var.worker-disk-size
+    volume_size = var.node-disk-size
   }
 
   depends_on = [aws_internet_gateway.gw]
 
   tags = merge(local.k8s_cluster_tags,
-    {"Name" = "${var.cluster-name}-worker"})
+    {"Name" = "${var.cluster-name}-node"})
 }

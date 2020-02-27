@@ -13,8 +13,9 @@ mkdir -p /etc/docker
 echo -e '{\n"iptables": false\n}' > /etc/docker/daemon.json
 systemctl restart docker.service || true
 
+# Wait for FQDN.
 name=""
-while [[ -z "$name" ]]; do
+while ! echo "$name" | grep '\.'; do
     sleep 1
     name="$(hostname -f)"
 done
@@ -22,7 +23,7 @@ done
 ip=""
 while [[ -z "$ip" ]]; do
     sleep 1
-    ip="$(host $name | awk '{print $4}' | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b')"
+    ip="$(host $name | head -n1 | awk '{print $4}' | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b')"
 done
 
 if [ -z ${k8s_version} ]; then
@@ -72,6 +73,9 @@ mkdir -p /home/ubuntu/.kube
 chown ubuntu: /home/ubuntu/.kube
 cp -i $KUBECONFIG /home/ubuntu/.kube/config
 chown ubuntu: /home/ubuntu/.kube/config
+
+# Remove master taint.
+kubectl taint nodes --all node-role.kubernetes.io/master-
 
 # Create a default storage class, backed by EBS.
 curl -fL https://raw.githubusercontent.com/elotl/milpa-deploy/master/deploy/storageclass-ebs.yaml | kubectl apply -f -
