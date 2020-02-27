@@ -529,9 +529,7 @@ func (c *PodController) handlePodStatusReply(reply FullPodStatus) {
 		return
 	}
 	podIP := api.GetPrivateIP(pod.Status.Addresses)
-	if podIP == "" {
-		pod.Status.Addresses = api.NewNetworkAddresses(reply.PodIP, "")
-	} else if reply.PodIP != "" && podIP != reply.PodIP {
+	if reply.PodIP != "" && podIP != reply.PodIP {
 		// Reply came in after pod has been rescheduled.
 		klog.Errorf("IP for pod %s has changed %s -> %s",
 			reply.Name, reply.PodIP, podIP)
@@ -745,6 +743,15 @@ func (c *PodController) checkRunningPods() {
 func (c *PodController) setPodDispatchingParams(pod *api.Pod, node *api.Node) (*api.Pod, error) {
 	pod.Status.BoundNodeName = node.Name
 	pod.Status.BoundInstanceID = node.Status.InstanceID
+	// The cloud backend has allocated an extra internal IP to this instance.
+	// This will be used for the pod unless the pod has requested host network
+	// mode, in which case the pod will share the main IP address of the
+	// instance.
+	podIP := api.GetPodIP(node.Status.Addresses)
+	if api.IsHostNetwork(pod.Spec.SecurityContext) {
+		podIP = api.GetPrivateIP(node.Status.Addresses)
+	}
+	pod.Status.Addresses = api.NewNetworkAddresses(podIP, "")
 	// The dispatching state is used to keep track of pods
 	// that are creating but have received a node from the
 	// node manager.  Also, if the management console
