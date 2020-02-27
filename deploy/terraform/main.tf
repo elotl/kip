@@ -376,7 +376,7 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_instance" "k8s-master" {
   ami                         = data.aws_ami.ubuntu.id
-  instance_type               = "t2.medium"
+  instance_type               = "t3.medium"
   subnet_id                   = aws_subnet.subnet.id
   user_data                   = data.template_file.master-userdata.rendered
   key_name                    = var.ssh-key-name
@@ -397,7 +397,7 @@ locals {
 
 resource "aws_instance" "k8s-worker" {
   ami                         = local.worker_ami
-  instance_type               = "t2.medium"
+  instance_type               = "t3.medium"
   subnet_id                   = aws_subnet.subnet.id
   user_data                   = data.template_file.worker-userdata.rendered
   key_name                    = var.ssh-key-name
