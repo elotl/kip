@@ -519,6 +519,90 @@ func TestMilpaToK8sVolume(t *testing.T) {
 	}
 }
 
+func TestProjectedVolumeConversion(t *testing.T) {
+	falseVal := false
+	volMode := int32(0555)
+	secMode := int32(0400)
+	cmMode := int32(0400)
+	tests := []struct {
+		sources []api.VolumeProjection
+	}{
+		{
+			sources: []api.VolumeProjection{
+				{
+					Secret: &api.SecretProjection{
+						LocalObjectReference: api.LocalObjectReference{"sec1"},
+						Items: []api.KeyToPath{
+							{
+								Key:  "sec1Key1",
+								Path: "sec1/Key1",
+								Mode: &secMode,
+							},
+							{
+								Key:  "sec1Key2",
+								Path: "sec1/Key2",
+								Mode: &secMode,
+							},
+						},
+						Optional: &falseVal,
+					},
+				},
+				{
+					Secret: &api.SecretProjection{
+						LocalObjectReference: api.LocalObjectReference{"sec2"},
+						Items: []api.KeyToPath{
+							{
+								Key:  "sec2Key1",
+								Path: "sec2/Key1",
+								Mode: &secMode,
+							},
+							{
+								Key:  "sec2Key2",
+								Path: "sec2/Key2",
+								Mode: &secMode,
+							},
+						},
+						Optional: &falseVal,
+					},
+				},
+				{
+					ConfigMap: &api.ConfigMapProjection{
+						LocalObjectReference: api.LocalObjectReference{"cm1"},
+						Items: []api.KeyToPath{
+							{
+								Key:  "cm1Key1",
+								Path: "cm1/Key1",
+								Mode: &secMode,
+							},
+							{
+								Key:  "cm1Key2",
+								Path: "cm1/Key2",
+								Mode: &cmMode,
+							},
+						},
+						Optional: nil,
+					},
+				},
+			},
+		},
+	}
+	for i, tc := range tests {
+		name := fmt.Sprintf("testcase %d", i)
+		milpaVol := api.Volume{
+			Name: name,
+			VolumeSource: api.VolumeSource{
+				Projected: &api.ProjectedVolumeSource{
+					Sources:     tc.sources,
+					DefaultMode: &volMode,
+				},
+			},
+		}
+		kv := milpaToK8sVolume(milpaVol)
+		mv := k8sToMilpaVolume(*kv)
+		assert.Equal(t, milpaVol, *mv)
+	}
+}
+
 //func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error)
 //func milpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error)
 func TestMilpaToK8sPod(t *testing.T) {

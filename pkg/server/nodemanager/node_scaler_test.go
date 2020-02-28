@@ -225,6 +225,27 @@ func TestMachingPodToStandbyPool(t *testing.T) {
 	assert.Equal(t, node.Name, bindings[pod.Name])
 }
 
+func TestFullStandbyPool(t *testing.T) {
+	ns, closer := makeNodeScaler()
+	defer closer()
+	standbySpec := StandbyNodeSpec{
+		InstanceType: "t3.nano",
+		Spot:         false,
+		Count:        2,
+	}
+	ns.standbyNodes = []StandbyNodeSpec{standbySpec}
+	nodeReg := ns.nodeRegistry.(*registry.NodeRegistry)
+	n1 := ns.createNodeForStandbySpec(&standbySpec)
+	_, err := nodeReg.CreateNode(n1)
+	assert.NoError(t, err)
+	n2 := ns.createNodeForStandbySpec(&standbySpec)
+	_, err = nodeReg.CreateNode(n2)
+	assert.NoError(t, err)
+	start, stop, _ := ns.Compute([]*api.Node{n1, n2}, []*api.Pod{})
+	assert.Len(t, start, 0)
+	assert.Len(t, stop, 0)
+}
+
 func TestNodeScalerDiskMatches(t *testing.T) {
 	defaultVolumeSize := "5G"
 	tests := []struct {

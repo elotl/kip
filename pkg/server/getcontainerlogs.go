@@ -38,6 +38,7 @@ func (p *InstanceProvider) getContainerLogs(podName, containerName string, opts 
 	limit := opts.LimitBytes
 	foundLog, err := p.findLog(podName, containerName, lines, limit)
 	if err != nil {
+		klog.Errorf("finding logs for %q/%q: %v", podName, containerName, err)
 		return nil, util.WrapError(
 			err, "finding logs for %q/%q", podName, containerName)
 	}

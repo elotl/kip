@@ -22,3 +22,4 @@ kubeconfig
 *.tfstate
 *.tfstate.backup
 *.tfvars
+deploy/terraform/.terraform/

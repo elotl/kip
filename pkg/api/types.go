@@ -290,6 +290,8 @@ type VolumeSource struct {
 	// More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
 	// +optional
 	HostPath *HostPathVolumeSource `json:"hostPath,omitempty"`
+	// Items for all in one resources secrets, configmaps, and downward API
+	Projected *ProjectedVolumeSource `json:"projected,omitempty"`
 }
 
 // Represents a host path mapped into a pod.
@@ -429,6 +431,137 @@ type PackagePath struct {
 	// Path of the directory or file on the host.
 	Path string `json:"path"`
 }
+
+// Represents a projected volume source
+type ProjectedVolumeSource struct {
+	// list of volume projections
+	Sources []VolumeProjection `json:"sources"`
+	// Mode bits to use on created files by default. Must be a value between
+	// 0 and 0777.
+	// Directories within the path are not affected by this setting.
+	// This might be in conflict with other options that affect the file
+	// mode, like fsGroup, and the result can be other mode bits set.
+	// +optional
+	DefaultMode *int32 `json:"defaultMode,omitempty"`
+}
+
+// Projection that may be projected along with other supported volume types
+type VolumeProjection struct {
+	// all types below are the supported types for projection into the same volume
+
+	// information about the secret data to project
+	// +optional
+	Secret *SecretProjection `json:"secret,omitempty"`
+	// // information about the downwardAPI data to project
+	// // +optional
+	// DownwardAPI *DownwardAPIProjection `json:"downwardAPI,omitempty"`
+	// information about the configMap data to project
+	// +optional
+	ConfigMap *ConfigMapProjection `json:"configMap,omitempty"`
+	// information about the serviceAccountToken data to project
+	// +optional
+	//ServiceAccountToken *ServiceAccountTokenProjection `json:"serviceAccountToken,omitempty"`
+}
+
+const (
+	ProjectedVolumeSourceDefaultMode int32 = 0644
+	SecretVolumeSourceDefaultMode    int32 = 0644
+	ConfigMapVolumeSourceDefaultMode int32 = 0644
+)
+
+// Adapts a secret into a projected volume.
+//
+// The contents of the target Secret's Data field will be presented in a
+// projected volume as files using the keys in the Data field as the file names.
+// Note that this is identical to a secret volume source without the default
+// mode.
+type SecretProjection struct {
+	LocalObjectReference `json:",inline" protobuf:"bytes,1,opt,name=localObjectReference"`
+	// If unspecified, each key-value pair in the Data field of the referenced
+	// Secret will be projected into the volume as a file whose name is the
+	// key and content is the value. If specified, the listed keys will be
+	// projected into the specified paths, and unlisted keys will not be
+	// present. If a key is specified which is not present in the Secret,
+	// the volume setup will error unless it is marked optional. Paths must be
+	// relative and may not contain the '..' path or start with '..'.
+	// +optional
+	Items []KeyToPath `json:"items,omitempty" protobuf:"bytes,2,rep,name=items"`
+	// Specify whether the Secret or its key must be defined
+	// +optional
+	Optional *bool `json:"optional,omitempty" protobuf:"varint,4,opt,name=optional"`
+}
+
+// Adapts a ConfigMap into a projected volume.
+//
+// The contents of the target ConfigMap's Data field will be presented in a
+// projected volume as files using the keys in the Data field as the file names,
+// unless the items element is populated with specific mappings of keys to paths.
+// Note that this is identical to a configmap volume source without the default
+// mode.
+type ConfigMapProjection struct {
+	LocalObjectReference `json:",inline" protobuf:"bytes,1,opt,name=localObjectReference"`
+	// If unspecified, each key-value pair in the Data field of the referenced
+	// ConfigMap will be projected into the volume as a file whose name is the
+	// key and content is the value. If specified, the listed keys will be
+	// projected into the specified paths, and unlisted keys will not be
+	// present. If a key is specified which is not present in the ConfigMap,
+	// the volume setup will error unless it is marked optional. Paths must be
+	// relative and may not contain the '..' path or start with '..'.
+	// +optional
+	Items []KeyToPath `json:"items,omitempty" protobuf:"bytes,2,rep,name=items"`
+	// Specify whether the ConfigMap or its keys must be defined
+	// +optional
+	Optional *bool `json:"optional,omitempty" protobuf:"varint,4,opt,name=optional"`
+}
+
+// // Represents downward API info for projecting into a projected volume.
+// // Note that this is identical to a downwardAPI volume source without the default
+// // mode.
+// type DownwardAPIProjection struct {
+// 	// Items is a list of DownwardAPIVolume file
+// 	// +optional
+// 	Items []DownwardAPIVolumeFile `json:"items,omitempty" protobuf:"bytes,1,rep,name=items"`
+// }
+
+// // DownwardAPIVolumeFile represents information to create the file containing the pod field
+// type DownwardAPIVolumeFile struct {
+// 	// Required: Path is  the relative path name of the file to be created. Must not be absolute or contain the '..' path. Must be utf-8 encoded. The first item of the relative path must not start with '..'
+// 	Path string `json:"path" protobuf:"bytes,1,opt,name=path"`
+// 	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
+// 	// +optional
+// 	FieldRef *ObjectFieldSelector `json:"fieldRef,omitempty" protobuf:"bytes,2,opt,name=fieldRef"`
+// 	// Selects a resource of the container: only resources limits and requests
+// 	// (limits.cpu, limits.memory, requests.cpu and requests.memory) are currently supported.
+// 	// +optional
+// 	ResourceFieldRef *ResourceFieldSelector `json:"resourceFieldRef,omitempty" protobuf:"bytes,3,opt,name=resourceFieldRef"`
+// 	// Optional: mode bits to use on this file, must be a value between 0
+// 	// and 0777. If not specified, the volume defaultMode will be used.
+// 	// This might be in conflict with other options that affect the file
+// 	// mode, like fsGroup, and the result can be other mode bits set.
+// 	// +optional
+// 	Mode *int32 `json:"mode,omitempty" protobuf:"varint,4,opt,name=mode"`
+// }
+
+// // ObjectFieldSelector selects an APIVersioned field of an object.
+// type ObjectFieldSelector struct {
+// 	// Version of the schema the FieldPath is written in terms of, defaults to "v1".
+// 	// +optional
+// 	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,1,opt,name=apiVersion"`
+// 	// Path of the field to select in the specified API version.
+// 	FieldPath string `json:"fieldPath" protobuf:"bytes,2,opt,name=fieldPath"`
+// }
+
+// // ResourceFieldSelector represents container resources (cpu, memory) and their output format
+// type ResourceFieldSelector struct {
+// 	// Container name: required for volumes, optional for env vars
+// 	// +optional
+// 	ContainerName string `json:"containerName,omitempty" protobuf:"bytes,1,opt,name=containerName"`
+// 	// Required: resource to select
+// 	Resource string `json:"resource" protobuf:"bytes,2,opt,name=resource"`
+// 	// Specifies the output format of the exposed resources, defaults to "1"
+// 	// +optional
+// 	Divisor resource.Quantity `json:"divisor,omitempty" protobuf:"bytes,3,opt,name=divisor"`
+// }
 
 const (
 	ContainerInstanceType = "ContainerInstance"

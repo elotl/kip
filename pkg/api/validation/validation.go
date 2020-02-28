@@ -455,7 +455,9 @@ func validateVolumeSource(source *api.VolumeSource, fldPath *field.Path) field.E
 		allErrs = append(allErrs, validateHostPathVolumeSource(source.HostPath, fldPath)...)
 	}
 
-	if source.ConfigMap != nil || source.Secret != nil {
+	if source.ConfigMap != nil ||
+		source.Secret != nil ||
+		source.Projected != nil {
 		numVolumes++
 	}
 
