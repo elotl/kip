@@ -16,6 +16,7 @@ import (
 const (
 	ResourceLimitsGPU    v1.ResourceName = "nvidia.com/gpu"
 	resolvconfVolumeName                 = "resolvconf"
+	etchostsVolumeName                   = "etchosts"
 )
 
 func getStatus(internalIP string, milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
@@ -167,6 +168,10 @@ func containerToUnit(container v1.Container) api.Unit {
 		Name:      resolvconfVolumeName,
 		MountPath: "/etc/resolv.conf",
 	})
+	unit.VolumeMounts = append(unit.VolumeMounts, api.VolumeMount{
+		Name:      etchostsVolumeName,
+		MountPath: "/etc/hosts",
+	})
 	//container.EnvFrom,
 	unit.StartupProbe = k8sProbeToMilpaProbe(container.StartupProbe)
 	unit.ReadinessProbe = k8sProbeToMilpaProbe(container.ReadinessProbe)
@@ -225,7 +230,7 @@ func unitToContainer(unit api.Unit, container *v1.Container) v1.Container {
 		}
 	}
 	for _, vm := range unit.VolumeMounts {
-		if vm.Name == resolvconfVolumeName {
+		if vm.Name == resolvconfVolumeName || vm.Name == etchostsVolumeName {
 			continue
 		}
 		container.VolumeMounts = append(container.VolumeMounts, v1.VolumeMount{
@@ -475,7 +480,7 @@ func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 			milpapod.Spec.Volumes = append(milpapod.Spec.Volumes, *volume)
 		}
 	}
-	// A package will be generated for this by the pod controller.
+	// A package will be generated for these by the pod controller.
 	milpapod.Spec.Volumes = append(milpapod.Spec.Volumes, api.Volume{
 		Name: resolvconfVolumeName,
 		VolumeSource: api.VolumeSource{
@@ -484,7 +489,26 @@ func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 			},
 		},
 	})
+	milpapod.Spec.Volumes = append(milpapod.Spec.Volumes, api.Volume{
+		Name: etchostsVolumeName,
+		VolumeSource: api.VolumeSource{
+			PackagePath: &api.PackagePath{
+				Path: "/etc/hosts",
+			},
+		},
+	})
 	milpapod.Spec.Resources = aggregateResources(pod.Spec.Containers)
+	milpapod.Spec.Hostname = pod.Spec.Hostname
+	milpapod.Spec.Subdomain = pod.Spec.Subdomain
+	if len(pod.Spec.HostAliases) > 0 {
+		milpapod.Spec.HostAliases = make(
+			[]api.HostAlias, len(pod.Spec.HostAliases))
+	}
+	for i, hostAlias := range pod.Spec.HostAliases {
+		milpapod.Spec.HostAliases[i].IP = hostAlias.IP
+		milpapod.Spec.HostAliases[i].Hostnames = append(
+			[]string(nil), hostAlias.Hostnames...)
+	}
 	return milpapod, nil
 }
 
@@ -586,6 +610,17 @@ func milpaToK8sPod(nodeName, internalIP string, milpaPod *api.Pod) (*v1.Pod, err
 				Value: o.Value,
 			}
 		}
+	}
+	pod.Spec.Hostname = milpaPod.Spec.Hostname
+	pod.Spec.Subdomain = milpaPod.Spec.Subdomain
+	if len(milpaPod.Spec.HostAliases) > 0 {
+		pod.Spec.HostAliases = make(
+			[]v1.HostAlias, len(milpaPod.Spec.HostAliases))
+	}
+	for i, hostAlias := range milpaPod.Spec.HostAliases {
+		pod.Spec.HostAliases[i].IP = hostAlias.IP
+		pod.Spec.HostAliases[i].Hostnames = append(
+			[]string(nil), hostAlias.Hostnames...)
 	}
 	initContainerMap := make(map[string]v1.Container)
 	for _, initContainer := range pod.Spec.InitContainers {
