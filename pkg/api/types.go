@@ -129,6 +129,29 @@ type PodSpec struct {
 	DNSPolicy DNSPolicy `json:"dnsPolicy,omitempty"`
 	// Pod DNS config.
 	DNSConfig *PodDNSConfig `json:"dnsConfig,omitempty"`
+	// Specifies the hostname of the Pod
+	// If not specified, the pod's hostname will be set to a system-defined value.
+	// +optional
+	Hostname string `json:"hostname,omitempty"`
+	// If specified, the fully qualified Pod hostname will be "<hostname>.<subdomain>.<pod namespace>.svc.<cluster domain>".
+	// If not specified, the pod will not have a domainname at all.
+	// +optional
+	Subdomain string `json:"subdomain,omitempty"`
+	// HostAliases is an optional list of hosts and IPs that will be injected into the pod's hosts
+	// file if specified. This is only valid for non-hostNetwork pods.
+	// +optional
+	// +patchMergeKey=ip
+	// +patchStrategy=merge
+	HostAliases []HostAlias `json:"hostAliases,omitempty"`
+}
+
+// HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the
+// pod's hosts file.
+type HostAlias struct {
+	// IP address of the host file entry.
+	IP string `json:"ip,omitempty"`
+	// Hostnames for the above IP address.
+	Hostnames []string `json:"hostnames,omitempty"`
 }
 
 // DNSPolicy defines how a pod's DNS will be configured.

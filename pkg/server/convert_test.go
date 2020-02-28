@@ -306,15 +306,16 @@ func TestUnitToContainer(t *testing.T) {
 			}
 		}
 		unit := containerToUnit(container)
-		removeResolvconfVolumeMount(&unit)
+		removeVolumeMount(&unit, resolvconfVolumeName)
+		removeVolumeMount(&unit, etchostsVolumeName)
 		assert.Equal(t, tc.unit, unit)
 	}
 }
 
-func removeResolvconfVolume(pod *api.Pod) {
+func removeVolume(pod *api.Pod, name string) {
 	idx := -1
 	for i, vol := range pod.Spec.Volumes {
-		if vol.Name == resolvconfVolumeName {
+		if vol.Name == name {
 			idx = i
 			break
 		}
@@ -327,17 +328,17 @@ func removeResolvconfVolume(pod *api.Pod) {
 		}
 	}
 	for i := range pod.Spec.InitUnits {
-		removeResolvconfVolumeMount(&pod.Spec.InitUnits[i])
+		removeVolumeMount(&pod.Spec.InitUnits[i], name)
 	}
 	for i := range pod.Spec.Units {
-		removeResolvconfVolumeMount(&pod.Spec.Units[i])
+		removeVolumeMount(&pod.Spec.Units[i], name)
 	}
 }
 
-func removeResolvconfVolumeMount(unit *api.Unit) {
+func removeVolumeMount(unit *api.Unit, name string) {
 	idx := -1
 	for i, vol := range unit.VolumeMounts {
-		if vol.Name == resolvconfVolumeName {
+		if vol.Name == name {
 			idx = i
 			break
 		}
@@ -736,7 +737,8 @@ func TestMilpaToK8sPod(t *testing.T) {
 	mPod, err := k8sToMilpaPod(pod)
 	assert.NoError(t, err)
 	assert.NotNil(t, mPod)
-	removeResolvconfVolume(mPod)
+	removeVolume(mPod, resolvconfVolumeName)
+	removeVolume(mPod, etchostsVolumeName)
 	assert.Equal(t, milpaPod.TypeMeta, mPod.TypeMeta)
 	assert.Equal(t, milpaPod.ObjectMeta, mPod.ObjectMeta)
 	assert.Equal(t, milpaPod.Spec, mPod.Spec)

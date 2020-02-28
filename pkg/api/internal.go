@@ -7,6 +7,7 @@ type PodParameters struct {
 	PodName     string
 	NodeName    string
 	PodIP       string
+	PodHostname string
 }
 
 type RegistryCredentials struct {
