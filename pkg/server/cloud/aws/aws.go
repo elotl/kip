@@ -202,7 +202,7 @@ func (m *AwsEC2) GetAttributes() cloud.CloudAttributes {
 }
 
 func filterLabelsForTags(resource string, labels map[string]string) (map[string]string, error) {
-	illegalKeys := []string{"Node", cloud.ControllerTagKey, cloud.ServiceTagKey}
+	illegalKeys := []string{"Node", cloud.ControllerTagKey}
 	ignoredPrefixes := []string{"aws:"}
 	ignoredPrefixes = append(ignoredPrefixes, util.InternalLabelPrefixes...)
 	i := 0

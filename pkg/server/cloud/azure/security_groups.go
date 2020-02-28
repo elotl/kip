@@ -170,7 +170,7 @@ func (az *AzureClient) EnsureSecurityGroup(sgName string, ports []cloud.Instance
 }
 
 func (az *AzureClient) CreateSGName(svcName string) string {
-	return util.CreateSecurityGroupName(az.controllerID, "default", svcName)
+	return util.CreateSecurityGroupName(az.controllerID, svcName)
 }
 
 func (az *AzureClient) AttachSecurityGroups(node *api.Node, groups []string) error {

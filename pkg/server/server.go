@@ -189,7 +189,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 	cloudRegion := cloudClient.GetAttributes().Region
 	err = ensureRegionUnchanged(etcdClient, cloudRegion)
 	if err != nil {
-		return nil, fmt.Errorf("error ensuring Milpa region is unchanged: %v", err)
+		return nil, fmt.Errorf("error ensuring Kip region is unchanged: %v", err)
 	}
 	clientCert, err := certFactory.CreateClientCert()
 	if err != nil {

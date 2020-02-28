@@ -48,7 +48,7 @@ func (c *AwsEC2) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string) e
 	}
 	vpcCIDRs := []string{c.vpcCIDR}
 	cidrs := append(vpcCIDRs, extraCIDRs...)
-	apiGroupName := util.CreateSecurityGroupName(c.controllerID, "default", cloud.MilpaAPISGName)
+	apiGroupName := util.CreateSecurityGroupName(c.controllerID, cloud.MilpaAPISGName)
 	apiGroup, err := c.EnsureSecurityGroup(apiGroupName, milpaPorts, cidrs)
 	if err != nil {
 		return util.WrapError(err, "Could not setup Milpa API cloud firewall rules")

@@ -162,7 +162,7 @@ func (az *AzureClient) GetAttributes() cloud.CloudAttributes {
 	}
 }
 func filterLabelsForTags(resource string, labels map[string]string) (map[string]*string, error) {
-	illegalKeys := []string{"Node", cloud.ControllerTagKey, cloud.ServiceTagKey}
+	illegalKeys := []string{"Node", cloud.ControllerTagKey}
 	allErrs := []error{}
 	filteredLabels := make(map[string]*string)
 	labelKeys := make([]string, len(labels))

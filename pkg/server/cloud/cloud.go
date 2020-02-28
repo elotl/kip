@@ -13,7 +13,7 @@ import (
 	"k8s.io/klog"
 )
 
-const MilpaAPISGName = "NodeSecurityGroup"
+const MilpaAPISGName = "CellSecurityGroup"
 const PublicCIDR = "0.0.0.0/0"
 const RestAPIPort = 6421
 
@@ -21,12 +21,11 @@ const ProviderAWS = "aws"
 const ProviderGCE = "gce"
 const ProviderAzure = "azure"
 
-const ControllerTagKey = "MilpaControllerID"
+const ControllerTagKey = "KipControllerID"
 const NameTagKey = "Name"
-const NamespaceTagKey = "MilpaNamespace"
-const NametagTagKey = "MilpaNametag"
-const ServiceTagKey = "MilpaServiceName"
-const PodNameTagKey = "MilpaPodName"
+const NamespaceTagKey = "KipNamespace"
+const NametagTagKey = "KipNametag"
+const PodNameTagKey = "KipPodName"
 
 type CloudClient interface {
 	SetBootSecurityGroupIDs([]string)
