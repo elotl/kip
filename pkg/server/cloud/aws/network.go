@@ -19,7 +19,7 @@ import (
 // also watch out for having too many security groups in a VPC
 
 func (e *AwsEC2) CreateSGName(svcName string) string {
-	return util.CreateSecurityGroupName(e.controllerID, "default", svcName)
+	return util.CreateSecurityGroupName(e.controllerID, svcName)
 }
 
 func detectCurrentVPC() (string, error) {

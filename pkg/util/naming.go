@@ -4,12 +4,9 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"k8s.io/klog"
 )
 
 const (
-	MilpaSvcName       = "milpa"
 	NamespaceSeparator = '_'
 )
 
@@ -53,43 +50,28 @@ func SplitNamespaceAndName(n string) (string, string) {
 	}
 }
 
-func CreateContainerId(podName, unitName string) string {
-	return podName + ".." + unitName
-}
-
-func ContainerIdToPodAndUnitName(containerId string) (string, string) {
-	parts := strings.Split(containerId, "..")
-	if len(parts) != 2 {
-		klog.Errorf("Invalid container ID %s", containerId)
-		return "", ""
-	}
-	podName := parts[0]
-	unitName := parts[1]
-	return podName, unitName
-}
-
 //GCP requires names to follow the regex: [a-z]([-a-z0-9]*[a-z0-9])?
-func CreateSecurityGroupName(controllerID, namespace, svcName string) string {
-	return strings.ToLower(fmt.Sprintf("milpa-%s-%s-%s", controllerID, namespace, svcName))
+func CreateSecurityGroupName(controllerID, svcName string) string {
+	return strings.ToLower(fmt.Sprintf("kip-%s-%s", controllerID, svcName))
 }
 
 func CreateUnboundNodeNameTag(nametag string) string {
 	return fmt.Sprintf(
-		"Milpa Node %s %s", nametag, time.Now().UTC().Format(time.Stamp))
+		"Kip Node %s %s", nametag, time.Now().UTC().Format(time.Stamp))
 }
 
 func CreateBoundNodeNameTag(nametag, podName string) string {
-	return fmt.Sprintf("Milpa Node %s %s", nametag, podName)
+	return fmt.Sprintf("Kip Node %s %s", nametag, podName)
 }
 
 func CreateResourceGroupName(region string) string {
-	return fmt.Sprintf("milpa-%s", region)
+	return fmt.Sprintf("kip-%s", region)
 }
 
 func CreateClusterResourceGroupName(controllerID string) string {
-	return fmt.Sprintf("milpa-%s", controllerID)
+	return fmt.Sprintf("kip-%s", controllerID)
 }
 
 func CreateClusterResourcePrefix(controllerID string) string {
-	return fmt.Sprintf("milpa-%s-", controllerID)
+	return fmt.Sprintf("kip-%s-", controllerID)
 }
