@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
@@ -449,9 +451,34 @@ func TestCreateResolvconf(t *testing.T) {
 		pod.Spec.HostNetwork = tc.HostNetwork
 		dnsconf, err := dnsConfigurer.GetPodDNS(pod)
 		assert.NoError(t, err)
-		Resolvconf, err := createResolvconf(pod.Name, dnsconf)
+		resolvconf, err := createResolvconf(pod.Name, dnsconf)
 		assert.NoError(t, err)
-		msg := fmt.Sprintf("Test case %d: %+v", i, tc)
-		assert.Equal(t, tc.Resolvconf, string(Resolvconf), msg)
+		msg := fmt.Sprintf("Test case %d: %+v", i+1, tc)
+		assert.Equal(
+			t,
+			resolvconfToMap(tc.Resolvconf),
+			resolvconfToMap(string(resolvconf)),
+			msg,
+		)
 	}
+}
+
+func resolvconfToMap(conf string) map[string][]string {
+	lines := strings.Split(conf, "\n")
+	output := make(map[string][]string)
+	for _, line := range lines {
+		line = strings.Trim(strings.Replace(line, "	", " ", -1), " ")
+		if line == "" {
+			continue
+		}
+		words := strings.Split(line, " ")
+		if len(words) < 1 {
+			continue
+		}
+		k := words[0]
+		v := words[1:]
+		sort.Strings(v)
+		output[k] = v
+	}
+	return output
 }
