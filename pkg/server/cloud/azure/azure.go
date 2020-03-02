@@ -232,7 +232,3 @@ func (az *AzureClient) GetRegistryAuth() (string, string, error) {
 func (az *AzureClient) locationName() string {
 	return strings.ToLower(strings.Replace(az.region, " ", "", -1))
 }
-
-func (az *AzureClient) ValidateMarketplaceLicense() error {
-	return fmt.Errorf("This is not a Marketplace Instance")
-}

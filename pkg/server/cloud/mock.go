@@ -151,10 +151,6 @@ func (m *MockCloudClient) GetAttributes() CloudAttributes {
 	}
 }
 
-func (m *MockCloudClient) ValidateMarketplaceLicense() error {
-	return fmt.Errorf("This is not an AWS Marketplace Instance")
-}
-
 func (m *MockCloudClient) EnsureContainerInstanceCluster() error {
 	return m.ContainerClusterEnsurer()
 }

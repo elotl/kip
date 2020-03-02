@@ -57,7 +57,6 @@ type CloudClient interface {
 	GetSubnets() ([]SubnetAttributes, error)
 	GetAvailabilityZones() ([]string, error)
 	GetAttributes() CloudAttributes
-	ValidateMarketplaceLicense() error
 }
 
 type CloudAttributes struct {

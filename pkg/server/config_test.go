@@ -72,8 +72,6 @@ func TestConfigValidation(t *testing.T) {
 			},
 			errors: 0,
 		},
-		// Now that we have added marketplace licensing, these
-		// are no longer errors
 	}
 	for i, test := range tests {
 		cf := serverConfigFileWithDefaults()

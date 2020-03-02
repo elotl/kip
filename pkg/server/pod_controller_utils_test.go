@@ -246,24 +246,6 @@ func TestComputePodPhase(t *testing.T) {
 	}
 }
 
-func TestRunningMaxLicensePods(t *testing.T) {
-	podRegistry, closer := registry.SetupTestPodRegistry()
-	defer closer()
-
-	v := runningMaxLicensePods(podRegistry, 0)
-	assert.True(t, v)
-
-	p := api.GetFakePod()
-	p.Status.Phase = api.PodDispatching
-	_, err := podRegistry.CreatePod(p)
-	assert.NoError(t, err)
-
-	v = runningMaxLicensePods(podRegistry, 1)
-	assert.True(t, v)
-	v = runningMaxLicensePods(podRegistry, 2)
-	assert.False(t, v)
-}
-
 func TestAllUnitsStarted(t *testing.T) {
 	notStarted := [][]api.UnitStatus{
 		[]api.UnitStatus{},

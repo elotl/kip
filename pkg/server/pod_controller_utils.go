@@ -107,21 +107,6 @@ func computePodPhase(policy api.RestartPolicy, unitstatus []api.UnitStatus, podN
 	return phase, failMsg
 }
 
-func runningMaxLicensePods(podRegistry *registry.PodRegistry, maxResources int) bool {
-	pods, err := podRegistry.ListPods(func(p *api.Pod) bool {
-		return (p.Status.Phase == api.PodDispatching ||
-			p.Status.Phase == api.PodRunning)
-	})
-	if err != nil {
-		klog.Errorf("Error listing pods for checking license limits: %s", err.Error())
-		return true
-	}
-	if len(pods.Items) >= maxResources {
-		return true
-	}
-	return false
-}
-
 func remedyFailedPod(pod *api.Pod, podRegistry *registry.PodRegistry) {
 	if pod.Status.StartFailures <= allowedStartFailures &&
 		pod.Spec.RestartPolicy != api.RestartPolicyNever {

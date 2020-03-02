@@ -634,36 +634,6 @@ func TestDoPoolsCalculation(t *testing.T) {
 	}
 }
 
-func TestDoPoolsCalculationLicenseLimit(t *testing.T) {
-	t.Parallel()
-	ctl, closer := MakeNodeController()
-	defer closer()
-	ctl.MaxLicensedResources = 20
-	MaxBootPerIteration = ctl.MaxLicensedResources * 2
-
-	ctl.CloudClient = &cloud.MockCloudClient{
-		Starter:     StartReturnsOK,
-		SpotStarter: StartReturnsOK,
-		Stopper:     ReturnNil,
-		Waiter:      ReturnAddresses,
-		ImageIdGetter: func(tags cloud.BootImageTags) (string, error) {
-			return "", nil
-		},
-	}
-	podReg := ctl.PodReader.(*registry.PodRegistry)
-	for i := 0; i < ctl.MaxLicensedResources*2; i++ {
-		pod := api.GetFakePod()
-		_, err := podReg.CreatePod(pod)
-		assert.NoError(t, err)
-	}
-	mapping, err := ctl.doPoolsCalculation()
-	assert.NoError(t, err)
-	assert.Len(t, mapping, ctl.MaxLicensedResources)
-	nodes, err := ctl.NodeRegistry.ListNodes(registry.MatchAllNodes)
-	assert.NoError(t, err)
-	assert.Len(t, nodes.Items, ctl.MaxLicensedResources)
-}
-
 type ErroringNodeScaler struct{}
 
 func (ns *ErroringNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.Node, []*api.Node, map[string]string) {
@@ -678,58 +648,4 @@ func TestDoPoolsCalculationComputeFails(t *testing.T) {
 	ctl.NodeScaler = &ErroringNodeScaler{}
 	_, err := ctl.doPoolsCalculation()
 	assert.Error(t, err)
-}
-
-func TestFilterNodesForLicense(t *testing.T) {
-	t.Parallel()
-	ctl, closer := MakeNodeController()
-	defer closer()
-
-	ctl.MaxLicensedResources = 20
-	for i := 0; i < ctl.MaxLicensedResources-5; i++ {
-		n := api.GetFakeNode()
-		_, err := ctl.NodeRegistry.CreateNode(n)
-		assert.NoError(t, err)
-	}
-	makeNodes := func(numNodes int) ([]*api.Node, map[string]string) {
-		podNodeBinding := map[string]string{}
-		newNodes := make([]*api.Node, numNodes)
-		for i := 0; i < numNodes; i++ {
-			n := api.GetFakeNode()
-			n.Status.BoundPodName = "pod-" + n.Name
-			podNodeBinding[n.Status.BoundPodName] = n.Name
-			newNodes[i] = n
-		}
-		return newNodes, podNodeBinding
-	}
-
-	// make sure we only get 5 nodes back after filtering
-	newNodes, initialBindings := makeNodes(10)
-	filteredNodes, podNodeBinding := ctl.filterNewNodesForLicense(newNodes, initialBindings)
-	assert.Len(t, filteredNodes, 5)
-	assert.Len(t, podNodeBinding, 5)
-	for _, n := range filteredNodes {
-		podName := "pod-" + n.Name
-		assert.NotEmpty(t, podNodeBinding[podName])
-	}
-
-	// create 5 more nodes (putting us at the max number of nodes) and
-	// make sure we filter all nodes.
-	for i := 0; i < 5; i++ {
-		n := api.GetFakeNode()
-		_, err := ctl.NodeRegistry.CreateNode(n)
-		assert.NoError(t, err)
-	}
-
-	newNodes, initialBindings = makeNodes(10)
-	filteredNodes, podNodeBinding = ctl.filterNewNodesForLicense(newNodes, initialBindings)
-	assert.Len(t, filteredNodes, 0)
-	assert.Len(t, podNodeBinding, 0)
-
-	// turn off developer edition make sure we get nodes back
-	ctl.MaxLicensedResources = 0
-	newNodes, initialBindings = makeNodes(10)
-	filteredNodes, podNodeBinding = ctl.filterNewNodesForLicense(newNodes, initialBindings)
-	assert.Len(t, filteredNodes, len(newNodes))
-	assert.Len(t, podNodeBinding, len(newNodes))
 }

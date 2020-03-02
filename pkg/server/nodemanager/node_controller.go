@@ -49,22 +49,21 @@ type NodeControllerConfig struct {
 }
 
 type NodeController struct {
-	Config               NodeControllerConfig
-	NodeRegistry         *registry.NodeRegistry
-	LogRegistry          *registry.LogRegistry
-	PodReader            registry.PodLister
-	NodeDispenser        *NodeDispenser
-	NodeScaler           ScalingAlgorithm
-	CloudClient          cloud.CloudClient
-	NodeClientFactory    nodeclient.ItzoClientFactoryer
-	Events               *events.EventSystem
-	PoolLoopTimer        *stats.LoopTimer
-	ImageIdCache         *timeoutmap.TimeoutMap
-	CloudInitFile        *cloudinitfile.File
-	CertificateFactory   *certs.CertificateFactory
-	CloudStatus          cloud.StatusKeeper
-	BootImageTags        cloud.BootImageTags
-	MaxLicensedResources int
+	Config             NodeControllerConfig
+	NodeRegistry       *registry.NodeRegistry
+	LogRegistry        *registry.LogRegistry
+	PodReader          registry.PodLister
+	NodeDispenser      *NodeDispenser
+	NodeScaler         ScalingAlgorithm
+	CloudClient        cloud.CloudClient
+	NodeClientFactory  nodeclient.ItzoClientFactoryer
+	Events             *events.EventSystem
+	PoolLoopTimer      *stats.LoopTimer
+	ImageIdCache       *timeoutmap.TimeoutMap
+	CloudInitFile      *cloudinitfile.File
+	CertificateFactory *certs.CertificateFactory
+	CloudStatus        cloud.StatusKeeper
+	BootImageTags      cloud.BootImageTags
 }
 
 func (c *NodeController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
@@ -153,7 +152,6 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 	if podNodeMap == nil {
 		return nil, fmt.Errorf("Error computing new node pools, this is likely a problem with the DB. Not updating pod-node bindings")
 	}
-	startNodes, podNodeMap = c.filterNewNodesForLicense(startNodes, podNodeMap)
 	c.startNodes(startNodes)
 	for _, node := range stopNodes {
 		err := c.stopSingleNode(node)
@@ -207,32 +205,6 @@ func (c *NodeController) getCloudInitContents() (string, error) {
 	}
 	metadata := base64.StdEncoding.EncodeToString([]byte(cloudInitData))
 	return metadata, nil
-}
-
-// If the license limits the number of resources we can have, here we
-// constrain/filter starting new nodes. This is a bit convoluted since
-// we also have to clean up podNodeMap since we'll later yell into the
-// logs a lot if we can't find a mapping.
-func (c *NodeController) filterNewNodesForLicense(nodes []*api.Node, podNodeMap map[string]string) ([]*api.Node, map[string]string) {
-	if c.MaxLicensedResources <= 0 {
-		return nodes, podNodeMap
-	}
-	allNodes, err := c.NodeRegistry.ListNodes(registry.MatchAllNodes)
-	if err != nil {
-		return nil, podNodeMap
-	}
-	// Todo, fix up storage of constants in 2 places
-	nodeHeadroom := c.MaxLicensedResources - len(allNodes.Items)
-	filteredNodes := make([]*api.Node, 0, len(nodes))
-	for _, node := range nodes {
-		if nodeHeadroom > 0 {
-			filteredNodes = append(filteredNodes, node)
-			nodeHeadroom--
-		} else {
-			delete(podNodeMap, node.Status.BoundPodName)
-		}
-	}
-	return filteredNodes, podNodeMap
 }
 
 func (c *NodeController) startNodes(nodes []*api.Node) {
