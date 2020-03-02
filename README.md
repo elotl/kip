@@ -101,12 +101,17 @@ Limitations
 - Subdomain
 - HostAliases
 - The following PodSecurityContext fields: FSGroup, RunAsNonRoot, ShareProcessNamespace, HostIPC, HostPID
+- Volume mount propagation is always bidirectional
 
 We are actively working on adding missing features. One of the main objectives of the project is to provide full support for all Kubernetes features.
 
 Kip is currently GA on AWS and alpha on Azure.
 
 ## FAQ
+
+Q. I’ve seen the name Milpa mentioned in various places (logs, directories, tags). What is Milpa?
+A. Kip’s source code was adapted from an earlier project developed at Elotl called Milpa.  We will be migrating away from that name in coming releases.  Milpa started out as a stand alone unikernel (and later container) orchestration system and it was natural to move a subset of its functionality into an open source virtual-kubelet provider.
+
 
 Q. How long does it take to start a workload?
 A. In AWS, instances boot in under a minute, usually pods are dispatched to the instance in about 45 seconds. Depending on the size of the container, a pod will be running in 60 to 90 seconds.  In our experience, starting pods in Azure can be a bit slower with startup times between 1.5 to 3 minutes.
@@ -117,6 +122,15 @@ A. Yes it does.  However, to use the VPA with the provider, the pod must be disp
 Q. Are DaemonSets supported?
 A. Yes, though they might not work the way intended. The pod will start on a separate cloud instance, and not on the node.
 
+Q. Are you a [kubernetes conformant](https://github.com/cncf/k8s-conformance) runtime?
+A. We are not 100% conformant at this time but we are working towards getting as close as possible to conformant.  Currently we are 70-80% conformant but are hoping to get those values above 90% soon.
+
 ## How it Works
 
+### [Cells](docs/cells.md)
 ### [Networking](docs/networking.md)
+### [Annotations](docs/annotations.md)
+### [Security Groups](docs/security_groups.md)
+### [Provider Configuration](docs/provider-config.md)
+### [IAM Permissions](docs/kip-iam-permissions.md)
+### [State](docs/state.md)

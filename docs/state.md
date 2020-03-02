@@ -1,0 +1,3 @@
+### State
+
+Kip will store its internal state including pods, cells and certificates in etcd database embedded in the provider.  It is suggested to use a persistent volume to store the data as the cluster state will be lost if the controller uses host storage and is moved to a different node.  A small (1-2GB) PV should suffice for storing this data.  To prevent any issues with running into limits, we’ve been fairly conservative and provisioned a 5GB persistent volume in our example manifests.
