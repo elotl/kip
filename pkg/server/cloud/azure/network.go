@@ -28,7 +28,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )
 

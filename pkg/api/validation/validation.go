@@ -26,10 +26,10 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/instanceselector"
-	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const isNegativeErrorMsg string = `must be greater than or equal to 0`

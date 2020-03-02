@@ -26,8 +26,8 @@ import (
 	"strings"
 
 	"github.com/elotl/cloud-instance-provider/pkg/selection"
-	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )
 

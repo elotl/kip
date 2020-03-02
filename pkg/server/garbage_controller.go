@@ -27,8 +27,8 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud/aws"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud/azure"
 	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
-	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
 	"github.com/elotl/cloud-instance-provider/pkg/util/stats"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )
 

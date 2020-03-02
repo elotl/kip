@@ -24,8 +24,8 @@ import (
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )
 
@@ -67,10 +67,10 @@ func Setup(cloud, region, defaultInstanceType string) error {
 			defaultInstanceType:  defaultInstanceType,
 			data:                 d,
 			unsupportedInstances: sets.NewString([]string{
-			// "c5",
-			// "i3",
-			// "m5",
-			// "m4.16xlarge",
+				// "c5",
+				// "i3",
+				// "m5",
+				// "m4.16xlarge",
 			}...),
 			sustainedCPUSupport: true,
 			memorySpecParser: func(q resource.Quantity) float32 {

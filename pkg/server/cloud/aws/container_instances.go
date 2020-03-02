@@ -30,7 +30,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/instanceselector"
-	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )
 
@@ -328,7 +328,7 @@ func containerToUnitStatus(container *ecs.Container) api.UnitStatus {
 	case containerStatusRunning:
 		state = api.UnitState{
 			Running: &api.UnitStateRunning{
-			// StartedAt is managed by the ContainerInstanceController
+				// StartedAt is managed by the ContainerInstanceController
 			},
 		}
 
