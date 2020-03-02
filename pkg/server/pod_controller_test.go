@@ -540,11 +540,16 @@ func TestSetPodDispatchingParams(t *testing.T) {
 	node := api.GetFakeNode()
 	instid := "abc"
 	node.Status.InstanceID = instid
+	node.Status.Addresses = api.NewNetworkAddresses("10.20.30.40", "my-instance")
+	api.SetPodIP("10.20.30.50", node.Status.Addresses)
 	_, err = ctl.setPodDispatchingParams(pod, node)
 	assert.NoError(t, err)
 	pod, err = ctl.podRegistry.GetPod(pod.Name)
 	assert.NoError(t, err)
 	assert.Equal(t, api.PodDispatching, pod.Status.Phase)
 	assert.Equal(t, instid, pod.Status.BoundInstanceID)
-	assert.Equal(t, 0, len(pod.Status.Addresses))
+	assert.Equal(
+		t,
+		api.GetPodIP(node.Status.Addresses),
+		api.GetPrivateIP(pod.Status.Addresses))
 }
