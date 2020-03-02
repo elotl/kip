@@ -26,7 +26,7 @@ This will create a new VPC and a one-node Kubernetes cluster in it with virtual-
     
     node-ip = 34.201.59.101
 
-You can now ssh into the instance using the username "ubuntu", and the ssh key you set in your environment file. On the instance, you can use kubectl to interact with your new cluster:
+You can now ssh into the instance using the username "ubuntu", and the ssh key you set in your environment file. (It takes a a minute or two for the instance to bootstrap). On the instance, you can use kubectl to interact with your new cluster:
 
     $ kubectl get nodes
     NAME                          STATUS   ROLES    AGE   VERSION
