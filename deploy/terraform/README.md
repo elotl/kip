@@ -48,4 +48,4 @@ To have a pod run via virtual-kubelet, make sure you add a toleration and/or nod
       - key: virtual-kubelet.io/provider
         operator: Exists
 
-You can also remove the taint from the virtual-kubelet node if you don't want to use tolerations for every pod or deployment.
+You can also remove the taint from the virtual-kubelet node (`kubectl taint node virtual-kubelet virtual-kubelet.io/provider:NoSchedule-`) if you don't want to use tolerations for every pod or deployment.
