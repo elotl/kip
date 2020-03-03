@@ -589,13 +589,13 @@ func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 }
 
 func addAnnotationsToMilpaPod(milpaPod *api.Pod) {
-	a := milpaPod.Annotations[annotations.PodKiyotLaunchType]
+	a := milpaPod.Annotations[annotations.PodLaunchType]
 	if strings.ToLower(a) == "spot" {
-		milpapod.Spec.Spot.Policy = api.SpotAlways
+		milpaPod.Spec.Spot.Policy = api.SpotAlways
 	}
-	a := milpaPod.Annotations[annotations.PodInstanceType]
+	a = milpaPod.Annotations[annotations.PodInstanceType]
 	if strings.ToLower(a) != "" {
-		milpapod.Spec.InstanceType = a
+		milpaPod.Spec.InstanceType = a
 	}
 }
 
