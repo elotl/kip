@@ -77,6 +77,19 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+    - kip.elotl.co
+    resources:
+    - cells
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - deletecollection
+      - patch
+      - update
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1

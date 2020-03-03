@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net"
+	"os"
 	"sort"
 	"sync"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/certs"
 	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
 	"github.com/elotl/cloud-instance-provider/pkg/etcd"
+	kubeclient "github.com/elotl/cloud-instance-provider/pkg/k8sclient/clientset/versioned"
 	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
 	"github.com/elotl/cloud-instance-provider/pkg/portmanager"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
@@ -26,6 +28,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/instanceselector"
 	"github.com/elotl/cloud-instance-provider/pkg/util/timeoutmap"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
+	"github.com/golang/glog"
 	"github.com/virtual-kubelet/node-cli/manager"
 	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
@@ -33,6 +36,8 @@ import (
 	"google.golang.org/grpc"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/klog"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilexec "k8s.io/utils/exec"
@@ -112,6 +117,22 @@ func setupEtcd(configFile, dataDir string, quit <-chan struct{}, wg *sync.WaitGr
 		return nil, util.WrapError(err, "fatal error: Could not write to etcd")
 	}
 	return client, err
+}
+
+func ConfigureK8sKipClient() (*kubeclient.Clientset, *rest.Config, error) {
+	glog.Infof("Configuring k8s client with provided service account credentials")
+	config, err := restclient.InClusterConfig()
+	if err != nil {
+		return nil, nil, util.WrapError(err, "Could not load kube config using the provided service account")
+	}
+	config.QPS = 50
+	config.Burst = 100
+	config.Timeout = 30 * time.Second
+	clientset, err := kubeclient.NewForConfig(config)
+	if err != nil {
+		return nil, nil, util.WrapError(err, "Could not create kube clientset from the provided service account")
+	}
+	return clientset, config, nil
 }
 
 func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
@@ -303,11 +324,32 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		metricsRegistry: metricsRegistry,
 		podLister:       podRegistry,
 	}
+	k8sKipClient, k8sRestConfig, err := ConfigureK8sKipClient()
+	if err != nil {
+		glog.Errorln("Error configuring kubernetes kip client", err)
+		time.Sleep(3 * time.Second)
+		os.Exit(2)
+	}
+
+	cellController, err := NewCellController(
+		controllerID,
+		k8sRestConfig,
+		k8sKipClient.KiyotV1beta1().Cells(),
+		eventSystem,
+		podRegistry,
+		nodeRegistry,
+	)
+	if err != nil {
+		glog.Error(err)
+		os.Exit(1)
+	}
+
 	controllers := map[string]Controller{
 		"PodController":     podController,
 		"NodeController":    nodeController,
 		"GarbageController": garbageController,
 		"MetricsController": metricsController,
+		"CellController":    cellController,
 	}
 
 	if azClient, ok := cloudClient.(*azure.AzureClient); ok {
