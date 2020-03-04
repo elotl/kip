@@ -83,7 +83,7 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
-  digest = "1:72ad241a826896411ffd6d8fbf65d82b05dd62689e29f93121db8c849abbbcd2"
+  digest = "1:31436312f62f224eaa3f851eb8b9800c95d9b42e9eb0711cd9e47140215db287"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -104,7 +104,6 @@
     "aws/request",
     "aws/session",
     "aws/signer/v4",
-    "awstesting/unit",
     "internal/ini",
     "internal/sdkio",
     "internal/sdkmath",
@@ -376,14 +375,6 @@
   pruneopts = "UT"
   revision = "bf22ed9311622d93e213ba31e4ae7a5771e5d379"
   version = "v4.6.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:0bd05495dbd0567480e48eac9e6602d87875a8747b13c3c0fcb7c83c7c921776"
-  name = "github.com/fullsailor/pkcs7"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "d7302db945fa6ea264fb79d8e13e931ea514a602"
 
 [[projects]]
   digest = "1:2cd7915ab26ede7d95b8749e6b1f933f1c6d5398030684e6505940a10f31cfda"
@@ -1784,9 +1775,7 @@
     "github.com/Azure/go-autorest/autorest/to",
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/awserr",
-    "github.com/aws/aws-sdk-go/aws/ec2metadata",
     "github.com/aws/aws-sdk-go/aws/session",
-    "github.com/aws/aws-sdk-go/awstesting/unit",
     "github.com/aws/aws-sdk-go/service/ec2",
     "github.com/aws/aws-sdk-go/service/ecr",
     "github.com/aws/aws-sdk-go/service/ecs",
@@ -1803,7 +1792,6 @@
     "github.com/docker/libkv/store/boltdb",
     "github.com/docker/libkv/store/mock",
     "github.com/elotl/wsstream",
-    "github.com/fullsailor/pkcs7",
     "github.com/ghodss/yaml",
     "github.com/golang/glog",
     "github.com/golang/protobuf/proto",
