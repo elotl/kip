@@ -26,6 +26,10 @@ This will create a new VPC and a one-node Kubernetes cluster in it with virtual-
     
     node-ip = 34.201.59.101
 
+The deployed cluster has following components.
+
+![alt text](https://github.com/elotl/cloud-instance-provider/blob/master/deploy/terraform/vk_kip.jpg "VK + KIP Stack")
+
 You can now ssh into the instance using the username "ubuntu", and the ssh key you set in your environment file. (It takes a a minute or two for the instance to bootstrap). On the instance, you can use kubectl to interact with your new cluster:
 
     $ kubectl get nodes
@@ -44,4 +48,4 @@ To have a pod run via virtual-kubelet, make sure you add a toleration and/or nod
       - key: virtual-kubelet.io/provider
         operator: Exists
 
-You can also remove the taint from the virtual-kubelet node if you don't want to use tolerations for every pod or deployment.
+You can also remove the taint from the virtual-kubelet node (`kubectl taint node virtual-kubelet virtual-kubelet.io/provider:NoSchedule-`) if you don't want to use tolerations for every pod or deployment.

@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Elotl Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package instanceselector
 
 import (
@@ -24,12 +40,12 @@ func TestHappy(t *testing.T) {
 	inst, sustainedCPU, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
 	assert.Equal(t, "c5.large", inst)
-	assert.False(t, sustainedCPU)
+	assert.False(t, *sustainedCPU)
 	ps.Resources = api.ResourceSpec{}
 	inst, sustainedCPU, err = ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
 	assert.Equal(t, inst, defaultInstanceType)
-	assert.False(t, sustainedCPU)
+	assert.Nil(t, sustainedCPU)
 }
 
 func TestAWSGPUInstance(t *testing.T) {
@@ -51,7 +67,7 @@ func TestHasInstanceType(t *testing.T) {
 	inst, sustainedCPU, err := ResourcesToInstanceType(&ps)
 	assert.Nil(t, err)
 	assert.Equal(t, specType, inst)
-	assert.False(t, sustainedCPU)
+	assert.Nil(t, sustainedCPU)
 	specType = "t2.small"
 	ps.InstanceType = specType
 	wantSustainedCPU := true
@@ -59,7 +75,11 @@ func TestHasInstanceType(t *testing.T) {
 	inst, sustainedCPU, err = ResourcesToInstanceType(&ps)
 	assert.Nil(t, err)
 	assert.Equal(t, specType, inst)
-	assert.True(t, sustainedCPU)
+	if sustainedCPU == nil {
+		t.Error("sustainedCPU should be true")
+	} else {
+		assert.True(t, *sustainedCPU)
+	}
 }
 
 func TestIsUnsupportedInstance(t *testing.T) {

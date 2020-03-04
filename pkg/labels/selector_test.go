@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/elotl/cloud-instance-provider/pkg/selection"
-	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func TestSelectorParse(t *testing.T) {

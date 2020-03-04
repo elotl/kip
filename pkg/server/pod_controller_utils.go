@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Elotl Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
 import (
@@ -105,21 +121,6 @@ func computePodPhase(policy api.RestartPolicy, unitstatus []api.UnitStatus, podN
 		}
 	}
 	return phase, failMsg
-}
-
-func runningMaxLicensePods(podRegistry *registry.PodRegistry, maxResources int) bool {
-	pods, err := podRegistry.ListPods(func(p *api.Pod) bool {
-		return (p.Status.Phase == api.PodDispatching ||
-			p.Status.Phase == api.PodRunning)
-	})
-	if err != nil {
-		klog.Errorf("Error listing pods for checking license limits: %s", err.Error())
-		return true
-	}
-	if len(pods.Items) >= maxResources {
-		return true
-	}
-	return false
 }
 
 func remedyFailedPod(pod *api.Pod, podRegistry *registry.PodRegistry) {
