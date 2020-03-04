@@ -1,23 +1,23 @@
 package annotations
 
-// PodKiyotLaunchType is an annotation users can put on their
-// kubernetes pods to tell kiyot to launch the pod on a spot instance
+// PodLaunchType is an annotation users can put on their
+// kubernetes pods to tell kip to launch the pod on a spot instance
 // or container instance node
 const PodLaunchType = "pod.elotl.co/launch-type"
 
-// PodKiyotInstanceType is an annotation users can put on their
-// kubernetes pods to tell kiyot to use a specific instance type for
+// PodInstanceType is an annotation users can put on their
+// kubernetes pods to tell kip to use a specific instance type for
 // the node the pod will be launched onto.  This annotation will
 // override specified resource requests and limits.
 const PodInstanceType = "pod.elotl.co/instance-type"
 
 // PodSecurityGroups is an annotation users can put on their
-// kubernetes pods to tell kiyot to add additional security groups
+// kubernetes pods to tell kip to add additional security groups
 // to the instance backing their pod.
 const PodSecurityGroups = "pod.elotl.co/security-groups"
 
 // PodSecurityGroups is an annotation users can put on their
-// kubernetes pods to tell kiyot to attach an instance profile
+// kubernetes pods to tell kip to attach an instance profile
 // to the instance backing their pod.
 const PodInstanceProfile = "pod.elotl.co/instance-profile"
 
