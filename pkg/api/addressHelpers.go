@@ -46,16 +46,19 @@ func GetPodIP(a []NetworkAddress) string {
 }
 
 func NewNetworkAddresses(ip, dns string) []NetworkAddress {
-	return []NetworkAddress{
+	na := []NetworkAddress{
 		{
 			Type:    PrivateIP,
 			Address: ip,
 		},
-		{
+	}
+	if dns != "" {
+		na = append(na, NetworkAddress{
 			Type:    PrivateDNS,
 			Address: dns,
-		},
+		})
 	}
+	return na
 }
 
 func SetPodIP(ip string, a []NetworkAddress) []NetworkAddress {
