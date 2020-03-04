@@ -18,8 +18,10 @@ package server
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/cloud-instance-provider/pkg/api/annotations"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/k8s/status"
 	"k8s.io/api/core/v1"
@@ -598,7 +600,19 @@ func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 		milpapod.Spec.HostAliases[i].Hostnames = append(
 			[]string(nil), hostAlias.Hostnames...)
 	}
+	addAnnotationsToMilpaPod(milpapod)
 	return milpapod, nil
+}
+
+func addAnnotationsToMilpaPod(milpaPod *api.Pod) {
+	a := milpaPod.Annotations[annotations.PodLaunchType]
+	if strings.ToLower(a) == "spot" {
+		milpaPod.Spec.Spot.Policy = api.SpotAlways
+	}
+	a = milpaPod.Annotations[annotations.PodInstanceType]
+	if strings.ToLower(a) != "" {
+		milpaPod.Spec.InstanceType = a
+	}
 }
 
 func aggregateResources(containers []v1.Container) api.ResourceSpec {

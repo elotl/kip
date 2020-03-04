@@ -40,12 +40,12 @@ func TestHappy(t *testing.T) {
 	inst, sustainedCPU, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
 	assert.Equal(t, "c5.large", inst)
-	assert.False(t, sustainedCPU)
+	assert.False(t, *sustainedCPU)
 	ps.Resources = api.ResourceSpec{}
 	inst, sustainedCPU, err = ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
 	assert.Equal(t, inst, defaultInstanceType)
-	assert.False(t, sustainedCPU)
+	assert.Nil(t, sustainedCPU)
 }
 
 func TestAWSGPUInstance(t *testing.T) {
@@ -67,7 +67,7 @@ func TestHasInstanceType(t *testing.T) {
 	inst, sustainedCPU, err := ResourcesToInstanceType(&ps)
 	assert.Nil(t, err)
 	assert.Equal(t, specType, inst)
-	assert.False(t, sustainedCPU)
+	assert.Nil(t, sustainedCPU)
 	specType = "t2.small"
 	ps.InstanceType = specType
 	wantSustainedCPU := true
@@ -75,7 +75,11 @@ func TestHasInstanceType(t *testing.T) {
 	inst, sustainedCPU, err = ResourcesToInstanceType(&ps)
 	assert.Nil(t, err)
 	assert.Equal(t, specType, inst)
-	assert.True(t, sustainedCPU)
+	if sustainedCPU == nil {
+		t.Error("sustainedCPU should be true")
+	} else {
+		assert.True(t, *sustainedCPU)
+	}
 }
 
 func TestIsUnsupportedInstance(t *testing.T) {

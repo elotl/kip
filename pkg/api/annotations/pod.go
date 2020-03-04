@@ -16,10 +16,26 @@ limitations under the License.
 
 package annotations
 
-// PodMilpactlVolumeName is used to specify the name of a volume that
-// the controller will create containing milpactl and certs for
-// connecting to the milpa controller from the pod.
-const PodMilpactlVolumeName = "pod.elotl.co/milpactl-volume-name"
+// PodLaunchType is an annotation users can put on their
+// kubernetes pods to tell kip to launch the pod on a spot instance
+// or container instance node
+const PodLaunchType = "pod.elotl.co/launch-type"
+
+// PodInstanceType is an annotation users can put on their
+// kubernetes pods to tell kip to use a specific instance type for
+// the node the pod will be launched onto.  This annotation will
+// override specified resource requests and limits.
+const PodInstanceType = "pod.elotl.co/instance-type"
+
+// PodSecurityGroups is an annotation users can put on their
+// kubernetes pods to tell kip to add additional security groups
+// to the instance backing their pod.
+const PodSecurityGroups = "pod.elotl.co/security-groups"
+
+// PodSecurityGroups is an annotation users can put on their
+// kubernetes pods to tell kip to attach an instance profile
+// to the instance backing their pod.
+const PodInstanceProfile = "pod.elotl.co/instance-profile"
 
 // PodTaskExecutionRole is the ARN of the task execution role that
 // the fargate docker daemon can assume. This role is used for
