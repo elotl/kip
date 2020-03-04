@@ -10,7 +10,7 @@ endif
 LD_VERSION_FLAGS=-X main.buildVersion=$(GIT_VERSION) -X main.buildTime=$(CURRENT_TIME)
 LDFLAGS=-ldflags "$(LD_VERSION_FLAGS)"
 
-BINARIES=virtual-kubelet
+BINARIES=virtual-kubelet milpactl
 
 REGISTRY_REPO=elotl/virtual-kubelet
 
