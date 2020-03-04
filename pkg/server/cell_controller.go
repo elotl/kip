@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
 	"reflect"
 	"sync"
 	"time"
@@ -17,7 +16,6 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/controllerqueue"
 	"github.com/elotl/cloud-instance-provider/pkg/util/yaml"
-	"github.com/golang/glog"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 )
 
 const (
@@ -52,7 +51,7 @@ type CellOp struct {
 }
 
 func NewCellController(
-	controllerID string,
+	controllerID, nodeName string,
 	restConfig *rest.Config,
 	k8sKipClient kv1b1.CellInterface,
 	eventsSystem *events.EventSystem,
@@ -61,6 +60,7 @@ func NewCellController(
 ) (*CellController, error) {
 	c := &CellController{
 		controllerID:  controllerID,
+		nodeName:      nodeName,
 		k8sRestConfig: restConfig,
 		k8sKipClient:  k8sKipClient,
 		eventsSystem:  eventsSystem,
@@ -73,11 +73,6 @@ func NewCellController(
 			err, "Could not create new Cell Controller")
 	}
 
-	c.nodeName = os.Getenv("NODE_NAME")
-	glog.Infof("Node name: %s", c.nodeName)
-	if c.nodeName == "" {
-		return nil, fmt.Errorf("Error setting up cell controller, NODE_NAME environment variable must be set")
-	}
 	c.queue = controllerqueue.New("cells", c.processOperation, controllerqueue.NumWorkers(1), controllerqueue.MaxRetries(0))
 	return c, nil
 }
@@ -148,7 +143,7 @@ func (c *CellController) Dump() []byte {
 	}
 	b, err := json.MarshalIndent(dumpStruct, "", "    ")
 	if err != nil {
-		glog.Errorln("Error dumping data from CellsController", err)
+		klog.Errorln("Error dumping data from CellsController", err)
 		return nil
 	}
 	return b
@@ -164,7 +159,7 @@ func (c *CellController) runSyncLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 		case <-fullSyncTicker.C:
 			c.queue.Add(CellOp{op: cellsFullSync})
 		case <-quit:
-			glog.Info("Exiting CellController Sync Loop")
+			klog.Info("Exiting CellController Sync Loop")
 			return
 		}
 	}
@@ -188,7 +183,7 @@ func (c *CellController) processOperation(item interface{}) error {
 		err = c.syncAllCells()
 	}
 	if err != nil {
-		glog.Errorf("Error processing cell operation: %s", err)
+		klog.Errorf("Error processing cell operation: %s", err)
 	}
 	return err
 }
@@ -225,7 +220,7 @@ func (c *CellController) makeCell(n *api.Node, p *api.Pod) *v1beta1.Cell {
 
 func (c *CellController) createNodeCell(n *api.Node) error {
 	if n == nil {
-		return fmt.Errorf("Could not create cell record: invalid milpa node")
+		return fmt.Errorf("Could not create cell record: invalid kip node")
 	}
 	kn := c.makeNodeCell(n, nil)
 	_, err := c.k8sKipClient.Create(kn)
@@ -259,7 +254,7 @@ func (c *CellController) updateK8sCell(cell *v1beta1.Cell) error {
 
 func (c *CellController) deleteNodeCell(n *api.Node) error {
 	if n == nil {
-		return fmt.Errorf("Could not delete cell record: no corresponding milpa node provided")
+		return fmt.Errorf("Could not delete cell record: no corresponding kip node provided")
 	}
 	return c.k8sKipClient.Delete(n.Name, &metav1.DeleteOptions{})
 }
@@ -275,12 +270,12 @@ func (c *CellController) syncAllCells() error {
 		return false
 	})
 	if err != nil {
-		return util.WrapError(err, "Could not load milpa nodes for full sync")
+		return util.WrapError(err, "Could not load kip nodes for full sync")
 	}
 
 	pods, err := c.podLister.ListPods(registry.MatchAllPods)
 	if err != nil {
-		return util.WrapError(err, "Could not load milpa pods for full sync")
+		return util.WrapError(err, "Could not load kip pods for full sync")
 	}
 	podMap := make(map[string]*api.Pod)
 	for _, p := range pods.Items {
@@ -315,7 +310,7 @@ func (c *CellController) syncAllCells() error {
 
 	add, update, delete := util.MapUserDiff(specCells, statusCells, diffCells)
 	if len(add) > 0 || len(update) > 0 || len(delete) > 0 {
-		glog.Infof("reconciling cell records - add: %d, update: %d, delete: %d",
+		klog.V(3).Infof("reconciling cell records - add: %d, update: %d, delete: %d",
 			len(add), len(update), len(delete))
 	}
 	errs := make([]error, 0)
@@ -323,7 +318,7 @@ func (c *CellController) syncAllCells() error {
 		cellIface, exists := specCells[cellName]
 		if !exists {
 			// should never happen
-			glog.Errorf("Error in diff: got unknown cell (add): %s", cellName)
+			klog.Errorf("Error in diff: got unknown cell (add): %s", cellName)
 			continue
 		}
 		cell := cellIface.(*v1beta1.Cell)
@@ -337,13 +332,13 @@ func (c *CellController) syncAllCells() error {
 		specCellIface, exists := specCells[cellName]
 		if !exists {
 			// should never happen
-			glog.Errorf("Error in diff: got unknown cell (update): %s", cellName)
+			klog.Errorf("Error in diff: got unknown cell (update): %s", cellName)
 			continue
 		}
 		specCell := specCellIface.(*v1beta1.Cell)
 		statusCellIface, exists := statusCells[cellName]
 		if !exists {
-			glog.Errorf("Error in diff: got unknown cell (update): %s", cellName)
+			klog.Errorf("Error in diff: got unknown cell (update): %s", cellName)
 		}
 		statusCell := statusCellIface.(*v1beta1.Cell)
 		statusCell.Status = specCell.Status
@@ -384,18 +379,18 @@ func (c *CellController) CreateCRDIfNotExists() error {
 	}
 
 	crdName := crdDef.Name
-	currentCRD, err := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
+	_, err = clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
 	if err != nil {
 		// Create if it's not found
 		if apierrors.IsNotFound(err) {
-			glog.Infof("Creating cells CRD in k8s")
+			klog.V(3).Infof("Creating cells CRD in k8s")
 			_, err = clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(&crdDef)
 			if err != nil {
 				if apierrors.IsAlreadyExists(err) {
 					// probably a race between 2 controllers, We're OK
 					// with that.  We can probably assume that we
 					// don't need to update it either.
-					glog.Infof("Cells CRD is already registered in k8s")
+					klog.V(3).Infof("Cells CRD is already registered in k8s")
 				} else {
 					return util.WrapError(err, "Error ensuring k8s cell CRD exists in controller")
 				}
@@ -403,14 +398,6 @@ func (c *CellController) CreateCRDIfNotExists() error {
 		} else {
 			// Something else went wrong, lets get out of here
 			return util.WrapError(err, "Error ensuring k8s cell CRD exists in controller")
-		}
-	} else if len(currentCRD.Spec.Versions) == 1 &&
-		currentCRD.Spec.Versions[0].Name == "v1beta1" {
-		currentCRD.Spec = crdDef.Spec
-		glog.Infof("Updating cells CRD in k8s")
-		_, err = clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Update(currentCRD)
-		if err != nil {
-			return util.WrapError(err, "Error updating k8s cell CRD in cell controller")
 		}
 	}
 

@@ -203,17 +203,6 @@ func TestCellCtlSyncAll(t *testing.T) {
 	assert.NoError(t, err)
 	addNode := n
 
-	// // Add: create a container instance that doesn't have a cell
-	// p := api.GetFakePod()
-	// p.Status.Phase = api.PodRunning
-	// p.Status.BoundInstanceID = "milpa-1234-foo"
-	// truth := true
-	// p.Spec.Resources.ContainerInstance = &truth
-	// p.Spec.InstanceType = ""
-	// p, err = c.podLister.(*registry.PodRegistry).CreatePod(p)
-	// assert.NoError(t, err)
-	// addPod := p
-
 	// Update: Create a node that'll need updating
 	n = api.GetFakeNode()
 	n.Status.Phase = api.NodeClaimed
@@ -232,22 +221,6 @@ func TestCellCtlSyncAll(t *testing.T) {
 	n, err = c.nodeLister.(*registry.NodeRegistry).UpdateStatus(n)
 	assert.NoError(t, err)
 	updatedNodePod := p
-
-	// // Update: create a container instance that needs updating
-	// p = api.GetFakePod()
-	// p.Status.Phase = api.PodRunning
-	// p.Status.BoundInstanceID = "milpa-5678-bar"
-	// p.Spec.Resources.ContainerInstance = &truth
-	// p.Spec.InstanceType = ""
-	// p, err = c.podLister.(*registry.PodRegistry).CreatePod(p)
-	// assert.NoError(t, err)
-	// kn = c.makeCell(nil, p)
-	// _, err = c.k8sKipClient.Create(kn)
-	// assert.NoError(t, err)
-	// p.Status.Addresses = api.NewNetworkAddresses("1.2.3.4", "ec2-1-2-3-4.aws.co")
-	// _, err = c.podLister.(*registry.PodRegistry).UpdatePodStatus(p, "")
-	// assert.NoError(t, err)
-	// updatedContainerInstancePod := p
 
 	// Delete: have a node cell that shouldn't be there
 	kn = &v1beta1.Cell{
@@ -283,19 +256,10 @@ func TestCellCtlSyncAll(t *testing.T) {
 	_, err = c.k8sKipClient.Get(addNode.Name, metav1.GetOptions{})
 	assert.NoError(t, err)
 
-	// // Ensure container instance add worked
-	// _, err = c.k8sKipClient.Get(addPod.Status.BoundInstanceID, metav1.GetOptions{})
-	// assert.NoError(t, err)
-
 	// ensure node update worked
 	kn, err = c.k8sKipClient.Get(updatedNodePod.Status.BoundNodeName, metav1.GetOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, updatedNodePod.Labels, kn.Labels)
-
-	// // ensure container instance update worked
-	// kn, err = c.k8sKipClient.Get(updatedContainerInstancePod.Status.BoundInstanceID, metav1.GetOptions{})
-	// assert.NoError(t, err)
-	// assert.NotEmpty(t, kn.Status.IP)
 
 	// Ensure node delete worked
 	_, err = c.k8sKipClient.Get(doomedName, metav1.GetOptions{})

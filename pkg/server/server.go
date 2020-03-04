@@ -333,6 +333,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 
 	cellController, err := NewCellController(
 		controllerID,
+		nodeName,
 		k8sRestConfig,
 		k8sKipClient.KiyotV1beta1().Cells(),
 		eventSystem,
