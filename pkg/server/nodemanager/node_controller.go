@@ -219,7 +219,7 @@ func (c *NodeController) getCloudInitContents() (string, error) {
 	if err != nil {
 		return "", util.WrapError(err, "Error creating Milpa cloud-init contents")
 	}
-	metadata := base64.StdEncoding.EncodeToString([]byte(cloudInitData))
+	metadata := base64.StdEncoding.EncodeToString(cloudInitData)
 	return metadata, nil
 }
 

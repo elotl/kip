@@ -18,66 +18,64 @@ package cloudinitfile
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 
-	"github.com/elotl/cloud-instance-provider/pkg/util/filewatcher"
+	"github.com/coreos/yaml"
+	cc "github.com/elotl/cloud-init/config"
+	"github.com/elotl/milpa/pkg/util/filewatcher"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestValidateValid(t *testing.T) {
+func ciTmpFile(t *testing.T, contents string) (string, func()) {
+	tempFile, err := ioutil.TempFile("", "kip-cloud-init")
+	if err != nil {
+		t.FailNow()
+	}
+	tempFile.Write([]byte(contents))
+	return tempFile.Name(), func() { os.Remove(tempFile.Name()) }
+}
+
+func TestNewValid(t *testing.T) {
 	data := `
 apiVersion: v1
 kind: Pod
 `
-	cif := New("")
-	err := cif.Validate(data)
+	path, closer := ciTmpFile(t, data)
+	defer closer()
+	_, err := New(path)
 	assert.NoError(t, err)
 }
 
-func TestValidateInvalid(t *testing.T) {
+func TestNewInvalid(t *testing.T) {
 	data := `
 apiVersion: v1
       kind: Pod
 `
-	cif := New("")
-	err := cif.Validate(data)
+	path, closer := ciTmpFile(t, data)
+	defer closer()
+	_, err := New(path)
 	assert.Error(t, err)
 }
 
-func TestWriteMilpaFile(t *testing.T) {
-	content := `a man a plan
-a canal
-panama`
-	path := "/usr/local/bin"
-	permissions := "0600"
-	m := MilpaFile{
-		content:     content,
-		path:        path,
-		permissions: permissions,
-	}
-	expected := `  - content: |
-      a man a plan
-      a canal
-      panama
-    path: /usr/local/bin
-    permissions: 0600
-`
-	assert.Equal(t, expected, string(m.Content()))
+func loadCloudConfigFromString(s string) (ucc cc.CloudConfig, err error) {
+	err = yaml.Unmarshal([]byte(s), &ucc)
+	return ucc, err
 }
 
 func TestWriteContent(t *testing.T) {
 	userContent := `write_files:
--   encoding: b64
-    content: CiMgVGhpcyBmaWxlIGNvbnRyb2xzIHRoZSBzdGF0ZSBvZiBTRUxpbnV4...
-    owner: root:root
-    path: /etc/sysconfig/selinux
-    permissions: '0644'`
+- encoding: b64
+  content: CiMgVGhpcyBmaWxlIGNvbnRyb2xzIHRoZSBzdGF0ZSBvZiBTRUxpbnV4...
+  owner: root:root
+  path: /etc/sysconfig/selinux
+  permissions: "0644"`
+	ucc, err := loadCloudConfigFromString(userContent)
+	assert.NoError(t, err)
 	cif := &File{
-		userData: &filewatcher.FakeWatcher{
-			FakeContents: userContent,
-			FakeVersion:  2,
-		},
-		milpaFiles: make(map[string]MilpaFile),
+		userData:   ucc,
+		milpaFiles: make(map[string]cc.File),
 	}
 
 	content := "A programmer, a plan, whatever dude..."
@@ -85,14 +83,12 @@ func TestWriteContent(t *testing.T) {
 	permissions := "0600"
 	cif.AddMilpaFile(content, path, permissions)
 
-	expected := `
-milpa_files:
-  - content: |
-      A programmer, a plan, whatever dude...
-    path: /usr/local/bin
-    permissions: 0600
-
-` + userContent
+	expected := string(cloudInitHeader) + userContent + `
+- content: A programmer, a plan, whatever dude...
+  owner: root
+  path: /usr/local/bin
+  permissions: "0600"
+`
 	cloudInitContent, err := cif.Contents()
 	assert.NoError(t, err)
 	assert.Equal(t, expected, string(cloudInitContent))

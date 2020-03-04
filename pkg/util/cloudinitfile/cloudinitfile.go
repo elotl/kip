@@ -15,66 +15,67 @@ limitations under the License.
 */
 
 // Useful for 1 allowing the user to update the cloud-init file
-// without restarting the serer.  Also validates a users cloud-init data and has helpers for managing milpa data
+// without restarting the serer.  Also validates a users cloud-init
+// data and has helpers for managing milpa data
 package cloudinitfile
 
 import (
-	"bytes"
 	"fmt"
-	"strings"
-	"time"
+	"io/ioutil"
 
-	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/elotl/cloud-instance-provider/pkg/util/filewatcher"
-	"github.com/elotl/cloud-instance-provider/pkg/util/yaml"
+	"github.com/coreos/yaml"
+	cc "github.com/elotl/cloud-init/config"
+	"github.com/elotl/milpa/pkg/util"
 )
 
 var (
-	ItzoVersionPath = "/tmp/milpa/itzo_version"
-	ItzoURLPath     = "/tmp/milpa/itzo_url"
+	ItzoVersionPath  = "/tmp/milpa/itzo_version"
+	ItzoURLPath      = "/tmp/milpa/itzo_url"
+	cloudInitHeader  = []byte("#cloud-config\n")
+	maxCloudInitSize = 16000
 )
 
-type MilpaFile struct {
-	content     string
-	path        string
-	permissions string
-}
-
 type File struct {
-	userData        filewatcher.Watcher
-	lastSeenVersion int
-	milpaFiles      map[string]MilpaFile
+	userData   cc.CloudConfig
+	milpaFiles map[string]cc.File
 }
 
-func New(path string) *File {
-	fw := filewatcher.New(path)
-	fw.CheckPeriod = 20 * time.Second
-	f := &File{
-		userData:        fw,
-		lastSeenVersion: fw.Version(),
-		milpaFiles:      make(map[string]MilpaFile),
+func New(path string) (*File, error) {
+	var userData cc.CloudConfig
+	if path != "" {
+		var err error
+		userData, err = loadUserCloudConfig(path)
+		if err != nil {
+			return nil, util.WrapError(err, "Could not load user's cloud config file at %s", path)
+		}
 	}
-	return f
-}
-
-func (f *File) Validate(c string) error {
-	type Empty struct{}
-	var empty Empty
-	yml := []byte(c)
-	decoder := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(yml), 16000)
-	return decoder.Decode(&empty)
+	f := &File{
+		userData:   userData,
+		milpaFiles: make(map[string]cc.File),
+	}
+	return f, nil
 }
 
 func (f *File) ResetInstanceData() {
-	f.milpaFiles = make(map[string]MilpaFile)
+	f.milpaFiles = make(map[string]cc.File)
 }
 
 func (f *File) AddMilpaFile(content, path, permissions string) {
-	f.milpaFiles[path] = MilpaFile{
-		content:     content,
-		path:        path,
-		permissions: permissions,
+	f.milpaFiles[path] = cc.File{
+		Content:            content,
+		Path:               path,
+		Owner:              "root",
+		RawFilePermissions: permissions,
 	}
+}
+
+func loadUserCloudConfig(path string) (ucc cc.CloudConfig, err error) {
+	contents, err := ioutil.ReadFile(path)
+	if err != nil {
+		return ucc, err
+	}
+	err = yaml.Unmarshal([]byte(contents), &ucc)
+	return ucc, err
 }
 
 // Adds an itzo version number to cloud-init file.  If the user
@@ -96,40 +97,22 @@ func (f *File) AddItzoURL(url string) {
 	f.AddMilpaFile(url, ItzoURLPath, "0444")
 }
 
-func (f *MilpaFile) Content() []byte {
-	indented := strings.Replace(f.content, "\n", "\n      ", -1)
-	str := fmt.Sprintf(
-		"  - content: |\n      %s\n    path: %s\n    permissions: %s\n",
-		indented, f.path, f.permissions)
-	return []byte(str)
-}
-
-func (f *File) MilpaContents() string {
-	if len(f.milpaFiles) == 0 {
-		return ""
+func (f *File) Contents() ([]byte, error) {
+	mergedConfig := f.userData
+	mergedFiles := make([]cc.File, 0, len(f.userData.WriteFiles)+len(f.milpaFiles))
+	mergedFiles = append(mergedFiles, f.userData.WriteFiles...)
+	for _, wf := range f.milpaFiles {
+		mergedFiles = append(mergedFiles, wf)
 	}
-	data := make([]byte, 0, 2048)
-	data = append(data, []byte("\nmilpa_files:\n")...)
-	for _, mf := range f.milpaFiles {
-		data = append(data, mf.Content()...)
+	mergedConfig.WriteFiles = mergedFiles
+	mergedContent, err := yaml.Marshal(mergedConfig)
+	if err != nil {
+		return nil, err
 	}
-	return string(data)
-}
-
-func (f *File) Contents() (string, error) {
-	userContent := f.userData.Contents()
-	if f.lastSeenVersion != f.userData.Version() {
-		if err := f.Validate(userContent); err != nil {
-			return "", util.WrapError(
-				err, "Error validating user cloud-init script")
-		}
-		f.lastSeenVersion = f.userData.Version()
-	}
-
-	milpaContent := f.MilpaContents()
-	cloudInitContent := milpaContent + "\n" + userContent
-	if len(cloudInitContent) > 16000 {
-		return "", fmt.Errorf("Cloud init data length is over 16K")
+	cloudInitContent := cloudInitHeader
+	cloudInitContent = append(cloudInitContent, mergedContent...)
+	if len(cloudInitContent) > maxCloudInitSize {
+		return nil, fmt.Errorf("Cloud init data length is over 16K")
 	}
 	return cloudInitContent, nil
 }
