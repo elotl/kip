@@ -270,32 +270,32 @@ func IsUnsupportedInstance(instanceType string) bool {
 		selector.unsupportedInstances.Has(instanceType)
 }
 
-func ResourcesToInstanceType(ps *api.PodSpec) (string, bool, error) {
+func ResourcesToInstanceType(ps *api.PodSpec) (string, *bool, error) {
 	if ps.Resources.ContainerInstance != nil && *ps.Resources.ContainerInstance {
-		return api.ContainerInstanceType, false, nil
+		return api.ContainerInstanceType, nil, nil
 	}
-	sustainedCPU := false
 	if ps.InstanceType != "" {
+		var sustainedCPU *bool
 		if ps.Resources.SustainedCPU != nil {
-			sustainedCPU = *ps.Resources.SustainedCPU
+			sustainedCPU = ps.Resources.SustainedCPU
 		}
 		return ps.InstanceType, sustainedCPU, nil
 	}
 	if selector == nil {
 		msg := "fatal: instanceselector has not been initialized"
 		klog.Errorf(msg)
-		return "", false, fmt.Errorf(msg)
+		return "", nil, fmt.Errorf(msg)
 	}
 	if noResourceSpecified(ps) {
-		return selector.defaultInstanceType, false, nil
+		return selector.defaultInstanceType, nil, nil
 	}
 
-	instanceType, sustainedCPU := selector.getInstanceFromResources(ps.Resources)
+	instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources)
 	if instanceType == "" {
 		msg := "could not compute instance type from Spec.Resources. It's likely that the Pod.Spec.Resources specify an instance that doesnt exist in the cloud"
-		return "", false, fmt.Errorf(msg)
+		return "", nil, fmt.Errorf(msg)
 	}
-	return instanceType, sustainedCPU, nil
+	return instanceType, &needsSustainedCPU, nil
 }
 
 func ResourcesToContainerInstance(rs *api.ResourceSpec) (int64, int64, error) {

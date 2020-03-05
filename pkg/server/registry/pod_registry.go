@@ -145,7 +145,7 @@ func (reg *PodRegistry) preCreatePod(p *api.Pod) (*api.Pod, error) {
 		return nil, util.WrapError(err, "Could not create pod %s, failure to convert resources to instance type", p.Name)
 	}
 	p.Spec.InstanceType = instanceType
-	p.Spec.Resources.SustainedCPU = &sustainedCPU
+	p.Spec.Resources.SustainedCPU = sustainedCPU
 	return p, nil
 }
 
