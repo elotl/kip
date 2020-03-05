@@ -24,7 +24,6 @@ import (
 
 	"github.com/coreos/yaml"
 	cc "github.com/elotl/cloud-init/config"
-	"github.com/elotl/milpa/pkg/util/filewatcher"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -95,46 +94,42 @@ func TestWriteContent(t *testing.T) {
 }
 
 func TestAddItzoFuncs(t *testing.T) {
-	cif := &File{
-		userData:   &filewatcher.FakeWatcher{},
-		milpaFiles: make(map[string]MilpaFile),
-	}
+	cif, err := New("")
+	assert.NoError(t, err)
 	cif.AddItzoVersion("")
 	cif.AddItzoURL("")
 	cloudInitContent, err := cif.Contents()
 	assert.NoError(t, err)
-	assert.Equal(t, "\n", string(cloudInitContent))
+	expected := string(cloudInitHeader) + "{}\n"
+	assert.Equal(t, expected, string(cloudInitContent))
+
 	versionString := "v1.0.0"
 	cif.AddItzoVersion(versionString)
 	cloudInitContent, err = cif.Contents()
 	assert.NoError(t, err)
-	expected := fmt.Sprintf(`
-milpa_files:
-  - content: |
-      %s
-    path: %s
-    permissions: 0444
-
+	expected = string(cloudInitHeader) + fmt.Sprintf(`write_files:
+- content: %s
+  owner: root
+  path: %s
+  permissions: "0444"
 `, versionString, ItzoVersionPath)
-	assert.Equal(t, expected, cloudInitContent)
+	assert.Equal(t, expected, string(cloudInitContent))
+
 	cif.AddItzoVersion("1.0.0")
 	cloudInitContent, err = cif.Contents()
 	assert.NoError(t, err)
-	assert.Equal(t, expected, cloudInitContent)
+	assert.Equal(t, expected, string(cloudInitContent))
 
 	cif.ResetInstanceData()
 	urlString := "http://my-bucket.s3.com"
 	cif.AddItzoURL(urlString)
-	expected = fmt.Sprintf(`
-milpa_files:
-  - content: |
-      %s
-    path: %s
-    permissions: 0444
-
+	expected = string(cloudInitHeader) + fmt.Sprintf(`write_files:
+- content: %s
+  owner: root
+  path: %s
+  permissions: "0444"
 `, urlString, ItzoURLPath)
 	cloudInitContent, err = cif.Contents()
 	assert.NoError(t, err)
-	assert.Equal(t, expected, cloudInitContent)
-
+	assert.Equal(t, expected, string(cloudInitContent))
 }
