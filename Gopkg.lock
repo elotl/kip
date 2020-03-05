@@ -358,12 +358,12 @@
   revision = "449fdfce4d962303d702fec724ef0ad181c92528"
 
 [[projects]]
-  digest = "1:38ff999bf5fcd14932393c1746176ad27deda593650d1fead55ab2d9f66b7ecc"
+  branch = "master"
+  digest = "1:2805fd15a7a460fec4947c17b4ae14284682fad91ffbfe5bc4e69526f0d7973d"
   name = "github.com/elotl/cloud-init"
   packages = ["config"]
   pruneopts = "UT"
-  revision = "5be99bf577f2768193c7fb587ef5a8806c1503cf"
-  version = "v1.13.0"
+  revision = "7079e4bf89392fe237d3b8f548d4525c28e6cb63"
 
 [[projects]]
   branch = "master"

@@ -28,23 +28,14 @@ import (
 // directly to YAML. Fields that cannot be set in the cloud-config (fields
 // used for internal use) have the YAML tag '-' so that they aren't marshalled.
 type CloudConfig struct {
-	SSHAuthorizedKeys []string `yaml:"ssh_authorized_keys"`
-	CoreOS            CoreOS   `yaml:"coreos"`
-	WriteFiles        []File   `yaml:"write_files"`
-	Hostname          string   `yaml:"hostname"`
-	Users             []User   `yaml:"users"`
-	ManageEtcHosts    EtcHosts `yaml:"manage_etc_hosts"`
-}
-
-type CoreOS struct {
-	Etcd      Etcd      `yaml:"etcd"`
-	Etcd2     Etcd2     `yaml:"etcd2"`
-	Flannel   Flannel   `yaml:"flannel"`
-	Fleet     Fleet     `yaml:"fleet"`
-	Locksmith Locksmith `yaml:"locksmith"`
-	OEM       OEM       `yaml:"oem"`
-	Update    Update    `yaml:"update"`
-	Units     []Unit    `yaml:"units"`
+	SSHAuthorizedKeys []string `yaml:"ssh_authorized_keys,omitempty"`
+	WriteFiles        []File   `yaml:"write_files,omitempty"`
+	Hostname          string   `yaml:"hostname,omitempty"`
+	Users             []User   `yaml:"users,omitempty"`
+	RunScript         string   `yaml:"runscript,omitempty"`
+	// this one is legacy
+	MilpaFiles []File `yaml:"milpa_files,omitempty"`
+	// Todo: add additional parameters supported by traditional cloud-init
 }
 
 func IsCloudConfig(userdata string) bool {
@@ -65,6 +56,7 @@ func NewCloudConfig(contents string) (*CloudConfig, error) {
 	}
 	var cfg CloudConfig
 	err := yaml.Unmarshal([]byte(contents), &cfg)
+	//fmt.Printf("%+v\n", cfg)
 	return &cfg, err
 }
 
