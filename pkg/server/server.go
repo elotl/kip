@@ -243,7 +243,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		cloudRegion,
 		serverConfigFile.Cells.DefaultInstanceType)
 	if err != nil {
-		return nil, fmt.Errorf("error in user supplied cloud-init file: %s", err)
+		return nil, fmt.Errorf("error setting up instance selector %s", err)
 	}
 	// Ugly: need to do validation of this field after we have setup
 	// the instanceselector

@@ -36,8 +36,8 @@ var (
 )
 
 type File struct {
-	userData   cc.CloudConfig
-	milpaFiles map[string]cc.File
+	userData cc.CloudConfig
+	kipFiles map[string]cc.File
 }
 
 func New(path string) (*File, error) {
@@ -50,18 +50,18 @@ func New(path string) (*File, error) {
 		}
 	}
 	f := &File{
-		userData:   userData,
-		milpaFiles: make(map[string]cc.File),
+		userData: userData,
+		kipFiles: make(map[string]cc.File),
 	}
 	return f, nil
 }
 
 func (f *File) ResetInstanceData() {
-	f.milpaFiles = make(map[string]cc.File)
+	f.kipFiles = make(map[string]cc.File)
 }
 
-func (f *File) AddMilpaFile(content, path, permissions string) {
-	f.milpaFiles[path] = cc.File{
+func (f *File) AddKipFile(content, path, permissions string) {
+	f.kipFiles[path] = cc.File{
 		Content:            content,
 		Path:               path,
 		Owner:              "root",
@@ -87,21 +87,21 @@ func (f *File) AddItzoVersion(version string) {
 	} else if version != "latest" && version[0] != 'v' {
 		version = "v" + version
 	}
-	f.AddMilpaFile(version, ItzoVersionPath, "0444")
+	f.AddKipFile(version, ItzoVersionPath, "0444")
 }
 
 func (f *File) AddItzoURL(url string) {
 	if url == "" {
 		return
 	}
-	f.AddMilpaFile(url, ItzoURLPath, "0444")
+	f.AddKipFile(url, ItzoURLPath, "0444")
 }
 
 func (f *File) Contents() ([]byte, error) {
 	mergedConfig := f.userData
-	mergedFiles := make([]cc.File, 0, len(f.userData.WriteFiles)+len(f.milpaFiles))
+	mergedFiles := make([]cc.File, 0, len(f.userData.WriteFiles)+len(f.kipFiles))
 	mergedFiles = append(mergedFiles, f.userData.WriteFiles...)
-	for _, wf := range f.milpaFiles {
+	for _, wf := range f.kipFiles {
 		mergedFiles = append(mergedFiles, wf)
 	}
 	mergedConfig.WriteFiles = mergedFiles

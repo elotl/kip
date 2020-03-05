@@ -73,14 +73,14 @@ func TestWriteContent(t *testing.T) {
 	ucc, err := loadCloudConfigFromString(userContent)
 	assert.NoError(t, err)
 	cif := &File{
-		userData:   ucc,
-		milpaFiles: make(map[string]cc.File),
+		userData: ucc,
+		kipFiles: make(map[string]cc.File),
 	}
 
 	content := "A programmer, a plan, whatever dude..."
 	path := "/usr/local/bin"
 	permissions := "0600"
-	cif.AddMilpaFile(content, path, permissions)
+	cif.AddKipFile(content, path, permissions)
 
 	expected := string(cloudInitHeader) + userContent + `
 - content: A programmer, a plan, whatever dude...
