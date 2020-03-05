@@ -44,7 +44,6 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/instanceselector"
 	"github.com/elotl/cloud-instance-provider/pkg/util/timeoutmap"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
-	"github.com/golang/glog"
 	"github.com/virtual-kubelet/node-cli/manager"
 	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
@@ -136,7 +135,7 @@ func setupEtcd(configFile, dataDir string, quit <-chan struct{}, wg *sync.WaitGr
 }
 
 func ConfigureK8sKipClient() (*kubeclient.Clientset, *rest.Config, error) {
-	glog.Infof("Configuring k8s client with provided service account credentials")
+	klog.V(2).Infof("Configuring k8s client with provided service account credentials")
 	config, err := restclient.InClusterConfig()
 	if err != nil {
 		return nil, nil, util.WrapError(err, "Could not load kube config using the provided service account")
@@ -345,7 +344,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 	}
 	k8sKipClient, k8sRestConfig, err := ConfigureK8sKipClient()
 	if err != nil {
-		glog.Errorln("Error configuring kubernetes kip client", err)
+		klog.Errorln("Error configuring kubernetes kip client", err)
 		time.Sleep(3 * time.Second)
 		os.Exit(2)
 	}
@@ -360,7 +359,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		nodeRegistry,
 	)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		os.Exit(1)
 	}
 

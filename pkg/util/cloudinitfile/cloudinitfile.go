@@ -25,7 +25,7 @@ import (
 
 	"github.com/coreos/yaml"
 	cc "github.com/elotl/cloud-init/config"
-	"github.com/elotl/milpa/pkg/util"
+	"github.com/elotl/cloud-instance-provider/pkg/util"
 )
 
 var (
