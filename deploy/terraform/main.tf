@@ -294,6 +294,19 @@ data "aws_ami" "ubuntu" {
 
 locals {
   node_ami = length(var.node-ami) > 0 ? var.node-ami : data.aws_ami.ubuntu.id
+  create_ssh_key = length(var.ssh-key-name) > 0 ? false : true
+  ssh_key_name = local.create_ssh_key ? aws_key_pair.ssh-key.0.key_name : var.ssh-key-name
+}
+
+resource "tls_private_key" "ssh-key" {
+  count = local.create_ssh_key ? 1 : 0
+  algorithm = "RSA"
+}
+
+resource "aws_key_pair" "ssh-key" {
+  count = local.create_ssh_key ? 1 : 0
+  key_name   = "ssh-key-${var.cluster-name}"
+  public_key = tls_private_key.ssh-key.0.public_key_openssh
 }
 
 resource "aws_instance" "k8s-node" {
@@ -301,7 +314,7 @@ resource "aws_instance" "k8s-node" {
   instance_type               = "t3.medium"
   subnet_id                   = aws_subnet.subnet.id
   user_data                   = data.template_file.node-userdata.rendered
-  key_name                    = var.ssh-key-name
+  key_name                    = local.ssh_key_name
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.kubernetes.id]
   iam_instance_profile        = aws_iam_instance_profile.k8s-node.id
@@ -311,7 +324,7 @@ resource "aws_instance" "k8s-node" {
     volume_size = var.node-disk-size
   }
 
-  depends_on = [aws_internet_gateway.gw]
+  depends_on = [aws_internet_gateway.gw, aws_key_pair.ssh-key]
 
   tags = merge(local.k8s_cluster_tags,
     {"Name" = "${var.cluster-name}-node"})

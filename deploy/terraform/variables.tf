@@ -1,4 +1,5 @@
 variable "ssh-key-name" {
+  default = ""
 }
 
 variable "cluster-name" {
