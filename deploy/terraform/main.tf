@@ -324,6 +324,18 @@ resource "aws_instance" "k8s-node" {
     volume_size = var.node-disk-size
   }
 
+  provisioner "remote-exec" {
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      host        = self.public_ip
+      private_key = local.create_ssh_key ? tls_private_key.ssh-key.0.private_key_pem : null
+    }
+    inline = [
+      "timeout 300 bash -c 'echo Waiting for cluster to come up; while true; do kubectl get svc kubernetes 2>/dev/null && exit 0; sleep 1; done'",
+    ]
+  }
+
   depends_on = [aws_internet_gateway.gw, aws_key_pair.ssh-key]
 
   tags = merge(local.k8s_cluster_tags,
