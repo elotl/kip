@@ -40,7 +40,7 @@ In [deploy/terraform](deploy/terraform), you will find a terraform config that c
 
 ### Installation Option 2: Using an Existing Cluster
 
-To deploy Kip into an existing cluster, you'll need to setup cloud credentials for the Kip provider to use then create a ConfigMap containing [deploy/virtual-kubelet-config.yaml](deploy/virtual-kubelet-config.yaml).  After creating the configuration, apply [deploy/virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) to create the necessary kubernetes resources to support and run the provider.
+To deploy Kip into an existing cluster, you'll need to setup cloud credentials for the Kip provider, and apply [deploy/virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) to create the necessary kubernetes resources to support and run the provider.
 
 **Step 1: Credentials**
 
@@ -48,27 +48,19 @@ Kip requires credentials to manipulate cloud instances, security groups and othe
 
 **Credentials Option 1 - Configuring AWS API keys:**
 
-Use `envsubst` to apply virtual-kubelet-config.yaml with your keys and apply the virtual-kubelet-config.yaml ConfigMap:
-
-    export aws_access_key_id="<your aws access key>"
-    export aws_secret_access_key="<your aws secret access key>"
-    envsubst '$aws_access_key_id,aws_secret_access_key' < deploy/virtual-kubelet-config.yaml | kubectl apply -f -
-
-Alternatively you can edit the file by hand, replacing the two templated environment variables with your access keys and apply the manifest.
+Open [deploy/virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) in an editor, find the virtual-kubelet-config ConfigMap and fill in the values for `accessKeyID` and `secretAccessKey` under `data.server.yml.cloud.aws`.
 
 **Credentials Option 2 - Instance Profile Credentials:**
 
-Kip can use credentials from an instance profile of the VM it is running on.  This setup assumes the user has already provisioned a node with the correct [instance profile](#docs/kip-iam-permissions.md).  To use instance profile credentials, leave the `accessKeyID` and `secretAccessKey` blank in virtual-kubelet-config.yaml.
-
-    export aws_access_key_id=""
-    export aws_secret_access_key=""
-    envsubst '$aws_access_key_id,aws_secret_access_key' < deploy/virtual-kubelet-config.yaml | kubectl apply -f -
+Kip can use credentials from an [AWS instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) of the VM it is running on.  To use an instance profile, create an IAM policy with the [minimum Kip permissions](#docs/kip-iam-permissions.md). Then apply that instance profile to the node that will run the Kip provider pod.  The pod must run on the cloud instance that the instance profile is attached to.
 
 **Step 2: Apply virtual-kubelet.yaml**
 
-The resources in virtual-kubelet.yaml create ServiceAccounts Roles and a virtual-kubelet Deployment to run the provider. [Kip is not stateless](docs/state.md), virtual-kubelet.yaml will also create a PersistentVolume to store the provider data.
+The resources in [virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) create ServiceAccounts Roles and a virtual-kubelet Deployment to run the provider. [Kip is not stateless](docs/state.md), the manifest will also create a PersistentVolume to store the provider data.
 
     kubectl apply -f deploy/virtual-kubelet.yaml
+
+After applying the manifest, you should see a new virtual-kubelet pod in the kube-system namespace and a new node named virtual-kubelet in the cluster.
 
 ## Running Pods on Virtual Kubelet
 
@@ -95,7 +87,7 @@ If you deployed Kip in an existing cluster, make sure that you first remove all 
 
 ### Features
 - [Networking](docs/networking.md), including host network mode, cluster IPs, DNS, HostPorts and NodePorts
-- Pods will be started on a cloud instance that matches the pod resource requests/limits. If no requests/limits are present in the pod spec, kip will fall back to a default cloud instance type specified in [cloud-instance-provider.yaml](docs/provider-config.md)
+- Pods will be started on a cloud instance that matches the pod resource requests/limits. If no requests/limits are present in the pod spec, Kip will fall back to a default cloud instance type specified in [cloud-instance-provider.yaml](docs/provider-config.md)
 - GPU instances
 - Logs
 - Exec
@@ -141,7 +133,7 @@ We are actively working on adding missing features. One of the main objectives o
 ##
 **Q.** How long does it take to start a workload?
 
-**A.** In AWS, instances boot in under a minute, usually pods are dispatched to the instance in about 45 seconds. Depending on the size of the container, a pod will be running in 60 to 90 seconds.  In our experience, starting pods in Azure can be a bit slower with startup times between 1.5 to 3 minutes.
+**A.** In AWS, instances boot in under a minute, usually pods are dispatched to the instance in about 45 seconds. Depending on the size of the container image, a pod will be running in 60 to 90 seconds.  In our experience, starting pods in Azure can be a bit slower with startup times between 1.5 to 3 minutes.
 
 ##
 **Q.** Does it work with the Horizontal Pod Autoscaler and Vertical Pod Autoscaler?
@@ -151,12 +143,12 @@ We are actively working on adding missing features. One of the main objectives o
 ##
 **Q.** Are DaemonSets supported?
 
-**A.** Yes, though they might not work the way intended. The pod will start on a separate cloud instance, and not on the node.
+**A.** Yes, though they might not work the way intended. The pod will start on a separate cloud instance, and not on the node.  It's possible to patch a DaemonSet so it does not get dispatched to the virtual-kubelet.
 
 ##
 **Q.** Are you a [kubernetes conformant](https://github.com/cncf/k8s-conformance) runtime?
 
-**A.** We are not 100% conformant at this time but we are working towards getting as close as possible to conformant.  Currently we are 70-80% conformant but are hoping to get those values above 90% soon.
+**A.** We are not 100% conformant at this time but we are working towards getting as close as possible to conformance.  Currently Kip passes 70-80% of conformance tests but are hoping to get those values above 90% soon.
 
 ##
 **Q.** What cloud providers does Kip support
@@ -175,7 +167,7 @@ We are actively working on adding missing features. One of the main objectives o
 * [Cells](docs/cells.md)
 * [Networking](docs/networking.md)
 * [Annotations](docs/annotations.md)
-* [Security Groups](docs/security_groups.md)
+* [Security Groups](docs/security-groups.md)
 * [Provider Configuration](docs/provider-config.md)
 * [IAM Permissions](docs/kip-iam-permissions.md)
 * [State](docs/state.md)

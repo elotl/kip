@@ -1,4 +1,4 @@
-#Minimum IAM Permissions
+## Minimum IAM Permissions
 
 The following policy covers all permissions Kip requires in order to run in AWS.
 

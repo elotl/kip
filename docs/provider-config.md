@@ -1,3 +1,5 @@
+## Provider Configuration
+
 Kip is configured using a yaml file.  The easiest way to get that file into kip’s virtual-kubelet pod is to use a ConfigMap and then supply the location of the file to kip via the `--provider-config` flag.  A sample config file with documentation comments for each section is shown below:
 
 ```yaml
@@ -44,7 +46,7 @@ cloud:
     # want to use AMIs provided by Elotl. Only change this value if
     # you know what you're doing.
     imageOwnerID: 689494258501
-    
+
 # the etcd section controls how kip stores its state, either using
 # an external etcd cluster or using an embedded etcd database.
 etcd:
@@ -74,7 +76,7 @@ kubelet:
   cpu: "64"
   memory: "512Gi"
   pods: "400"
-  
+
 # the cells section configures parameters that affect kip cells
 cells:
   # nametag is a name that will be added onto cloud tags to help
@@ -126,19 +128,19 @@ cells:
   #   - instanceType: "t2.micro"
   #     count: 2
   #     spot: false
-  
+
   # extraSecurityGroups contains the IDs of additional security groups
   # that will be attached to kip cells.  In AWS those groups looks
   # like: sg-av3sp192jur
   #
   # extraSecurityGroups:
   #   - sg-246810
-  
+
   # itzo configures the version of the itzo agent to use and where
   # itzo will be downloaded from.  You should only customize this if
   # you have built your own itzo agent or you would like to pin your
   # itzo agent version to a particular version.
-  
+
   # itzo:
   #   version: 532
   #   url: "http://itzo-download.s3.amazonaws.com"
