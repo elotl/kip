@@ -37,6 +37,11 @@ You can now ssh into the instance using the username "ubuntu", and the ssh key y
     ip-10-0-26-113.ec2.internal   Ready    master   67s   v1.17.3
     virtual-kubelet               Ready    agent    13s   v1.14.0-vk-v0.0.1-125-g3b2cc98
 
+If you haven't set an existing ssh key in your configuration, a new ssh key has been created. You can extract and use it via:
+
+    $ terraform show -json | jq -r '.values.root_module.resources | .[] | select(.address=="tls_private_key.ssh-key") | .values.private_key_pem' > /tmp/id_rsa
+    $ ssh -i /tmp/id_rsa ubuntu@<public IP of node>
+
 ## Run a Pod via Virtual Kubelet
 
 To have a pod run via virtual-kubelet, make sure you add a toleration and/or node selector for virtual-kubelet:
