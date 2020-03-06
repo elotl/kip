@@ -32,6 +32,9 @@ data:
       defaultInstanceType: "t3.nano"
       defaultVolumeSize: "20G"
       nametag: virtual-kubelet
+      itzo:
+        url: https://itzo-kip-dev-download.s3.amazonaws.com
+        version: latest
     kubelet:
       cpu: "20"
       memory: "512Gi"
