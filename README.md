@@ -52,7 +52,7 @@ Open [deploy/virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) in an editor, fi
 
 **Credentials Option 2 - Instance Profile Credentials:**
 
-Kip can use credentials from an [AWS instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) of the VM it is running on.  To use an instance profile, create an IAM policy with the [minimum Kip permissions](#docs/kip-iam-permissions.md). Then apply that instance profile to the node that will run the Kip provider pod.  The pod must run on the cloud instance that the instance profile is attached to.
+Kip can use credentials from an [AWS instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) of the VM it is running on.  To use an instance profile, create an IAM policy with the [minimum Kip permissions](docs/kip-iam-permissions.md). Then apply that instance profile to the node that will run the Kip provider pod.  The pod must run on the cloud instance that the instance profile is attached to.
 
 **Step 2: Apply virtual-kubelet.yaml**
 
