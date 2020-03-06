@@ -30,8 +30,9 @@ import (
 )
 
 var (
-	ItzoVersionPath = "/tmp/milpa/itzo_version"
-	ItzoURLPath     = "/tmp/milpa/itzo_url"
+	itzoDir         = "/tmp/itzo"
+	ItzoVersionPath = itzoDir + "/itzo_version"
+	ItzoURLPath     = itzoDir + "/itzo_url"
 )
 
 type MilpaFile struct {
