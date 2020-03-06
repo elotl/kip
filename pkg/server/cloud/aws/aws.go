@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Elotl Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package aws
 
 import (
@@ -8,7 +24,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -202,7 +217,7 @@ func (m *AwsEC2) GetAttributes() cloud.CloudAttributes {
 }
 
 func filterLabelsForTags(resource string, labels map[string]string) (map[string]string, error) {
-	illegalKeys := []string{"Node", cloud.ControllerTagKey, cloud.ServiceTagKey}
+	illegalKeys := []string{"Node", cloud.ControllerTagKey}
 	ignoredPrefixes := []string{"aws:"}
 	ignoredPrefixes = append(ignoredPrefixes, util.InternalLabelPrefixes...)
 	i := 0
@@ -272,29 +287,4 @@ func ec2TagsFromLabels(resource string, labels map[string]string) ([]*ec2.Tag, e
 		})
 	}
 	return awsTags, err
-}
-
-// Todo, make sure our error messages summarize what is wrong
-func (c *AwsEC2) ValidateMarketplaceLicense() error {
-	sess, err := session.NewSession()
-	if err != nil {
-		return util.WrapError(err, "Error creating ec2 metadata client session")
-	}
-	metadataClient := ec2metadata.New(sess)
-	doc, err := getInstanceIdentityDocument(metadataClient, AWSCertificatePem)
-	if err != nil {
-		return util.WrapError(err, "Could not get valid Instance Document from cloud metadata service")
-	}
-	err = c.validateInstanceDocumentInfo(doc)
-	if err != nil {
-		return util.WrapError(err, "Error validating ec2 instance identity document")
-	}
-	for _, productCode := range doc.MarketplaceProductCodes {
-		if productDescription, ok := milpaMarketplaceCodes[productCode]; ok {
-			klog.V(2).Infof("Running on marketplace, product: %q (%s)",
-				productDescription, productCode)
-			return nil
-		}
-	}
-	return fmt.Errorf("This instance is not a milpa marketplace instance")
 }

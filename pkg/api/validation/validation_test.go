@@ -22,8 +22,8 @@ import (
 	"testing"
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // Ensure trailing slash is allowed in generate name

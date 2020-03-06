@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Elotl Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
 import (
@@ -335,12 +351,20 @@ func (c *PodController) updatePodUnits(pod *api.Pod) error {
 	if err != nil {
 		return util.WrapError(err, "Unable to sync pod: %s bad Pod.Spec.ImagePullSecret", pod.Name)
 	}
+	ns, name := util.SplitNamespaceAndName(pod.Name)
+	podHostname, err := util.GeneratePodHostname(
+		c.dnsConfigurer, name, ns, pod.Spec.Hostname, pod.Spec.Subdomain)
+	if err != nil {
+		return util.WrapError(err,
+			"unable to sync pod %s: generating hostname: %v", pod.Name, err)
+	}
 	podParams := api.PodParameters{
 		Credentials: podCreds,
-		Spec:        pod.Spec,
+		Spec:        util.ExpandCommandAndArgs(pod.Spec),
 		PodName:     pod.Name,
 		NodeName:    c.kubernetesNodeName,
 		PodIP:       api.GetPodIP(node.Status.Addresses),
+		PodHostname: podHostname,
 	}
 	return client.UpdateUnits(podParams)
 }
@@ -415,6 +439,14 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 	err = deployResolvconf(pod, node, c.dnsConfigurer, c.nodeClientFactory)
 	if err != nil {
 		msg := fmt.Sprintf("Error deploying resolv.conf to node for pod %s: %v", pod.Name, err)
+		klog.Errorln(msg)
+		c.markFailedPod(pod, true, msg)
+		return
+	}
+
+	err = deployEtcHosts(pod, node, c.dnsConfigurer, c.nodeClientFactory)
+	if err != nil {
+		msg := fmt.Sprintf("Error deploying /etc/hosts to node for pod %s: %v", pod.Name, err)
 		klog.Errorln(msg)
 		c.markFailedPod(pod, true, msg)
 		return
@@ -513,9 +545,7 @@ func (c *PodController) handlePodStatusReply(reply FullPodStatus) {
 		return
 	}
 	podIP := api.GetPrivateIP(pod.Status.Addresses)
-	if podIP == "" {
-		pod.Status.Addresses = api.NewNetworkAddresses(reply.PodIP, "")
-	} else if reply.PodIP != "" && podIP != reply.PodIP {
+	if reply.PodIP != "" && podIP != reply.PodIP {
 		// Reply came in after pod has been rescheduled.
 		klog.Errorf("IP for pod %s has changed %s -> %s",
 			reply.Name, reply.PodIP, podIP)
@@ -527,6 +557,9 @@ func (c *PodController) handlePodStatusReply(reply FullPodStatus) {
 		if failMsg != "" {
 			c.markFailedPod(pod, startFailure, failMsg)
 			return
+		}
+		if api.IsTerminalPodPhase(pod.Status.Phase) {
+			c.savePodLogs(pod)
 		}
 		_, err = c.podRegistry.UpdatePodStatus(pod, "Updating pod unit statuses")
 		if err != nil {
@@ -729,6 +762,15 @@ func (c *PodController) checkRunningPods() {
 func (c *PodController) setPodDispatchingParams(pod *api.Pod, node *api.Node) (*api.Pod, error) {
 	pod.Status.BoundNodeName = node.Name
 	pod.Status.BoundInstanceID = node.Status.InstanceID
+	// The cloud backend has allocated an extra internal IP to this instance.
+	// This will be used for the pod unless the pod has requested host network
+	// mode, in which case the pod will share the main IP address of the
+	// instance.
+	podIP := api.GetPodIP(node.Status.Addresses)
+	if api.IsHostNetwork(pod.Spec.SecurityContext) {
+		podIP = api.GetPrivateIP(node.Status.Addresses)
+	}
+	pod.Status.Addresses = api.NewNetworkAddresses(podIP, "")
 	// The dispatching state is used to keep track of pods
 	// that are creating but have received a node from the
 	// node manager.  Also, if the management console
@@ -774,7 +816,6 @@ func (c *PodController) terminateBoundPod(pod *api.Pod) {
 
 	// run this in a goroutine in case it blocks (shouldn't ever happen)
 	go func() {
-		c.savePodLogs(pod)
 		klog.V(2).Infof("Returning node %s for pod %s", pod.Status.BoundNodeName, pod.Name)
 		c.nodeDispenser.ReturnNode(pod.Status.BoundNodeName, false)
 	}()
@@ -925,7 +966,6 @@ func (c *PodController) handlePodSucceeded(pod *api.Pod) {
 	}
 	// Pod's work is done...
 	go func() {
-		c.savePodLogs(pod)
 		c.nodeDispenser.ReturnNode(pod.Status.BoundNodeName, false)
 	}()
 	//c.deleteFinishedPod(pod)

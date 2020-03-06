@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Elotl Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package nodemanager
 
 import (
@@ -223,6 +239,27 @@ func TestMachingPodToStandbyPool(t *testing.T) {
 	assert.Len(t, start, 1)
 	assert.Len(t, stop, 0)
 	assert.Equal(t, node.Name, bindings[pod.Name])
+}
+
+func TestFullStandbyPool(t *testing.T) {
+	ns, closer := makeNodeScaler()
+	defer closer()
+	standbySpec := StandbyNodeSpec{
+		InstanceType: "t3.nano",
+		Spot:         false,
+		Count:        2,
+	}
+	ns.standbyNodes = []StandbyNodeSpec{standbySpec}
+	nodeReg := ns.nodeRegistry.(*registry.NodeRegistry)
+	n1 := ns.createNodeForStandbySpec(&standbySpec)
+	_, err := nodeReg.CreateNode(n1)
+	assert.NoError(t, err)
+	n2 := ns.createNodeForStandbySpec(&standbySpec)
+	_, err = nodeReg.CreateNode(n2)
+	assert.NoError(t, err)
+	start, stop, _ := ns.Compute([]*api.Node{n1, n2}, []*api.Pod{})
+	assert.Len(t, start, 0)
+	assert.Len(t, stop, 0)
 }
 
 func TestNodeScalerDiskMatches(t *testing.T) {

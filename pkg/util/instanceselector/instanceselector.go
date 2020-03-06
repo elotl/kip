@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Elotl Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package instanceselector
 
 import (
@@ -8,8 +24,8 @@ import (
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )
 
@@ -51,10 +67,10 @@ func Setup(cloud, region, defaultInstanceType string) error {
 			defaultInstanceType:  defaultInstanceType,
 			data:                 d,
 			unsupportedInstances: sets.NewString([]string{
-			// "c5",
-			// "i3",
-			// "m5",
-			// "m4.16xlarge",
+				// "c5",
+				// "i3",
+				// "m5",
+				// "m4.16xlarge",
 			}...),
 			sustainedCPUSupport: true,
 			memorySpecParser: func(q resource.Quantity) float32 {
@@ -254,32 +270,32 @@ func IsUnsupportedInstance(instanceType string) bool {
 		selector.unsupportedInstances.Has(instanceType)
 }
 
-func ResourcesToInstanceType(ps *api.PodSpec) (string, bool, error) {
+func ResourcesToInstanceType(ps *api.PodSpec) (string, *bool, error) {
 	if ps.Resources.ContainerInstance != nil && *ps.Resources.ContainerInstance {
-		return api.ContainerInstanceType, false, nil
+		return api.ContainerInstanceType, nil, nil
 	}
-	sustainedCPU := false
 	if ps.InstanceType != "" {
+		var sustainedCPU *bool
 		if ps.Resources.SustainedCPU != nil {
-			sustainedCPU = *ps.Resources.SustainedCPU
+			sustainedCPU = ps.Resources.SustainedCPU
 		}
 		return ps.InstanceType, sustainedCPU, nil
 	}
 	if selector == nil {
 		msg := "fatal: instanceselector has not been initialized"
 		klog.Errorf(msg)
-		return "", false, fmt.Errorf(msg)
+		return "", nil, fmt.Errorf(msg)
 	}
 	if noResourceSpecified(ps) {
-		return selector.defaultInstanceType, false, nil
+		return selector.defaultInstanceType, nil, nil
 	}
 
-	instanceType, sustainedCPU := selector.getInstanceFromResources(ps.Resources)
+	instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources)
 	if instanceType == "" {
 		msg := "could not compute instance type from Spec.Resources. It's likely that the Pod.Spec.Resources specify an instance that doesnt exist in the cloud"
-		return "", false, fmt.Errorf(msg)
+		return "", nil, fmt.Errorf(msg)
 	}
-	return instanceType, sustainedCPU, nil
+	return instanceType, &needsSustainedCPU, nil
 }
 
 func ResourcesToContainerInstance(rs *api.ResourceSpec) (int64, int64, error) {

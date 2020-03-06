@@ -1,4 +1,3 @@
-// Taken from K9s at commit: 08e099554f3c31f6e6f07b448ab3ed78d0520507 (v 1.5.2)
 /*
 Copyright 2014 The Kubernetes Authors.
 Copyright 2018 Elotl Inc.
@@ -16,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Taken from k8s at commit: 08e099554f3c31f6e6f07b448ab3ed78d0520507 (v 1.5.2)
 package labels
 
 import (
@@ -26,8 +26,8 @@ import (
 	"strings"
 
 	"github.com/elotl/cloud-instance-provider/pkg/selection"
-	"github.com/elotl/cloud-instance-provider/pkg/util/sets"
 	"github.com/elotl/cloud-instance-provider/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )
 

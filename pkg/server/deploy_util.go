@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Elotl Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
 import (
@@ -136,15 +152,6 @@ func getSecretFiles(secVol *api.SecretVolumeSource, sec *v1.Secret) (map[string]
 		var data []byte
 		if binaryData, ok := sec.Data[item.Key]; ok {
 			data = binaryData
-			//data, err = base64.StdEncoding.DecodeString(string(binaryData))
-			// if err != nil {
-			// 	msg := fmt.Sprintf("volume %s items %s/%s references improperly formatted key %s: %v", secVol.SecretName, sec.Namespace, sec.Name, item.Key, err)
-			// 	if optional {
-			// 		klog.Warning(msg)
-			// 		continue
-			// 	}
-			// 	return nil, fmt.Errorf(msg)
-			// }
 		} else {
 			if optional {
 				continue
@@ -167,62 +174,114 @@ func getSecretFiles(secVol *api.SecretVolumeSource, sec *v1.Secret) (map[string]
 	return packageItems, nil
 }
 
+func getConfigMapVolumeFiles(namespace string, cmVol *api.ConfigMapVolumeSource, rm *manager.ResourceManager) (map[string]packageFile, error) {
+	optional := cmVol.Optional != nil && *cmVol.Optional
+	// get the configmap
+	configMap, err := rm.GetConfigMap(cmVol.Name, namespace)
+	if err != nil {
+		if !(errors.IsNotFound(err) && optional) {
+			return nil, util.WrapError(err, "Couldn't get configMap %v/%v", namespace, cmVol.Name)
+		}
+		configMap = &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: namespace,
+				Name:      cmVol.Name,
+			},
+		}
+	}
+	return getConfigMapFiles(cmVol, configMap)
+}
+
+func getSecretVolumeFiles(namespace string, secVol *api.SecretVolumeSource, rm *manager.ResourceManager) (map[string]packageFile, error) {
+	optional := secVol.Optional != nil && *secVol.Optional
+	secret, err := rm.GetSecret(secVol.SecretName, namespace)
+	if err != nil {
+		if !(errors.IsNotFound(err) && optional) {
+			return nil, util.WrapError(err, "Couldn't get secret %v/%v", namespace, secVol.SecretName)
+		}
+		secret = &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: namespace,
+				Name:      secVol.SecretName,
+			},
+		}
+	}
+	return getSecretFiles(secVol, secret)
+}
+
+func getProjectedVolumeFiles(namespace string, vol *api.ProjectedVolumeSource, rm *manager.ResourceManager) (map[string]packageFile, error) {
+	defaultMode := api.ProjectedVolumeSourceDefaultMode
+	if vol.DefaultMode != nil {
+		defaultMode = *vol.DefaultMode
+	}
+	allPackageFiles := make(map[string]packageFile)
+	for _, src := range vol.Sources {
+		var (
+			packageFiles map[string]packageFile
+			err          error
+		)
+		if src.ConfigMap != nil {
+			vol := &api.ConfigMapVolumeSource{
+				LocalObjectReference: src.ConfigMap.LocalObjectReference,
+				Items:                src.ConfigMap.Items,
+				DefaultMode:          &defaultMode,
+				Optional:             src.ConfigMap.Optional,
+			}
+			packageFiles, err = getConfigMapVolumeFiles(namespace, vol, rm)
+			if err != nil {
+				return nil, util.WrapError(err, "couldn't get projected configMap payload %v/%v", namespace, src.ConfigMap.Name)
+			}
+		} else if src.Secret != nil {
+			vol := &api.SecretVolumeSource{
+				SecretName:  src.Secret.LocalObjectReference.Name,
+				Items:       src.Secret.Items,
+				DefaultMode: &defaultMode,
+				Optional:    src.Secret.Optional,
+			}
+			packageFiles, err = getSecretVolumeFiles(namespace, vol, rm)
+			if err != nil {
+				return nil, util.WrapError(err, "couldn't get projected secret payload %v/%v", namespace, src.Secret.Name)
+			}
+		}
+		for k, v := range packageFiles {
+			allPackageFiles[k] = v
+		}
+	}
+	return allPackageFiles, nil
+}
+
 func deployPodVolumes(pod *api.Pod, node *api.Node, rm *manager.ResourceManager, nodeClientFactory nodeclient.ItzoClientFactoryer) error {
 	client := nodeClientFactory.GetClient(node.Status.Addresses)
 	for _, vol := range pod.Spec.Volumes {
+		var (
+			packageFiles map[string]packageFile
+			err          error
+		)
 		if vol.ConfigMap != nil {
-			optional := vol.ConfigMap.Optional != nil && *vol.ConfigMap.Optional
-			// get the configmap
-			configMap, err := rm.GetConfigMap(vol.ConfigMap.Name, pod.Namespace)
-			if err != nil {
-				if !(errors.IsNotFound(err) && optional) {
-					return util.WrapError(err, "Couldn't get configMap %v/%v", pod.Namespace, vol.ConfigMap.Name)
-				}
-				configMap = &v1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: pod.Namespace,
-						Name:      vol.ConfigMap.Name,
-					},
-				}
-			}
-			packageFiles, err := getConfigMapFiles(vol.ConfigMap, configMap)
+			packageFiles, err = getConfigMapVolumeFiles(pod.Namespace, vol.ConfigMap, rm)
 			if err != nil {
 				return util.WrapError(err, "couldn't get configMap payload %v/%v", pod.Namespace, vol.ConfigMap.Name)
 			}
-			payload, err := makeDeployPackage(packageFiles)
-			if err != nil {
-				return util.WrapError(err, "error creating tar.gz package %s for %s", vol.Name, pod.Name)
-			}
-			err = client.Deploy(pod.Name, vol.Name, bufio.NewReader(payload))
-			if err != nil {
-				return util.WrapError(err, "error deploying package %s to %s", vol.Name, pod.Name)
-			}
 		} else if vol.Secret != nil {
-			optional := vol.Secret.Optional != nil && *vol.Secret.Optional
-			secret, err := rm.GetSecret(vol.Secret.SecretName, pod.Namespace)
-			if err != nil {
-				if !(errors.IsNotFound(err) && optional) {
-					return util.WrapError(err, "Couldn't get secret %v/%v", pod.Namespace, vol.Secret.SecretName)
-				}
-				secret = &v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: pod.Namespace,
-						Name:      vol.Secret.SecretName,
-					},
-				}
-			}
-			packageFiles, err := getSecretFiles(vol.Secret, secret)
+			packageFiles, err = getSecretVolumeFiles(pod.Namespace, vol.Secret, rm)
 			if err != nil {
 				return util.WrapError(err, "couldn't get secret payload %v/%v", pod.Namespace, vol.Secret.SecretName)
 			}
-			payload, err := makeDeployPackage(packageFiles)
+		} else if vol.Projected != nil {
+			packageFiles, err = getProjectedVolumeFiles(pod.Namespace, vol.Projected, rm)
 			if err != nil {
-				return util.WrapError(err, "error creating tar.gz package %s for %s", vol.Name, pod.Name)
+				return err
 			}
-			err = client.Deploy(pod.Name, vol.Name, bufio.NewReader(payload))
-			if err != nil {
-				return util.WrapError(err, "error deploying package %s to %s", vol.Name, pod.Name)
-			}
+		}
+		// Deploy empty packages as well since they might be
+		// referenced in a container (but will have no data)
+		payload, err := makeDeployPackage(packageFiles)
+		if err != nil {
+			return util.WrapError(err, "error creating tar.gz package %s for %s", vol.Name, pod.Name)
+		}
+		err = client.Deploy(pod.Name, vol.Name, bufio.NewReader(payload))
+		if err != nil {
+			return util.WrapError(err, "error deploying package %s to %s", vol.Name, pod.Name)
 		}
 	}
 	return nil
@@ -318,4 +377,41 @@ func createResolvconf(podName string, dnsconf *runtimeapi.DNSConfig) ([]byte, er
 		}
 	}
 	return buf.Bytes(), nil
+}
+
+func deployEtcHosts(pod *api.Pod, node *api.Node, dnsConfigurer *dns.Configurer, nodeClientFactory nodeclient.ItzoClientFactoryer) error {
+	if dnsConfigurer == nil {
+		return fmt.Errorf("no DNS configurer")
+	}
+	client := nodeClientFactory.GetClient(node.Status.Addresses)
+	namespace, podName := util.SplitNamespaceAndName(pod.Name)
+	podIPs := []string{api.GetPodIP(node.Status.Addresses)}
+	useHostNetwork := api.IsHostNetwork(pod.Spec.SecurityContext)
+	data, err := util.CreateEtcHosts(
+		dnsConfigurer,
+		podName,
+		namespace,
+		pod.Spec.Hostname,
+		pod.Spec.Subdomain,
+		podIPs,
+		pod.Spec.HostAliases,
+		useHostNetwork)
+	if err != nil {
+		return util.WrapError(err, "creating pod /etc/hosts")
+	}
+	payload, err := makeDeployPackage(map[string]packageFile{
+		"/etc/hosts": packageFile{
+			data: data,
+			mode: 0644,
+		},
+	})
+	if err != nil {
+		return util.WrapError(err, "creating pod /etc/hosts package")
+	}
+	err = client.Deploy(pod.Name, etchostsVolumeName, bufio.NewReader(payload))
+	if err != nil {
+		return util.WrapError(
+			err, "error deploying /etc/hosts package to %s", pod.Name)
+	}
+	return nil
 }

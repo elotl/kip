@@ -1,9 +1,27 @@
+/*
+Copyright 2020 Elotl Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/cloud-instance-provider/pkg/api/annotations"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/elotl/cloud-instance-provider/pkg/util/k8s/status"
 	"k8s.io/api/core/v1"
@@ -16,9 +34,32 @@ import (
 const (
 	ResourceLimitsGPU    v1.ResourceName = "nvidia.com/gpu"
 	resolvconfVolumeName                 = "resolvconf"
+	etchostsVolumeName                   = "etchosts"
 )
 
 func getStatus(internalIP string, milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
+	// Todo: make the call if this should be the dispatch time of the
+	// pod in milpa.
+	startTime := metav1.NewTime(milpaPod.CreationTimestamp.Time)
+	privateIPv4Address := ""
+	for _, address := range milpaPod.Status.Addresses {
+		if address.Type == api.PrivateIP {
+			privateIPv4Address = address.Address
+		}
+	}
+	initComplete := true
+	initContainerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.InitUnitStatuses))
+	for i, st := range milpaPod.Status.InitUnitStatuses {
+		initContainerStatuses[i] = unitToContainerStatus(st)
+		if st.State.Terminated == nil ||
+			st.State.Terminated.ExitCode != int32(0) {
+			initComplete = false
+		}
+	}
+	containerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.UnitStatuses))
+	for i, st := range milpaPod.Status.UnitStatuses {
+		containerStatuses[i] = unitToContainerStatus(st)
+	}
 	phase := v1.PodUnknown
 	switch milpaPod.Status.Phase {
 	case api.PodWaiting:
@@ -34,22 +75,9 @@ func getStatus(internalIP string, milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
 	case api.PodTerminated:
 		phase = v1.PodFailed
 	}
-	// Todo: make the call if this should be the dispatch time of the
-	// pod in milpa.
-	startTime := metav1.NewTime(milpaPod.CreationTimestamp.Time)
-	privateIPv4Address := ""
-	for _, address := range milpaPod.Status.Addresses {
-		if address.Type == api.PrivateIP {
-			privateIPv4Address = address.Address
-		}
-	}
-	initContainerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.InitUnitStatuses))
-	for i, st := range milpaPod.Status.InitUnitStatuses {
-		initContainerStatuses[i] = unitToContainerStatus(st)
-	}
-	containerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.UnitStatuses))
-	for i, st := range milpaPod.Status.UnitStatuses {
-		containerStatuses[i] = unitToContainerStatus(st)
+	// in k8s, a pod that has init containers running is in Pending phase
+	if phase == v1.PodRunning && !initComplete {
+		phase = v1.PodPending
 	}
 	// We use the implementation from Kubernetes here to determine conditions.
 	conditions := []v1.PodCondition{}
@@ -167,6 +195,10 @@ func containerToUnit(container v1.Container) api.Unit {
 		Name:      resolvconfVolumeName,
 		MountPath: "/etc/resolv.conf",
 	})
+	unit.VolumeMounts = append(unit.VolumeMounts, api.VolumeMount{
+		Name:      etchostsVolumeName,
+		MountPath: "/etc/hosts",
+	})
 	//container.EnvFrom,
 	unit.StartupProbe = k8sProbeToMilpaProbe(container.StartupProbe)
 	unit.ReadinessProbe = k8sProbeToMilpaProbe(container.ReadinessProbe)
@@ -225,7 +257,7 @@ func unitToContainer(unit api.Unit, container *v1.Container) v1.Container {
 		}
 	}
 	for _, vm := range unit.VolumeMounts {
-		if vm.Name == resolvconfVolumeName {
+		if vm.Name == resolvconfVolumeName || vm.Name == etchostsVolumeName {
 			continue
 		}
 		container.VolumeMounts = append(container.VolumeMounts, v1.VolumeMount{
@@ -308,6 +340,38 @@ func k8sToMilpaVolume(vol v1.Volume) *api.Volume {
 					Medium:    api.StorageMedium(string(vol.EmptyDir.Medium)),
 					SizeLimit: sizeLimit,
 				},
+			},
+		}
+	} else if vol.Projected != nil {
+		projVol := &api.ProjectedVolumeSource{
+			DefaultMode: vol.Projected.DefaultMode,
+		}
+		projVol.Sources = make([]api.VolumeProjection, len(vol.Projected.Sources))
+		for i, src := range vol.Projected.Sources {
+			if src.Secret != nil {
+				apiSecret := &api.SecretProjection{
+					LocalObjectReference: api.LocalObjectReference{
+						Name: src.Secret.Name,
+					},
+					Items:    convertKeyToPath(src.Secret.Items),
+					Optional: src.Secret.Optional,
+				}
+				projVol.Sources[i].Secret = apiSecret
+			} else if src.ConfigMap != nil {
+				apiCM := &api.ConfigMapProjection{
+					LocalObjectReference: api.LocalObjectReference{
+						Name: src.ConfigMap.Name,
+					},
+					Items:    convertKeyToPath(src.ConfigMap.Items),
+					Optional: src.ConfigMap.Optional,
+				}
+				projVol.Sources[i].ConfigMap = apiCM
+			}
+		}
+		return &api.Volume{
+			Name: vol.Name,
+			VolumeSource: api.VolumeSource{
+				Projected: projVol,
 			},
 		}
 	} else {
@@ -393,6 +457,38 @@ func milpaToK8sVolume(vol api.Volume) *v1.Volume {
 				},
 			},
 		}
+	} else if vol.Projected != nil {
+		projVol := &v1.ProjectedVolumeSource{
+			DefaultMode: vol.Projected.DefaultMode,
+		}
+		projVol.Sources = make([]v1.VolumeProjection, len(vol.Projected.Sources))
+		for i, src := range vol.Projected.Sources {
+			if src.Secret != nil {
+				k8Secret := &v1.SecretProjection{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: src.Secret.Name,
+					},
+					Items:    convertKeyToPath(src.Secret.Items),
+					Optional: src.Secret.Optional,
+				}
+				projVol.Sources[i].Secret = k8Secret
+			} else if src.ConfigMap != nil {
+				k8CM := &v1.ConfigMapProjection{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: src.ConfigMap.Name,
+					},
+					Items:    convertKeyToPath(src.ConfigMap.Items),
+					Optional: src.ConfigMap.Optional,
+				}
+				projVol.Sources[i].ConfigMap = k8CM
+			}
+		}
+		return &v1.Volume{
+			Name: vol.Name,
+			VolumeSource: v1.VolumeSource{
+				Projected: projVol,
+			},
+		}
 	} else if vol.PackagePath != nil {
 		klog.V(4).Infof("skipping PackagePath %q", vol.PackagePath.Path)
 	} else {
@@ -475,7 +571,7 @@ func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 			milpapod.Spec.Volumes = append(milpapod.Spec.Volumes, *volume)
 		}
 	}
-	// A package will be generated for this by the pod controller.
+	// A package will be generated for these by the pod controller.
 	milpapod.Spec.Volumes = append(milpapod.Spec.Volumes, api.Volume{
 		Name: resolvconfVolumeName,
 		VolumeSource: api.VolumeSource{
@@ -484,8 +580,39 @@ func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 			},
 		},
 	})
+	milpapod.Spec.Volumes = append(milpapod.Spec.Volumes, api.Volume{
+		Name: etchostsVolumeName,
+		VolumeSource: api.VolumeSource{
+			PackagePath: &api.PackagePath{
+				Path: "/etc/hosts",
+			},
+		},
+	})
 	milpapod.Spec.Resources = aggregateResources(pod.Spec.Containers)
+	milpapod.Spec.Hostname = pod.Spec.Hostname
+	milpapod.Spec.Subdomain = pod.Spec.Subdomain
+	if len(pod.Spec.HostAliases) > 0 {
+		milpapod.Spec.HostAliases = make(
+			[]api.HostAlias, len(pod.Spec.HostAliases))
+	}
+	for i, hostAlias := range pod.Spec.HostAliases {
+		milpapod.Spec.HostAliases[i].IP = hostAlias.IP
+		milpapod.Spec.HostAliases[i].Hostnames = append(
+			[]string(nil), hostAlias.Hostnames...)
+	}
+	addAnnotationsToMilpaPod(milpapod)
 	return milpapod, nil
+}
+
+func addAnnotationsToMilpaPod(milpaPod *api.Pod) {
+	a := milpaPod.Annotations[annotations.PodLaunchType]
+	if strings.ToLower(a) == "spot" {
+		milpaPod.Spec.Spot.Policy = api.SpotAlways
+	}
+	a = milpaPod.Annotations[annotations.PodInstanceType]
+	if strings.ToLower(a) != "" {
+		milpaPod.Spec.InstanceType = a
+	}
 }
 
 func aggregateResources(containers []v1.Container) api.ResourceSpec {
@@ -586,6 +713,17 @@ func milpaToK8sPod(nodeName, internalIP string, milpaPod *api.Pod) (*v1.Pod, err
 				Value: o.Value,
 			}
 		}
+	}
+	pod.Spec.Hostname = milpaPod.Spec.Hostname
+	pod.Spec.Subdomain = milpaPod.Spec.Subdomain
+	if len(milpaPod.Spec.HostAliases) > 0 {
+		pod.Spec.HostAliases = make(
+			[]v1.HostAlias, len(milpaPod.Spec.HostAliases))
+	}
+	for i, hostAlias := range milpaPod.Spec.HostAliases {
+		pod.Spec.HostAliases[i].IP = hostAlias.IP
+		pod.Spec.HostAliases[i].Hostnames = append(
+			[]string(nil), hostAlias.Hostnames...)
 	}
 	initContainerMap := make(map[string]v1.Container)
 	for _, initContainer := range pod.Spec.InitContainers {

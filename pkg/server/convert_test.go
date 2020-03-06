@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Elotl Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
 import (
@@ -306,15 +322,16 @@ func TestUnitToContainer(t *testing.T) {
 			}
 		}
 		unit := containerToUnit(container)
-		removeResolvconfVolumeMount(&unit)
+		removeVolumeMount(&unit, resolvconfVolumeName)
+		removeVolumeMount(&unit, etchostsVolumeName)
 		assert.Equal(t, tc.unit, unit)
 	}
 }
 
-func removeResolvconfVolume(pod *api.Pod) {
+func removeVolume(pod *api.Pod, name string) {
 	idx := -1
 	for i, vol := range pod.Spec.Volumes {
-		if vol.Name == resolvconfVolumeName {
+		if vol.Name == name {
 			idx = i
 			break
 		}
@@ -327,17 +344,17 @@ func removeResolvconfVolume(pod *api.Pod) {
 		}
 	}
 	for i := range pod.Spec.InitUnits {
-		removeResolvconfVolumeMount(&pod.Spec.InitUnits[i])
+		removeVolumeMount(&pod.Spec.InitUnits[i], name)
 	}
 	for i := range pod.Spec.Units {
-		removeResolvconfVolumeMount(&pod.Spec.Units[i])
+		removeVolumeMount(&pod.Spec.Units[i], name)
 	}
 }
 
-func removeResolvconfVolumeMount(unit *api.Unit) {
+func removeVolumeMount(unit *api.Unit, name string) {
 	idx := -1
 	for i, vol := range unit.VolumeMounts {
-		if vol.Name == resolvconfVolumeName {
+		if vol.Name == name {
 			idx = i
 			break
 		}
@@ -518,6 +535,90 @@ func TestMilpaToK8sVolume(t *testing.T) {
 	}
 }
 
+func TestProjectedVolumeConversion(t *testing.T) {
+	falseVal := false
+	volMode := int32(0555)
+	secMode := int32(0400)
+	cmMode := int32(0400)
+	tests := []struct {
+		sources []api.VolumeProjection
+	}{
+		{
+			sources: []api.VolumeProjection{
+				{
+					Secret: &api.SecretProjection{
+						LocalObjectReference: api.LocalObjectReference{"sec1"},
+						Items: []api.KeyToPath{
+							{
+								Key:  "sec1Key1",
+								Path: "sec1/Key1",
+								Mode: &secMode,
+							},
+							{
+								Key:  "sec1Key2",
+								Path: "sec1/Key2",
+								Mode: &secMode,
+							},
+						},
+						Optional: &falseVal,
+					},
+				},
+				{
+					Secret: &api.SecretProjection{
+						LocalObjectReference: api.LocalObjectReference{"sec2"},
+						Items: []api.KeyToPath{
+							{
+								Key:  "sec2Key1",
+								Path: "sec2/Key1",
+								Mode: &secMode,
+							},
+							{
+								Key:  "sec2Key2",
+								Path: "sec2/Key2",
+								Mode: &secMode,
+							},
+						},
+						Optional: &falseVal,
+					},
+				},
+				{
+					ConfigMap: &api.ConfigMapProjection{
+						LocalObjectReference: api.LocalObjectReference{"cm1"},
+						Items: []api.KeyToPath{
+							{
+								Key:  "cm1Key1",
+								Path: "cm1/Key1",
+								Mode: &secMode,
+							},
+							{
+								Key:  "cm1Key2",
+								Path: "cm1/Key2",
+								Mode: &cmMode,
+							},
+						},
+						Optional: nil,
+					},
+				},
+			},
+		},
+	}
+	for i, tc := range tests {
+		name := fmt.Sprintf("testcase %d", i)
+		milpaVol := api.Volume{
+			Name: name,
+			VolumeSource: api.VolumeSource{
+				Projected: &api.ProjectedVolumeSource{
+					Sources:     tc.sources,
+					DefaultMode: &volMode,
+				},
+			},
+		}
+		kv := milpaToK8sVolume(milpaVol)
+		mv := k8sToMilpaVolume(*kv)
+		assert.Equal(t, milpaVol, *mv)
+	}
+}
+
 //func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error)
 //func milpaToK8sPod(milpaPod *api.Pod) (*v1.Pod, error)
 func TestMilpaToK8sPod(t *testing.T) {
@@ -652,7 +753,8 @@ func TestMilpaToK8sPod(t *testing.T) {
 	mPod, err := k8sToMilpaPod(pod)
 	assert.NoError(t, err)
 	assert.NotNil(t, mPod)
-	removeResolvconfVolume(mPod)
+	removeVolume(mPod, resolvconfVolumeName)
+	removeVolume(mPod, etchostsVolumeName)
 	assert.Equal(t, milpaPod.TypeMeta, mPod.TypeMeta)
 	assert.Equal(t, milpaPod.ObjectMeta, mPod.ObjectMeta)
 	assert.Equal(t, milpaPod.Spec, mPod.Spec)
