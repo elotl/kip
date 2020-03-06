@@ -1,19 +1,27 @@
 # Kip, the Cloud Instance Provider
 
-## What it is
-
-Kip is a virtual-kubelet provider that allows a kubernetes cluster to transparently launch pods onto their own cloud instances.  When a pod is scheduled onto the virtual-kubelet Kip starts a right sized cloud instance for the pod’s workload and dispatches the pod onto the instance.  When the pod is finished running, the cloud instance is terminated. We call these cloud instances “cells”.
+Kip is a (Virtual Kubelet)[https://github.com/virtual-kubelet/virtual-kubelet] provider that allows a Kubernetes cluster to transparently launch pods onto their own cloud instances.  When a pod is scheduled onto the Virtual Kubelet Kip starts a right sized cloud instance for the pod’s workload and dispatches the pod onto the instance.  When the pod is finished running, the cloud instance is terminated. We call these cloud instances “cells”.
 
 When workloads run on Kip, your cluster size naturally scales with the cluster workload, pods are strongly isolated from each other and the user is freed from managing worker nodes and strategically packing pods onto nodes.  This results in lower cloud costs, improved security and simpler operational overhead.
 
-## Getting Started
+#### Table of Contents
 
-### Quickstart
+* [Getting Started](#Getting Started)
+    + [Option 1: Create a Minimal Cluster](#Option 1: Create a Minimal Cluster)
+    + [Option 2: Using an Existing Cluster](#Option 2: Using an Existing Cluster)
+* [Running Pods on Virtual Kubelet](#Running Pods on Virtual Kubelet)
+* [Uninstall](#Uninstall)
+* [Current Status](#Current Status)
+* [FAQ](#FAQ)
+* [How it Works](#How it Works)
+
+## Getting Started
+### Option 1: Create a Minimal Cluster
 
 What you need:
-- an AWS account
-- terraform (tested with terraform 0.12)
-- aws-cli
+- An AWS account
+- [Terraform](https://www.terraform.io/downloads.html) (tested with terraform 0.12)
+- [aws-cli](https://aws.amazon.com/cli/)
 - jq
 
 In [deploy/terraform](deploy/terraform), you will find a terraform config that creates a simple one master, one worker cluster and starts a Kip deployment.
@@ -23,14 +31,14 @@ In [deploy/terraform](deploy/terraform), you will find a terraform config that c
     vi myenv.tfvars
     terraform apply -var-file myenv.tfvars
 
-### Using an Existing Cluster
+### Option 2: Using an Existing Cluster
 
 To deploy Kip into an existing cluster, it’s necessary to create a configuration file for the provider (virtual-kubelet-config.yaml) and create a couple of kubernetes resources to support the provider (virtual-kubelet.yaml)
 
 Step 1: Configuring cloud credentials for the provider
 Kip requires credentials to start, stop and control cloud instances, security groups and other cloud resources.  In AWS, those credentials can be supplied via API keys or instance profiles.
 
-Step 1, Option 1: Configuring AWS API keys
+Step 1, Option 2: Configuring AWS API keys
 Use envsubst to apply virtual-kubelet-config.yaml with your keys and apply the virtual-kubelet-config.yaml ConfigMap:
 
     export aws_access_key_id=’’
@@ -39,7 +47,7 @@ Use envsubst to apply virtual-kubelet-config.yaml with your keys and apply the v
 
 Alternatively you can edit the file by hand, replacing the two templated environment variables with your access keys and apply the manifest.
 
-Step 1, Option 2: Instance Profile Credentials 
+Step 1, Option 2: Instance Profile Credentials
 
 Kip can use credentials from an instance profile of the VM it is running on.  This setup assumes the user has already provisioned a node with the correct instance profile (TODO link).  To use instance profile credentials, remove the `accessKeyID` and `secretAccessKey` from virtual-kubelet-config.yaml.
 
@@ -48,10 +56,10 @@ Kip can use credentials from an instance profile of the VM it is running on.  Th
 Step 2: Apply virtual-kubelet.yaml
 
 The manifests in virtual-kubelet.yaml create ServiceAccounts Roles and a virtual-kubelet Deployment to run the provider. Kip is not stateless, the provider data is stored on a PersistentVolume.
-  
-    kubectl apply -f deploy/virtual-kubelet.yaml 
 
-## Run Pods on Virtual Kubelet
+    kubectl apply -f deploy/virtual-kubelet.yaml
+
+## Running Pods on Virtual Kubelet
 
 To assign pods to run on the virtual kubelet node, add the following node selector and toleration to the pod spec in manifests.
 
@@ -68,44 +76,40 @@ If you used the provided terraform config for creating your cluster, you can rem
 
     terraform destroy -var-file <env.tfvars>.
 
-If you deployed Kip in an existing cluster, make sure that you first remove all the pods and deployments that have been created via it. Then remove the virtual-kubelet deployment via:
+If you deployed Kip in an existing cluster, make sure that you first remove all the pods and deployments that have been created by Kip. Then remove the virtual-kubelet deployment via:
 
     kubectl delete -n kube-system deployment virtual-kubelet
 
 ## Current Status
 
-Features
-- Networking, including host network mode, cluster IPs, DNS, HostPorts and NodePorts (TODO link to networking section)
+### Features
+- [Networking](docs/networking.md), including host network mode, cluster IPs, DNS, HostPorts and NodePorts
 - Pods will be started on a cloud instance that matches the pod resource requests/limits. If no requests/limits are present in the pod spec, cloud-instance-provider will fall back to a default cloud instance type.
 - GPU instances
 - Logs
+- Exec
 - Stats
 - Readiness/Liveness probes
 - Service account token automounts in pods.
-- Security groups (TODO: group created by the provider, how to add additional groups)
-- Annotations TODO
-- Cells (TODO link to itzo repo, explain how they work)
-- Virtual-kubelet-config.yaml parameters
+- [Security Groups](docs/security_groups.md)
+- Instance Profiles on Cells
 - The following volume types are supported: EmptyDir, ConfigMap, Secret, HostPath.
-- TODO: do we support private registries right now?
 
-Limitations
+### Limitations
 - Stateful workloads and PersistentVolumes are not supported.
 - No support for updating ConfigMaps and Secrets.
 - Virtual-kubelet has limitations on what it supports in the Downward API, e.g. pod.status.podIP is not supported.
 - Unsupported pod attributes:
-- ReadinessGates
-- Lifecycle handlers
-- TerminationGracePeriodSeconds
-- ActiveDeadlineSeconds
-- Subdomain
-- HostAliases
-- The following PodSecurityContext fields: FSGroup, RunAsNonRoot, ShareProcessNamespace, HostIPC, HostPID
+    - ReadinessGates
+    - Lifecycle handlers
+    - TerminationGracePeriodSeconds
+    - ActiveDeadlineSeconds
+    - Subdomain
+    - HostAliases
+    - The following PodSecurityContext fields: FSGroup, RunAsNonRoot, ShareProcessNamespace, HostIPC, HostPID
 - Volume mount propagation is always bidirectional
 
 We are actively working on adding missing features. One of the main objectives of the project is to provide full support for all Kubernetes features.
-
-Kip is currently GA on AWS and alpha on Azure.
 
 ## FAQ
 
@@ -125,12 +129,14 @@ A. Yes, though they might not work the way intended. The pod will start on a sep
 Q. Are you a [kubernetes conformant](https://github.com/cncf/k8s-conformance) runtime?
 A. We are not 100% conformant at this time but we are working towards getting as close as possible to conformant.  Currently we are 70-80% conformant but are hoping to get those values above 90% soon.
 
-## How it Works
+Q. What clouds does Kip support
+A. Kip is currently GA on AWS and alpha on Azure.
 
-### [Cells](docs/cells.md)
-### [Networking](docs/networking.md)
-### [Annotations](docs/annotations.md)
-### [Security Groups](docs/security_groups.md)
-### [Provider Configuration](docs/provider-config.md)
-### [IAM Permissions](docs/kip-iam-permissions.md)
-### [State](docs/state.md)
+## How it Works
+* [Cells](docs/cells.md)
+* [Networking](docs/networking.md)
+* [Annotations](docs/annotations.md)
+* [Security Groups](docs/security_groups.md)
+* [Provider Configuration](docs/provider-config.md)
+* [IAM Permissions](docs/kip-iam-permissions.md)
+* [State](docs/state.md)
