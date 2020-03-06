@@ -127,6 +127,36 @@ milpa_files:
 	assert.Equal(t, expected, cloudInitContent)
 
 	cif.ResetInstanceData()
+	versionString = "dev"
+	cif.AddItzoVersion(versionString)
+	expected = fmt.Sprintf(`
+milpa_files:
+  - content: |
+      %s
+    path: %s
+    permissions: 0444
+
+`, versionString, ItzoVersionPath)
+	cloudInitContent, err = cif.Contents()
+	assert.NoError(t, err)
+	assert.Equal(t, expected, cloudInitContent)
+
+	cif.ResetInstanceData()
+	versionString = "314"
+	cif.AddItzoVersion(versionString)
+	expected = fmt.Sprintf(`
+milpa_files:
+  - content: |
+      %s
+    path: %s
+    permissions: 0444
+
+`, versionString, ItzoVersionPath)
+	cloudInitContent, err = cif.Contents()
+	assert.NoError(t, err)
+	assert.Equal(t, expected, cloudInitContent)
+
+	cif.ResetInstanceData()
 	urlString := "http://my-bucket.s3.com"
 	cif.AddItzoURL(urlString)
 	expected = fmt.Sprintf(`
@@ -140,5 +170,4 @@ milpa_files:
 	cloudInitContent, err = cif.Contents()
 	assert.NoError(t, err)
 	assert.Equal(t, expected, cloudInitContent)
-
 }
