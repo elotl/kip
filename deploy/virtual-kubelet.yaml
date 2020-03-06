@@ -344,6 +344,7 @@ spec:
         - /etc/virtual-kubelet/server.yml
         - --network-agent-secret
         - kube-system/vk-network-agent
+        - --disable-taint
         - --klog.logtostderr
         - --klog.v=5
         image: elotl/virtual-kubelet:dev
@@ -386,6 +387,9 @@ spec:
       restartPolicy: Always
       serviceAccountName: virtual-kubelet
       hostNetwork: true
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        effect: "NoSchedule"
       volumes:
       - name: data
         persistentVolumeClaim:
