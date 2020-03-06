@@ -47,7 +47,7 @@ var (
 	defaultPodCapacity    = resource.MustParse("20")
 )
 
-// ServerConfigFile stores the parsed json from server.yml
+// ServerConfigFile stores the parsed json from provider.yml
 type ServerConfigFile struct {
 	api.TypeMeta `json:",inline"`
 	Cloud        MultiCloudConfig `json:"cloud"`
@@ -226,7 +226,7 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 	// see which cloud is non-null, take first
 	cc := cf.Cloud
 	if cc.AWS != nil && cc.Azure != nil {
-		return nil, fmt.Errorf("Multiple clouds configured in server.yml")
+		return nil, fmt.Errorf("Multiple clouds configured in provider.yml")
 	}
 	if cc.AWS != nil {
 		errs := validateAWSConfig(cc.AWS)
@@ -284,7 +284,7 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 		}
 		return client, nil
 	} else {
-		return nil, fmt.Errorf("You must specify a cloud configuration in server.yml")
+		return nil, fmt.Errorf("You must specify a cloud configuration in provider.yml")
 	}
 }
 
@@ -297,13 +297,13 @@ func ParseConfig(path string) (*ServerConfigFile, error) {
 	}
 	configData, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, util.WrapError(err, "Could not read server.yml")
+		return nil, util.WrapError(err, "Could not read provider.yml")
 	}
 	configFile := serverConfigFileWithDefaults()
 	decoder := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(configData), bufferSize)
 	err = decoder.Decode(&configFile)
 	if err != nil {
-		return nil, util.WrapError(err, "Error parsing server.yml")
+		return nil, util.WrapError(err, "Error parsing provider.yml")
 	}
 
 	return configFile, nil
@@ -367,22 +367,22 @@ func validateAzureConfig(cf *AzureConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
 	fldPath := field.NewPath("cloud.azure")
 
-	// Items that must be set in server.yml
+	// Items that must be set in provider.yml
 	if cf.SubscriptionID == blankTemplateValue || cf.SubscriptionID == "" {
-		allErrs = append(allErrs, field.Required(fldPath.Child("subscriptionID"), "azure subscriptionID must be set in server.yml"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("subscriptionID"), "azure subscriptionID must be set in provider.yml"))
 	}
 	if cf.Location == blankTemplateValue || cf.Location == "" {
-		allErrs = append(allErrs, field.Required(fldPath.Child("location"), "azure Location must be set in server.yml"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("location"), "azure Location must be set in provider.yml"))
 	}
 	// Items that can be set in the Environment
 	if cf.TenantID == blankTemplateValue {
-		allErrs = append(allErrs, field.Required(fldPath.Child("tenantID"), "tenantID must be set in server.yml or pulled from the environment"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("tenantID"), "tenantID must be set in provider.yml or pulled from the environment"))
 	}
 	if cf.ClientID == blankTemplateValue {
-		allErrs = append(allErrs, field.Required(fldPath.Child("clientID"), "clientID must be set in server.yml or pulled from the environment"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("clientID"), "clientID must be set in provider.yml or pulled from the environment"))
 	}
 	if cf.ClientSecret == blankTemplateValue {
-		allErrs = append(allErrs, field.Required(fldPath.Child("clientSecret"), "clientSecret must be set in server.yml or pulled from the environment"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("clientSecret"), "clientSecret must be set in provider.yml or pulled from the environment"))
 	}
 
 	return allErrs

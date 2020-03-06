@@ -102,7 +102,7 @@ func (c *AwsEC2) ensureTaskLongARNEnabled() (bool, error) {
 			Value: aws.String("enabled"),
 		})
 		if err != nil {
-			return false, util.WrapError(err, "Error enabling long ARN format for ECS, this is necessary for tagging ENS resources. To run fargate pods, you'll need to enable taskLongArnFormat for ECS. To disable fargate pods and this error, remove 'ecsClusterName' from server.yml")
+			return false, util.WrapError(err, "Error enabling long ARN format for ECS, this is necessary for tagging ENS resources. To run fargate pods, you'll need to enable taskLongArnFormat for ECS. To disable fargate pods and this error, remove 'ecsClusterName' from provider.yml")
 		}
 		value = aws.StringValue(output.Setting.Value)
 	}
@@ -328,7 +328,7 @@ func containerToUnitStatus(container *ecs.Container) api.UnitStatus {
 	case containerStatusRunning:
 		state = api.UnitState{
 			Running: &api.UnitStateRunning{
-				// StartedAt is managed by the ContainerInstanceController
+			// StartedAt is managed by the ContainerInstanceController
 			},
 		}
 

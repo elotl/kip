@@ -17,7 +17,7 @@ metadata:
   name: virtual-kubelet-config
   namespace: kube-system
 data:
-  server.yml: |
+  provider.yml: |
     apiVersion: v1
     cloud:
       aws:
@@ -155,7 +155,7 @@ spec:
         - --provider
         - cloud-instance-provider
         - --provider-config
-        - /etc/virtual-kubelet/server.yml
+        - /etc/virtual-kubelet/provider.yml
         - --network-agent-secret
         - kube-system/vk-network-agent
         - --klog.logtostderr
@@ -212,8 +212,8 @@ spec:
         configMap:
           name: virtual-kubelet-config
           items:
-          - key: server.yml
-            path: server.yml
+          - key: provider.yml
+            path: provider.yml
             mode: 0600
       - name: xtables-lock
         hostPath:
