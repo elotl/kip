@@ -32,6 +32,8 @@ resource "aws_vpc" "main" {
       "AWS_DEFAULT_REGION" = var.region
     }
   }
+
+  tags = local.k8s_cluster_tags
 }
 
 resource "aws_internet_gateway" "gw" {
@@ -46,6 +48,8 @@ resource "aws_internet_gateway" "gw" {
       "AWS_DEFAULT_REGION" = var.region
     }
   }
+
+  tags = local.k8s_cluster_tags
 }
 
 resource "aws_subnet" "subnet" {
@@ -131,6 +135,8 @@ resource "aws_iam_role" "k8s-node" {
   ]
 }
 EOF
+
+  tags = local.k8s_cluster_tags
 }
 
 resource "aws_iam_role_policy" "k8s-node" {
@@ -307,6 +313,8 @@ resource "aws_key_pair" "ssh-key" {
   count = local.create_ssh_key ? 1 : 0
   key_name   = "ssh-key-${var.cluster-name}"
   public_key = tls_private_key.ssh-key.0.public_key_openssh
+
+  tags = local.k8s_cluster_tags
 }
 
 resource "aws_instance" "k8s-node" {
