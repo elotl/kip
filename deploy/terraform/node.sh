@@ -1,4 +1,4 @@
-#!/bin/bash -v
+#!/bin/bash
 
 curl -fL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
@@ -11,6 +11,8 @@ apt-get install -y kubelet="${k8s_version}*" kubeadm="${k8s_version}*" kubectl="
 iptables -P FORWARD ACCEPT
 mkdir -p /etc/docker
 echo -e '{\n"iptables": false\n}' > /etc/docker/daemon.json
+modprobe br_netfilter
+systemctl enable docker.service || true
 systemctl restart docker.service || true
 
 # Wait for FQDN.
