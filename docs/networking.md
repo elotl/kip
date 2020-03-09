@@ -1,4 +1,4 @@
-### Networking
+## Networking
 
 Kip allocates two IP addresses for each cell: one for management communication (between the provider and a small agent running on the instance), and one for the pod. Unless the pod has hostNetwork enabled, a new Linux network namespace is created for the pod with the second IP. Both IP addresses come from the VPC address space — fortunately, even the tiniest cloud instances are allowed to allocate at least two IP addresses. This design ensures that the pod can’t interfere with management communications.
 

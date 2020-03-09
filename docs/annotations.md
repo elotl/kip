@@ -1,4 +1,4 @@
-### Pod Annotations
+## Pod Annotations
 
 Kip supports a number of annotations to customize the cloud instance pods are launched onto.
 

@@ -1,4 +1,4 @@
-### Cells
+## Cells
 
 Cells are the name we’ve given to the cloud instances that kip runs pods on.  The cells run Alpine linux and a lightweight agent called [Itzo](https://github.com/elotl/itzo) that performs the task of running pods on the cells.  More information about cells can be found in the itzo repository.
 
