@@ -2,6 +2,8 @@
 
 The Terraform config here can be used to provision a simple test cluster with virtual-kubelet.
 
+![VPC with KIP](kip_tf_dev_env.png "VPC with KIP")
+
 ## Getting Started
 
 You need:
@@ -26,10 +28,6 @@ This will create a new VPC and a one-node Kubernetes cluster in it with virtual-
     
     node-ip = 34.201.59.101
 
-The deployed cluster has following components.
-
-![VPC with KIP](kip_tf_dev_env.png "VPC with KIP")
-
 You can now ssh into the instance using the username "ubuntu", and the ssh key you set in your environment file. (It takes a a minute or two for the instance to bootstrap). On the instance, you can use kubectl to interact with your new cluster:
 
     $ kubectl get nodes
@@ -44,7 +42,9 @@ If you haven't set an existing ssh key in your configuration, a new ssh key has 
 
 ## Run a Pod via Virtual Kubelet
 
-To have a pod run via virtual-kubelet, make sure you add a toleration and/or node selector for virtual-kubelet:
+The node taint in virtual-kubelet is disabled in the manifest, so Kubernetes will try to run all pods via the virtual node.
+
+If you decide to enable the taint on the virtual node (via removing the `--disable-taint` command line flag), you will need to add a toleration and/or node selector for pods that are meant to run via virtual-kubelet:
 
     spec:
       nodeSelector:
@@ -52,5 +52,3 @@ To have a pod run via virtual-kubelet, make sure you add a toleration and/or nod
       tolerations:
       - key: virtual-kubelet.io/provider
         operator: Exists
-
-You can also remove the taint from the virtual-kubelet node (`kubectl taint node virtual-kubelet virtual-kubelet.io/provider:NoSchedule-`) if you don't want to use tolerations for every pod or deployment.
