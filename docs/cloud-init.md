@@ -1,6 +1,6 @@
 ## Cloud-init
 
-Kip supports provisioning new Cells through a subset of functionality provided by the popular cloud-init system.  Users can specify a cloud-init file in server.yml and the cloud-init file will be applied when a Cell is booted by Kip. The cloud-init file can be used to provision users and ssh keys on a kip cell or setup additional packages on the cell.
+Kip supports provisioning new Cells through a subset of functionality provided by the popular cloud-init system.  Users can specify a cloud-init file in provider.yaml and the cloud-init file will be applied when a Cell is booted by Kip. The cloud-init file can be used to provision users and ssh keys on a kip cell or setup additional packages on the cell.
 
 Kip's cloud-init system provides the following initialization functions:
 
@@ -11,6 +11,14 @@ Kip's cloud-init system provides the following initialization functions:
 * Execute a script using a custom `runscript` section that allows the user to easily specify
 
 ### Cloud-init Example
+
+In provider.yaml specify the location for the cloud-init file in the virtual-kubelet pod:
+```yaml
+cells:
+  cloudInitFile: /etc/virtual-kubelet/cloudinit.yaml
+```
+
+cloudinit.yaml contents:
 
 ```yaml
 users:
@@ -53,6 +61,8 @@ runscript: |
   apk update
   apk add curl
 ```
+
+The cloudinit.yaml file should be created as a ConfigMap and mounted into the pod as a volume.  The file must be mounted into the pod in the same location specified in provider.yaml
 
 ### Limitations
 
