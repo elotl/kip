@@ -22,17 +22,23 @@ package cloudinitfile
 import (
 	"fmt"
 	"io/ioutil"
+	"regexp"
 
 	"github.com/coreos/yaml"
 	cc "github.com/elotl/cloud-init/config"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 )
 
+const semverRegexFmt string = `v?([0-9]+)(\.[0-9]+)(\.[0-9]+)?` +
+	`(-([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?` +
+	`(\+([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?`
+
 var (
 	ItzoVersionPath  = "/tmp/milpa/itzo_version"
 	ItzoURLPath      = "/tmp/milpa/itzo_url"
 	cloudInitHeader  = []byte("#cloud-config\n")
 	maxCloudInitSize = 16000
+	semverRegex      = regexp.MustCompile("^" + semverRegexFmt + "$")
 )
 
 type File struct {
@@ -84,7 +90,9 @@ func loadUserCloudConfig(path string) (ucc cc.CloudConfig, err error) {
 func (f *File) AddItzoVersion(version string) {
 	if version == "" {
 		return
-	} else if version != "latest" && version[0] != 'v' {
+	} else if version != "latest" &&
+		version[0] != 'v' &&
+		semverRegex.MatchString(version) {
 		version = "v" + version
 	}
 	f.AddKipFile(version, ItzoVersionPath, "0444")

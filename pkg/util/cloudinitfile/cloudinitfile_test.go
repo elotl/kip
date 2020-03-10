@@ -121,6 +121,32 @@ func TestAddItzoFuncs(t *testing.T) {
 	assert.Equal(t, expected, string(cloudInitContent))
 
 	cif.ResetInstanceData()
+	versionString = "dev"
+	cif.AddItzoVersion(versionString)
+	expected = string(cloudInitHeader) + fmt.Sprintf(`write_files:
+- content: %s
+  owner: root
+  path: %s
+  permissions: "0444"
+`, versionString, ItzoVersionPath)
+	cloudInitContent, err = cif.Contents()
+	assert.NoError(t, err)
+	assert.Equal(t, expected, string(cloudInitContent))
+
+	cif.ResetInstanceData()
+	versionString = "314"
+	cif.AddItzoVersion(versionString)
+	expected = string(cloudInitHeader) + fmt.Sprintf(`write_files:
+- content: "%s"
+  owner: root
+  path: %s
+  permissions: "0444"
+`, versionString, ItzoVersionPath)
+	cloudInitContent, err = cif.Contents()
+	assert.NoError(t, err)
+	assert.Equal(t, expected, string(cloudInitContent))
+
+	cif.ResetInstanceData()
 	urlString := "http://my-bucket.s3.com"
 	cif.AddItzoURL(urlString)
 	expected = string(cloudInitHeader) + fmt.Sprintf(`write_files:
@@ -132,4 +158,7 @@ func TestAddItzoFuncs(t *testing.T) {
 	cloudInitContent, err = cif.Contents()
 	assert.NoError(t, err)
 	assert.Equal(t, expected, string(cloudInitContent))
+	// =======
+	// 	assert.Equal(t, expected, cloudInitContent)
+	// >>>>>>> master
 }
