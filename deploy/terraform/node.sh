@@ -1,4 +1,4 @@
-#!/bin/bash -v
+#!/bin/bash
 
 curl -fL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
@@ -11,6 +11,8 @@ apt-get install -y kubelet="${k8s_version}*" kubeadm="${k8s_version}*" kubectl="
 iptables -P FORWARD ACCEPT
 mkdir -p /etc/docker
 echo -e '{\n"iptables": false\n}' > /etc/docker/daemon.json
+modprobe br_netfilter
+systemctl enable docker.service || true
 systemctl restart docker.service || true
 
 # Wait for FQDN.
@@ -73,9 +75,6 @@ mkdir -p /home/ubuntu/.kube
 chown ubuntu: /home/ubuntu/.kube
 cp -i $KUBECONFIG /home/ubuntu/.kube/config
 chown ubuntu: /home/ubuntu/.kube/config
-
-# Remove master taint.
-kubectl taint nodes --all node-role.kubernetes.io/master-
 
 # Create a default storage class, backed by EBS.
 curl -fL https://raw.githubusercontent.com/elotl/milpa-deploy/master/deploy/storageclass-ebs.yaml | kubectl apply -f -
