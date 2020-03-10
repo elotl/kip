@@ -158,7 +158,4 @@ func TestAddItzoFuncs(t *testing.T) {
 	cloudInitContent, err = cif.Contents()
 	assert.NoError(t, err)
 	assert.Equal(t, expected, string(cloudInitContent))
-	// =======
-	// 	assert.Equal(t, expected, cloudInitContent)
-	// >>>>>>> master
 }

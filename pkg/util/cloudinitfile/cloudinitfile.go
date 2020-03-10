@@ -34,8 +34,9 @@ const semverRegexFmt string = `v?([0-9]+)(\.[0-9]+)(\.[0-9]+)?` +
 	`(\+([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?`
 
 var (
-	ItzoVersionPath  = "/tmp/milpa/itzo_version"
-	ItzoURLPath      = "/tmp/milpa/itzo_url"
+	itzoDir          = "/tmp/itzo"
+	ItzoVersionPath  = itzoDir + "/itzo_version"
+	ItzoURLPath      = itzoDir + "/itzo_url"
 	cloudInitHeader  = []byte("#cloud-config\n")
 	maxCloudInitSize = 16000
 	semverRegex      = regexp.MustCompile("^" + semverRegexFmt + "$")
