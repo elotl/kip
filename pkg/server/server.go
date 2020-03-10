@@ -135,7 +135,7 @@ func setupEtcd(configFile, dataDir string, quit <-chan struct{}, wg *sync.WaitGr
 }
 
 func ConfigureK8sKipClient() (*kubeclient.Clientset, *rest.Config, error) {
-	klog.Infof("Configuring k8s client with provided service account credentials")
+	klog.V(2).Infof("Configuring k8s client with provided service account credentials")
 	config, err := restclient.InClusterConfig()
 	if err != nil {
 		return nil, nil, util.WrapError(err, "Could not load kube config using the provided service account")
@@ -295,7 +295,10 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		kubernetesNodeName: nodeName,
 	}
 	imageIdCache := timeoutmap.New(false, nil)
-	cloudInitFile := cloudinitfile.New(serverConfigFile.Cells.CloudInitFile)
+	cloudInitFile, err := cloudinitfile.New(serverConfigFile.Cells.CloudInitFile)
+	if err != nil {
+		return nil, fmt.Errorf("error in user supplied cloud-init file: %v", err)
+	}
 	fixedSizeVolume := cloudClient.GetAttributes().FixedSizeVolume
 	nodeController := &nodemanager.NodeController{
 		Config: nodemanager.NodeControllerConfig{
