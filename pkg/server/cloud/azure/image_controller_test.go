@@ -33,8 +33,8 @@ func getImageController() *ImageController {
 	}
 	return &ImageController{
 		controllerID: client.controllerID,
-		bootImageTags: cloud.BootImageTags{
-			Company: "elotl",
+		bootImageSpec: cloud.BootImageSpec{
+			"name": "elotl-kipdev-*",
 		},
 		az:                client,
 		resourceGroupName: regionalResourceGroupName(client.region),

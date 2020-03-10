@@ -57,7 +57,6 @@ func TestValidateAws(t *testing.T) {
 				Region:          "us-east-1",
 				AccessKeyID:     "1234",
 				SecretAccessKey: "abcd",
-				ImageOwnerID:    "1000",
 				VPCID:           "vpc-12345",
 			},
 			errors: 0,
@@ -83,16 +82,16 @@ func TestConfigValidation(t *testing.T) {
 		},
 		{
 			mod: func(cf *ServerConfigFile) {
-				// No boot image tags specified.
-				cf.Cells.BootImageTags = cloud.BootImageTags{}
+				// No boot image spec specified.
+				cf.Cells.BootImageSpec = cloud.BootImageSpec{}
 			},
 			errors: 0,
 		},
 	}
 	for i, test := range tests {
 		cf := serverConfigFileWithDefaults()
-		cf.Cells.BootImageTags = cloud.BootImageTags{
-			Company: "elotl-test",
+		cf.Cells.BootImageSpec = cloud.BootImageSpec{
+			"name": "elotl-test",
 		}
 		cf.Cells.DefaultInstanceType = "t2.nano"
 		test.mod(cf)

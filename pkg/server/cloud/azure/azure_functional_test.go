@@ -55,10 +55,10 @@ func cleanupFromTest(az *AzureClient) error {
 	return err
 }
 
-func syncImage(controllerID string, bootImageTags cloud.BootImageTags, az *AzureClient) {
+func syncImage(controllerID string, bootImageSpec cloud.BootImageSpec, az *AzureClient) {
 	fmt.Println("Ensuring image is available for cluster:", controllerID)
 	start := time.Now()
-	ic := NewImageController(controllerID, bootImageTags, az)
+	ic := NewImageController(controllerID, bootImageSpec, az)
 	quit := make(chan struct{})
 	wg := &sync.WaitGroup{}
 	ic.Start(quit, wg)
@@ -94,9 +94,9 @@ func TestAzureCloud(t *testing.T) {
 		return
 	}
 
-	syncImage(controllerID, cloud.BootImageTags{}, az)
+	syncImage(controllerID, cloud.BootImageSpec{}, az)
 
-	imageID, err := az.GetImageId(cloud.BootImageTags{})
+	imageID, err := az.GetImageID(cloud.BootImageSpec{})
 	if err != nil {
 		assert.Fail(t, "Azure functional test failed, could not get Image ID: %v", err.Error())
 		return

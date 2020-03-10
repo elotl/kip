@@ -17,9 +17,11 @@ limitations under the License.
 package cloud
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/cloud-instance-provider/pkg/util/rand"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -115,118 +117,6 @@ func TestMergeSecurityGroupSourceRanges(t *testing.T) {
 	assert.Len(t, delete, 3)
 }
 
-func TestBootImageTags(t *testing.T) {
-	bit := BootImageTags{}
-	bit0 := BootImageTags{}
-	assert.Equal(t, bit.String(), "----")
-	bit0.Set(bit.String())
-	assert.Equal(t, bit0.String(), "----")
-	assert.True(t, bit.Matches(bit0))
-	bit = BootImageTags{
-		Company: "elotl",
-		Product: "awesomenewproduct",
-		Version: "123",
-		Date:    "20180830",
-		Time:    "1613",
-	}
-	assert.Equal(t, bit.String(), "elotl-awesomenewproduct-123-20180830-1613")
-	bit0.Set(bit.String())
-	assert.Equal(t, bit0.String(), "elotl-awesomenewproduct-123-20180830-1613")
-	assert.True(t, bit.Matches(bit0))
-	bit = BootImageTags{
-		Company: "elotl",
-		Version: "123",
-		Date:    "20180830",
-	}
-	assert.Equal(t, bit.String(), "elotl--123-20180830-")
-	bit0.Set(bit.String())
-	assert.Equal(t, bit0.String(), "elotl--123-20180830-")
-	assert.True(t, bit.Matches(bit0))
-	bit = BootImageTags{
-		Company: "elotl",
-		Product: "awesomenewproduct",
-		Version: "123",
-		Date:    "20180830",
-		Time:    "1613",
-	}
-	assert.True(t, bit.Matches(bit0))
-}
-
-func TestSortImages(t *testing.T) {
-	images := []Image{
-		Image{
-			Name: "elotl-milpa-1-20180101-223344",
-		},
-		Image{
-			Name: "elotl-milpa-2-20180101-010101",
-		},
-		Image{
-			Name: "elotl-milpa-2-20180102-020202",
-		},
-		Image{
-			Name: "elotl-milpa-1-20180102-010101",
-		},
-	}
-	SortImages(images)
-	assert.Equal(t, "elotl-milpa-1-20180101-223344", images[0].Name)
-	assert.Equal(t, "elotl-milpa-1-20180102-010101", images[1].Name)
-	assert.Equal(t, "elotl-milpa-2-20180101-010101", images[2].Name)
-	assert.Equal(t, "elotl-milpa-2-20180102-020202", images[3].Name)
-}
-
-func TestFilterImages(t *testing.T) {
-	images := []Image{
-		Image{
-			Id:   "1",
-			Name: "elotl-milpa-1-20180101-010101",
-		},
-		Image{
-			Id:   "2",
-			Name: "elotl-milpa-2-20180101-010101",
-		},
-		Image{
-			Id:   "3",
-			Name: "elotl-milpadev-2-20180102-020202",
-		},
-		Image{
-			Id:   "4",
-			Name: "elotl-milpadev-1-20180102-010101",
-		},
-	}
-	tags := BootImageTags{
-		Company: "elotl",
-		Product: "milpa",
-	}
-	res := FilterImages(images, tags)
-	assert.Len(t, res, 2)
-	assert.Contains(t, res, images[0])
-	assert.Contains(t, res, images[1])
-	tags = BootImageTags{
-		Company: "elotl",
-		Product: "milpadev",
-	}
-	res = FilterImages(images, tags)
-	assert.Len(t, res, 2)
-	assert.Contains(t, res, images[2])
-	assert.Contains(t, res, images[3])
-	tags = BootImageTags{
-		Company: "elotl",
-		Product: "milpa",
-		Version: "1",
-	}
-	res = FilterImages(images, tags)
-	assert.Len(t, res, 1)
-	assert.Contains(t, res, images[0])
-	tags = BootImageTags{
-		Company: "elotl",
-		Product: "milpadev",
-		Version: "2",
-	}
-	res = FilterImages(images, tags)
-	assert.Len(t, res, 1)
-	assert.Contains(t, res, images[2])
-}
-
 func TestComparePorts(t *testing.T) {
 	tests := []struct {
 		a    InstancePort
@@ -263,5 +153,37 @@ func TestComparePorts(t *testing.T) {
 		if lessPorts(test.a, test.b) != test.less {
 			t.Errorf("Test %d failed: %v", i, test)
 		}
+	}
+}
+
+//func SortImagesByCreationTime(images []Image)
+func TestSortImagesByCreationTime(t *testing.T) {
+	images := []Image{}
+	SortImagesByCreationTime(images)
+	assert.Len(t, images, 0)
+	images = make([]Image, 1000)
+	for i := range images {
+		ts := rand.Timestamp()
+		images[i] = Image{
+			Name:         fmt.Sprintf("image-%010d", ts.Unix()),
+			CreationTime: &ts,
+		}
+	}
+	SortImagesByCreationTime(images)
+	prev := images[0]
+	for i := 1; i < len(images)-1; i++ {
+		prevCT := *prev.CreationTime
+		prevName := prev.Name
+		ct := *images[i].CreationTime
+		name := images[i].Name
+		assert.True(
+			t,
+			prevCT.Before(ct),
+			fmt.Sprintf("%d !< %d", prevCT.Unix(), ct.Unix()))
+		assert.True(
+			t,
+			prevName < name,
+			fmt.Sprintf("%s !< %s", prevName, name))
+		prev = images[i]
 	}
 }

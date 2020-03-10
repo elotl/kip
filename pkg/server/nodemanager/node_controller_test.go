@@ -39,8 +39,9 @@ import (
 var (
 	defaultInstanceType  = "t2.nano"
 	defaultBootImageID   = "ami-elotl"
-	defaultBootImageTags = cloud.BootImageTags{
-		Company: "elotl",
+	defaultBootImageSpec = cloud.BootImageSpec{
+		"owners":  "689494258501",
+		"filters": "name=elotl-kip-*",
 	}
 )
 
@@ -89,7 +90,7 @@ func MakeNodeController() (*NodeController, func()) {
 		Waiter:      ReturnAddresses,
 	}
 	imageIdCache := timeoutmap.New(false, make(chan struct{}))
-	imageIdCache.Add(defaultBootImageTags.String(), defaultBootImageID, 5*time.Minute, timeoutmap.Noop)
+	imageIdCache.Add(defaultBootImageSpec.String(), defaultBootImageID, 5*time.Minute, timeoutmap.Noop)
 	fakeCertFactory, _ := certs.NewFake()
 	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
 	ciFile, _ := cloudinitfile.New("")
@@ -116,7 +117,7 @@ func MakeNodeController() (*NodeController, func()) {
 		CertificateFactory: fakeCertFactory,
 		CloudInitFile:      ciFile,
 		CloudStatus:        cloudStatus,
-		BootImageTags:      defaultBootImageTags,
+		BootImageSpec:      defaultBootImageSpec,
 	}
 	return nc, closer
 }
@@ -326,7 +327,7 @@ func TestBufferingAndDispatchingTogether(t *testing.T) {
 		SpotStarter: StartReturnsOK,
 		Stopper:     ReturnNil,
 		Waiter:      ReturnAddresses,
-		ImageIdGetter: func(tags cloud.BootImageTags) (string, error) {
+		ImageIDGetter: func(spec cloud.BootImageSpec) (string, error) {
 			return "", nil
 		},
 	}
@@ -528,7 +529,7 @@ func TestRemovePodFromNode(t *testing.T) {
 	//todo
 }
 
-func TestImageTagsToId(t *testing.T) {
+func TestImageSpecToID(t *testing.T) {
 	ctl, closer := MakeNodeController()
 	defer closer()
 	ctl.CloudClient = &cloud.MockCloudClient{
@@ -536,22 +537,22 @@ func TestImageTagsToId(t *testing.T) {
 		SpotStarter: StartReturnsOK,
 		Stopper:     ReturnNil,
 		Waiter:      ReturnAddresses,
-		ImageIdGetter: func(tags cloud.BootImageTags) (string, error) {
+		ImageIDGetter: func(spec cloud.BootImageSpec) (string, error) {
 			return "my-image-id", nil
 		},
 	}
-	img, err := ctl.imageTagsToId(defaultBootImageTags)
+	img, err := ctl.imageSpecToID(defaultBootImageSpec)
 	assert.Nil(t, err)
 	assert.Equal(t, defaultBootImageID, img)
-	tags := cloud.BootImageTags{
-		Company: "my-company",
+	spec := cloud.BootImageSpec{
+		"name": "my-name-*",
 	}
-	img, err = ctl.imageTagsToId(tags)
+	img, err = ctl.imageSpecToID(spec)
 	assert.Nil(t, err)
 	assert.Equal(t, "my-image-id", img)
 }
 
-func TestImageTagsToIdFailure(t *testing.T) {
+func TestImageSpecToIDFailure(t *testing.T) {
 	t.Parallel()
 	ctl, closer := MakeNodeController()
 	defer closer()
@@ -560,14 +561,14 @@ func TestImageTagsToIdFailure(t *testing.T) {
 		SpotStarter: StartReturnsOK,
 		Stopper:     ReturnNil,
 		Waiter:      ReturnAddresses,
-		ImageIdGetter: func(tags cloud.BootImageTags) (string, error) {
-			return "", fmt.Errorf("Testing GetImageId() failure")
+		ImageIDGetter: func(spec cloud.BootImageSpec) (string, error) {
+			return "", fmt.Errorf("Testing GetImageID() failure")
 		},
 	}
-	tags := cloud.BootImageTags{
-		Company: "foobar-inc",
+	spec := cloud.BootImageSpec{
+		"name": "my-name-*",
 	}
-	_, err := ctl.imageTagsToId(tags)
+	_, err := ctl.imageSpecToID(spec)
 	assert.NotNil(t, err)
 }
 
@@ -611,7 +612,7 @@ func TestDoPoolsCalculation(t *testing.T) {
 		SpotStarter: StartReturnsOK,
 		Stopper:     ReturnNil,
 		Waiter:      ReturnAddresses,
-		ImageIdGetter: func(tags cloud.BootImageTags) (string, error) {
+		ImageIDGetter: func(spec cloud.BootImageSpec) (string, error) {
 			return "", nil
 		},
 	}
