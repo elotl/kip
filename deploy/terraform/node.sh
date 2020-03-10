@@ -76,9 +76,6 @@ chown ubuntu: /home/ubuntu/.kube
 cp -i $KUBECONFIG /home/ubuntu/.kube/config
 chown ubuntu: /home/ubuntu/.kube/config
 
-# Remove master taint.
-kubectl taint nodes --all node-role.kubernetes.io/master-
-
 # Create a default storage class, backed by EBS.
 curl -fL https://raw.githubusercontent.com/elotl/milpa-deploy/master/deploy/storageclass-ebs.yaml | kubectl apply -f -
 

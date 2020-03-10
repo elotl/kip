@@ -21,6 +21,7 @@ package cloudinitfile
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -29,9 +30,14 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/yaml"
 )
 
+const semverRegexFmt string = `v?([0-9]+)(\.[0-9]+)(\.[0-9]+)?` +
+	`(-([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?` +
+	`(\+([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?`
+
 var (
 	ItzoVersionPath = "/tmp/milpa/itzo_version"
 	ItzoURLPath     = "/tmp/milpa/itzo_url"
+	semverRegex     = regexp.MustCompile("^" + semverRegexFmt + "$")
 )
 
 type MilpaFile struct {
@@ -83,7 +89,9 @@ func (f *File) AddMilpaFile(content, path, permissions string) {
 func (f *File) AddItzoVersion(version string) {
 	if version == "" {
 		return
-	} else if version != "latest" && version[0] != 'v' {
+	} else if version != "latest" &&
+		version[0] != 'v' &&
+		semverRegex.MatchString(version) {
 		version = "v" + version
 	}
 	f.AddMilpaFile(version, ItzoVersionPath, "0444")

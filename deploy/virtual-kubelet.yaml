@@ -32,6 +32,9 @@ data:
       defaultInstanceType: "t3.nano"
       defaultVolumeSize: "20G"
       nametag: virtual-kubelet
+      itzo:
+        url: https://itzo-kip-dev-download.s3.amazonaws.com
+        version: latest
     kubelet:
       cpu: "20"
       memory: "512Gi"
@@ -344,6 +347,7 @@ spec:
         - /etc/virtual-kubelet/server.yml
         - --network-agent-secret
         - kube-system/vk-network-agent
+        - --disable-taint
         - --klog.logtostderr
         - --klog.v=5
         image: elotl/virtual-kubelet:dev
@@ -386,6 +390,9 @@ spec:
       restartPolicy: Always
       serviceAccountName: virtual-kubelet
       hostNetwork: true
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        effect: "NoSchedule"
       volumes:
       - name: data
         persistentVolumeClaim:
