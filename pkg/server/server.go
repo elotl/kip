@@ -326,7 +326,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		CloudInitFile:      cloudInitFile,
 		CertificateFactory: certFactory,
 		CloudStatus:        cloudStatus,
-		BootImageTags:      serverConfigFile.Cells.BootImageTags,
+		BootImageSpec:      serverConfigFile.Cells.BootImageSpec,
 	}
 	garbageController := &GarbageController{
 		config: GarbageControllerConfig{
@@ -373,7 +373,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 
 	if azClient, ok := cloudClient.(*azure.AzureClient); ok {
 		azureImageController := azure.NewImageController(
-			controllerID, serverConfigFile.Cells.BootImageTags, azClient)
+			controllerID, serverConfigFile.Cells.BootImageSpec, azClient)
 		controllers["ImageController"] = azureImageController
 	}
 	controllerManager := NewControllerManager(controllers)
@@ -417,10 +417,10 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		}
 	}
 
-	err = validateBootImageTags(
-		serverConfigFile.Cells.BootImageTags, cloudClient)
+	err = validateBootImageSpec(
+		serverConfigFile.Cells.BootImageSpec, cloudClient)
 	if err != nil {
-		return nil, fmt.Errorf("failed to validate boot image tags")
+		return nil, fmt.Errorf("failed to validate boot image spec")
 	}
 
 	return s, err

@@ -32,9 +32,12 @@ import (
 )
 
 const (
-	awsInstanceProduct  = "Linux/UNIX"
-	resizeTimeout       = 60 * time.Second
-	maxUserInstanceTags = 45
+	awsInstanceProduct    = "Linux/UNIX"
+	resizeTimeout         = 60 * time.Second
+	maxUserInstanceTags   = 45
+	awsCreationDateFormat = "2006-01-02T15:04:05.000Z"
+	elotlOwnerID          = "689494258501"
+	elotlImageNameFilter  = "elotl-kipdev-*" // TODO
 )
 
 func (e *AwsEC2) StopInstance(instanceID string) error {
@@ -92,9 +95,9 @@ func (e *AwsEC2) getBlockDeviceMapping(volSizeGiB int32) []*ec2.BlockDeviceMappi
 func (e *AwsEC2) getInstanceNetworkSpec(privateIPOnly bool) []*ec2.InstanceNetworkInterfaceSpecification {
 	networkSpec := []*ec2.InstanceNetworkInterfaceSpecification{
 		&ec2.InstanceNetworkInterfaceSpecification{
-			AssociatePublicIpAddress: aws.Bool(!privateIPOnly),
-			DeviceIndex:              aws.Int64(0), // seems to work
-			Groups:                   aws.StringSlice(e.bootSecurityGroupIDs),
+			AssociatePublicIpAddress:       aws.Bool(!privateIPOnly),
+			DeviceIndex:                    aws.Int64(0), // seems to work
+			Groups:                         aws.StringSlice(e.bootSecurityGroupIDs),
 			SecondaryPrivateIpAddressCount: aws.Int64(1),
 		},
 	}
@@ -188,43 +191,81 @@ func (e *AwsEC2) ResizeVolume(node *api.Node, size int64) (error, bool) {
 		"Volume resize request timeout on node %s", node.Name), false
 }
 
-func (e *AwsEC2) GetImageId(tags cloud.BootImageTags) (string, error) {
-	// Let's set some reasonable defaults if BootImageTags is not present in
-	// the server config.
-	if tags.Company == "" {
-		tags.Company = "elotl"
+func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeImagesInput {
+	input := &ec2.DescribeImagesInput{}
+	if len(spec) < 1 {
+		input.Owners = aws.StringSlice([]string{elotlOwnerID})
+		input.Filters = []*ec2.Filter{
+			{
+				Name:   aws.String("name"),
+				Values: aws.StringSlice([]string{elotlImageNameFilter}),
+			},
+		}
+		return input
 	}
-	if tags.Product == "" {
-		tags.Product = "kip"
+	for key, value := range spec {
+		switch key {
+		case "executableUsers":
+			users := strings.Fields(value)
+			input.ExecutableUsers = aws.StringSlice(users)
+		case "owners":
+			owners := strings.Fields(value)
+			input.Owners = aws.StringSlice(owners)
+		case "imageIDs":
+			imageIDs := strings.Fields(value)
+			input.ImageIds = aws.StringSlice(imageIDs)
+		case "filters":
+			filters := strings.Fields(value)
+			ec2Filters := make([]*ec2.Filter, len(filters))
+			for i, filter := range filters {
+				parts := strings.SplitN(filter, "=", 2)
+				filterName := parts[0]
+				filterValues := strings.Split(parts[1], ",")
+				ec2Filters[i] = &ec2.Filter{
+					Name:   aws.String(filterName),
+					Values: aws.StringSlice(filterValues),
+				}
+			}
+			input.Filters = ec2Filters
+		default:
+			klog.Warningf("invalid boot image spec key: %q (=%q)", key, value)
+		}
 	}
-	input := &ec2.DescribeImagesInput{
-		Owners: []*string{
-			aws.String(e.imageOwnerID),
-		},
-		Filters: []*ec2.Filter{{
-			Name:   aws.String("state"),
-			Values: aws.StringSlice([]string{"available"}),
-		}},
-	}
+	return input
+}
+
+func (e *AwsEC2) GetImageID(spec cloud.BootImageSpec) (string, error) {
+	input := bootImageSpecToDescribeImagesInput(spec)
 	resp, err := e.client.DescribeImages(input)
 	if err != nil {
-		klog.Errorf("Error getting image list for tags %v: %v", tags, err)
+		klog.Errorf("getting image list for spec %+v: %v", spec, err)
 		return "", err
 	}
-	if len(resp.Images) == 0 {
-		msg := fmt.Sprintf("No images found for owner %v", e.imageOwnerID)
+	if len(resp.Images) < 1 {
+		msg := fmt.Sprintf("no images found for spec %+v", spec)
 		klog.Errorf("%s", msg)
 		return "", fmt.Errorf("%s", msg)
 	}
-	var images []cloud.Image
-	for _, img := range resp.Images {
-		image := cloud.Image{
-			Id:   *img.ImageId,
-			Name: *img.Name,
+	images := make([]cloud.Image, len(resp.Images))
+	for i, img := range resp.Images {
+		var creationTime *time.Time
+		if img.CreationDate != nil {
+			ts, err := time.Parse(awsCreationDateFormat, *img.CreationDate)
+			if err != nil {
+				klog.Warningf(
+					"invalid image creation date %s", *img.CreationDate)
+			} else {
+				creationTime = &ts
+			}
 		}
-		images = append(images, image)
+		images[i] = cloud.Image{
+			Name:         aws.StringValue(img.Name),
+			ID:           aws.StringValue(img.ImageId),
+			CreationTime: creationTime,
+		}
 	}
-	return cloud.GetBestImage(images, tags)
+	cloud.SortImagesByCreationTime(images)
+	return aws.StringValue(resp.Images[len(resp.Images)-1].ImageId), nil
 }
 
 func (e *AwsEC2) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {

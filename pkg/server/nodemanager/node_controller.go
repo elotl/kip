@@ -81,7 +81,7 @@ type NodeController struct {
 	CloudInitFile      *cloudinitfile.File
 	CertificateFactory *certs.CertificateFactory
 	CloudStatus        cloud.StatusKeeper
-	BootImageTags      cloud.BootImageTags
+	BootImageSpec      cloud.BootImageSpec
 }
 
 func (c *NodeController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
@@ -152,7 +152,7 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 	}
 
 	// If we can't get the boot image, just use the old value for the image
-	newBootImage, err := c.imageTagsToId(c.BootImageTags)
+	newBootImage, err := c.imageSpecToID(c.BootImageSpec)
 	if err != nil {
 		if BootImage == "" {
 			return nil, util.WrapError(err, "Could not get latest boot image")
@@ -164,7 +164,7 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 	BootImage = newBootImage
 
 	if BootImage == "" {
-		return nil, fmt.Errorf("Milpa cannot create create new nodes: empty value for machine image.  Please ensure boot image tags map to a machine image: %v", c.BootImageTags)
+		return nil, fmt.Errorf("can not create create new nodes: empty value for machine image.  Please ensure boot image spec maps to a machine image: %v", c.BootImageSpec)
 	}
 	startNodes, stopNodes, podNodeMap := c.NodeScaler.Compute(nodes.Items, pods.Items)
 	if podNodeMap == nil {
@@ -710,25 +710,25 @@ func (c *NodeController) requestNode(nodeReq NodeRequest, podNodeMapping map[str
 	}
 }
 
-func (c *NodeController) imageTagsToId(tags cloud.BootImageTags) (string, error) {
+func (c *NodeController) imageSpecToID(spec cloud.BootImageSpec) (string, error) {
 	img := ""
-	obj, exists := c.ImageIdCache.Get(tags.String())
+	obj, exists := c.ImageIdCache.Get(spec.String())
 	if obj != nil {
 		img = obj.(string)
 	}
 	if !exists || img == "" {
 		var err error
-		img, err = c.CloudClient.GetImageId(tags)
+		img, err = c.CloudClient.GetImageID(spec)
 		if err != nil {
-			klog.Errorf("Error resolving image tags %v to image ID: %v",
-				tags, err)
+			klog.Errorf("resolving image spec %v to image ID: %v",
+				spec, err)
 			return "", err
 		}
-		c.ImageIdCache.Add(tags.String(), img, 5*time.Minute,
+		c.ImageIdCache.Add(spec.String(), img, 5*time.Minute,
 			func(obj interface{}) {
-				_, _ = c.imageTagsToId(tags)
+				_, _ = c.imageSpecToID(spec)
 			})
-		klog.V(2).Infof("Latest image with tags %v: '%s'", tags, img)
+		klog.V(2).Infof("latest image for spec %v: '%s'", spec, img)
 	}
 	return img, nil
 }

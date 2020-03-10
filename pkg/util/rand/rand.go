@@ -84,3 +84,8 @@ func String(length int) string {
 	}
 	return string(b)
 }
+
+func Timestamp() time.Time {
+	r := Int63nRange(94608000, time.Now().Unix())
+	return time.Unix(r, 0)
+}

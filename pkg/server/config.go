@@ -75,7 +75,6 @@ type AWSConfig struct {
 	SecretAccessKey string `json:"secretAccessKey"`
 	VPCID           string `json:"vpcID,omitempty"`
 	SubnetID        string `json:"subnetID,omitempty"`
-	ImageOwnerID    string `json:"imageOwnerID"`
 	EcsClusterName  string `json:"ecsClusterName"`
 }
 
@@ -114,7 +113,7 @@ type InternalEtcdConfig struct {
 }
 
 type CellsConfig struct {
-	BootImageTags       cloud.BootImageTags           `json:"bootImageTags"`
+	BootImageSpec       cloud.BootImageSpec           `json:"bootImageSpec"`
 	DefaultInstanceType string                        `json:"defaultInstanceType"`
 	DefaultVolumeSize   string                        `json:"defaultVolumeSize"`
 	StandbyCells        []nodemanager.StandbyNodeSpec `json:"standbyCells"`
@@ -146,7 +145,7 @@ func serverConfigFileWithDefaults() *ServerConfigFile {
 			},
 		},
 		Cells: CellsConfig{
-			BootImageTags:     cloud.BootImageTags{},
+			BootImageSpec:     cloud.BootImageSpec{},
 			StandbyCells:      []nodemanager.StandbyNodeSpec{},
 			DefaultVolumeSize: "5Gi",
 		},
@@ -239,10 +238,6 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 		if err != nil {
 			return nil, util.WrapError(err, "Could not configure AWS cloud client authorization")
 		}
-		configImageOwnerID := cc.AWS.ImageOwnerID
-		if configImageOwnerID == "" {
-			configImageOwnerID = "self"
-		}
 
 		// Gross: if vpc is "default", the NewEC2Client will
 		// attempt to figure out the VPCID and the actual ID
@@ -253,7 +248,6 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 			nametag,
 			cc.AWS.VPCID,
 			cc.AWS.SubnetID,
-			configImageOwnerID,
 			cc.AWS.EcsClusterName,
 		)
 
@@ -356,9 +350,6 @@ func validateAWSConfig(cf *AWSConfig) field.ErrorList {
 	if cf.SecretAccessKey == blankTemplateValue {
 		allErrs = append(allErrs, field.Required(fldPath.Child("secretAccessKey"), "secretAccessKey must be set or pulled from the environment"))
 	}
-	if cf.ImageOwnerID == blankTemplateValue {
-		allErrs = append(allErrs, field.Required(fldPath.Child("imageOwnerID"), "a valid imageOwnerID is required"))
-	}
 
 	return allErrs
 }
@@ -427,13 +418,13 @@ func validateServerConfigFile(cf *ServerConfigFile) field.ErrorList {
 	return allErrs
 }
 
-func validateBootImageTags(tags cloud.BootImageTags, cloudClient cloud.CloudClient) error {
-	img, err := cloudClient.GetImageId(tags)
+func validateBootImageSpec(spec cloud.BootImageSpec, cloudClient cloud.CloudClient) error {
+	img, err := cloudClient.GetImageID(spec)
 	if err != nil {
-		return util.WrapError(err, "Could not get machine image for tags %v", tags)
+		return util.WrapError(err, "could not get machine image for %v", spec)
 	}
 	if img == "" {
-		return fmt.Errorf("Could not find machine image for tags: %v", tags)
+		return fmt.Errorf("could not find machine image for %v", spec)
 	}
 	return nil
 }
