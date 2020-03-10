@@ -81,7 +81,7 @@ func (s *EtcdServer) reconcileDataDirectoryValues(cfg *embed.Config) error {
 	}
 	if s.DataDir != cfg.Dir {
 		msg := fmt.Sprintf(`Two different values have been specified for the etcd data directory:
-  server.yml etcd.dataDir value: %s
+  provider.yml etcd.dataDir value: %s
   etcd.configFile.data-dir value: %s`, s.DataDir, cfg.Dir)
 		return fmt.Errorf(msg)
 	}

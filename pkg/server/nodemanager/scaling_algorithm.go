@@ -27,7 +27,7 @@ type ScalingAlgorithm interface {
 	Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.Node, []*api.Node, map[string]string)
 }
 
-// Used externally in server.yml to specify a buffered node
+// Used externally in provider.yml to specify a buffered node
 type StandbyNodeSpec struct {
 	InstanceType string `json:"instanceType"`
 	Count        int    `json:"count"`
