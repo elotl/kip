@@ -23,7 +23,7 @@ import (
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
-	"github.com/elotl/cloud-instance-provider/pkg/milpactl"
+	"github.com/elotl/cloud-instance-provider/pkg/kipctl"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
@@ -31,10 +31,10 @@ import (
 
 func get(cmd *cobra.Command, args []string) {
 	if len(args) < 1 {
-		msg := "Not enough arguments\nUsage: milpactl get (pod|node|service|resource) [Name]"
+		msg := "Not enough arguments\nUsage: kipctl get (pod|node|service|resource) [Name]"
 		fatal(msg)
 	}
-	kind := milpactl.CleanupResourceName(args[0])
+	kind := kipctl.CleanupResourceName(args[0])
 	var name string
 	if len(args) > 1 {
 		name = args[1]
@@ -43,8 +43,8 @@ func get(cmd *cobra.Command, args []string) {
 		fatal("Illegal resource type for GET: %s", kind)
 	}
 
-	client, conn, err := getMilpaClient(cmd.InheritedFlags(), false)
-	dieIfError(err, "Failed to create milpa client")
+	client, conn, err := getKipClient(cmd.InheritedFlags(), false)
+	dieIfError(err, "Failed to create kip client")
 	defer conn.Close()
 
 	getRequest := &clientapi.GetRequest{
@@ -54,16 +54,16 @@ func get(cmd *cobra.Command, args []string) {
 	reply, err := client.Get(context.Background(), getRequest)
 	dieIfError(err, "Could not get resource")
 	dieIfReplyError("Get", reply)
-	printer, err := milpactl.GetPrinter(cmd)
+	printer, err := kipctl.GetPrinter(cmd)
 	dieIfError(err, "Error getting printer for result")
-	milpaObj, err := api.Decode(reply.Body)
+	kipObj, err := api.Decode(reply.Body)
 	dieIfError(err, "")
-	err = printer.PrintObj(milpaObj, os.Stdout)
+	err = printer.PrintObj(kipObj, os.Stdout)
 	if err != nil {
 		// Just print the body of the response
-		data, err2 := json.MarshalIndent(milpaObj, "", "    ")
+		data, err2 := json.MarshalIndent(kipObj, "", "    ")
 		if err2 != nil {
-			data = []byte(fmt.Sprintf("%#v", milpaObj))
+			data = []byte(fmt.Sprintf("%#v", kipObj))
 		}
 		fmt.Printf("Printing failed: %v\nObject:\n%s", err, string(data))
 	}

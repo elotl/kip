@@ -6,10 +6,11 @@ package clientapi
 import (
 	context "context"
 	fmt "fmt"
-	math "math"
-
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
+	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -718,45 +719,45 @@ func init() {
 func init() { proto.RegisterFile("clientapi.proto", fileDescriptor_76c811cce3b5e496) }
 
 var fileDescriptor_76c811cce3b5e496 = []byte{
-	// 604 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0xdb, 0x4e, 0xdb, 0x4c,
-	0x18, 0xc4, 0x7f, 0x0e, 0x38, 0x5f, 0x0e, 0x84, 0xd5, 0xaf, 0x2a, 0xca, 0x45, 0x1b, 0x56, 0x94,
-	0x46, 0x42, 0x5a, 0x45, 0x3d, 0x3c, 0x00, 0x02, 0x84, 0x90, 0x00, 0x51, 0x57, 0xf4, 0x7e, 0xb1,
-	0x3f, 0xd2, 0x15, 0xb6, 0xd7, 0x78, 0x37, 0x6d, 0x73, 0xdd, 0x07, 0xee, 0x2b, 0x54, 0xbb, 0x3e,
-	0xc4, 0x5b, 0xa4, 0x88, 0x8b, 0xde, 0xed, 0x4c, 0xc6, 0xdf, 0xec, 0x61, 0x26, 0xb0, 0x17, 0xc6,
-	0x02, 0x53, 0xcd, 0x33, 0xc1, 0xb2, 0x5c, 0x6a, 0x49, 0x8f, 0x61, 0x78, 0x9a, 0x23, 0xd7, 0x18,
-	0xe0, 0xd3, 0x0a, 0x95, 0x26, 0x53, 0xf0, 0x13, 0x9e, 0x8a, 0x07, 0x54, 0x7a, 0xe2, 0xcd, 0xbc,
-	0xf9, 0x20, 0xa8, 0xb1, 0x11, 0xdf, 0x65, 0xd1, 0x0b, 0xc5, 0x1f, 0x01, 0x2e, 0x50, 0x57, 0x4a,
-	0x02, 0xed, 0x47, 0x91, 0x46, 0xa5, 0xca, 0xae, 0x0d, 0x97, 0xf2, 0x04, 0x27, 0xff, 0x15, 0x9c,
-	0x59, 0xd3, 0xcf, 0x30, 0x3c, 0xc3, 0x18, 0x37, 0x16, 0x2f, 0xfc, 0x90, 0x4c, 0x60, 0x37, 0xe4,
-	0x2a, 0xe4, 0x11, 0x4e, 0x5a, 0x33, 0x6f, 0xee, 0x07, 0x15, 0xa4, 0x07, 0xd0, 0x3f, 0x5b, 0x25,
-	0xd9, 0x96, 0x81, 0xf4, 0x16, 0xfc, 0x93, 0xdb, 0xcb, 0x00, 0xb3, 0x78, 0x4d, 0x5e, 0x41, 0x57,
-	0x69, 0xae, 0x57, 0xca, 0x2a, 0x3a, 0x41, 0x89, 0xcc, 0x77, 0xf7, 0x32, 0x5a, 0x57, 0xa6, 0x66,
-	0x6d, 0x4c, 0x7f, 0xf0, 0x3c, 0x15, 0xe9, 0xd2, 0x9a, 0x0e, 0x82, 0x0a, 0xd2, 0x31, 0x8c, 0xbe,
-	0x62, 0xae, 0x84, 0x4c, 0x4b, 0x5f, 0xba, 0x80, 0x41, 0xcd, 0x18, 0x9f, 0x19, 0xf4, 0xbf, 0x17,
-	0xf8, 0x32, 0x7d, 0x90, 0xe5, 0x76, 0x9a, 0x14, 0xdd, 0x87, 0xbd, 0x4b, 0x75, 0x85, 0x3c, 0xc2,
-	0xbc, 0x1a, 0x72, 0x0c, 0xc3, 0x0d, 0x65, 0xa6, 0x4c, 0xc1, 0x17, 0x25, 0x61, 0x47, 0xf8, 0x41,
-	0x8d, 0xe9, 0x2f, 0x0f, 0xfa, 0x57, 0x72, 0xa9, 0xaa, 0x93, 0x53, 0x18, 0xe4, 0xa8, 0xe4, 0x2a,
-	0x0f, 0xf1, 0xc6, 0x5c, 0x9f, 0xd1, 0xf7, 0x02, 0x87, 0xb3, 0xf3, 0x34, 0x26, 0x37, 0xd5, 0xf5,
-	0xf6, 0x82, 0x1a, 0x93, 0xff, 0xa1, 0x13, 0x8b, 0x14, 0x95, 0x3d, 0x6b, 0x27, 0x28, 0x00, 0x79,
-	0x0d, 0x10, 0x8b, 0x44, 0xe8, 0xfb, 0xb5, 0x46, 0x35, 0x69, 0xdb, 0x9f, 0x1a, 0x0c, 0x7d, 0x32,
-	0x2f, 0x9a, 0xc5, 0x72, 0xfd, 0xaf, 0xb6, 0x31, 0x83, 0x7e, 0xc6, 0xc3, 0x47, 0xbe, 0xc4, 0x33,
-	0xae, 0x79, 0x79, 0xf1, 0x4d, 0x8a, 0xde, 0xc1, 0xfe, 0x17, 0x9d, 0x23, 0x4f, 0x9a, 0xa7, 0x1f,
-	0x43, 0xeb, 0x56, 0x46, 0xa5, 0x9b, 0x59, 0x9a, 0x17, 0xbd, 0x4b, 0x85, 0x2e, 0x0d, 0xec, 0xda,
-	0x18, 0x5f, 0xa3, 0xe6, 0x51, 0x35, 0xd9, 0x0f, 0x6a, 0x4c, 0x8f, 0x60, 0x7c, 0x2a, 0x53, 0x25,
-	0x63, 0x2c, 0xa6, 0x5f, 0xab, 0xa5, 0x99, 0x61, 0x77, 0x51, 0xa6, 0xc9, 0xda, 0x7f, 0x82, 0xde,
-	0x56, 0x81, 0xb9, 0xc8, 0xf3, 0x3c, 0x97, 0x79, 0x99, 0xa5, 0x02, 0xbc, 0xff, 0xdd, 0x82, 0xce,
-	0xb5, 0x88, 0x33, 0x4e, 0x98, 0xad, 0x4e, 0x99, 0x16, 0xb2, 0xc7, 0xdc, 0x24, 0x4d, 0x87, 0xac,
-	0x19, 0x24, 0xba, 0x43, 0x18, 0xf8, 0x55, 0x2a, 0xc8, 0x98, 0xfd, 0x95, 0x99, 0xe9, 0x88, 0x39,
-	0x91, 0xa1, 0x3b, 0xe4, 0x2d, 0x74, 0x8b, 0xd2, 0x93, 0x11, 0x73, 0xda, 0x3f, 0xed, 0xb1, 0xaa,
-	0x07, 0x85, 0xac, 0xa8, 0x3b, 0x19, 0x31, 0xa7, 0xf7, 0xae, 0xec, 0x0d, 0xb4, 0x2e, 0x50, 0x93,
-	0x3e, 0xdb, 0xd4, 0xfd, 0xd9, 0x9c, 0xa2, 0xd3, 0x64, 0xc4, 0x9c, 0x72, 0xbb, 0xb2, 0x43, 0xd8,
-	0xbd, 0x40, 0x6d, 0x9e, 0x8c, 0x0c, 0x58, 0xe3, 0xe5, 0x5c, 0xd5, 0x01, 0xb4, 0x4d, 0x9b, 0xc9,
-	0x80, 0x35, 0x4a, 0xed, 0x4a, 0xde, 0x19, 0x3f, 0x93, 0x38, 0xeb, 0xd7, 0x88, 0x9e, 0x23, 0x9b,
-	0x7b, 0x64, 0x01, 0xb0, 0xc9, 0x09, 0x21, 0xec, 0x59, 0x68, 0xa6, 0xc0, 0xea, 0x97, 0xa4, 0x3b,
-	0x0b, 0x8f, 0x1c, 0x42, 0xfb, 0xfc, 0x27, 0x86, 0xa4, 0xc1, 0xbb, 0x9a, 0xb9, 0xb7, 0xf0, 0xc8,
-	0x11, 0x74, 0x4f, 0xb4, 0xe6, 0xe1, 0xb7, 0xed, 0xba, 0xfb, 0xae, 0xfd, 0x0f, 0xfe, 0xf0, 0x27,
-	0x00, 0x00, 0xff, 0xff, 0x52, 0x63, 0xf2, 0x1f, 0x96, 0x05, 0x00, 0x00,
+	// 602 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0x5b, 0x4f, 0xdb, 0x30,
+	0x18, 0x25, 0x6b, 0x29, 0xe9, 0xd7, 0x0b, 0xc5, 0x9a, 0xa6, 0xaa, 0x0f, 0x5b, 0xb1, 0x18, 0xab,
+	0x84, 0x64, 0x55, 0xbb, 0xfc, 0x00, 0x04, 0x08, 0xa1, 0x01, 0x62, 0x99, 0xd8, 0xbb, 0x49, 0x3e,
+	0x3a, 0x8b, 0x24, 0x0e, 0xb1, 0xbb, 0xad, 0xcf, 0xfb, 0xbd, 0xfb, 0x0f, 0x93, 0x9d, 0x4b, 0xe3,
+	0x21, 0x55, 0x3c, 0xec, 0xcd, 0xe7, 0xf4, 0xe4, 0x3b, 0xbe, 0x9c, 0x53, 0xd8, 0x0d, 0x63, 0x81,
+	0xa9, 0xe6, 0x99, 0x60, 0x59, 0x2e, 0xb5, 0xa4, 0x47, 0x30, 0x38, 0xc9, 0x91, 0x6b, 0x0c, 0xf0,
+	0x71, 0x89, 0x4a, 0x93, 0x09, 0xf8, 0x09, 0x4f, 0xc5, 0x3d, 0x2a, 0x3d, 0xf6, 0xa6, 0xde, 0xac,
+	0x1f, 0xd4, 0xd8, 0x88, 0x6f, 0xb3, 0xe8, 0x99, 0xe2, 0x8f, 0x00, 0xe7, 0xa8, 0x2b, 0x25, 0x81,
+	0xf6, 0x83, 0x48, 0xa3, 0x52, 0x65, 0xd7, 0x86, 0x4b, 0x79, 0x82, 0xe3, 0x17, 0x05, 0x67, 0xd6,
+	0xf4, 0x0b, 0x0c, 0x4e, 0x31, 0xc6, 0xb5, 0xc5, 0x33, 0x3f, 0x24, 0x63, 0xd8, 0x09, 0xb9, 0x0a,
+	0x79, 0x84, 0xe3, 0xd6, 0xd4, 0x9b, 0xf9, 0x41, 0x05, 0xe9, 0x3e, 0xf4, 0x4e, 0x97, 0x49, 0xb6,
+	0x61, 0x20, 0xbd, 0x01, 0xff, 0xf8, 0xe6, 0x22, 0xc0, 0x2c, 0x5e, 0x91, 0x57, 0xd0, 0x51, 0x9a,
+	0xeb, 0xa5, 0xb2, 0x8a, 0xed, 0xa0, 0x44, 0xe6, 0xbb, 0x3b, 0x19, 0xad, 0x2a, 0x53, 0xb3, 0x36,
+	0xa6, 0x3f, 0x79, 0x9e, 0x8a, 0x74, 0x61, 0x4d, 0xfb, 0x41, 0x05, 0xe9, 0x08, 0x86, 0xdf, 0x30,
+	0x57, 0x42, 0xa6, 0xa5, 0x2f, 0x9d, 0x43, 0xbf, 0x66, 0x8c, 0xcf, 0x14, 0x7a, 0x3f, 0x0a, 0x7c,
+	0x91, 0xde, 0xcb, 0x72, 0x3b, 0x4d, 0x8a, 0xee, 0xc1, 0xee, 0x85, 0xba, 0x44, 0x1e, 0x61, 0x5e,
+	0x0d, 0x39, 0x82, 0xc1, 0x9a, 0x32, 0x53, 0x26, 0xe0, 0x8b, 0x92, 0xb0, 0x23, 0xfc, 0xa0, 0xc6,
+	0xf4, 0xb7, 0x07, 0xbd, 0x4b, 0xb9, 0x50, 0xd5, 0xc9, 0x29, 0xf4, 0x73, 0x54, 0x72, 0x99, 0x87,
+	0x78, 0x6d, 0xae, 0xcf, 0xe8, 0xbb, 0x81, 0xc3, 0xd9, 0x79, 0x1a, 0x93, 0xeb, 0xea, 0x7a, 0xbb,
+	0x41, 0x8d, 0xc9, 0x4b, 0xd8, 0x8e, 0x45, 0x8a, 0xca, 0x9e, 0x75, 0x3b, 0x28, 0x00, 0x79, 0x0d,
+	0x10, 0x8b, 0x44, 0xe8, 0xbb, 0x95, 0x46, 0x35, 0x6e, 0xdb, 0x9f, 0x1a, 0x0c, 0x7d, 0x34, 0x2f,
+	0x9a, 0xc5, 0x72, 0xf5, 0xbf, 0xb6, 0x31, 0x85, 0x5e, 0xc6, 0xc3, 0x07, 0xbe, 0xc0, 0x53, 0xae,
+	0x79, 0x79, 0xf1, 0x4d, 0x8a, 0xde, 0xc2, 0xde, 0x57, 0x9d, 0x23, 0x4f, 0x9a, 0xa7, 0x1f, 0x41,
+	0xeb, 0x46, 0x46, 0xa5, 0x9b, 0x59, 0x9a, 0x17, 0xbd, 0x4d, 0x85, 0x2e, 0x0d, 0xec, 0xda, 0x18,
+	0x5f, 0xa1, 0xe6, 0x51, 0x35, 0xd9, 0x0f, 0x6a, 0x4c, 0x0f, 0x61, 0x74, 0x22, 0x53, 0x25, 0x63,
+	0x2c, 0xa6, 0x5f, 0xa9, 0x85, 0x99, 0x61, 0x77, 0x51, 0xa6, 0xc9, 0xda, 0x7f, 0x82, 0xee, 0x46,
+	0x81, 0xb9, 0xc8, 0xb3, 0x3c, 0x97, 0x79, 0x99, 0xa5, 0x02, 0xbc, 0xff, 0xd3, 0x82, 0xd6, 0x67,
+	0x91, 0x11, 0x66, 0x8b, 0x53, 0x66, 0x85, 0xec, 0x32, 0x37, 0x47, 0x93, 0x01, 0x6b, 0xc6, 0x88,
+	0x6e, 0x11, 0x06, 0x7e, 0x95, 0x09, 0x32, 0x62, 0xff, 0x24, 0x66, 0x32, 0x64, 0x4e, 0x60, 0xe8,
+	0x16, 0x79, 0x0b, 0x9d, 0xa2, 0xf2, 0x64, 0xc8, 0x9c, 0xee, 0x4f, 0xba, 0xac, 0x6a, 0x41, 0x21,
+	0x2b, 0xca, 0x4e, 0x86, 0xcc, 0x69, 0xbd, 0x2b, 0x7b, 0x03, 0xad, 0x73, 0xd4, 0xa4, 0xc7, 0xd6,
+	0x65, 0x7f, 0x32, 0xa7, 0x68, 0x34, 0x19, 0x32, 0xa7, 0xda, 0xae, 0xec, 0x00, 0x76, 0xce, 0x51,
+	0x9b, 0x07, 0x23, 0x7d, 0xd6, 0x78, 0x37, 0x57, 0xb5, 0x0f, 0x6d, 0xd3, 0x65, 0xd2, 0x67, 0x8d,
+	0x4a, 0xbb, 0x92, 0x77, 0xc6, 0xcf, 0xe4, 0xcd, 0xfa, 0x35, 0x82, 0xe7, 0xc8, 0x66, 0x1e, 0x99,
+	0x03, 0xac, 0x53, 0x42, 0x08, 0x7b, 0x12, 0x99, 0x09, 0xb0, 0xfa, 0x1d, 0xe9, 0xd6, 0xdc, 0x23,
+	0x07, 0xd0, 0x3e, 0xfb, 0x85, 0x21, 0x69, 0xf0, 0xae, 0x66, 0xe6, 0xcd, 0x3d, 0x72, 0x08, 0x9d,
+	0x63, 0xad, 0x79, 0xf8, 0x7d, 0xb3, 0xee, 0xae, 0x63, 0xff, 0x81, 0x3f, 0xfc, 0x0d, 0x00, 0x00,
+	0xff, 0xff, 0x87, 0xdf, 0x3c, 0x11, 0x94, 0x05, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -767,10 +768,10 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// MilpaClient is the client API for Milpa service.
+// KipClient is the client API for Kip service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type MilpaClient interface {
+type KipClient interface {
 	// Get Server Version.
 	GetVersion(ctx context.Context, in *VersionRequest, opts ...grpc.CallOption) (*VersionReply, error)
 	// Asks the server if it is the leader.
@@ -787,120 +788,120 @@ type MilpaClient interface {
 	GetLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*APIReply, error)
 	// Dump controller status.
 	Dump(ctx context.Context, in *DumpRequest, opts ...grpc.CallOption) (*APIReply, error)
-	// Deploy a Milpa package for a unit in a running pod.
-	Deploy(ctx context.Context, opts ...grpc.CallOption) (Milpa_DeployClient, error)
+	// Deploy a Kip package for a unit in a running pod.
+	Deploy(ctx context.Context, opts ...grpc.CallOption) (Kip_DeployClient, error)
 	// Stream logs from a running pod
-	StreamLogs(ctx context.Context, in *StreamLogsRequest, opts ...grpc.CallOption) (Milpa_StreamLogsClient, error)
+	StreamLogs(ctx context.Context, in *StreamLogsRequest, opts ...grpc.CallOption) (Kip_StreamLogsClient, error)
 	// Execute a command in the context of a unit
-	Exec(ctx context.Context, opts ...grpc.CallOption) (Milpa_ExecClient, error)
+	Exec(ctx context.Context, opts ...grpc.CallOption) (Kip_ExecClient, error)
 	// Attach to stdin, stdout and stderr of a running pod
-	Attach(ctx context.Context, opts ...grpc.CallOption) (Milpa_AttachClient, error)
+	Attach(ctx context.Context, opts ...grpc.CallOption) (Kip_AttachClient, error)
 }
 
-type milpaClient struct {
+type kipClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewMilpaClient(cc *grpc.ClientConn) MilpaClient {
-	return &milpaClient{cc}
+func NewKipClient(cc *grpc.ClientConn) KipClient {
+	return &kipClient{cc}
 }
 
-func (c *milpaClient) GetVersion(ctx context.Context, in *VersionRequest, opts ...grpc.CallOption) (*VersionReply, error) {
+func (c *kipClient) GetVersion(ctx context.Context, in *VersionRequest, opts ...grpc.CallOption) (*VersionReply, error) {
 	out := new(VersionReply)
-	err := c.cc.Invoke(ctx, "/Milpa/GetVersion", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Kip/GetVersion", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *milpaClient) IsLeader(ctx context.Context, in *IsLeaderRequest, opts ...grpc.CallOption) (*IsLeaderReply, error) {
+func (c *kipClient) IsLeader(ctx context.Context, in *IsLeaderRequest, opts ...grpc.CallOption) (*IsLeaderReply, error) {
 	out := new(IsLeaderReply)
-	err := c.cc.Invoke(ctx, "/Milpa/IsLeader", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Kip/IsLeader", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *milpaClient) Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*APIReply, error) {
+func (c *kipClient) Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*APIReply, error) {
 	out := new(APIReply)
-	err := c.cc.Invoke(ctx, "/Milpa/Create", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Kip/Create", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *milpaClient) Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*APIReply, error) {
+func (c *kipClient) Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*APIReply, error) {
 	out := new(APIReply)
-	err := c.cc.Invoke(ctx, "/Milpa/Update", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Kip/Update", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *milpaClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*APIReply, error) {
+func (c *kipClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*APIReply, error) {
 	out := new(APIReply)
-	err := c.cc.Invoke(ctx, "/Milpa/Get", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Kip/Get", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *milpaClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*APIReply, error) {
+func (c *kipClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*APIReply, error) {
 	out := new(APIReply)
-	err := c.cc.Invoke(ctx, "/Milpa/Delete", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Kip/Delete", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *milpaClient) GetLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*APIReply, error) {
+func (c *kipClient) GetLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*APIReply, error) {
 	out := new(APIReply)
-	err := c.cc.Invoke(ctx, "/Milpa/GetLogs", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Kip/GetLogs", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *milpaClient) Dump(ctx context.Context, in *DumpRequest, opts ...grpc.CallOption) (*APIReply, error) {
+func (c *kipClient) Dump(ctx context.Context, in *DumpRequest, opts ...grpc.CallOption) (*APIReply, error) {
 	out := new(APIReply)
-	err := c.cc.Invoke(ctx, "/Milpa/Dump", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Kip/Dump", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *milpaClient) Deploy(ctx context.Context, opts ...grpc.CallOption) (Milpa_DeployClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Milpa_serviceDesc.Streams[0], "/Milpa/Deploy", opts...)
+func (c *kipClient) Deploy(ctx context.Context, opts ...grpc.CallOption) (Kip_DeployClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Kip_serviceDesc.Streams[0], "/Kip/Deploy", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &milpaDeployClient{stream}
+	x := &kipDeployClient{stream}
 	return x, nil
 }
 
-type Milpa_DeployClient interface {
+type Kip_DeployClient interface {
 	Send(*DeployRequest) error
 	CloseAndRecv() (*APIReply, error)
 	grpc.ClientStream
 }
 
-type milpaDeployClient struct {
+type kipDeployClient struct {
 	grpc.ClientStream
 }
 
-func (x *milpaDeployClient) Send(m *DeployRequest) error {
+func (x *kipDeployClient) Send(m *DeployRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *milpaDeployClient) CloseAndRecv() (*APIReply, error) {
+func (x *kipDeployClient) CloseAndRecv() (*APIReply, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
@@ -911,12 +912,12 @@ func (x *milpaDeployClient) CloseAndRecv() (*APIReply, error) {
 	return m, nil
 }
 
-func (c *milpaClient) StreamLogs(ctx context.Context, in *StreamLogsRequest, opts ...grpc.CallOption) (Milpa_StreamLogsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Milpa_serviceDesc.Streams[1], "/Milpa/StreamLogs", opts...)
+func (c *kipClient) StreamLogs(ctx context.Context, in *StreamLogsRequest, opts ...grpc.CallOption) (Kip_StreamLogsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Kip_serviceDesc.Streams[1], "/Kip/StreamLogs", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &milpaStreamLogsClient{stream}
+	x := &kipStreamLogsClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -926,16 +927,16 @@ func (c *milpaClient) StreamLogs(ctx context.Context, in *StreamLogsRequest, opt
 	return x, nil
 }
 
-type Milpa_StreamLogsClient interface {
+type Kip_StreamLogsClient interface {
 	Recv() (*StreamMsg, error)
 	grpc.ClientStream
 }
 
-type milpaStreamLogsClient struct {
+type kipStreamLogsClient struct {
 	grpc.ClientStream
 }
 
-func (x *milpaStreamLogsClient) Recv() (*StreamMsg, error) {
+func (x *kipStreamLogsClient) Recv() (*StreamMsg, error) {
 	m := new(StreamMsg)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -943,30 +944,30 @@ func (x *milpaStreamLogsClient) Recv() (*StreamMsg, error) {
 	return m, nil
 }
 
-func (c *milpaClient) Exec(ctx context.Context, opts ...grpc.CallOption) (Milpa_ExecClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Milpa_serviceDesc.Streams[2], "/Milpa/Exec", opts...)
+func (c *kipClient) Exec(ctx context.Context, opts ...grpc.CallOption) (Kip_ExecClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Kip_serviceDesc.Streams[2], "/Kip/Exec", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &milpaExecClient{stream}
+	x := &kipExecClient{stream}
 	return x, nil
 }
 
-type Milpa_ExecClient interface {
+type Kip_ExecClient interface {
 	Send(*StreamMsg) error
 	Recv() (*StreamMsg, error)
 	grpc.ClientStream
 }
 
-type milpaExecClient struct {
+type kipExecClient struct {
 	grpc.ClientStream
 }
 
-func (x *milpaExecClient) Send(m *StreamMsg) error {
+func (x *kipExecClient) Send(m *StreamMsg) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *milpaExecClient) Recv() (*StreamMsg, error) {
+func (x *kipExecClient) Recv() (*StreamMsg, error) {
 	m := new(StreamMsg)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -974,30 +975,30 @@ func (x *milpaExecClient) Recv() (*StreamMsg, error) {
 	return m, nil
 }
 
-func (c *milpaClient) Attach(ctx context.Context, opts ...grpc.CallOption) (Milpa_AttachClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Milpa_serviceDesc.Streams[3], "/Milpa/Attach", opts...)
+func (c *kipClient) Attach(ctx context.Context, opts ...grpc.CallOption) (Kip_AttachClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Kip_serviceDesc.Streams[3], "/Kip/Attach", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &milpaAttachClient{stream}
+	x := &kipAttachClient{stream}
 	return x, nil
 }
 
-type Milpa_AttachClient interface {
+type Kip_AttachClient interface {
 	Send(*StreamMsg) error
 	Recv() (*StreamMsg, error)
 	grpc.ClientStream
 }
 
-type milpaAttachClient struct {
+type kipAttachClient struct {
 	grpc.ClientStream
 }
 
-func (x *milpaAttachClient) Send(m *StreamMsg) error {
+func (x *kipAttachClient) Send(m *StreamMsg) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *milpaAttachClient) Recv() (*StreamMsg, error) {
+func (x *kipAttachClient) Recv() (*StreamMsg, error) {
 	m := new(StreamMsg)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -1005,8 +1006,8 @@ func (x *milpaAttachClient) Recv() (*StreamMsg, error) {
 	return m, nil
 }
 
-// MilpaServer is the server API for Milpa service.
-type MilpaServer interface {
+// KipServer is the server API for Kip service.
+type KipServer interface {
 	// Get Server Version.
 	GetVersion(context.Context, *VersionRequest) (*VersionReply, error)
 	// Asks the server if it is the leader.
@@ -1023,183 +1024,224 @@ type MilpaServer interface {
 	GetLogs(context.Context, *LogsRequest) (*APIReply, error)
 	// Dump controller status.
 	Dump(context.Context, *DumpRequest) (*APIReply, error)
-	// Deploy a Milpa package for a unit in a running pod.
-	Deploy(Milpa_DeployServer) error
+	// Deploy a Kip package for a unit in a running pod.
+	Deploy(Kip_DeployServer) error
 	// Stream logs from a running pod
-	StreamLogs(*StreamLogsRequest, Milpa_StreamLogsServer) error
+	StreamLogs(*StreamLogsRequest, Kip_StreamLogsServer) error
 	// Execute a command in the context of a unit
-	Exec(Milpa_ExecServer) error
+	Exec(Kip_ExecServer) error
 	// Attach to stdin, stdout and stderr of a running pod
-	Attach(Milpa_AttachServer) error
+	Attach(Kip_AttachServer) error
 }
 
-func RegisterMilpaServer(s *grpc.Server, srv MilpaServer) {
-	s.RegisterService(&_Milpa_serviceDesc, srv)
+// UnimplementedKipServer can be embedded to have forward compatible implementations.
+type UnimplementedKipServer struct {
 }
 
-func _Milpa_GetVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func (*UnimplementedKipServer) GetVersion(ctx context.Context, req *VersionRequest) (*VersionReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetVersion not implemented")
+}
+func (*UnimplementedKipServer) IsLeader(ctx context.Context, req *IsLeaderRequest) (*IsLeaderReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsLeader not implemented")
+}
+func (*UnimplementedKipServer) Create(ctx context.Context, req *CreateRequest) (*APIReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
+}
+func (*UnimplementedKipServer) Update(ctx context.Context, req *UpdateRequest) (*APIReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (*UnimplementedKipServer) Get(ctx context.Context, req *GetRequest) (*APIReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (*UnimplementedKipServer) Delete(ctx context.Context, req *DeleteRequest) (*APIReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (*UnimplementedKipServer) GetLogs(ctx context.Context, req *LogsRequest) (*APIReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLogs not implemented")
+}
+func (*UnimplementedKipServer) Dump(ctx context.Context, req *DumpRequest) (*APIReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Dump not implemented")
+}
+func (*UnimplementedKipServer) Deploy(srv Kip_DeployServer) error {
+	return status.Errorf(codes.Unimplemented, "method Deploy not implemented")
+}
+func (*UnimplementedKipServer) StreamLogs(req *StreamLogsRequest, srv Kip_StreamLogsServer) error {
+	return status.Errorf(codes.Unimplemented, "method StreamLogs not implemented")
+}
+func (*UnimplementedKipServer) Exec(srv Kip_ExecServer) error {
+	return status.Errorf(codes.Unimplemented, "method Exec not implemented")
+}
+func (*UnimplementedKipServer) Attach(srv Kip_AttachServer) error {
+	return status.Errorf(codes.Unimplemented, "method Attach not implemented")
+}
+
+func RegisterKipServer(s *grpc.Server, srv KipServer) {
+	s.RegisterService(&_Kip_serviceDesc, srv)
+}
+
+func _Kip_GetVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(VersionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MilpaServer).GetVersion(ctx, in)
+		return srv.(KipServer).GetVersion(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Milpa/GetVersion",
+		FullMethod: "/Kip/GetVersion",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MilpaServer).GetVersion(ctx, req.(*VersionRequest))
+		return srv.(KipServer).GetVersion(ctx, req.(*VersionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Milpa_IsLeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Kip_IsLeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IsLeaderRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MilpaServer).IsLeader(ctx, in)
+		return srv.(KipServer).IsLeader(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Milpa/IsLeader",
+		FullMethod: "/Kip/IsLeader",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MilpaServer).IsLeader(ctx, req.(*IsLeaderRequest))
+		return srv.(KipServer).IsLeader(ctx, req.(*IsLeaderRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Milpa_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Kip_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MilpaServer).Create(ctx, in)
+		return srv.(KipServer).Create(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Milpa/Create",
+		FullMethod: "/Kip/Create",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MilpaServer).Create(ctx, req.(*CreateRequest))
+		return srv.(KipServer).Create(ctx, req.(*CreateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Milpa_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Kip_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MilpaServer).Update(ctx, in)
+		return srv.(KipServer).Update(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Milpa/Update",
+		FullMethod: "/Kip/Update",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MilpaServer).Update(ctx, req.(*UpdateRequest))
+		return srv.(KipServer).Update(ctx, req.(*UpdateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Milpa_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Kip_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MilpaServer).Get(ctx, in)
+		return srv.(KipServer).Get(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Milpa/Get",
+		FullMethod: "/Kip/Get",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MilpaServer).Get(ctx, req.(*GetRequest))
+		return srv.(KipServer).Get(ctx, req.(*GetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Milpa_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Kip_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MilpaServer).Delete(ctx, in)
+		return srv.(KipServer).Delete(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Milpa/Delete",
+		FullMethod: "/Kip/Delete",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MilpaServer).Delete(ctx, req.(*DeleteRequest))
+		return srv.(KipServer).Delete(ctx, req.(*DeleteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Milpa_GetLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Kip_GetLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LogsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MilpaServer).GetLogs(ctx, in)
+		return srv.(KipServer).GetLogs(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Milpa/GetLogs",
+		FullMethod: "/Kip/GetLogs",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MilpaServer).GetLogs(ctx, req.(*LogsRequest))
+		return srv.(KipServer).GetLogs(ctx, req.(*LogsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Milpa_Dump_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Kip_Dump_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DumpRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MilpaServer).Dump(ctx, in)
+		return srv.(KipServer).Dump(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Milpa/Dump",
+		FullMethod: "/Kip/Dump",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MilpaServer).Dump(ctx, req.(*DumpRequest))
+		return srv.(KipServer).Dump(ctx, req.(*DumpRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Milpa_Deploy_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(MilpaServer).Deploy(&milpaDeployServer{stream})
+func _Kip_Deploy_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(KipServer).Deploy(&kipDeployServer{stream})
 }
 
-type Milpa_DeployServer interface {
+type Kip_DeployServer interface {
 	SendAndClose(*APIReply) error
 	Recv() (*DeployRequest, error)
 	grpc.ServerStream
 }
 
-type milpaDeployServer struct {
+type kipDeployServer struct {
 	grpc.ServerStream
 }
 
-func (x *milpaDeployServer) SendAndClose(m *APIReply) error {
+func (x *kipDeployServer) SendAndClose(m *APIReply) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *milpaDeployServer) Recv() (*DeployRequest, error) {
+func (x *kipDeployServer) Recv() (*DeployRequest, error) {
 	m := new(DeployRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -1207,46 +1249,46 @@ func (x *milpaDeployServer) Recv() (*DeployRequest, error) {
 	return m, nil
 }
 
-func _Milpa_StreamLogs_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Kip_StreamLogs_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(StreamLogsRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(MilpaServer).StreamLogs(m, &milpaStreamLogsServer{stream})
+	return srv.(KipServer).StreamLogs(m, &kipStreamLogsServer{stream})
 }
 
-type Milpa_StreamLogsServer interface {
+type Kip_StreamLogsServer interface {
 	Send(*StreamMsg) error
 	grpc.ServerStream
 }
 
-type milpaStreamLogsServer struct {
+type kipStreamLogsServer struct {
 	grpc.ServerStream
 }
 
-func (x *milpaStreamLogsServer) Send(m *StreamMsg) error {
+func (x *kipStreamLogsServer) Send(m *StreamMsg) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Milpa_Exec_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(MilpaServer).Exec(&milpaExecServer{stream})
+func _Kip_Exec_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(KipServer).Exec(&kipExecServer{stream})
 }
 
-type Milpa_ExecServer interface {
+type Kip_ExecServer interface {
 	Send(*StreamMsg) error
 	Recv() (*StreamMsg, error)
 	grpc.ServerStream
 }
 
-type milpaExecServer struct {
+type kipExecServer struct {
 	grpc.ServerStream
 }
 
-func (x *milpaExecServer) Send(m *StreamMsg) error {
+func (x *kipExecServer) Send(m *StreamMsg) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *milpaExecServer) Recv() (*StreamMsg, error) {
+func (x *kipExecServer) Recv() (*StreamMsg, error) {
 	m := new(StreamMsg)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -1254,25 +1296,25 @@ func (x *milpaExecServer) Recv() (*StreamMsg, error) {
 	return m, nil
 }
 
-func _Milpa_Attach_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(MilpaServer).Attach(&milpaAttachServer{stream})
+func _Kip_Attach_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(KipServer).Attach(&kipAttachServer{stream})
 }
 
-type Milpa_AttachServer interface {
+type Kip_AttachServer interface {
 	Send(*StreamMsg) error
 	Recv() (*StreamMsg, error)
 	grpc.ServerStream
 }
 
-type milpaAttachServer struct {
+type kipAttachServer struct {
 	grpc.ServerStream
 }
 
-func (x *milpaAttachServer) Send(m *StreamMsg) error {
+func (x *kipAttachServer) Send(m *StreamMsg) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *milpaAttachServer) Recv() (*StreamMsg, error) {
+func (x *kipAttachServer) Recv() (*StreamMsg, error) {
 	m := new(StreamMsg)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -1280,63 +1322,63 @@ func (x *milpaAttachServer) Recv() (*StreamMsg, error) {
 	return m, nil
 }
 
-var _Milpa_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "Milpa",
-	HandlerType: (*MilpaServer)(nil),
+var _Kip_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "Kip",
+	HandlerType: (*KipServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "GetVersion",
-			Handler:    _Milpa_GetVersion_Handler,
+			Handler:    _Kip_GetVersion_Handler,
 		},
 		{
 			MethodName: "IsLeader",
-			Handler:    _Milpa_IsLeader_Handler,
+			Handler:    _Kip_IsLeader_Handler,
 		},
 		{
 			MethodName: "Create",
-			Handler:    _Milpa_Create_Handler,
+			Handler:    _Kip_Create_Handler,
 		},
 		{
 			MethodName: "Update",
-			Handler:    _Milpa_Update_Handler,
+			Handler:    _Kip_Update_Handler,
 		},
 		{
 			MethodName: "Get",
-			Handler:    _Milpa_Get_Handler,
+			Handler:    _Kip_Get_Handler,
 		},
 		{
 			MethodName: "Delete",
-			Handler:    _Milpa_Delete_Handler,
+			Handler:    _Kip_Delete_Handler,
 		},
 		{
 			MethodName: "GetLogs",
-			Handler:    _Milpa_GetLogs_Handler,
+			Handler:    _Kip_GetLogs_Handler,
 		},
 		{
 			MethodName: "Dump",
-			Handler:    _Milpa_Dump_Handler,
+			Handler:    _Kip_Dump_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Deploy",
-			Handler:       _Milpa_Deploy_Handler,
+			Handler:       _Kip_Deploy_Handler,
 			ClientStreams: true,
 		},
 		{
 			StreamName:    "StreamLogs",
-			Handler:       _Milpa_StreamLogs_Handler,
+			Handler:       _Kip_StreamLogs_Handler,
 			ServerStreams: true,
 		},
 		{
 			StreamName:    "Exec",
-			Handler:       _Milpa_Exec_Handler,
+			Handler:       _Kip_Exec_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},
 		{
 			StreamName:    "Attach",
-			Handler:       _Milpa_Attach_Handler,
+			Handler:       _Kip_Attach_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

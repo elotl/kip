@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
-	"github.com/elotl/cloud-instance-provider/pkg/milpactl"
+	"github.com/elotl/cloud-instance-provider/pkg/kipctl"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
@@ -29,16 +29,16 @@ import (
 func del(cmd *cobra.Command, args []string) {
 	// see if app manifest file has been supplied
 	if len(args) > 0 && len(args) != 2 {
-		fatal("Usage: milpactl delete <resource> <name>")
+		fatal("Usage: kipctl delete <resource> <name>")
 	}
 	cascade, _ := cmd.Flags().GetBool("cascade")
 
-	client, conn, err := getMilpaClient(cmd.InheritedFlags(), true)
-	dieIfError(err, "Failed to create milpa client")
+	client, conn, err := getKipClient(cmd.InheritedFlags(), true)
+	dieIfError(err, "Failed to create kip client")
 	defer conn.Close()
 
 	if len(args) == 2 {
-		kind := milpactl.CleanupResourceName(args[0])
+		kind := kipctl.CleanupResourceName(args[0])
 		name := args[1]
 		if !util.StringInSlice(kind, deleteTypes) {
 			fatal("Illegal resource type: %s", kind)
@@ -73,13 +73,13 @@ func DeleteCommand() *cobra.Command {
 		Long:  `Delete resource by filename or by resource and name`,
 		Example: `
 # Delete a pod using the type and name specified in the file pod.yml.
-milpactl delete -f ./pod.yml
+kipctl delete -f ./pod.yml
 
 # Delete a pod named mypod
-milpactl delete pod mypod
+kipctl delete pod mypod
 
 # Delete a deployment named mydeployment and delete all objects managed by that deployment
-milpactl delete --cascade deployment mypod`,
+kipctl delete --cascade deployment mypod`,
 		Run: func(cmd *cobra.Command, args []string) {
 			del(cmd, args)
 		},

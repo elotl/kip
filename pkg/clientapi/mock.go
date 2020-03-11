@@ -27,7 +27,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util/yaml"
 )
 
-type MockMilpaClient struct {
+type MockKipClient struct {
 	GetVersioner func(ctx context.Context, in *VersionRequest, opts ...grpc.CallOption) (*VersionReply, error)
 	Creator      func(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*APIReply, error)
 	Updater      func(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*APIReply, error)
@@ -35,58 +35,58 @@ type MockMilpaClient struct {
 	Deleter      func(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*APIReply, error)
 	GetLogser    func(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*APIReply, error)
 	Dumper       func(ctx context.Context, in *DumpRequest, opts ...grpc.CallOption) (*APIReply, error)
-	Deployer     func(ctx context.Context, opts ...grpc.CallOption) (Milpa_DeployClient, error)
-	StreamLogser func(ctx context.Context, in *StreamLogsRequest, opts ...grpc.CallOption) (Milpa_StreamLogsClient, error)
-	Execer       func(ctx context.Context, opts ...grpc.CallOption) (Milpa_ExecClient, error)
-	Attacher     func(ctx context.Context, opts ...grpc.CallOption) (Milpa_AttachClient, error)
+	Deployer     func(ctx context.Context, opts ...grpc.CallOption) (Kip_DeployClient, error)
+	StreamLogser func(ctx context.Context, in *StreamLogsRequest, opts ...grpc.CallOption) (Kip_StreamLogsClient, error)
+	Execer       func(ctx context.Context, opts ...grpc.CallOption) (Kip_ExecClient, error)
+	Attacher     func(ctx context.Context, opts ...grpc.CallOption) (Kip_AttachClient, error)
 	Leader       func(ctx context.Context, in *IsLeaderRequest, opts ...grpc.CallOption) (*IsLeaderReply, error)
 }
 
-func (m MockMilpaClient) GetVersion(ctx context.Context, in *VersionRequest, opts ...grpc.CallOption) (*VersionReply, error) {
+func (m MockKipClient) GetVersion(ctx context.Context, in *VersionRequest, opts ...grpc.CallOption) (*VersionReply, error) {
 	return m.GetVersioner(ctx, in, opts...)
 }
 
-func (m MockMilpaClient) IsLeader(ctx context.Context, in *IsLeaderRequest, opts ...grpc.CallOption) (*IsLeaderReply, error) {
+func (m MockKipClient) IsLeader(ctx context.Context, in *IsLeaderRequest, opts ...grpc.CallOption) (*IsLeaderReply, error) {
 	return m.Leader(ctx, in, opts...)
 }
 
-func (m MockMilpaClient) Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*APIReply, error) {
+func (m MockKipClient) Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*APIReply, error) {
 	return m.Creator(ctx, in, opts...)
 }
 
-func (m MockMilpaClient) Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*APIReply, error) {
+func (m MockKipClient) Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*APIReply, error) {
 	return m.Updater(ctx, in, opts...)
 }
 
-func (m MockMilpaClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*APIReply, error) {
+func (m MockKipClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*APIReply, error) {
 	return m.Getter(ctx, in, opts...)
 }
 
-func (m MockMilpaClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*APIReply, error) {
+func (m MockKipClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*APIReply, error) {
 	return m.Deleter(ctx, in, opts...)
 }
 
-func (m MockMilpaClient) GetLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*APIReply, error) {
+func (m MockKipClient) GetLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*APIReply, error) {
 	return m.GetLogser(ctx, in, opts...)
 }
 
-func (m MockMilpaClient) Dump(ctx context.Context, in *DumpRequest, opts ...grpc.CallOption) (*APIReply, error) {
+func (m MockKipClient) Dump(ctx context.Context, in *DumpRequest, opts ...grpc.CallOption) (*APIReply, error) {
 	return m.Dumper(ctx, in, opts...)
 }
 
-func (m MockMilpaClient) Deploy(ctx context.Context, opts ...grpc.CallOption) (Milpa_DeployClient, error) {
+func (m MockKipClient) Deploy(ctx context.Context, opts ...grpc.CallOption) (Kip_DeployClient, error) {
 	return m.Deployer(ctx, opts...)
 }
 
-func (m MockMilpaClient) StreamLogs(ctx context.Context, in *StreamLogsRequest, opts ...grpc.CallOption) (Milpa_StreamLogsClient, error) {
+func (m MockKipClient) StreamLogs(ctx context.Context, in *StreamLogsRequest, opts ...grpc.CallOption) (Kip_StreamLogsClient, error) {
 	return m.StreamLogser(ctx, in, opts...)
 }
 
-func (m MockMilpaClient) Exec(ctx context.Context, opts ...grpc.CallOption) (Milpa_ExecClient, error) {
+func (m MockKipClient) Exec(ctx context.Context, opts ...grpc.CallOption) (Kip_ExecClient, error) {
 	return m.Execer(ctx, opts...)
 }
 
-func (m MockMilpaClient) Attach(ctx context.Context, opts ...grpc.CallOption) (Milpa_AttachClient, error) {
+func (m MockKipClient) Attach(ctx context.Context, opts ...grpc.CallOption) (Kip_AttachClient, error) {
 	return m.Attacher(ctx, opts...)
 }
 
@@ -107,11 +107,11 @@ func versionAndKind(m []byte) (string, string, error) {
 	return typeMeta.APIVersion, strings.ToLower(typeMeta.Kind), nil
 }
 
-func NewMockMilpaClient() MockMilpaClient {
+func NewMockKipClient() MockKipClient {
 	encoder := api.IndentingJsonCodec{}
 	// Currently only pods are supported.
 	podstore := make(map[string]*api.Pod)
-	cli := MockMilpaClient{}
+	cli := MockKipClient{}
 	cli.Creator = func(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*APIReply, error) {
 		_, objectKind, err := versionAndKind(in.Manifest)
 		if err != nil {

@@ -17,6 +17,7 @@
 /virtual-kubelet
 cmd/virtual-kubelet/virtual-kubelet
 /milpactl
+/kipctl
 staticcheck.conf
 kubeconfig
 *.tfstate

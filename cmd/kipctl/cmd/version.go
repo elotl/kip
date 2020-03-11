@@ -25,13 +25,13 @@ import (
 )
 
 func getServerVersion(cmd *cobra.Command, args []string) {
-	client, conn, err := getMilpaClient(cmd.InheritedFlags(), false)
-	dieIfError(err, "Failed to create milpa client")
+	client, conn, err := getKipClient(cmd.InheritedFlags(), false)
+	dieIfError(err, "Failed to create kip client")
 	defer conn.Close()
 	versionRequest := &clientapi.VersionRequest{}
 	reply, err := client.GetVersion(context.Background(), versionRequest)
 	dieIfError(err, "could not gather grpc server version")
-	fmt.Printf("Milpa server version: %s\n", string(reply.VersionInfo))
+	fmt.Printf("Kip server version: %s\n", string(reply.VersionInfo))
 }
 
 func VersionCommand() *cobra.Command {

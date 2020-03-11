@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package milpactl
+package kipctl
 
 import "strings"
 

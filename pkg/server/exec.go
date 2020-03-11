@@ -25,7 +25,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 )
 
-func (s InstanceProvider) Exec(stream clientapi.Milpa_ExecServer) error {
+func (s InstanceProvider) Exec(stream clientapi.Kip_ExecServer) error {
 	var params api.ExecParams
 	paramsMsg, err := getInitialParams(stream, &params)
 	if err != nil {

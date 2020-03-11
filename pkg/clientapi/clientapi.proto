@@ -3,7 +3,7 @@ syntax = "proto3";
 // Service definition.
 // TODO: Set up reverse proxy.
 // See https://github.com/grpc-ecosystem/grpc-gateway
-service Milpa {
+service Kip {
   // Get Server Version.
   rpc GetVersion (VersionRequest) returns (VersionReply) {}
 
@@ -34,7 +34,7 @@ service Milpa {
   // Dump controller status.
   rpc Dump (DumpRequest) returns (APIReply) {}
 
-  // Deploy a Milpa package for a unit in a running pod.
+  // Deploy a Kip package for a unit in a running pod.
   rpc Deploy (stream DeployRequest) returns (APIReply) {}
 
   // Stream logs from a running pod

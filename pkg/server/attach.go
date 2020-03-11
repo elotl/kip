@@ -25,7 +25,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 )
 
-func (s InstanceProvider) Attach(stream clientapi.Milpa_AttachServer) error {
+func (s InstanceProvider) Attach(stream clientapi.Kip_AttachServer) error {
 	var params api.AttachParams
 	paramsMsg, err := getInitialParams(stream, &params)
 	if err != nil {

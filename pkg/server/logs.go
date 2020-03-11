@@ -225,7 +225,7 @@ func (s InstanceProvider) GetLogs(context context.Context, request *clientapi.Lo
 	return &reply, nil
 }
 
-func (s InstanceProvider) StreamLogs(slr *clientapi.StreamLogsRequest, stream clientapi.Milpa_StreamLogsServer) error {
+func (s InstanceProvider) StreamLogs(slr *clientapi.StreamLogsRequest, stream clientapi.Kip_StreamLogsServer) error {
 	podName := slr.Pod
 	unitName := slr.Unit
 	withMetadata := slr.Metadata

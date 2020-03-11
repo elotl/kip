@@ -30,8 +30,8 @@ func deploy(cmd *cobra.Command, args []string) {
 	itemName := args[1]
 	pkgfile := args[2]
 
-	client, conn, err := getMilpaClient(cmd.InheritedFlags(), false)
-	dieIfError(err, "Failed to create milpa client")
+	client, conn, err := getKipClient(cmd.InheritedFlags(), false)
+	dieIfError(err, "Failed to create kip client")
 	defer conn.Close()
 
 	req := &clientapi.DeployRequest{
@@ -63,8 +63,8 @@ func deploy(cmd *cobra.Command, args []string) {
 func DeployCommand() *cobra.Command {
 	var deployCmd = &cobra.Command{
 		Use:   "deploy pod_name package_name package_file",
-		Short: "Deploy Milpa package for a pod",
-		Long:  `Deploy Milpa package for a pod`,
+		Short: "Deploy Kip package for a pod",
+		Long:  `Deploy Kip package for a pod`,
 		Args:  cobra.RangeArgs(3, 3),
 		Run:   deploy,
 	}

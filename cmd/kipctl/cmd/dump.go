@@ -28,11 +28,11 @@ import (
 func dump(cmd *cobra.Command, args []string) {
 	if len(args) < 1 {
 		fmt.Fprintf(os.Stderr, "Not enough arguments")
-		fatal("Usage: milpactl dump <all|stack|PodController|NodeController>")
+		fatal("Usage: kipctl dump <all|stack|PodController|NodeController>")
 	}
 	controller := args[0]
-	client, conn, err := getMilpaClient(cmd.InheritedFlags(), true)
-	dieIfError(err, "Failed to create milpa client")
+	client, conn, err := getKipClient(cmd.InheritedFlags(), true)
+	dieIfError(err, "Failed to create kip client")
 	defer conn.Close()
 
 	dumpRequest := &clientapi.DumpRequest{

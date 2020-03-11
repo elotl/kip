@@ -61,10 +61,10 @@ func (s InstanceProvider) deploy(podName, pkgName string, pkgData io.Reader) err
 	return nil
 }
 
-func (s InstanceProvider) Deploy(stream clientapi.Milpa_DeployServer) error {
+func (s InstanceProvider) Deploy(stream clientapi.Kip_DeployServer) error {
 	pod := ""
 	name := ""
-	tmpfile, err := ioutil.TempFile("", "milpadeploy")
+	tmpfile, err := ioutil.TempFile("", "kipdeploy")
 	if err != nil {
 		reply := clientapi.APIReply{
 			Status: 500,

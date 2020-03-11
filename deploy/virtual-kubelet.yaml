@@ -27,7 +27,7 @@ data:
         imageOwnerID: 689494258501
     etcd:
       internal:
-        dataDir: /opt/milpa/data
+        dataDir: /opt/kip/data
     cells:
       defaultInstanceType: "t3.nano"
       defaultVolumeSize: "20G"
