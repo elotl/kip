@@ -374,7 +374,7 @@ spec:
             memory: "100Mi"
         volumeMounts:
         - name: data
-          mountPath: /opt/milpa/data
+          mountPath: /opt/kip/data
         - name: provider-yaml
           mountPath: /etc/virtual-kubelet
         - name: kubelet-pki
