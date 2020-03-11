@@ -195,7 +195,7 @@ func (e *AwsEC2) GetImageId(tags cloud.BootImageTags) (string, error) {
 		tags.Company = "elotl"
 	}
 	if tags.Product == "" {
-		tags.Product = "milpa"
+		tags.Product = "kip"
 	}
 	input := &ec2.DescribeImagesInput{
 		Owners: []*string{
