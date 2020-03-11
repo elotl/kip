@@ -29,6 +29,9 @@ data:
       internal:
         dataDir: /opt/milpa/data
     cells:
+      bootImageTags:
+        company: elotl
+        product: kipdev
       defaultInstanceType: "t3.nano"
       defaultVolumeSize: "20G"
       nametag: virtual-kubelet
