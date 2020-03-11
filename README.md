@@ -1,6 +1,6 @@
 # Kip, the Kubernetes Cloud Instance Provider
 
-Kip is a [Virtual Kubelet](https://github.com/virtual-kubelet/virtual-kubelet) provider that allows a Kubernetes cluster to transparently launch pods onto their own cloud instances.  When a pod is scheduled onto the Virtual Kubelet Kip starts a right sized cloud instance for the pod’s workload and dispatches the pod onto the instance.  When the pod is finished running, the cloud instance is terminated. We call these cloud instances “cells”.
+Kip is a [Virtual Kubelet](https://github.com/virtual-kubelet/virtual-kubelet) provider that allows a Kubernetes cluster to transparently launch pods onto their own cloud instances.  Kip's virtual-kubelet pod is run on a cluster and will create a virtual Kubernetes node in the cluster.  When a pod is scheduled onto the Virtual Kubelet, Kip starts a right-sized cloud instance for the pod’s workload and dispatches the pod onto the instance.  When the pod is finished running, the cloud instance is terminated. We call these cloud instances “cells”.
 
 When workloads run on Kip, your cluster size naturally scales with the cluster workload, pods are strongly isolated from each other and the user is freed from managing worker nodes and strategically packing pods onto nodes.  This results in lower cloud costs, improved security and simpler operational overhead.
 
@@ -18,7 +18,7 @@ When workloads run on Kip, your cluster size naturally scales with the cluster w
 ## Installation
 There are two ways to get Kip up and running in AWS.
 
-* Option 1: Use the provided terraform scripts to create a new VPC and a new kubernetes cluster.
+* Option 1: Use the provided terraform scripts to create a new VPC and a new kubernetes cluster with a single Kip node.
 * Option 2: Add Kip to an existing kubernetes cluster.
 
 ### Installation Option 1: Create a Minimal K8s Cluster
@@ -32,19 +32,20 @@ Prequisites:
 In [deploy/terraform](deploy/terraform), you will find a terraform config that creates a simple one master, one worker cluster and starts a Kip deployment.
 
 ``` bash
-    cd deploy/terraform
-    cp env.tfvars.example myenv.tfvars
-    vi myenv.tfvars  # customize variables as necessary
-    terraform apply -var-file myenv.tfvars
+cd deploy/terraform
+terraform init
+cp env.tfvars.example myenv.tfvars
+vi myenv.tfvars  # customize variables as necessary
+terraform apply -var-file myenv.tfvars
 ```
 
 ### Installation Option 2: Using an Existing Cluster
 
-To deploy Kip into an existing cluster, you'll need to setup cloud credentials for the Kip provider, and apply [deploy/virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) to create the necessary kubernetes resources to support and run the provider.
+To deploy Kip into an existing cluster, you'll need to setup cloud credentials that allow the Kip provider to manipulate cloud instances, security groups and other cloud resources.  Once credentials are setup, apply [deploy/virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) to create the necessary kubernetes resources to support and run the provider.
 
 **Step 1: Credentials**
 
-Kip requires credentials to manipulate cloud instances, security groups and other cloud resources.  In AWS, those credentials can be supplied via API keys or by an instance profile.
+In AWS, Kip can either use API keys supplied in the Kip provider configuration file (`provider.yaml`) or use the instance profile of the machine the Kip virtual-kubelet pod is running on.
 
 **Credentials Option 1 - Configuring AWS API keys:**
 
@@ -52,11 +53,11 @@ Open [deploy/virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) in an editor, fi
 
 **Credentials Option 2 - Instance Profile Credentials:**
 
-Kip can use credentials from an [AWS instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) of the VM it is running on.  To use an instance profile, create an IAM policy with the [minimum Kip permissions](docs/kip-iam-permissions.md). Then apply that instance profile to the node that will run the Kip provider pod.  The pod must run on the cloud instance that the instance profile is attached to.
+In AWS, Kip can use credentials supplied by the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) attached to the node the pod is dispatched to.  To use an instance profile, create an IAM policy with the [minimum Kip permissions](docs/kip-iam-permissions.md) then apply the instance profile to the node that will run the Kip provider pod.  The Kip pod must run on the cloud instance that the instance profile is attached to.
 
 **Step 2: Apply virtual-kubelet.yaml**
 
-The resources in [virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) create ServiceAccounts Roles and a virtual-kubelet Deployment to run the provider. [Kip is not stateless](docs/state.md), the manifest will also create a PersistentVolume to store the provider data.
+The resources in [virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) create ServiceAccounts, Roles and a virtual-kubelet Deployment to run the provider. [Kip is not stateless](docs/state.md), the manifest will also create a PersistentVolumeClaim to store the provider data.
 
     kubectl apply -f deploy/virtual-kubelet.yaml
 
@@ -95,13 +96,13 @@ If you deployed Kip in an existing cluster, make sure that you first remove all 
 - Readiness/Liveness probes
 - Service account token automounts in pods.
 - [Security Groups](docs/security_groups.md)
-- Attaching instance profiles to Cells
+- Attaching instance profiles to Cells via [annotations](docs/annotations.md)
 - The following volume types are supported
     - EmptyDir
     - ConfigMap
     - Secret
     - HostPath
-    - Projected ConfigMap and Secrets
+    - Projected ConfigMaps and Secrets
 
 ### Limitations
 - Stateful workloads and PersistentVolumes are not supported.
@@ -126,7 +127,7 @@ We are actively working on adding missing features. One of the main objectives o
 
 ## FAQ
 
-**Q.** I’ve seen the name Milpa mentioned in various places (logs, directories, tags). What is Milpa?
+**Q.** I’ve seen the name Milpa mentioned in various places in the logs. What is Milpa?
 
 **A.** Kip’s source code was adapted from an earlier project developed at Elotl called Milpa.  We will be migrating away from that name in coming releases.  Milpa started out as a stand alone unikernel (and later container) orchestration system and it was natural to move a subset of its functionality into an open source virtual-kubelet provider.
 
@@ -153,7 +154,7 @@ We are actively working on adding missing features. One of the main objectives o
 ##
 **Q.** What cloud providers does Kip support
 
-**A.** Kip is currently GA on AWS and alpha on Azure.
+**A.** Kip is currently GA on AWS and pre-alpha on Azure.
 
 ##
 **Q.** What components make up the Kip system?

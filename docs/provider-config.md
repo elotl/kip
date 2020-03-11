@@ -36,7 +36,6 @@ cloud:
     # (via AWS metadata) and will use its current VPC.
     # vpcID: ''
 
-
     # the AWS subnet ID of the subnet kip will launch pods into.  if
     # blank, kip will detect its current subnet (via AWS metadata)
     # and will launch pods into that subnet.
@@ -98,23 +97,23 @@ cells:
   defaultVolumeSize: "5Gi"
 
   # bootImageTags is a dictionary of image tags. Valid fields are: company
-  # (string, e.g. elotl), product (string, for now it's milpa or milpadev),
+  # (string, e.g. elotl), product (string, for now it's kip or kipdev),
   # version (integer, e.g. 12345), date as YYYYMMDD and time as HHMM. If there
   # are multiple images matching the tags requested, the latest image will be
   # used.
   bootImageTags:
     company: elotl
-    product: milpa
+    product: kip
     # uncomment version to pin the version of the image to a
     # particular version of the image
-    # version: 268
+    # version: 1.0.1
 
   # cloudInitFile specifies a path to a cloudInitFile that will be
   # used to provision all cells that Kip boots. Kip will detect
   # modifications to this file. Cells started afte a modification are
   # made will get the updated cloudInit file.
   #
-  # cloudInitFile: /opt/kip/etc/cloudinit.yml
+  # cloudInitFile: /etc/virtual-kubelet/cloudinit.yml
 
   # standbyCells is used to speicfy pools of standby cells kip will
   # keep so pods created can be dispatched to cells quickly.
@@ -143,5 +142,5 @@ cells:
 
   # itzo:
   #   version: 532
-  #   url: "http://itzo-download.s3.amazonaws.com"
+  #   url: "http://itzo-kip-download.s3.amazonaws.com"
 ```
