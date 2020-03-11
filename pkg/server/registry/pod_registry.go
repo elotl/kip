@@ -119,6 +119,9 @@ func (reg *PodRegistry) List() (api.MilpaObject, error) {
 func (reg *PodRegistry) Delete(name string) (api.MilpaObject, error) {
 	pod, err := reg.GetPod(name)
 	if err != nil {
+		if err == store.ErrKeyNotFound {
+			return nil, err
+		}
 		msg := fmt.Sprintf("Could not delete pod %s", name)
 		return nil, util.WrapError(err, msg)
 	}
@@ -354,6 +357,9 @@ func (reg *PodRegistry) AtomicUpdate(name string, modifier modifyPodFunc) (*api.
 	for {
 		pair, err := reg.Storer.Get(key)
 		if err != nil {
+			if err == store.ErrKeyNotFound {
+				return nil, err
+			}
 			return nil, fmt.Errorf("Error retrieving pod from storage: %v", err)
 		}
 

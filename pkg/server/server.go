@@ -593,6 +593,10 @@ func (p *InstanceProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	podRegistry := p.getPodRegistry()
 	_, err = podRegistry.UpdatePodSpecAndLabels(milpaPod)
 	if err != nil {
+		if err == store.ErrKeyNotFound {
+			err = errdefs.NotFoundf("pod %s/%s is not found", pod.Namespace, pod.Name)
+			return err
+		}
 		klog.Errorf("UpdatePod %q: %v", pod.Name, err)
 		return err
 	}
@@ -613,6 +617,10 @@ func (p *InstanceProvider) DeletePod(ctx context.Context, pod *v1.Pod) (err erro
 	podRegistry := p.getPodRegistry()
 	_, err = podRegistry.Delete(milpaPod.Name)
 	if err != nil {
+		if err == store.ErrKeyNotFound {
+			err = errdefs.NotFoundf("pod %s/%s is not found", pod.Namespace, pod.Name)
+			return err
+		}
 		klog.Errorf("DeletePod %q: %v", pod.Name, err)
 		return err
 	}
