@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"path"
 	"reflect"
 	"sync"
 	"time"
@@ -48,6 +49,7 @@ var (
 	SpotRequestPause    time.Duration = 60 * time.Second
 	BootImage           string        = ""
 	MaxBootPerIteration int           = 10
+	itzoDir             string        = "/tmp/itzo"
 )
 
 // when configuring these intervals we want the following constraints
@@ -198,12 +200,12 @@ func (c *NodeController) getInstanceCloudInit() error {
 	}
 
 	c.CloudInitFile.ResetInstanceData()
-	c.CloudInitFile.AddMilpaFile(
-		string(rootCertBytes), "/tmp/milpa/ca.crt", "0644")
-	c.CloudInitFile.AddMilpaFile(
-		string(certBytes), "/tmp/milpa/server.crt", "0644")
-	c.CloudInitFile.AddMilpaFile(
-		string(keyBytes), "/tmp/milpa/server.key", "0600")
+	c.CloudInitFile.AddKipFile(
+		string(rootCertBytes), path.Join(itzoDir, "ca.crt"), "0644")
+	c.CloudInitFile.AddKipFile(
+		string(certBytes), path.Join(itzoDir, "server.crt"), "0644")
+	c.CloudInitFile.AddKipFile(
+		string(keyBytes), path.Join(itzoDir, "server.key"), "0600")
 	c.CloudInitFile.AddItzoVersion(c.Config.ItzoVersion)
 	c.CloudInitFile.AddItzoURL(c.Config.ItzoURL)
 	return nil
@@ -213,13 +215,13 @@ func (c *NodeController) getCloudInitContents() (string, error) {
 	err := c.getInstanceCloudInit()
 	if err != nil {
 		return "", util.WrapError(
-			err, "Error creating Milpa instance keys for cloud-init data")
+			err, "Error creating Kip instance keys for cloud-init data")
 	}
 	cloudInitData, err := c.CloudInitFile.Contents()
 	if err != nil {
-		return "", util.WrapError(err, "Error creating Milpa cloud-init contents")
+		return "", util.WrapError(err, "Error creating Kip cloud-init contents")
 	}
-	metadata := base64.StdEncoding.EncodeToString([]byte(cloudInitData))
+	metadata := base64.StdEncoding.EncodeToString(cloudInitData)
 	return metadata, nil
 }
 

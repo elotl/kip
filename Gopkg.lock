@@ -276,6 +276,14 @@
   version = "v4"
 
 [[projects]]
+  branch = "v1"
+  digest = "1:81c8b18c8ce19767ef396e15eab516435d238eef6dda2f7aa1e96c562c4feee6"
+  name = "github.com/coreos/yaml"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "6b16a5714269b2f70720a45406b1babd947a17ef"
+
+[[projects]]
   digest = "1:e29335d5a78621ed7a539ed75e10785c3705bb67d916e48b03b1cdf9b727508d"
   name = "github.com/creack/pty"
   packages = ["."]
@@ -348,6 +356,14 @@
   ]
   pruneopts = "UT"
   revision = "449fdfce4d962303d702fec724ef0ad181c92528"
+
+[[projects]]
+  branch = "master"
+  digest = "1:2805fd15a7a460fec4947c17b4ae14284682fad91ffbfe5bc4e69526f0d7973d"
+  name = "github.com/elotl/cloud-init"
+  packages = ["config"]
+  pruneopts = "UT"
+  revision = "7079e4bf89392fe237d3b8f548d4525c28e6cb63"
 
 [[projects]]
   branch = "master"
@@ -428,14 +444,6 @@
   pruneopts = "UT"
   revision = "5628607bb4c51c3157aacc3a50f0ab707582b805"
   version = "v1.3.1"
-
-[[projects]]
-  branch = "master"
-  digest = "1:1ba1d79f2810270045c328ae5d674321db34e3aae468eb4233883b473c5c0467"
-  name = "github.com/golang/glog"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
   branch = "master"
@@ -1785,15 +1793,16 @@
     "github.com/coreos/etcd/embed",
     "github.com/coreos/etcd/etcdserver/api/v3client",
     "github.com/coreos/etcd/pkg/transport",
+    "github.com/coreos/yaml",
     "github.com/davecgh/go-spew/spew",
     "github.com/dghubble/sling",
     "github.com/docker/libkv",
     "github.com/docker/libkv/store",
     "github.com/docker/libkv/store/boltdb",
     "github.com/docker/libkv/store/mock",
+    "github.com/elotl/cloud-init/config",
     "github.com/elotl/wsstream",
     "github.com/ghodss/yaml",
-    "github.com/golang/glog",
     "github.com/golang/protobuf/proto",
     "github.com/gorilla/websocket",
     "github.com/json-iterator/go",

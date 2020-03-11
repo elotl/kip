@@ -92,6 +92,7 @@ func MakeNodeController() (*NodeController, func()) {
 	imageIdCache.Add(defaultBootImageTags.String(), defaultBootImageID, 5*time.Minute, timeoutmap.Noop)
 	fakeCertFactory, _ := certs.NewFake()
 	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
+	ciFile, _ := cloudinitfile.New("")
 	nc := &NodeController{
 		Config: NodeControllerConfig{
 			PoolInterval:      1 * time.Second,
@@ -113,7 +114,7 @@ func MakeNodeController() (*NodeController, func()) {
 		PoolLoopTimer:      &stats.LoopTimer{},
 		ImageIdCache:       imageIdCache,
 		CertificateFactory: fakeCertFactory,
-		CloudInitFile:      cloudinitfile.New(""),
+		CloudInitFile:      ciFile,
 		CloudStatus:        cloudStatus,
 		BootImageTags:      defaultBootImageTags,
 	}

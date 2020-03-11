@@ -17,7 +17,7 @@ metadata:
   name: virtual-kubelet-config
   namespace: kube-system
 data:
-  server.yml: |
+  provider.yaml: |
     apiVersion: v1
     cloud:
       aws:
@@ -29,9 +29,15 @@ data:
       internal:
         dataDir: /opt/milpa/data
     cells:
+      bootImageTags:
+        company: elotl
+        product: kipdev
       defaultInstanceType: "t3.nano"
       defaultVolumeSize: "20G"
       nametag: virtual-kubelet
+      itzo:
+        url: https://itzo-kip-dev-download.s3.amazonaws.com
+        version: latest
     kubelet:
       cpu: "20"
       memory: "512Gi"
@@ -77,19 +83,6 @@ rules:
       - get
       - list
       - watch
-  - apiGroups:
-    - kip.elotl.co
-    resources:
-    - cells
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - delete
-      - deletecollection
-      - patch
-      - update
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -113,6 +106,205 @@ metadata:
     kubernetes.io/service-account.name: vk-network-agent
 type: kubernetes.io/service-account-token
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: virtual-kubelet
+rules:
+  - apiGroups:
+    - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+    - authorization.k8s.io
+    resources:
+      - localsubjectaccessreviews
+      - subjectaccessreviews
+    verbs:
+      - create
+  - apiGroups:
+    - ""
+    resources:
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+    - ""
+    resources:
+      - nodes
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+    - ""
+    resources:
+      - nodes/status
+    verbs:
+      - patch
+      - update
+  - apiGroups:
+    - ""
+    resources:
+      - nodes
+    verbs:
+      - patch
+      - update
+  - apiGroups:
+    - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+      - update
+  - apiGroups:
+    - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+    - ""
+    resources:
+      - pods
+    verbs:
+      - create
+      - delete
+  - apiGroups:
+    - ""
+    resources:
+      - pods/status
+    verbs:
+      - patch
+      - update
+  - apiGroups:
+    - ""
+    resources:
+      - pods/eviction
+    verbs:
+      - create
+  - apiGroups:
+    - ""
+    resources:
+      - configmaps
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+    - ""
+    resources:
+      - persistentvolumeclaims
+      - persistentvolumes
+    verbs:
+      - get
+  - apiGroups:
+    - ""
+    resources:
+      - endpoints
+    verbs:
+      - get
+  - apiGroups:
+    - certificates.k8s.io
+    resources:
+      - certificatesigningrequests
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+    - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - delete
+      - get
+      - patch
+      - update
+  - apiGroups:
+    - storage.k8s.io
+    resources:
+      - volumeattachments
+    verbs:
+      - get
+  - apiGroups:
+    - ""
+    resources:
+      - persistentvolumeclaims/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+    - ""
+    resources:
+      - serviceaccounts/token
+    verbs:
+      - create
+  - apiGroups:
+    - storage.k8s.io
+    resources:
+      - csidrivers
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+    - storage.k8s.io
+    resources:
+      - csinodes
+    verbs:
+      - create
+      - delete
+      - get
+      - patch
+      - update
+  - apiGroups:
+    - node.k8s.io
+    resources:
+      - runtimeclasses
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+    - kip.elotl.co
+    resources:
+      - cells
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - deletecollection
+      - patch
+      - update
+  - apiGroups:
+    - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - deletecollection
+      - patch
+      - update
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -125,7 +317,7 @@ metadata:
   name: virtual-kubelet
 roleRef:
   kind: ClusterRole
-  name: system:node
+  name: virtual-kubelet
   apiGroup: rbac.authorization.k8s.io
 subjects:
 - kind: ServiceAccount
@@ -155,9 +347,10 @@ spec:
         - --provider
         - cloud-instance-provider
         - --provider-config
-        - /etc/virtual-kubelet/server.yml
+        - /etc/virtual-kubelet/provider.yaml
         - --network-agent-secret
         - kube-system/vk-network-agent
+        - --disable-taint
         - --klog.logtostderr
         - --klog.v=5
         image: elotl/virtual-kubelet:dev
@@ -185,7 +378,7 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /opt/milpa/data
-        - name: server-yml
+        - name: provider-yaml
           mountPath: /etc/virtual-kubelet
         - name: kubelet-pki
           mountPath: /etc/kubelet-pki
@@ -200,6 +393,9 @@ spec:
       restartPolicy: Always
       serviceAccountName: virtual-kubelet
       hostNetwork: true
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        effect: "NoSchedule"
       volumes:
       - name: data
         persistentVolumeClaim:
@@ -208,12 +404,12 @@ spec:
         hostPath:
           path: /var/lib/kubelet/pki
           type: Directory
-      - name: server-yml
+      - name: provider-yaml
         configMap:
           name: virtual-kubelet-config
           items:
-          - key: server.yml
-            path: server.yml
+          - key: provider.yaml
+            path: provider.yaml
             mode: 0600
       - name: xtables-lock
         hostPath:
