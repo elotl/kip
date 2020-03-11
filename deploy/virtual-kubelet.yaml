@@ -17,7 +17,7 @@ metadata:
   name: virtual-kubelet-config
   namespace: kube-system
 data:
-  provider.yml: |
+  provider.yaml: |
     apiVersion: v1
     cloud:
       aws:
@@ -344,7 +344,7 @@ spec:
         - --provider
         - cloud-instance-provider
         - --provider-config
-        - /etc/virtual-kubelet/provider.yml
+        - /etc/virtual-kubelet/provider.yaml
         - --network-agent-secret
         - kube-system/vk-network-agent
         - --disable-taint
@@ -375,7 +375,7 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /opt/milpa/data
-        - name: server-yml
+        - name: provider-yaml
           mountPath: /etc/virtual-kubelet
         - name: kubelet-pki
           mountPath: /etc/kubelet-pki
@@ -401,12 +401,12 @@ spec:
         hostPath:
           path: /var/lib/kubelet/pki
           type: Directory
-      - name: server-yml
+      - name: provider-yaml
         configMap:
           name: virtual-kubelet-config
           items:
-          - key: provider.yml
-            path: provider.yml
+          - key: provider.yaml
+            path: provider.yaml
             mode: 0600
       - name: xtables-lock
         hostPath:

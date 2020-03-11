@@ -82,9 +82,9 @@ func detectCurrentSubnet() (string, error) {
 		subnetIDs.Insert(response)
 	}
 	if len(subnetIDs) == 0 {
-		return "", fmt.Errorf("Could not get subnet info from metadata service, no subnets found. Please manually specify a subnetID in provider.yml")
+		return "", fmt.Errorf("Could not get subnet info from metadata service, no subnets found. Please manually specify a subnetID in provider.yaml")
 	} else if len(subnetIDs) > 1 {
-		return "", fmt.Errorf("Instance is connected to multiple subnets. Please specify a subnet ID in provider.yml where instances will be launched into.")
+		return "", fmt.Errorf("Instance is connected to multiple subnets. Please specify a subnet ID in provider.yaml where instances will be launched into.")
 	}
 	subnetID, _ := subnetIDs.PopAny()
 	return subnetID, nil
@@ -96,7 +96,7 @@ func (e *AwsEC2) assertVPCExists(vpcID string) (string, string, error) {
 	if vpcID == "" {
 		detectedVPC, err := detectCurrentVPC()
 		if err != nil {
-			vpcError := fmt.Errorf("Could not autodetect VPC ID, please set the cloud vpcID in provider.yml. The error was: %s", err)
+			vpcError := fmt.Errorf("Could not autodetect VPC ID, please set the cloud vpcID in provider.yaml. The error was: %s", err)
 			return "", "", vpcError
 		} else {
 			vpcID = detectedVPC

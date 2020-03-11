@@ -92,7 +92,7 @@ func (az *AzureClient) getVNet(fullVNetName string) (VirtualNetworkAttributes, e
 func (az *AzureClient) setupClusterVNet(vNetName, subnetName string) error {
 	if vNetName != "" {
 		if subnetName == "" {
-			return fmt.Errorf("Error setting up azure networking: a subnet name (cloud.azure.subnetName) must be supplied in provider.yml if a virtual network name is specified in provider.yml")
+			return fmt.Errorf("Error setting up azure networking: a subnet name (cloud.azure.subnetName) must be supplied in provider.yaml if a virtual network name is specified in provider.yaml")
 		}
 		vnet, err := az.getVNet(vNetName)
 		if err != nil {
@@ -200,29 +200,29 @@ func (az *AzureClient) getLocalInstanceNetwork() (VirtualNetworkAttributes, clou
 	)
 	vmResourceGroup, vmName := getMetadataInstanceName()
 	if vmResourceGroup == "" || vmName == "" {
-		return vNet, subnet, fmt.Errorf("could not connect to instance metadata to determine controller network properties. A virtualNetworkName and subnetName will need to be specified in the cloud.azure section of provider.yml")
+		return vNet, subnet, fmt.Errorf("could not connect to instance metadata to determine controller network properties. A virtualNetworkName and subnetName will need to be specified in the cloud.azure section of provider.yaml")
 	}
 	vNetNames, subnetNames := az.GetVMNetworks(vmResourceGroup, vmName)
 	if len(vNetNames) == 0 {
-		return vNet, subnet, fmt.Errorf("could not detect which virtual network the controller is attached to. A virtualNetworkName will need to be specified in provider.yml")
+		return vNet, subnet, fmt.Errorf("could not detect which virtual network the controller is attached to. A virtualNetworkName will need to be specified in provider.yaml")
 	} else if len(vNetNames) > 1 {
-		return vNet, subnet, fmt.Errorf("Multiple virtual networks are attached to this instance and it is impossible to tell which network nodes should be launched into. A virtualNetworkName will need to be specified in the cloud.azure section provider.yml")
+		return vNet, subnet, fmt.Errorf("Multiple virtual networks are attached to this instance and it is impossible to tell which network nodes should be launched into. A virtualNetworkName will need to be specified in the cloud.azure section provider.yaml")
 	}
 	klog.V(2).Infof("local machine is connected to virtual network %s", vNetNames[0])
 	if len(subnetNames) == 0 {
-		return vNet, subnet, fmt.Errorf("could not detect which subnet the controller is attached to. A subnetName will need to be specified in provider.yml")
+		return vNet, subnet, fmt.Errorf("could not detect which subnet the controller is attached to. A subnetName will need to be specified in provider.yaml")
 	} else if len(subnetNames) > 1 {
-		return vNet, subnet, fmt.Errorf("Multiple subnets are attached to this instance and it is impossible to tell which subnet nodes should be launched into. A subnetName will need to be specified in the cloud.azure section provider.yml")
+		return vNet, subnet, fmt.Errorf("Multiple subnets are attached to this instance and it is impossible to tell which subnet nodes should be launched into. A subnetName will need to be specified in the cloud.azure section provider.yaml")
 	}
 	klog.V(2).Infof("local machine is connected to subnet %s", subnetNames[0])
 
 	vNet, err := az.getVNet(vNetNames[0])
 	if err != nil {
-		return vNet, subnet, util.WrapError(err, "Error looking up local machine's vNet %s. Please specify a virtualNetworkName and subnetName in provider.yml", vNetNames[0])
+		return vNet, subnet, util.WrapError(err, "Error looking up local machine's vNet %s. Please specify a virtualNetworkName and subnetName in provider.yaml", vNetNames[0])
 	}
 	subnet, err = az.getSubnet(vNet.ResourceGroup, vNet.Name, subnetNames[0])
 	if err != nil {
-		return vNet, subnet, util.WrapError(err, "Error looking up local machine's subnet %s. Please specify a virtualNetworkName and subnetName in provider.yml", subnetNames[0])
+		return vNet, subnet, util.WrapError(err, "Error looking up local machine's subnet %s. Please specify a virtualNetworkName and subnetName in provider.yaml", subnetNames[0])
 	}
 
 	return vNet, subnet, nil

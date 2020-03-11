@@ -249,7 +249,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 	// the instanceselector
 	errs = validation.ValidateInstanceType(serverConfigFile.Cells.DefaultInstanceType, field.NewPath("nodes.defaultInstanceType"))
 	if len(errs) > 0 {
-		return nil, fmt.Errorf("error validating provider.yml: %v", errs.ToAggregate())
+		return nil, fmt.Errorf("error validating provider.yaml: %v", errs.ToAggregate())
 	}
 
 	klog.V(2).Infof("setting up events")

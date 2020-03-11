@@ -164,7 +164,7 @@ func NewEC2Client(controllerID, nametag, vpcID, subnetID, imageOwnerID, ecsClust
 	if client.subnetID == "" {
 		client.subnetID, err = detectCurrentSubnet()
 		if err != nil {
-			return nil, util.WrapError(err, "Could not detect current subnet from metadata service. Please supply an AWS subnet id in provider.yml")
+			return nil, util.WrapError(err, "Could not detect current subnet from metadata service. Please supply an AWS subnet id in provider.yaml")
 		}
 	}
 	client.region = os.Getenv("AWS_REGION")
