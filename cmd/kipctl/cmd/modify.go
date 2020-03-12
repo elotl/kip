@@ -68,11 +68,11 @@ func warnAboutContainers(obj api.MilpaObject, b []byte) {
 		}
 	}
 	if warnUser && bytes.Contains(b, containersSpec) {
-		fmt.Printf("Warning: manifest contains no units but does seem to have a %s section. Milpa uses \"units\" not containers", string(containersSpec))
+		fmt.Printf("Warning: manifest contains no units but does seem to have a %s section. Kip uses \"units\" not containers", string(containersSpec))
 	}
 }
 
-func modifyFromBytes(client clientapi.MilpaClient, b []byte, operation int) (string, error) {
+func modifyFromBytes(client clientapi.KipClient, b []byte, operation int) (string, error) {
 	b = bytes.TrimSpace(b)
 	if len(b) == 0 || bytes.Equal(b, []byte("null")) {
 		return "", nil
@@ -124,7 +124,7 @@ func modifyFromBytes(client clientapi.MilpaClient, b []byte, operation int) (str
 	return name, nil
 }
 
-func modify(client clientapi.MilpaClient, appManifestFile string, operation int) []error {
+func modify(client clientapi.KipClient, appManifestFile string, operation int) []error {
 	r, err := os.Open(appManifestFile)
 	dieIfError(err, "Error opening manifest file")
 	decoder := yaml.NewYAMLOrJSONDecoder(r, 16000)

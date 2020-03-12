@@ -22,14 +22,14 @@ import (
 	"log"
 	"os"
 
-	"github.com/elotl/cloud-instance-provider/cmd/milpactl/cmd"
+	"github.com/elotl/cloud-instance-provider/cmd/kipctl/cmd"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
 	"github.com/spf13/cobra"
 )
 
 const (
-	cliName         = "milpactl"
-	cliDescription  = "Command line client for Milpa framework."
+	cliName         = "kipctl"
+	cliDescription  = "Command line client for Kip provider"
 	defaultEndpoint = "localhost:54555"
 )
 
@@ -37,7 +37,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:        cliName,
 		Short:      cliDescription,
-		SuggestFor: []string{"milpactl"},
+		SuggestFor: []string{"kipctl"},
 		Run: func(cmd *cobra.Command, args []string) {
 			goflag.CommandLine.Parse([]string{})
 			if version {

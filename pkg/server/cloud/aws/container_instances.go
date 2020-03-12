@@ -51,7 +51,7 @@ var (
 )
 
 func MakeFamilyPrefix(controllerID string) string {
-	return "milpa-" + controllerID
+	return "kip-" + controllerID
 }
 
 func makeFamilyName(controllerID, podName string) string {

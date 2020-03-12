@@ -29,17 +29,17 @@ func TestSplitTaskDef(t *testing.T) {
 		revision int
 	}{
 		{
-			arn:      "arn:aws:ecs:us-east-1:689494258501:task-definition/milpa-yav6wbd6vfehrkm2gcmqoirsk4_default_hellofargate:4",
+			arn:      "arn:aws:ecs:us-east-1:689494258501:task-definition/kip-yav6wbd6vfehrkm2gcmqoirsk4_default_hellofargate:4",
 			name:     "default_hellofargate",
 			revision: 4,
 		},
 		{
-			arn:      "arn:aws:ecs:us-east-1:689494258501:task-definition/milpa-differentcluster_default_hellofargate:4",
+			arn:      "arn:aws:ecs:us-east-1:689494258501:task-definition/kip-differentcluster_default_hellofargate:4",
 			name:     "",
 			revision: 0,
 		},
 		{
-			arn:      "arn:aws:ecs:us-east-1:689494258501:task-definition/milpa-yav6wbd6vfehrkm2gcmqoirsk4-default_hellofargate:4",
+			arn:      "arn:aws:ecs:us-east-1:689494258501:task-definition/kip-yav6wbd6vfehrkm2gcmqoirsk4-default_hellofargate:4",
 			name:     "",
 			revision: 0,
 		},

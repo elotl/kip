@@ -432,7 +432,7 @@ func (p *InstanceProvider) setupDebugServer() error {
 		return fmt.Errorf("error setting up debug %s listener on port %d", defaultProtocol, defaultPort)
 	}
 	grpcServer := grpc.NewServer()
-	clientapi.RegisterMilpaServer(grpcServer, p)
+	clientapi.RegisterKipServer(grpcServer, p)
 	go func() {
 		err := grpcServer.Serve(lis)
 		if err != nil {

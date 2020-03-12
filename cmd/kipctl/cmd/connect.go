@@ -34,7 +34,7 @@ var (
 
 // Note: this can get called concurrently and cobra.Cmd.InheritedFlags
 // is not safe for concurrent access.
-func getMilpaClient(flags *pflag.FlagSet, needsLeader bool) (clientapi.MilpaClient, *grpc.ClientConn, error) {
+func getKipClient(flags *pflag.FlagSet, needsLeader bool) (clientapi.KipClient, *grpc.ClientConn, error) {
 	endpoints, err := flags.GetStringSlice("endpoints")
 	if err != nil {
 		return nil, nil, util.WrapError(err, "Error getting endpoints argument")
@@ -45,7 +45,7 @@ func getMilpaClient(flags *pflag.FlagSet, needsLeader bool) (clientapi.MilpaClie
 	for i, _ := range order {
 		address := endpoints[i]
 		var (
-			client clientapi.MilpaClient
+			client clientapi.KipClient
 			conn   *grpc.ClientConn
 		)
 		client, conn, err = connectToServer(context.Background(), address, flags)
@@ -68,20 +68,20 @@ func getMilpaClient(flags *pflag.FlagSet, needsLeader bool) (clientapi.MilpaClie
 		}
 		_ = conn.Close()
 	}
-	msg := "Could not connect to the Milpa API server: " + err.Error()
+	msg := "Could not connect to the Kip API server: " + err.Error()
 	return nil, nil, fmt.Errorf(msg)
 }
 
-func isLeader(ctx context.Context, client clientapi.MilpaClient) (bool, error) {
+func isLeader(ctx context.Context, client clientapi.KipClient) (bool, error) {
 	req := clientapi.IsLeaderRequest{}
 	reply, err := client.IsLeader(ctx, &req)
 	if err != nil {
-		return false, fmt.Errorf("Error querying milpa server: %v", err.Error())
+		return false, fmt.Errorf("Error querying kip server: %v", err.Error())
 	}
 	return reply.IsLeader, nil
 }
 
-func connectToServer(ctx context.Context, serverAddress string, flags *pflag.FlagSet) (clientapi.MilpaClient, *grpc.ClientConn, error) {
+func connectToServer(ctx context.Context, serverAddress string, flags *pflag.FlagSet) (clientapi.KipClient, *grpc.ClientConn, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, grpcDialTimeout)
 	defer cancel()
 	conn, err := grpc.DialContext(
@@ -89,5 +89,5 @@ func connectToServer(ctx context.Context, serverAddress string, flags *pflag.Fla
 	if err != nil {
 		return nil, nil, err
 	}
-	return clientapi.NewMilpaClient(conn), conn, nil
+	return clientapi.NewKipClient(conn), conn, nil
 }

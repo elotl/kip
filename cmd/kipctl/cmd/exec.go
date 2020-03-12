@@ -87,8 +87,8 @@ func exec(cmd *cobra.Command, args []string) {
 		TTY:         execTTY,
 	}
 
-	client, conn, err := getMilpaClient(cmd.InheritedFlags(), false)
-	dieIfError(err, "Failed to create milpa client")
+	client, conn, err := getKipClient(cmd.InheritedFlags(), false)
+	dieIfError(err, "Failed to create kip client")
 	defer conn.Close()
 
 	stream, err := client.Exec(context.Background())
@@ -185,14 +185,14 @@ func ExecCommand() *cobra.Command {
 		Short: "Execute a command in the context unit",
 		Long:  `Execute a command in the context unit`,
 		Example: `# Get output from running 'date' from pod my-pod, using the first unit by default
-milpactl exec my-pod date
+kipctl exec my-pod date
 
 # Get output from running 'date' in the rubyserver unit from pod my-pod
-milpactl exec my-pod -u rubyserver date
+kipctl exec my-pod -u rubyserver date
 
 # Switch to raw terminal mode, sends stdin to 'bash' in rubyserver from pod my-pod
 # and sends stdout/stderr from 'bash' back to the client
-milpactl exec my-pod -u rubyserver -i -t -- bash -il`,
+kipctl exec my-pod -u rubyserver -i -t -- bash -il`,
 		Run: func(cmd *cobra.Command, args []string) {
 			exec(cmd, args)
 		},

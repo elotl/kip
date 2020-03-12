@@ -51,8 +51,8 @@ func attach(cmd *cobra.Command, args []string) {
 		TTY:         false,
 	}
 
-	client, conn, err := getMilpaClient(cmd.InheritedFlags(), false)
-	dieIfError(err, "Failed to create milpa client")
+	client, conn, err := getKipClient(cmd.InheritedFlags(), false)
+	dieIfError(err, "Failed to create kip client")
 	defer conn.Close()
 
 	stream, err := client.Attach(context.Background())
@@ -118,13 +118,13 @@ func AttachCommand() *cobra.Command {
 		Short: "Attach to a process that is already running inside an existing unit",
 		Long:  `Attach to a process that is already running inside an existing unit`,
 		Example: `# Get output from running pod my-pod, using the first unit by default
-milpactl attach my-pod
+kipctl attach my-pod
 
 # Get output from rubyserver unit from pod my-pod
-milpactl attach my-pod -u rubyserver
+kipctl attach my-pod -u rubyserver
 
 # Send stdin to rubyserver in pod my-pod and sends stdout/stderr from rubyserver back to the client
-milpactl attach my-pod -u rubyserver -i`,
+kipctl attach my-pod -u rubyserver -i`,
 		Run: func(cmd *cobra.Command, args []string) {
 			attach(cmd, args)
 		},

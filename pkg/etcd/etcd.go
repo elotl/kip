@@ -37,7 +37,7 @@ import (
 )
 
 var (
-	DefaultEtcdDataDir = "/opt/milpa/data"
+	DefaultEtcdDataDir = "/opt/kip/data"
 	contextDeadline    = 10 * time.Second
 )
 
@@ -50,10 +50,10 @@ type EtcdServer struct {
 
 func ensureEtcdDataDir(dataDir string) error {
 	// if it exists, cool, if it doesn't exist, set it up
-	errMsg := fmt.Sprintf("Could not create milpa storage directory at %s, please verify the directory exists and is writable by milpa. The error was", dataDir)
+	errMsg := fmt.Sprintf("Could not create kip storage directory at %s, please verify the directory exists and is writable by kip. The error was", dataDir)
 	_, err := os.Stat(dataDir)
 	if os.IsNotExist(err) {
-		klog.V(2).Infof("Creating milpa data directory at %s", dataDir)
+		klog.V(2).Infof("Creating kip data directory at %s", dataDir)
 		err := os.MkdirAll(dataDir, 0750)
 		if err != nil {
 			return util.WrapError(err, errMsg)

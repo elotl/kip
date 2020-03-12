@@ -41,8 +41,8 @@ func getLogs(cmd *cobra.Command, args []string) {
 		logsLines = 20
 	}
 
-	client, conn, err := getMilpaClient(cmd.InheritedFlags(), false)
-	dieIfError(err, "Failed to create milpa client")
+	client, conn, err := getKipClient(cmd.InheritedFlags(), false)
+	dieIfError(err, "Failed to create kip client")
 	defer conn.Close()
 
 	if logsFollow {
@@ -71,7 +71,7 @@ func getLogs(cmd *cobra.Command, args []string) {
 	}
 }
 
-func tailLogs(client clientapi.MilpaClient, resourceName, unitName string) {
+func tailLogs(client clientapi.KipClient, resourceName, unitName string) {
 	slr := &clientapi.StreamLogsRequest{
 		Pod:      resourceName,
 		Unit:     unitName,
@@ -110,9 +110,9 @@ func LogsCommand() *cobra.Command {
 	var logsCmd = &cobra.Command{
 		Use:   "logs resource_name [-u unit]",
 		Short: "Get logs",
-		Long: `Get logs of a given unit in a pod or get milpa agent logs from a node.
-Milpa will save the tail logs of deleted resources and allow them to be queried for up to 1 hour.`,
-		Example: "Pod Logs: milpactl logs mypod -u unitname --lines 25\nNode Logs: milpactl logs node-uuid",
+		Long: `Get logs of a given unit in a pod or get kip agent logs from a node.
+Kip will save the tail logs of deleted resources and allow them to be queried for up to 1 hour.`,
+		Example: "Pod Logs: kipctl logs mypod -u unitname --lines 25\nNode Logs: kipctl logs node-uuid",
 		Args:    cobra.ExactArgs(1),
 		Run:     getLogs,
 	}

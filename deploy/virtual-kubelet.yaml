@@ -27,7 +27,7 @@ data:
         imageOwnerID: 689494258501
     etcd:
       internal:
-        dataDir: /opt/milpa/data
+        dataDir: /opt/kip/data
     cells:
       bootImageTags:
         company: elotl
@@ -377,7 +377,7 @@ spec:
             memory: "100Mi"
         volumeMounts:
         - name: data
-          mountPath: /opt/milpa/data
+          mountPath: /opt/kip/data
         - name: provider-yaml
           mountPath: /etc/virtual-kubelet
         - name: kubelet-pki
