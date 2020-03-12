@@ -7,7 +7,7 @@ else
 IMAGE_DEV_OR_LATEST=latest
 endif
 
-LD_VERSION_FLAGS=-X main.buildVersion=$(GIT_VERSION) -X main.buildTime=$(CURRENT_TIME)
+LD_VERSION_FLAGS=-X main.buildVersion=$(GIT_VERSION) -X main.buildTime=$(CURRENT_TIME) -X github.com/elotl/cloud-instance-provider/pkg/util.VERSION=$(GIT_VERSION)
 LDFLAGS=-ldflags "$(LD_VERSION_FLAGS)"
 
 BINARIES=virtual-kubelet kipctl

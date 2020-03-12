@@ -17,44 +17,69 @@ limitations under the License.
 package util
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 )
 
 var (
-	// VERSION is set during the build from the file at kip/version
+	// VERSION is set during the build from "git describe --dirty".
 	VERSION string = ""
-	// GIT_REVISION and GIT_DIRTY are set during build.
-	GIT_REVISION string = ""
-	GIT_DIRTY    string = ""
 )
 
 func Version() string {
 	version := VERSION
-	if GIT_REVISION != "" {
-		version = version + "-" + GIT_REVISION
-	}
-	if GIT_DIRTY != "" {
-		version = version + "-" + GIT_DIRTY
+	if version == "" {
+		// Something's broken, maybe manual "go build".
+		version = "N/A"
 	}
 	return version
 }
 
-func GetVersionInfo() api.VersionInfo {
-	parts := strings.SplitN(VERSION, ".", 3)
-	dirtyString := GIT_DIRTY
-	if dirtyString == "" {
+func getVersionInfo(version string) api.VersionInfo {
+	// The output from "git describe --dirty" is something like
+	// "v0.0.1-205-g58ce23b-dirty", where the last "-dirty" part is optional.
+	semver := "N/A"
+	nCommits := int64(0)
+	gitCommit := "N/A"
+	dirtyString := "N/A"
+	parts := strings.Split(version, "-")
+	if len(parts) == 1 {
+		semver = parts[0]
 		dirtyString = "clean"
 	}
+	if len(parts) >= 3 {
+		semver = parts[0]
+		nCommits, _ = strconv.ParseInt(parts[1], 10, 32)
+		if nCommits > 0 {
+			semver = fmt.Sprintf("%s-%d", semver, nCommits)
+		}
+		gitCommit = parts[2]
+		dirtyString = "clean"
+	}
+	if len(parts) == 4 {
+		dirtyString = parts[3]
+	}
 	v := api.VersionInfo{
-		GitVersion:   VERSION,
-		GitCommit:    GIT_REVISION,
+		GitVersion:   semver,
+		GitCommit:    gitCommit,
 		GitTreeState: dirtyString,
 	}
+	parts = strings.SplitN(semver, ".", 3)
 	if len(parts) >= 2 {
-		v.Major = parts[0]
-		v.Minor = parts[1]
+		major := parts[0]
+		if len(major) > 1 && major[0] == 'v' {
+			major = major[1:]
+		}
+		minor := parts[1]
+		v.Major = major
+		v.Minor = minor
 	}
 	return v
+}
+
+func GetVersionInfo() api.VersionInfo {
+	return getVersionInfo(VERSION)
 }
