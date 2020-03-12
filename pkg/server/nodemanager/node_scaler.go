@@ -17,6 +17,7 @@ limitations under the License.
 package nodemanager
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
@@ -163,10 +164,12 @@ func (s *BindingNodeScaler) nodeMatchesStandbySpec(node *api.Node, spec *Standby
 func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.Node, []*api.Node, map[string]string) {
 	// we only care about nodes in availableOrBaking...
 	// remove bound nodes and pods, leaving only needyPods and unboundNodes
+	fmt.Println("**************START*************", time.Now())
 	newNodes := make([]*api.Node, 0)
 	dirtyNodes := make(map[string]*api.Node)
 
 	waitingPods := make(map[string]*api.Pod)
+	fmt.Println("Waiting Pods:")
 	for _, pod := range pods {
 		if pod.Status.Phase == api.PodWaiting {
 			waitingPods[pod.Name] = pod
@@ -183,17 +186,22 @@ func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.
 			} else {
 				// There's no waiting pod for this node, unbind it
 				if boundPodName != "" {
+					fmt.Println("Unbinding Node:", node.Name)
 					node.Status.BoundPodName = ""
 					dirtyNodes[node.Name] = node
 				}
 				unboundNodes = append(unboundNodes, node)
+				fmt.Println("Unbound Node:", node.Name)
 			}
 		}
 	}
+	fmt.Println("podNodeBinding", podNodeBinding)
+	fmt.Println("UnboundPods")
 	unboundPods := make([]*api.Pod, 0, len(waitingPods))
 	for _, pod := range waitingPods {
 		if val, exists := podNodeBinding[pod.Name]; !exists || val == "" {
 			unboundPods = append(unboundPods, pod)
+			fmt.Println("Unbound Pod:", pod.Name)
 		}
 	}
 	// Prioritize matching to spot nodes by putting them at the front
@@ -213,6 +221,7 @@ func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.
 	// match needyPods to any unboundNodes O(n**2) but with any luck,
 	// the unboundNodes pool should be the size of the buffered nodes pool
 	// which is typically small...
+	fmt.Println("Needy pods")
 	needyPods := make([]*api.Pod, 0, len(unboundPods))
 	for _, pod := range unboundPods {
 		matched := false
@@ -228,6 +237,7 @@ func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.
 		}
 		if !matched {
 			needyPods = append(needyPods, pod)
+			fmt.Println("Needy Pod:", pod.Name)
 		}
 	}
 
@@ -260,6 +270,7 @@ func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.
 		standbyToNumNeeded[standbySpec] = neededNodes
 	}
 	// Create nodes to keep the buffered pool up to date
+	fmt.Println("standbyToNumNeeded", standbyToNumNeeded)
 	for spec, numNeeded := range standbyToNumNeeded {
 		for i := 0; i < numNeeded; i++ {
 			newNode := s.createNodeForStandbySpec(&spec)
@@ -281,6 +292,12 @@ func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.
 				node.Name, err)
 		}
 	}
+	fmt.Println("new nodes needed:", len(newNodes))
+	fmt.Println("Unbound Nodes")
+	for _, n := range unboundNodes {
+		fmt.Println(n.Name)
+	}
+	fmt.Println("podNodeBinding", podNodeBinding)
 
 	return newNodes, unboundNodes, podNodeBinding
 }
