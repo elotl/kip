@@ -49,7 +49,7 @@ In AWS, Kip can either use API keys supplied in the Kip provider configuration f
 
 **Credentials Option 1 - Configuring AWS API keys:**
 
-Open [deploy/virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) in an editor, find the virtual-kubelet-config ConfigMap and fill in the values for `accessKeyID` and `secretAccessKey` under `data.server.yml.cloud.aws`.
+Open [deploy/virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) in an editor, find the virtual-kubelet-config ConfigMap and fill in the values for `accessKeyID` and `secretAccessKey` under `data.provider.yaml.cloud.aws`.
 
 **Credentials Option 2 - Instance Profile Credentials:**
 
@@ -127,7 +127,7 @@ We are actively working on adding missing features. One of the main objectives o
 
 ## FAQ
 
-**Q.** I’ve seen the name Milpa mentioned in various places in the logs. What is Milpa?
+**Q.** I’ve seen the name Milpa mentioned in the logs and source code. What is Milpa?
 
 **A.** Kip’s source code was adapted from an earlier project developed at Elotl called Milpa.  We will be migrating away from that name in coming releases.  Milpa started out as a stand alone unikernel (and later container) orchestration system and it was natural to move a subset of its functionality into an open source virtual-kubelet provider.
 
