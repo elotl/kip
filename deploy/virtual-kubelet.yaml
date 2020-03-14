@@ -24,14 +24,13 @@ data:
         region: "us-east-1"
         accessKeyID: ""
         secretAccessKey: ""
-        imageOwnerID: 689494258501
     etcd:
       internal:
         dataDir: /opt/kip/data
     cells:
-      bootImageTags:
-        company: elotl
-        product: kipdev
+      bootImageSpec:
+        owners: 689494258501
+        filters: name=elotl-kipdev-*
       defaultInstanceType: "t3.nano"
       defaultVolumeSize: "20G"
       nametag: virtual-kubelet

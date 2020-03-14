@@ -40,7 +40,7 @@ type MockCloudClient struct {
 	Lister              func() ([]CloudInstance, error)
 	Resizer             func(node *api.Node, size int64) (error, bool)
 	ContainerAuthorizer func() (string, string, error)
-	ImageIdGetter       func(BootImageTags) (string, error)
+	ImageIDGetter       func(BootImageSpec) (string, error)
 
 	InstanceListerFilter func([]string) ([]CloudInstance, error)
 	InstanceLister       func() ([]CloudInstance, error)
@@ -93,8 +93,8 @@ func (m *MockCloudClient) GetRegistryAuth() (string, string, error) {
 	return m.ContainerAuthorizer()
 }
 
-func (m *MockCloudClient) GetImageId(tags BootImageTags) (string, error) {
-	return m.ImageIdGetter(tags)
+func (m *MockCloudClient) GetImageID(spec BootImageSpec) (string, error) {
+	return m.ImageIDGetter(spec)
 }
 
 func (m *MockCloudClient) SetSustainedCPU(n *api.Node, enabled bool) error {

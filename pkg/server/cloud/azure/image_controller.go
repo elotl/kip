@@ -45,17 +45,17 @@ const (
 
 type ImageController struct {
 	az                *AzureClient
-	bootImageTags     cloud.BootImageTags
+	bootImageSpec     cloud.BootImageSpec
 	controllerID      string
 	resourceGroupName string
 	isSynced          *atomic.Bool
 	queue             *controllerqueue.Queue
 }
 
-func NewImageController(controllerID string, bootImageTags cloud.BootImageTags, azureClient *AzureClient) *ImageController {
+func NewImageController(controllerID string, bootImageSpec cloud.BootImageSpec, azureClient *AzureClient) *ImageController {
 	ic := &ImageController{
 		controllerID:      controllerID,
-		bootImageTags:     bootImageTags,
+		bootImageSpec:     bootImageSpec,
 		az:                azureClient,
 		resourceGroupName: regionalResourceGroupName(azureClient.region),
 		isSynced:          atomic.NewBool(false),
@@ -123,8 +123,8 @@ func (ic *ImageController) CreateStorageAccount() (storage.Account, error) {
 			Sku: &storage.Sku{
 				Name: storage.StandardLRS,
 			},
-			Kind:     storage.Storage,
-			Location: to.StringPtr(ic.az.region),
+			Kind:                              storage.Storage,
+			Location:                          to.StringPtr(ic.az.region),
 			AccountPropertiesCreateParameters: &storage.AccountPropertiesCreateParameters{},
 			Tags: map[string]*string{
 				"Created By":           to.StringPtr("milpa"),
@@ -177,17 +177,25 @@ func (ic *ImageController) syncBestBlob() error {
 		marker = blobSegment.NextMarker
 		for _, item := range blobSegment.Segment.BlobItems {
 			name := getImageBasename(item.Name)
-			images = append(images, cloud.Image{
-				Id:   item.Name,
-				Name: name,
-			})
+			properties := map[string]string{
+				"name": name,
+			}
+			if matchSpec(properties, ic.bootImageSpec) {
+				images = append(images, cloud.Image{
+					Name:         name,
+					ID:           item.Name,
+					CreationTime: item.Properties.CreationTime,
+				})
+			}
 		}
 	}
-	bestBlobName, err := cloud.GetBestImage(images, ic.bootImageTags)
-	if err != nil {
-		return err
+	if len(images) < 1 {
+		klog.Warningf("no blob found for spec %+v", ic.bootImageSpec)
+		return nil
 	}
-	ic.queue.Add(bestBlobName)
+	cloud.SortImagesByCreationTime(images)
+	latestBlobName := images[len(images)-1].Name
+	ic.queue.Add(latestBlobName)
 	return nil
 }
 
@@ -200,13 +208,13 @@ func (ic *ImageController) Dump() []byte {
 		WorkQueueLength   int
 		ControllerID      string
 		StorageAccount    string
-		BootImageTags     cloud.BootImageTags
+		BootImageSpec     cloud.BootImageSpec
 		ResourceGroupName string
 	}{
 		WorkQueueLength:   ic.queue.Len(),
 		ControllerID:      ic.controllerID,
 		StorageAccount:    accountName,
-		BootImageTags:     ic.bootImageTags,
+		BootImageSpec:     ic.bootImageSpec,
 		ResourceGroupName: ic.resourceGroupName,
 	}
 	b, err := json.MarshalIndent(dumpStruct, "", "    ")

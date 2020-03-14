@@ -276,7 +276,6 @@
   version = "v4"
 
 [[projects]]
-  branch = "v1"
   digest = "1:81c8b18c8ce19767ef396e15eab516435d238eef6dda2f7aa1e96c562c4feee6"
   name = "github.com/coreos/yaml"
   packages = ["."]
@@ -792,6 +791,14 @@
   version = "v0.0.8"
 
 [[projects]]
+  digest = "1:6baa565fe16f8657cf93469b2b8a6c61a277827734400d27e44d589547297279"
+  name = "github.com/ryanuber/go-glob"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "51a8f68e6c24dc43f1e371749c89a267de4ebc53"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:274f67cb6fed9588ea2521ecdac05a6d62a8c51c074c1fccc6a49a40ba80e925"
   name = "github.com/satori/go.uuid"
   packages = ["."]
@@ -867,7 +874,7 @@
   version = "v1.5.1"
 
 [[projects]]
-  digest = "1:e37cec860a0ef4dcea45ca7fc7e92adcd214c453e134dcc16a51cc80a1907cc7"
+  digest = "1:1c4e09880df2900b30bf9b50cf32568817c3f5ce5ff7015a6cecf513d3a43dbc"
   name = "github.com/virtual-kubelet/node-cli"
   packages = [
     ".",
@@ -880,7 +887,8 @@
     "provider",
   ]
   pruneopts = "UT"
-  revision = "9472fbf04cefce6cfb91327497fab7efa6f344dc"
+  revision = "cd8af9b9bc8c4cf6e49994bd677165c79d498320"
+  version = "v0.1.2"
 
 [[projects]]
   digest = "1:ee29cb0ae9cc471817ddfdf0173e8706a8ec227f140c33e30634503917915ced"
@@ -1810,6 +1818,7 @@
     "github.com/kr/pty",
     "github.com/kubernetes/kubernetes/pkg/kubelet/network/dns",
     "github.com/mitchellh/mapstructure",
+    "github.com/ryanuber/go-glob",
     "github.com/satori/go.uuid",
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
@@ -1831,6 +1840,8 @@
     "golang.org/x/net/context",
     "golang.org/x/sys/unix",
     "google.golang.org/grpc",
+    "google.golang.org/grpc/codes",
+    "google.golang.org/grpc/status",
     "k8s.io/api/core/v1",
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
     "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset",

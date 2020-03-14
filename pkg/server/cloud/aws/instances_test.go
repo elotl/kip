@@ -1,17 +1,69 @@
-/*
-Copyright 2020 Elotl Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package aws
+
+import (
+	"testing"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
+	"github.com/stretchr/testify/assert"
+)
+
+// func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeImagesInput
+func TestBootImageSpecToDescribeImagesInput(t *testing.T) {
+	testCases := []struct {
+		Spec  cloud.BootImageSpec
+		Input ec2.DescribeImagesInput
+	}{
+		{
+			Spec: cloud.BootImageSpec{},
+			Input: ec2.DescribeImagesInput{
+				Owners: aws.StringSlice([]string{elotlOwnerID}),
+				Filters: []*ec2.Filter{
+					{
+						Name:   aws.String("name"),
+						Values: aws.StringSlice([]string{elotlImageNameFilter}),
+					},
+				},
+			},
+		},
+		{
+			Spec: cloud.BootImageSpec{
+				"filters": "name=elotl-kip-*",
+			},
+			Input: ec2.DescribeImagesInput{
+				Filters: []*ec2.Filter{
+					{
+						Name:   aws.String("name"),
+						Values: aws.StringSlice([]string{"elotl-kip-*"}),
+					},
+				},
+			},
+		},
+		{
+			Spec: cloud.BootImageSpec{
+				"imageIDs": "ami-123 ami-456 ami-789",
+				"owners":   "12345 9999999",
+				"filters":  "name=elotl-kip-* tag-key=elotl-image-tag",
+			},
+			Input: ec2.DescribeImagesInput{
+				ImageIds: aws.StringSlice([]string{"ami-123", "ami-456", "ami-789"}),
+				Owners:   aws.StringSlice([]string{"12345", "9999999"}),
+				Filters: []*ec2.Filter{
+					{
+						Name:   aws.String("name"),
+						Values: aws.StringSlice([]string{"elotl-kip-*"}),
+					},
+					{
+						Name:   aws.String("tag-key"),
+						Values: aws.StringSlice([]string{"elotl-image-tag"}),
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		input := bootImageSpecToDescribeImagesInput(tc.Spec)
+		assert.Equal(t, tc.Input, *input)
+	}
+}

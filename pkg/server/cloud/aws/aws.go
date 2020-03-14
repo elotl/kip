@@ -59,7 +59,6 @@ type AwsEC2 struct {
 	subnetID             string
 	availabilityZone     string
 	region               string
-	imageOwnerID         string
 	bootSecurityGroupIDs []string
 	cloudStatus          *cloud.LinkedAZSubnetStatus
 }
@@ -131,7 +130,7 @@ func CheckConnection() error {
 
 // Parsing our server.json configuration should have put all confg
 // into environment variables, load necessary config from there.
-func NewEC2Client(controllerID, nametag, vpcID, subnetID, imageOwnerID, ecsClusterName string) (*AwsEC2, error) {
+func NewEC2Client(controllerID, nametag, vpcID, subnetID, ecsClusterName string) (*AwsEC2, error) {
 	ec2Client, err := getEC2Client()
 	if err != nil {
 		return nil, util.WrapError(err, "Error creating EC2 client")
@@ -154,7 +153,6 @@ func NewEC2Client(controllerID, nametag, vpcID, subnetID, imageOwnerID, ecsClust
 		ecsClusterName: ecsClusterName,
 		controllerID:   controllerID,
 		nametag:        nametag,
-		imageOwnerID:   imageOwnerID,
 	}
 	client.vpcID, client.vpcCIDR, err = client.assertVPCExists(vpcID)
 	if err != nil {

@@ -19,6 +19,7 @@ package azure
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-10-01/compute"
@@ -28,6 +29,7 @@ import (
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
 	"github.com/elotl/cloud-instance-provider/pkg/util"
+	glob "github.com/ryanuber/go-glob"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )
@@ -319,7 +321,30 @@ func (az *AzureClient) SetSustainedCPU(node *api.Node, enabled bool) error {
 	return nil
 }
 
-func (az *AzureClient) GetImageId(tags cloud.BootImageTags) (string, error) {
+// This is a bit of an overkill right now, since on Azure we only filter image
+// list results via matching the name of the image to a glob, e.g.
+// elotl-kipdev-*.
+func matchSpec(properties map[string]string, spec cloud.BootImageSpec) bool {
+	if len(spec) < 1 {
+		// No spec.
+		return true
+	}
+	if len(properties) < len(spec) {
+		// The spec contains more properties.
+		return false
+	}
+	for name, value := range spec {
+		if propValue, ok := properties[name]; ok {
+			if glob.Glob(value, propValue) {
+				continue
+			}
+		}
+		return false
+	}
+	return true
+}
+
+func (az *AzureClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, azureDefaultTimeout)
 	defer cancel()
@@ -328,7 +353,8 @@ func (az *AzureClient) GetImageId(tags cloud.BootImageTags) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	images := []cloud.Image{}
+	images := make(map[string]compute.Image)
+	imageNames := make([]string, 0)
 	locationName := az.locationName()
 	for resultPage.NotDone() {
 		azImages := resultPage.Values()
@@ -336,11 +362,18 @@ func (az *AzureClient) GetImageId(tags cloud.BootImageTags) (string, error) {
 			if to.String(azImage.Location) != locationName {
 				continue
 			}
-			image := cloud.Image{
-				Id:   to.String(azImage.ID),
-				Name: to.String(azImage.Name),
+			// We have to filter results ourselves, unlike on AWS. For now,
+			// filtering based on name is supported (and we filter
+			// unconditionally on location above).
+			name := to.String(azImage.Name)
+			properties := map[string]string{
+				"name": name,
 			}
-			images = append(images, image)
+			if !matchSpec(properties, spec) {
+				continue
+			}
+			images[name] = azImage
+			imageNames = append(imageNames, name)
 		}
 		timeoutCtx, cancel = context.WithTimeout(ctx, azureDefaultTimeout)
 		defer cancel()
@@ -349,7 +382,17 @@ func (az *AzureClient) GetImageId(tags cloud.BootImageTags) (string, error) {
 			return "", err
 		}
 	}
-	return cloud.GetBestImage(images, tags)
+	if len(images) == 0 {
+		msg := fmt.Sprintf("no images found for spec %+v", spec)
+		klog.Errorf("%s", msg)
+		return "", fmt.Errorf("%s", msg)
+	}
+	// compute.Image has no creation timestamp, so we rely on naming convention
+	// here: the name has a timestamp in it, so we can get the latest one via
+	// lexicographical sorting.
+	sort.Strings(imageNames)
+	latestImage := imageNames[len(imageNames)-1]
+	return to.String(images[latestImage].ID), nil
 }
 
 func (az *AzureClient) ListInstancesFilterID(ids []string) ([]cloud.CloudInstance, error) {

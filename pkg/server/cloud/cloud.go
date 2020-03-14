@@ -17,15 +17,12 @@ limitations under the License.
 package cloud
 
 import (
-	"fmt"
+	"encoding/json"
 	"sort"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/elotl/cloud-instance-provider/pkg/api"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/klog"
 )
 
 const MilpaAPISGName = "CellSecurityGroup"
@@ -57,8 +54,7 @@ type CloudClient interface {
 	ListInstances() ([]CloudInstance, error)
 	ResizeVolume(node *api.Node, size int64) (error, bool)
 	GetRegistryAuth() (string, string, error)
-	// Todo, correct capitalization on this one
-	GetImageId(tags BootImageTags) (string, error)
+	GetImageID(spec BootImageSpec) (string, error)
 	SetSustainedCPU(*api.Node, bool) error
 	AddInstanceTags(string, map[string]string) error
 	ControllerInsideVPC() bool
@@ -117,122 +113,33 @@ type SubnetAttributes struct {
 }
 
 type Image struct {
-	Id   string
-	Name string
+	ID           string
+	Name         string
+	CreationTime *time.Time
 }
 
-type BootImageTags struct {
-	Company string `json:"company"`
-	Product string `json:"product"`
-	Version string `json:"version"`
-	Date    string `json:"date"`
-	Time    string `json:"time"`
-}
-
-func (bit *BootImageTags) Timestamp() (time.Time, error) {
-	s := fmt.Sprintf("%s %s", bit.Date, bit.Time)
-	return time.Parse("20060102 150405", s)
-}
-
-func FilterImages(images []Image, tags BootImageTags) []Image {
-	result := make([]Image, 0)
-	for _, img := range images {
-		t := BootImageTags{}
-		t.Set(img.Name)
-		if t.Matches(tags) {
-			klog.V(4).Infof("Found image %s matching filter %+v", img.Name, tags)
-			result = append(result, img)
-		}
-	}
-	return result
-}
-
-func SortImages(images []Image) {
+func SortImagesByCreationTime(images []Image) {
 	sort.Slice(images, func(i, j int) bool {
-		// For really old images, the creation timestamp might be empty. Use
-		// epoch zero in that case.
-		bitI := BootImageTags{}
-		bitI.Set(images[i].Name)
-		versionI, err := strconv.ParseUint(bitI.Version, 10, 32)
-		if err != nil {
-			klog.Warningf("Getting version for image %+v: %v", bitI, err)
+		creationI := images[i].CreationTime
+		creationJ := images[j].CreationTime
+		if creationI == nil {
+			return true
 		}
-		dateI, err := bitI.Timestamp()
-		if err != nil {
-			klog.Warningf("Getting timestamp for image %+v: %v", bitI, err)
-			dateI = time.Unix(0, 0)
+		if creationJ == nil {
+			return false
 		}
-		bitJ := BootImageTags{}
-		bitJ.Set(images[j].Name)
-		versionJ, err := strconv.ParseUint(bitJ.Version, 10, 32)
-		if err != nil {
-			klog.Warningf("Getting version for image %+v: %v", bitI, err)
-		}
-		dateJ, err := bitJ.Timestamp()
-		if err != nil {
-			klog.Warningf("Getting timestamp for image %+v: %v", bitI, err)
-			dateJ = time.Unix(0, 0)
-		}
-		if versionI != versionJ {
-			return versionI < versionJ
-		}
-		return dateI.Before(dateJ)
+		return creationI.Before(*creationJ)
 	})
 }
 
-func GetBestImage(images []Image, tags BootImageTags) (string, error) {
-	images = FilterImages(images, tags)
-	SortImages(images)
-	if len(images) == 0 {
-		err := fmt.Errorf("No image matching tags %+v found", tags)
-		return "", err
-	}
-	latest := images[len(images)-1].Id
-	klog.V(2).Infof("Found image %s for tags %v", latest, tags)
-	return latest, nil
-}
+type BootImageSpec map[string]string
 
-func (bit *BootImageTags) String() string {
-	return fmt.Sprintf("%s-%s-%s-%s-%s",
-		bit.Company, bit.Product, bit.Version, bit.Date, bit.Time)
-}
-
-func (bit *BootImageTags) Set(s string) {
-	tags := strings.Split(s, "-")
-	if len(tags) > 0 {
-		bit.Company = tags[0]
+func (bis *BootImageSpec) String() string {
+	data, err := json.Marshal(bis)
+	if err != nil {
+		return ""
 	}
-	if len(tags) > 1 {
-		bit.Product = tags[1]
-	}
-	if len(tags) > 2 {
-		bit.Version = tags[2]
-	}
-	if len(tags) > 3 {
-		bit.Date = tags[3]
-	}
-	if len(tags) > 4 {
-		bit.Time = tags[4]
-	}
-}
-
-func (bit *BootImageTags) Matches(input BootImageTags) bool {
-	if input.Company != "" && bit.Company != input.Company {
-		return false
-	}
-	if input.Product != "" && bit.Product != input.Product {
-		return false
-	}
-	if input.Version != "" && bit.Version != input.Version {
-		return false
-	}
-	if input.Date != "" && bit.Date != input.Date {
-		return false
-	}
-	if input.Time != "" && bit.Time != input.Time {
-		return false
-	}
-	return true
+	return string(data)
 }
 
 type CloudInstance struct {
