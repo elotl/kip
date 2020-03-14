@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/elotl/cloud-instance-provider/pkg/labels"
-	"github.com/elotl/cloud-instance-provider/pkg/selection"
+	"github.com/elotl/kip/pkg/labels"
+	"github.com/elotl/kip/pkg/selection"
 )
 
 // LabelSelectorAsSelector converts the LabelSelector api type into a struct that implements

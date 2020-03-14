@@ -21,9 +21,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
-	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/clientapi"
+	"github.com/elotl/kip/pkg/server/registry"
 	"github.com/stretchr/testify/assert"
 )
 

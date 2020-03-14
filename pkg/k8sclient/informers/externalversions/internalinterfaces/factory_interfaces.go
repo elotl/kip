@@ -9,7 +9,7 @@ package internalinterfaces
 import (
 	time "time"
 
-	versioned "github.com/elotl/cloud-instance-provider/pkg/k8sclient/clientset/versioned"
+	versioned "github.com/elotl/kip/pkg/k8sclient/clientset/versioned"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	cache "k8s.io/client-go/tools/cache"

@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
-	"github.com/elotl/cloud-instance-provider/pkg/kipctl"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/clientapi"
+	"github.com/elotl/kip/pkg/kipctl"
+	"github.com/elotl/kip/pkg/util"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 )

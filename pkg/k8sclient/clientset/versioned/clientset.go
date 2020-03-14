@@ -9,7 +9,7 @@ package versioned
 import (
 	"fmt"
 
-	kiyotv1beta1 "github.com/elotl/cloud-instance-provider/pkg/k8sclient/clientset/versioned/typed/kip/v1beta1"
+	kiyotv1beta1 "github.com/elotl/kip/pkg/k8sclient/clientset/versioned/typed/kip/v1beta1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

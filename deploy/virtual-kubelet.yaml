@@ -344,7 +344,7 @@ spec:
       - command:
         - /virtual-kubelet
         - --provider
-        - cloud-instance-provider
+        - kip
         - --provider-config
         - /etc/virtual-kubelet/provider.yaml
         - --network-agent-secret

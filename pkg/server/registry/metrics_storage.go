@@ -19,7 +19,7 @@ package registry
 import (
 	"sync"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/kip/pkg/api"
 )
 
 // Writing Metrics happens frequently (at most, every time we poll

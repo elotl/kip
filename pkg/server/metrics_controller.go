@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
+	"github.com/elotl/kip/pkg/server/registry"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )

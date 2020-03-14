@@ -25,9 +25,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/nodeclient"
+	"github.com/elotl/kip/pkg/util"
 	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	"github.com/virtual-kubelet/node-cli/manager"
 	"k8s.io/api/core/v1"

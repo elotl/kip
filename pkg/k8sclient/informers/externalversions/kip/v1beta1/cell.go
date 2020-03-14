@@ -9,10 +9,10 @@ package v1beta1
 import (
 	time "time"
 
-	kipv1beta1 "github.com/elotl/cloud-instance-provider/pkg/apis/kip/v1beta1"
-	versioned "github.com/elotl/cloud-instance-provider/pkg/k8sclient/clientset/versioned"
-	internalinterfaces "github.com/elotl/cloud-instance-provider/pkg/k8sclient/informers/externalversions/internalinterfaces"
-	v1beta1 "github.com/elotl/cloud-instance-provider/pkg/k8sclient/listers/kip/v1beta1"
+	kipv1beta1 "github.com/elotl/kip/pkg/apis/kip/v1beta1"
+	versioned "github.com/elotl/kip/pkg/k8sclient/clientset/versioned"
+	internalinterfaces "github.com/elotl/kip/pkg/k8sclient/informers/externalversions/internalinterfaces"
+	v1beta1 "github.com/elotl/kip/pkg/k8sclient/listers/kip/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"

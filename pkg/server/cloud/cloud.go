@@ -21,7 +21,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/kip/pkg/api"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 

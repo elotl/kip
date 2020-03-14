@@ -7,8 +7,8 @@ Copyright 2019 Elotl Inc.
 package v1beta1
 
 import (
-	v1beta1 "github.com/elotl/cloud-instance-provider/pkg/apis/kip/v1beta1"
-	"github.com/elotl/cloud-instance-provider/pkg/k8sclient/clientset/versioned/scheme"
+	v1beta1 "github.com/elotl/kip/pkg/apis/kip/v1beta1"
+	"github.com/elotl/kip/pkg/k8sclient/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

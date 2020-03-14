@@ -20,9 +20,9 @@ import (
 	"testing"
 
 	"github.com/docker/libkv/store"
-	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/elotl/cloud-instance-provider/pkg/util/hash"
+	"github.com/elotl/kip/pkg/server/registry"
+	"github.com/elotl/kip/pkg/util"
+	"github.com/elotl/kip/pkg/util/hash"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )

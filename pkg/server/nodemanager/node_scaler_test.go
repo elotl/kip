@@ -19,9 +19,9 @@ package nodemanager
 import (
 	"testing"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
-	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/server/cloud"
+	"github.com/elotl/kip/pkg/server/registry"
 	"github.com/stretchr/testify/assert"
 )
 

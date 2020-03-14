@@ -88,7 +88,7 @@ If you deployed Kip in an existing cluster, make sure that you first remove all 
 
 ### Features
 - [Networking](docs/networking.md), including host network mode, cluster IPs, DNS, HostPorts and NodePorts
-- Pods will be started on a cloud instance that matches the pod resource requests/limits. If no requests/limits are present in the pod spec, Kip will fall back to a default cloud instance type specified in [cloud-instance-provider.yaml](docs/provider-config.md)
+- Pods will be started on a cloud instance that matches the pod resource requests/limits. If no requests/limits are present in the pod spec, Kip will fall back to a default cloud instance type specified in [provider-config.yaml](docs/provider-config.md)
 - GPU instances
 - Logs
 - Exec

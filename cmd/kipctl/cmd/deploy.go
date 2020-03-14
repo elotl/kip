@@ -20,7 +20,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
+	"github.com/elotl/kip/pkg/clientapi"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 )

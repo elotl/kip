@@ -19,7 +19,7 @@ package server
 import (
 	"testing"
 
-	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
+	"github.com/elotl/kip/pkg/server/cloud"
 )
 
 func TestValidateAws(t *testing.T) {

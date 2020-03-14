@@ -17,7 +17,7 @@ limitations under the License.
 package nodemanager
 
 import (
-	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/kip/pkg/api"
 )
 
 type ScalingAlgorithm interface {

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
+	"github.com/elotl/kip/pkg/clientapi"
 	"github.com/spf13/cobra"
 )
 

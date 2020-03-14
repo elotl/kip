@@ -16,7 +16,7 @@ limitations under the License.
 
 package registry
 
-import "github.com/elotl/cloud-instance-provider/pkg/api"
+import "github.com/elotl/kip/pkg/api"
 
 type MetricsRegistry struct {
 	MetricsStore

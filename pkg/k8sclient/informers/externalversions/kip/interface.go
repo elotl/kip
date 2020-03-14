@@ -7,8 +7,8 @@ Copyright 2019 Elotl Inc.
 package kip
 
 import (
-	internalinterfaces "github.com/elotl/cloud-instance-provider/pkg/k8sclient/informers/externalversions/internalinterfaces"
-	v1beta1 "github.com/elotl/cloud-instance-provider/pkg/k8sclient/informers/externalversions/kip/v1beta1"
+	internalinterfaces "github.com/elotl/kip/pkg/k8sclient/informers/externalversions/internalinterfaces"
+	v1beta1 "github.com/elotl/kip/pkg/k8sclient/informers/externalversions/kip/v1beta1"
 )
 
 // Interface provides access to each of this group's versions.

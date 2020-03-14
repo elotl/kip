@@ -16,4 +16,4 @@ limitations under the License.
 
 // Package labels implements a simple label system, parsing and matching
 // selectors with sets of labels.
-package labels // import "github.com/elotl/cloud-instance-provider/pkg/labels"
+package labels // import "github.com/elotl/kip/pkg/labels"

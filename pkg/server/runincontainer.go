@@ -22,9 +22,9 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/nodeclient"
+	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/wsstream"
 	vkapi "github.com/virtual-kubelet/virtual-kubelet/node/api"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"

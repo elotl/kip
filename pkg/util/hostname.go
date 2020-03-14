@@ -23,7 +23,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/kip/pkg/api"
 	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/klog"

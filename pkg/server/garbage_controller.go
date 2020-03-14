@@ -22,12 +22,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
-	"github.com/elotl/cloud-instance-provider/pkg/server/cloud/aws"
-	"github.com/elotl/cloud-instance-provider/pkg/server/cloud/azure"
-	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
-	"github.com/elotl/cloud-instance-provider/pkg/util/stats"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/server/cloud"
+	"github.com/elotl/kip/pkg/server/cloud/aws"
+	"github.com/elotl/kip/pkg/server/cloud/azure"
+	"github.com/elotl/kip/pkg/server/registry"
+	"github.com/elotl/kip/pkg/util/stats"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )

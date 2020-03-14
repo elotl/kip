@@ -17,7 +17,7 @@ limitations under the License.
 package util
 
 import (
-	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/kip/pkg/api"
 	"k8s.io/kubernetes/third_party/forked/golang/expansion"
 )
 

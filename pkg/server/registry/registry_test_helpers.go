@@ -22,13 +22,13 @@ import (
 	"github.com/docker/libkv"
 	"github.com/docker/libkv/store"
 	"github.com/docker/libkv/store/boltdb"
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/api/validation"
-	"github.com/elotl/cloud-instance-provider/pkg/etcd"
-	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
-	"github.com/elotl/cloud-instance-provider/pkg/server/events"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/elotl/cloud-instance-provider/pkg/util/instanceselector"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/api/validation"
+	"github.com/elotl/kip/pkg/etcd"
+	"github.com/elotl/kip/pkg/server/cloud"
+	"github.com/elotl/kip/pkg/server/events"
+	"github.com/elotl/kip/pkg/util"
+	"github.com/elotl/kip/pkg/util/instanceselector"
 )
 
 var (

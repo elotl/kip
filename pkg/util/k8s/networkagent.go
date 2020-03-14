@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/elotl/cloud-instance-provider/pkg/util/kubeconfig"
+	"github.com/elotl/kip/pkg/util"
+	"github.com/elotl/kip/pkg/util/kubeconfig"
 	"github.com/virtual-kubelet/node-cli/manager"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"

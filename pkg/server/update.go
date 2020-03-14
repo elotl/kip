@@ -20,9 +20,9 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/elotl/cloud-instance-provider/pkg/util/yaml"
+	"github.com/elotl/kip/pkg/clientapi"
+	"github.com/elotl/kip/pkg/util"
+	"github.com/elotl/kip/pkg/util/yaml"
 	"golang.org/x/net/context"
 	"k8s.io/klog"
 )

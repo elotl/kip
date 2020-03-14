@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/kip/pkg/api"
 )
 
 var (

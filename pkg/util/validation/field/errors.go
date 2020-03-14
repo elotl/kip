@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"strings"
 
-	utilerrors "github.com/elotl/cloud-instance-provider/pkg/util/errors"
+	utilerrors "github.com/elotl/kip/pkg/util/errors"
 )
 
 // Error is an implementation of the 'error' interface, which represents a

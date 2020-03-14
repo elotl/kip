@@ -19,7 +19,7 @@ package validation
 import (
 	"fmt"
 
-	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
+	"github.com/elotl/kip/pkg/util/validation/field"
 )
 
 // +k8s:deepcopy-gen=false

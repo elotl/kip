@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/util"
 	"k8s.io/klog"
 )
 

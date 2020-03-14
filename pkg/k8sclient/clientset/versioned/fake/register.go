@@ -7,7 +7,7 @@ Copyright 2019 Elotl Inc.
 package fake
 
 import (
-	kiyotv1beta1 "github.com/elotl/cloud-instance-provider/pkg/apis/kip/v1beta1"
+	kiyotv1beta1 "github.com/elotl/kip/pkg/apis/kip/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

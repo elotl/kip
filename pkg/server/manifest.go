@@ -19,8 +19,8 @@ package server
 import (
 	"bytes"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/util/yaml"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/util/yaml"
 )
 
 func VersionAndKind(m []byte) (string, string, error) {

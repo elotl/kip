@@ -27,8 +27,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/clientapi"
 	"github.com/elotl/wsstream"
 	"github.com/kr/pty"
 	"github.com/spf13/cobra"

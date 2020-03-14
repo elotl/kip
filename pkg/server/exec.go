@@ -19,10 +19,10 @@ package server
 import (
 	"io"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
-	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/clientapi"
+	"github.com/elotl/kip/pkg/nodeclient"
+	"github.com/elotl/kip/pkg/util"
 )
 
 func (s InstanceProvider) Exec(stream clientapi.Kip_ExecServer) error {

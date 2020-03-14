@@ -23,11 +23,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/elotl/cloud-instance-provider/pkg/util/instanceselector"
-	"github.com/elotl/cloud-instance-provider/pkg/util/validation"
-	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/util"
+	"github.com/elotl/kip/pkg/util/instanceselector"
+	"github.com/elotl/kip/pkg/util/validation"
+	"github.com/elotl/kip/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/sets"
 )

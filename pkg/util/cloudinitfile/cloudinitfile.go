@@ -26,7 +26,7 @@ import (
 
 	"github.com/coreos/yaml"
 	cc "github.com/elotl/cloud-init/config"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/util"
 )
 
 const semverRegexFmt string = `v?([0-9]+)(\.[0-9]+)(\.[0-9]+)?` +

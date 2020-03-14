@@ -7,9 +7,9 @@ Copyright 2019 Elotl Inc.
 package fake
 
 import (
-	clientset "github.com/elotl/cloud-instance-provider/pkg/k8sclient/clientset/versioned"
-	kiyotv1beta1 "github.com/elotl/cloud-instance-provider/pkg/k8sclient/clientset/versioned/typed/kip/v1beta1"
-	fakekiyotv1beta1 "github.com/elotl/cloud-instance-provider/pkg/k8sclient/clientset/versioned/typed/kip/v1beta1/fake"
+	clientset "github.com/elotl/kip/pkg/k8sclient/clientset/versioned"
+	kiyotv1beta1 "github.com/elotl/kip/pkg/k8sclient/clientset/versioned/typed/kip/v1beta1"
+	fakekiyotv1beta1 "github.com/elotl/kip/pkg/k8sclient/clientset/versioned/typed/kip/v1beta1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

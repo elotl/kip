@@ -22,7 +22,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/elotl/cloud-instance-provider/pkg/labels"
+	"github.com/elotl/kip/pkg/labels"
 )
 
 func TestLabelSelectorAsSelector(t *testing.T) {

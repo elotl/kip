@@ -35,9 +35,9 @@ import (
 	"time"
 
 	"github.com/dghubble/sling"
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/elotl/cloud-instance-provider/pkg/util/timeoutmap"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/util"
+	"github.com/elotl/kip/pkg/util/timeoutmap"
 	"github.com/elotl/wsstream"
 	"github.com/gorilla/websocket"
 	"k8s.io/klog"

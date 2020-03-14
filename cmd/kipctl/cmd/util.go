@@ -21,7 +21,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
+	"github.com/elotl/kip/pkg/clientapi"
 )
 
 func fatal(format string, v ...interface{}) {

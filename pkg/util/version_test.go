@@ -3,7 +3,7 @@ package util
 import (
 	"testing"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/kip/pkg/api"
 	"github.com/stretchr/testify/assert"
 )
 

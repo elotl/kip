@@ -9,8 +9,8 @@ package v1beta1
 import (
 	"time"
 
-	v1beta1 "github.com/elotl/cloud-instance-provider/pkg/apis/kip/v1beta1"
-	scheme "github.com/elotl/cloud-instance-provider/pkg/k8sclient/clientset/versioned/scheme"
+	v1beta1 "github.com/elotl/kip/pkg/apis/kip/v1beta1"
+	scheme "github.com/elotl/kip/pkg/k8sclient/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

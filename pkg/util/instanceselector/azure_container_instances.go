@@ -19,7 +19,7 @@ package instanceselector
 import (
 	"fmt"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/kip/pkg/api"
 )
 
 func AzureContainenrInstanceSelector(rs *api.ResourceSpec) (int64, int64, error) {

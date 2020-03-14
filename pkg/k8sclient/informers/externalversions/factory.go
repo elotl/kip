@@ -11,9 +11,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/elotl/cloud-instance-provider/pkg/k8sclient/clientset/versioned"
-	internalinterfaces "github.com/elotl/cloud-instance-provider/pkg/k8sclient/informers/externalversions/internalinterfaces"
-	kip "github.com/elotl/cloud-instance-provider/pkg/k8sclient/informers/externalversions/kip"
+	versioned "github.com/elotl/kip/pkg/k8sclient/clientset/versioned"
+	internalinterfaces "github.com/elotl/kip/pkg/k8sclient/informers/externalversions/internalinterfaces"
+	kip "github.com/elotl/kip/pkg/k8sclient/informers/externalversions/kip"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

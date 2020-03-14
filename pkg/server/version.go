@@ -19,8 +19,8 @@ package server
 import (
 	"encoding/json"
 
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/clientapi"
+	"github.com/elotl/kip/pkg/util"
 	"golang.org/x/net/context"
 )
 

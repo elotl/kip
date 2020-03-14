@@ -24,9 +24,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/server/cloud"
+	"github.com/elotl/kip/pkg/util"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )

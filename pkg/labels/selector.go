@@ -25,8 +25,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/elotl/cloud-instance-provider/pkg/selection"
-	"github.com/elotl/cloud-instance-provider/pkg/util/validation"
+	"github.com/elotl/kip/pkg/selection"
+	"github.com/elotl/kip/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )

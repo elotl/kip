@@ -19,10 +19,10 @@ package validation
 import (
 	"fmt"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/server/cloud"
+	"github.com/elotl/kip/pkg/util"
+	"github.com/elotl/kip/pkg/util/validation/field"
 )
 
 // Up to this point, all of our validation is static validation of api

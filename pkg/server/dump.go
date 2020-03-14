@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"runtime/pprof"
 
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
+	"github.com/elotl/kip/pkg/clientapi"
 	"golang.org/x/net/context"
 	"k8s.io/klog"
 )

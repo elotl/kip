@@ -17,8 +17,8 @@ limitations under the License.
 package cloud
 
 import (
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/util"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/klog"
 )

@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/elotl/cloud-instance-provider/pkg/util/timeoutmap"
+	"github.com/elotl/kip/pkg/util/timeoutmap"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 )

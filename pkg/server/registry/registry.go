@@ -20,7 +20,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/kip/pkg/api"
 )
 
 const MilpaRoot = "milpa/"

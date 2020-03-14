@@ -19,8 +19,8 @@ package azure
 import (
 	"strings"
 
-	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/elotl/cloud-instance-provider/pkg/util/hash"
+	"github.com/elotl/kip/pkg/util"
+	"github.com/elotl/kip/pkg/util/hash"
 	uuid "github.com/satori/go.uuid"
 )
 

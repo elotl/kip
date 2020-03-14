@@ -23,8 +23,8 @@ import (
 	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/util/yaml"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/util/yaml"
 )
 
 type MockKipClient struct {

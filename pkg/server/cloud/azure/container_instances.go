@@ -19,8 +19,8 @@ package azure
 import (
 	"fmt"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/server/cloud"
 )
 
 func (az *AzureClient) EnsureContainerInstanceCluster() error {

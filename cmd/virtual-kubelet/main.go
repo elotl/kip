@@ -19,10 +19,10 @@ import (
 	"context"
 	"strings"
 
-	"github.com/elotl/cloud-instance-provider/pkg/klog"
-	"github.com/elotl/cloud-instance-provider/pkg/server"
-	"github.com/elotl/cloud-instance-provider/pkg/util/habitat"
-	"github.com/elotl/cloud-instance-provider/pkg/util/k8s"
+	"github.com/elotl/kip/pkg/klog"
+	"github.com/elotl/kip/pkg/server"
+	"github.com/elotl/kip/pkg/util/habitat"
+	"github.com/elotl/kip/pkg/util/k8s"
 	cli "github.com/virtual-kubelet/node-cli"
 	opencensuscli "github.com/virtual-kubelet/node-cli/opencensus"
 	"github.com/virtual-kubelet/node-cli/opts"
@@ -56,14 +56,14 @@ func main() {
 	if err != nil {
 		log.G(ctx).Fatal(err)
 	}
-	o.Provider = "cloud-instance-provider"
+	o.Provider = "kip"
 	o.Version = strings.Join([]string{k8sVersion, "vk", buildVersion}, "-")
 	o.PodSyncWorkers = 10
 
 	node, err := cli.New(ctx,
 		cli.WithBaseOpts(o),
 		cli.WithCLIVersion(buildVersion, buildTime),
-		cli.WithProvider("cloud-instance-provider",
+		cli.WithProvider("kip",
 			func(cfg provider.InitConfig) (provider.Provider, error) {
 				internalIP := cfg.InternalIP
 				if internalIP == "" {

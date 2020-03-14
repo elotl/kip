@@ -16,7 +16,7 @@ limitations under the License.
 
 package nodemanager
 
-import "github.com/elotl/cloud-instance-provider/pkg/api"
+import "github.com/elotl/kip/pkg/api"
 
 func isSpotPod(pod *api.Pod) bool {
 	return pod.Spec.Spot.Policy == api.SpotAlways

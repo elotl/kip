@@ -19,7 +19,7 @@ package nodeclient
 import (
 	"io"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/kip/pkg/api"
 )
 
 type NodeClient interface {

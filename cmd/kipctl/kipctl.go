@@ -22,8 +22,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/elotl/cloud-instance-provider/cmd/kipctl/cmd"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/cmd/kipctl/cmd"
+	"github.com/elotl/kip/pkg/util"
 	"github.com/spf13/cobra"
 )
 

@@ -17,7 +17,7 @@ limitations under the License.
 package server
 
 import (
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
+	"github.com/elotl/kip/pkg/clientapi"
 	"golang.org/x/net/context"
 )
 

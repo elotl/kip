@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/util/rand"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/util/rand"
 	"github.com/stretchr/testify/assert"
 )
 

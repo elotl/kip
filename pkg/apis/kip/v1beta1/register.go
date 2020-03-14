@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/elotl/cloud-instance-provider/pkg/apis/kip"
+	"github.com/elotl/kip/pkg/apis/kip"
 )
 
 // SchemeGroupVersion is group version used to register these objects

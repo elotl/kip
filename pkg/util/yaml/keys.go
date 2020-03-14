@@ -21,8 +21,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/util"
 	"github.com/mitchellh/mapstructure"
 )
 

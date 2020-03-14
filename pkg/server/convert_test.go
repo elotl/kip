@@ -21,9 +21,9 @@ import (
 	"math"
 	"testing"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
-	"github.com/elotl/cloud-instance-provider/pkg/util/rand"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/util"
+	"github.com/elotl/kip/pkg/util/rand"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"

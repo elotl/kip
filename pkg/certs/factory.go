@@ -24,8 +24,8 @@ import (
 	"crypto/x509"
 
 	"github.com/docker/libkv/store"
-	"github.com/elotl/cloud-instance-provider/pkg/etcd"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/etcd"
+	"github.com/elotl/kip/pkg/util"
 	"k8s.io/klog"
 )
 

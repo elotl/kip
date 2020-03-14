@@ -31,7 +31,7 @@ import (
 	"github.com/coreos/etcd/etcdserver/api/v3client"
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/docker/libkv/store"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/util"
 	"golang.org/x/sys/unix"
 	"k8s.io/klog"
 )

@@ -29,9 +29,9 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2017-06-01/storage"
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
-	"github.com/elotl/cloud-instance-provider/pkg/util/controllerqueue"
-	"github.com/elotl/cloud-instance-provider/pkg/util/jitter"
+	"github.com/elotl/kip/pkg/server/cloud"
+	"github.com/elotl/kip/pkg/util/controllerqueue"
+	"github.com/elotl/kip/pkg/util/jitter"
 	"github.com/uber-go/atomic"
 	"k8s.io/klog"
 )

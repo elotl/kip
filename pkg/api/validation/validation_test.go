@@ -21,8 +21,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/util/validation/field"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 

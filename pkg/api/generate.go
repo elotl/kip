@@ -20,7 +20,7 @@ package api
 import (
 	"fmt"
 
-	utilrand "github.com/elotl/cloud-instance-provider/pkg/util/rand"
+	utilrand "github.com/elotl/kip/pkg/util/rand"
 )
 
 // NameGenerator generates names for objects. Some backends may have more information

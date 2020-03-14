@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/server/events"
-	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/server/events"
+	"github.com/elotl/kip/pkg/server/registry"
 	"k8s.io/klog"
 )
 

@@ -18,7 +18,7 @@ limitations under the License.
 package server
 
 import (
-	"github.com/elotl/cloud-instance-provider/pkg/api"
+	"github.com/elotl/kip/pkg/api"
 )
 
 // ActivePods type allows custom sorting of pods so a controller can

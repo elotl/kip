@@ -20,8 +20,8 @@ import (
 	"crypto/x509"
 	"testing"
 
-	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/server/registry"
+	"github.com/elotl/kip/pkg/util"
 	"github.com/stretchr/testify/assert"
 )
 

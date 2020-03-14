@@ -21,8 +21,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/clientapi"
+	"github.com/elotl/kip/pkg/util"
 	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"

@@ -19,9 +19,9 @@ package server
 import (
 	"testing"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/nodeclient"
-	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/nodeclient"
+	"github.com/elotl/kip/pkg/server/registry"
 	"github.com/stretchr/testify/assert"
 )
 

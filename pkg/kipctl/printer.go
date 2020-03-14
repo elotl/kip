@@ -29,8 +29,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/labels"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/labels"
 	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"

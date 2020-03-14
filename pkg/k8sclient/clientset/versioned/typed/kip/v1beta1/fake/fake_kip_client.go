@@ -7,7 +7,7 @@ Copyright 2019 Elotl Inc.
 package fake
 
 import (
-	v1beta1 "github.com/elotl/cloud-instance-provider/pkg/k8sclient/clientset/versioned/typed/kip/v1beta1"
+	v1beta1 "github.com/elotl/kip/pkg/k8sclient/clientset/versioned/typed/kip/v1beta1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )

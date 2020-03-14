@@ -7,7 +7,7 @@ Copyright 2019 Elotl Inc.
 package v1beta1
 
 import (
-	internalinterfaces "github.com/elotl/cloud-instance-provider/pkg/k8sclient/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/elotl/kip/pkg/k8sclient/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

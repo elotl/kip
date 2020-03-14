@@ -20,10 +20,10 @@ import (
 	"encoding/json"
 
 	"github.com/docker/libkv/store"
-	"github.com/elotl/cloud-instance-provider/pkg/api/validation"
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
-	"github.com/elotl/cloud-instance-provider/pkg/server/registry"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/api/validation"
+	"github.com/elotl/kip/pkg/clientapi"
+	"github.com/elotl/kip/pkg/server/registry"
+	"github.com/elotl/kip/pkg/util"
 	"k8s.io/klog"
 )
 

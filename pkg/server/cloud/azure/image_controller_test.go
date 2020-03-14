@@ -21,7 +21,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-10-01/compute"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/elotl/cloud-instance-provider/pkg/server/cloud"
+	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/stretchr/testify/assert"
 	"github.com/uber-go/atomic"
 )

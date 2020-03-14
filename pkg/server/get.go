@@ -20,9 +20,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/clientapi"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/clientapi"
+	"github.com/elotl/kip/pkg/util"
 )
 
 func (s InstanceProvider) Get(context context.Context, request *clientapi.GetRequest) (*clientapi.APIReply, error) {

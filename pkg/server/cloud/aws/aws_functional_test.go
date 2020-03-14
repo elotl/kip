@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/elotl/cloud-instance-provider/pkg/api"
-	"github.com/elotl/cloud-instance-provider/pkg/server/cloud/functional"
-	"github.com/elotl/cloud-instance-provider/pkg/util"
+	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/server/cloud/functional"
+	"github.com/elotl/kip/pkg/util"
 	"github.com/stretchr/testify/assert"
 )
 
