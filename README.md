@@ -164,6 +164,11 @@ We are actively working on adding missing features. One of the main objectives o
 * [Tosi](https://github.com/elotl/tosi) for downloading images to cells
 * [Cloud-Init](https://github.com/elotl/cloud-init) a minimal cloud-init implementation
 
+##
+Q. We have our custom built AMI. Can I use it for running cells?
+
+A. Yes, take a look at [Bring your Own AMI](docs/cells.md#bring-your-own-ami).
+
 ## How it Works
 * [Cells](docs/cells.md)
 * [Networking](docs/networking.md)

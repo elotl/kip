@@ -8,7 +8,7 @@ Kip's cloud-init system provides the following initialization functions:
 * Set SSH authorized keys for the root user
 * Set the hostname
 * Write arbitrary files (allowed encodings: plain text, base64, gzip and gzip+base64)
-* Execute a script using a custom `runscript` section that allows the user to easily specify
+* Run commands in a single invocation (using /bin/sh) with the runcmd module
 
 ### Cloud-init Example
 
@@ -55,11 +55,12 @@ write_files:
 
 hostname: foo.bar.com
 
-runscript: |
-  #!/bin/ash
-  echo "dbowie   ALL=(ALL)   NOPASSWD: ALL" >> /etc/sudoers.d/dbowie
-  apk update
-  apk add curl
+# runcmd commands must be supplied as an array of strings
+# be sure to properly quote your strings so they can be parsed as yaml
+runcmd:
+  - 'echo "dbowie   ALL=(ALL)   NOPASSWD: ALL" >> /etc/sudoers.d/dbowie'
+  - apk update
+  - apk add curl
 ```
 
 The cloudinit.yaml file should be created as a ConfigMap and mounted into the pod as a volume.  The file must be mounted into the pod in the same location specified in provider.yaml
