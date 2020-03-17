@@ -103,13 +103,15 @@ func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error 
 	configMapInformer := scmInformerFactory.Core().V1().ConfigMaps()
 	serviceInformer := scmInformerFactory.Core().V1().Services()
 
-	go podInformerFactory.Start(ctx.Done())
-	go scmInformerFactory.Start(ctx.Done())
-
 	rm, err := manager.NewResourceManager(podInformer.Lister(), secretInformer.Lister(), configMapInformer.Lister(), serviceInformer.Lister())
 	if err != nil {
 		return errors.Wrap(err, "could not create resource manager")
 	}
+
+	// Start the informers now, so the provider will get a functional resource
+	// manager.
+	podInformerFactory.Start(ctx.Done())
+	scmInformerFactory.Start(ctx.Done())
 
 	apiConfig, err := getAPIConfig(c)
 	if err != nil {
