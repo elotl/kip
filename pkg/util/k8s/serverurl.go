@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -69,7 +69,7 @@ func GetServerURL(kubeconfigPath string) string {
 			klog.V(4).Infof("server URL from kubeconfig: %q", config.Host)
 			return config.Host
 		}
-		klog.Errorf("building config from kubeconfig: %v", err)
+		klog.Warningf("building config from kubeconfig: %v, continuing with alternative config methods", err)
 	}
 	if masterURI := os.Getenv("MASTER_URI"); masterURI != "" {
 		klog.V(4).Infof("server URL from MASTER_URI: %q", masterURI)
