@@ -32,8 +32,8 @@ type CloudConfig struct {
 	WriteFiles        []File   `yaml:"write_files,omitempty"`
 	Hostname          string   `yaml:"hostname,omitempty"`
 	Users             []User   `yaml:"users,omitempty"`
-	RunScript         string   `yaml:"runscript,omitempty"`
-	// this one is legacy
+	RunCmd            []string `yaml:"runcmd,omitempty"`
+	// this one is legacy, can be removed when no more kip controllers use it
 	MilpaFiles []File `yaml:"milpa_files,omitempty"`
 	// Todo: add additional parameters supported by traditional cloud-init
 }
