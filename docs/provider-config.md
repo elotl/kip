@@ -99,9 +99,9 @@ cells:
   #   - executableUsers, which is a space separated list of users with explicit
   #     launch permissions. You can specify an AWS account ID, "self" or "all".
   #   - filters, which lets you filter results. Example:
-  #     "name=elotl-kipdev-* is-public=true". This is equivalent to using:
+  #     "name=elotl-kip-* is-public=true". This is equivalent to using:
   #     $ aws ec2 describe-images \
-  #     --filters Name=name,Values=elotl-kipdev-* Name=is-public,Values=true
+  #     --filters Name=name,Values=elotl-kip-*,Name=is-public,Values=true
   #   - imageIDs, one or more space separated image IDs. Example:
   #     "ami-07cfdf0f7c08293fd"
   # If there are multiple matching images, the latest one will be used.
@@ -111,7 +111,7 @@ cells:
   # The below settings are the default if no bootImageSpec is specified.
   bootImageSpec:
     owners: "689494258501"
-    filters: "name=elotl-kipdev-*"
+    filters: "name=elotl-kip-*"
 
   # cloudInitFile specifies a path to a cloudInitFile that will be
   # used to provision all cells that Kip boots. Kip will detect

@@ -30,7 +30,7 @@ data:
     cells:
       bootImageSpec:
         owners: 689494258501
-        filters: name=elotl-kipdev-*
+        filters: name=elotl-kip-*
       defaultInstanceType: "t3.nano"
       defaultVolumeSize: "20G"
       nametag: virtual-kubelet

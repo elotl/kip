@@ -323,7 +323,7 @@ func (az *AzureClient) SetSustainedCPU(node *api.Node, enabled bool) error {
 
 // This is a bit of an overkill right now, since on Azure we only filter image
 // list results via matching the name of the image to a glob, e.g.
-// elotl-kipdev-*.
+// elotl-kip-*.
 func matchSpec(properties map[string]string, spec cloud.BootImageSpec) bool {
 	if len(spec) < 1 {
 		// No spec.
