@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: virtual-kubelet
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      volumes:
+      - name: provider-yaml
+        configMap:
+          name: virtual-kubelet-config
+          items:
+          - key: cloudinit.yaml
+            path: cloudinit.yaml
+            mode: 0600
+          - key: provider.yaml
+            path: provider.yaml
+            mode: 0600

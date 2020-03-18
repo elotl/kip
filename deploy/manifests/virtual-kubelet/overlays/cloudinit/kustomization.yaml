@@ -1,0 +1,11 @@
+bases:
+- ../../base
+patchesStrategicMerge:
+- deployment.yaml
+configMapGenerator:
+- name: virtual-kubelet-config
+  namespace: kube-system
+  behavior: merge
+  files:
+  - cloudinit.yaml
+  - provider.yaml

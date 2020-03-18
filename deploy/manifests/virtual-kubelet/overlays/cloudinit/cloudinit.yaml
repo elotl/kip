@@ -1,0 +1,8 @@
+runcmd:
+- apt-get update && apt-get install -y ipset iproute2 iptables
+- wget -O /usr/local/bin/itzo https://itzo-kip-download.s3.amazonaws.com/itzo-latest
+- wget -O /usr/local/bin/kube-router https://milpa-builds.s3.amazonaws.com/kube-router
+- wget -O /usr/local/bin/tosi https://tosi.s3.amazonaws.com/tosi
+- chmod 755 /usr/local/bin/*
+- mount --make-rprivate /
+- /usr/local/bin/itzo -v=2 > /var/log/itzo.log 2>&1 &
