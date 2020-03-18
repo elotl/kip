@@ -37,7 +37,7 @@ const (
 	maxUserInstanceTags   = 45
 	awsCreationDateFormat = "2006-01-02T15:04:05.000Z"
 	elotlOwnerID          = "689494258501"
-	elotlImageNameFilter  = "elotl-kipdev-*" // TODO
+	elotlImageNameFilter  = "elotl-kip-*"
 )
 
 func (e *AwsEC2) StopInstance(instanceID string) error {
@@ -265,7 +265,7 @@ func (e *AwsEC2) GetImageID(spec cloud.BootImageSpec) (string, error) {
 		}
 	}
 	cloud.SortImagesByCreationTime(images)
-	return aws.StringValue(resp.Images[len(resp.Images)-1].ImageId), nil
+	return images[len(images)-1].ID, nil
 }
 
 func (e *AwsEC2) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
