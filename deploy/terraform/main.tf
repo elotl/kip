@@ -270,6 +270,10 @@ locals {
   )
 }
 
+data "external" "manifest" {
+  program = ["bash", "-c", "set -e; set -o pipefail; kubectl kustomize ${var.kustomize-dir} | jq -s -R '{\"output\": .}'"]
+}
+
 data "template_file" "node-userdata" {
   template = file("node.sh")
 
@@ -278,7 +282,7 @@ data "template_file" "node-userdata" {
     k8s_version               = var.k8s-version
     pod_cidr                  = var.pod-cidr
     service_cidr              = var.service-cidr
-    virtual_kubelet_manifest  = base64encode(file(var.virtual-kubelet-manifest))
+    virtual_kubelet_manifest  = base64encode(data.external.manifest.result.output)
   }
 }
 

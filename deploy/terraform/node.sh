@@ -83,5 +83,5 @@ curl -fL https://raw.githubusercontent.com/elotl/milpa-deploy/master/deploy/stor
 curl -fL https://raw.githubusercontent.com/elotl/milpa-deploy/master/deploy/cni/aws-k8s-cni.yaml | kubectl apply -f -
 
 # Deploy VK.
-echo ${virtual_kubelet_manifest} | base64 --decode > /tmp/virtual-kubelet.yaml
+echo "${virtual_kubelet_manifest}" | base64 --decode > /tmp/virtual-kubelet.yaml
 kubectl apply -f /tmp/virtual-kubelet.yaml
