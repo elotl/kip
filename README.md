@@ -27,6 +27,7 @@ Prequisites:
 - An AWS account
 - [Terraform](https://www.terraform.io/downloads.html) (tested with terraform 0.12)
 - [aws-cli](https://aws.amazon.com/cli/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - jq
 
 In [deploy/terraform](deploy/terraform), you will find a terraform config that creates a simple one master, one worker cluster and starts a Kip deployment.
@@ -57,11 +58,11 @@ In AWS, Kip can use credentials supplied by the [instance profile](https://docs.
 
 **Step 2: Apply virtual-kubelet.yaml**
 
-The resources in [virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) create ServiceAccounts, Roles and a virtual-kubelet Deployment to run the provider. [Kip is not stateless](docs/state.md), the manifest will also create a PersistentVolumeClaim to store the provider data.
+The resources in [deploy/manifests/virtual-kubelet](deploy/manifests/virtual-kubelet) create ServiceAccounts, Roles and a virtual-kubelet Deployment to run the provider. [Kip is not stateless](docs/state.md), the manifest will also create a PersistentVolumeClaim to store the provider data.
 
-    kubectl apply -f deploy/virtual-kubelet.yaml
+    kubectl apply -k deploy/manifests/virtual-kubelet/base
 
-After applying the manifest, you should see a new virtual-kubelet pod in the kube-system namespace and a new node named virtual-kubelet in the cluster.
+After applying, you should see a new virtual-kubelet pod in the kube-system namespace and a new node named virtual-kubelet in the cluster.
 
 ## Running Pods on Virtual Kubelet
 
