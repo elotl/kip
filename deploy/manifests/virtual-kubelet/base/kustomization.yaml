@@ -1,0 +1,10 @@
+resources:
+- pvc.yaml
+- deployment.yaml
+- sa.yaml
+- network-agent-sa.yaml
+configMapGenerator:
+- name: virtual-kubelet-config
+  namespace: kube-system
+  files:
+  - provider.yaml

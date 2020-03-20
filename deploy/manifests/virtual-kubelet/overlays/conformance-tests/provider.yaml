@@ -1,0 +1,27 @@
+apiVersion: v1
+cloud:
+  aws:
+    region: "us-east-1"
+    accessKeyID: ""
+    secretAccessKey: ""
+etcd:
+  internal:
+    dataDir: /opt/kip/data
+cells:
+  standbyCells:
+  - instanceType: c5.large
+    count: 4
+    spot: false
+  defaultInstanceType: c5.large
+  defaultVolumeSize: 15G
+  bootImageSpec:
+    owners: 689494258501
+    filters: name=elotl-kip-*
+  nametag: conformance
+  itzo:
+    url: https://itzo-kip-download.s3.amazonaws.com
+    version: latest
+kubelet:
+  cpu: "100"
+  memory: "5000Gi"
+  pods: "200"

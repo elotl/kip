@@ -82,6 +82,9 @@ curl -fL https://raw.githubusercontent.com/elotl/milpa-deploy/master/deploy/stor
 # Deploy CNI plugin.
 curl -fL https://raw.githubusercontent.com/elotl/milpa-deploy/master/deploy/cni/aws-k8s-cni.yaml | kubectl apply -f -
 
+# Don't run kube-proxy on virtual-kubelet.
+kubectl patch -p '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"kubernetes.io/hostname","operator":"NotIn","values":["virtual-kubelet"]}]}]}}}}}}}' -n kube-system ds kube-proxy
+
 # Deploy VK.
-echo ${virtual_kubelet_manifest} | base64 --decode > /tmp/virtual-kubelet.yaml
+echo "${virtual_kubelet_manifest}" | base64 --decode > /tmp/virtual-kubelet.yaml
 kubectl apply -f /tmp/virtual-kubelet.yaml

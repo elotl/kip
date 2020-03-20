@@ -39,6 +39,6 @@ variable "node-ami" {
   default = ""
 }
 
-variable "virtual-kubelet-manifest" {
-  default = "../virtual-kubelet.yaml"
+variable "kustomize-dir" {
+  default = "../manifests/virtual-kubelet/base"
 }
