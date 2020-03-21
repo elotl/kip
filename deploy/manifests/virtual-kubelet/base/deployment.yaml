@@ -15,6 +15,15 @@ spec:
       labels:
         app: virtual-kubelet
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                - virtual-kubelet
       containers:
       - command:
         - /virtual-kubelet
