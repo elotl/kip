@@ -284,14 +284,24 @@ func isSubnetPublic(rt []*ec2.RouteTable, subnetID string) (bool, error) {
 	return false, nil
 }
 
+func (e *AwsEC2) ConnectWithPublicIPs() bool {
+	if !e.usePublicIPs {
+		return false
+	} else {
+		return !e.ControllerInsideVPC()
+	}
+}
+
 func (e *AwsEC2) ControllerInsideVPC() bool {
 	vpcID, err := detectCurrentVPC()
-	if err != nil {
-		return false
-	} else if vpcID != "" && vpcID == e.vpcID {
-		return true
+	inside := false
+	if err == nil && vpcID != "" && vpcID == e.vpcID {
+		inside = true
+		klog.V(2).Infoln("controller is inside the VPC")
+	} else {
+		klog.V(2).Infoln("controller is outside the VPC")
 	}
-	return false
+	return inside
 }
 
 func (e *AwsEC2) ModifySourceDestinationCheck(instanceID string, isEnabled bool) error {

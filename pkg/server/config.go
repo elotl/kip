@@ -309,11 +309,11 @@ func ConfigureCloud(configFile *ServerConfigFile, controllerID, nametag string) 
 		return nil, fmt.Errorf("Error setting up cloud client: %v", err)
 	}
 
-	usePublicIPs := !cloudClient.ControllerInsideVPC()
-	if usePublicIPs {
-		klog.V(2).Infof("controller is outside the cloud network, connecting via public IPs")
+	connectWithPublicIPs := cloudClient.ConnectWithPublicIPs()
+	if connectWithPublicIPs {
+		klog.V(2).Infof("controller will connect to nodes via public IPs")
 	} else {
-		klog.V(2).Infof("controller is inside the cloud network, connecting via private IPs")
+		klog.V(2).Infof("controller will connect to nodes via private IPs")
 	}
 	err = cloudClient.EnsureMilpaSecurityGroups(
 		configFile.Cells.ExtraCIDRs,

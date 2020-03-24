@@ -93,9 +93,13 @@ func (e *AwsEC2) getBlockDeviceMapping(volSizeGiB int32) []*ec2.BlockDeviceMappi
 }
 
 func (e *AwsEC2) getInstanceNetworkSpec(privateIPOnly bool) []*ec2.InstanceNetworkInterfaceSpecification {
+	associatePublicIPAddress := true
+	if privateIPOnly || !e.usePublicIPs {
+		associatePublicIPAddress = false
+	}
 	networkSpec := []*ec2.InstanceNetworkInterfaceSpecification{
 		&ec2.InstanceNetworkInterfaceSpecification{
-			AssociatePublicIpAddress:       aws.Bool(!privateIPOnly),
+			AssociatePublicIpAddress:       aws.Bool(associatePublicIPAddress),
 			DeviceIndex:                    aws.Int64(0), // seems to work
 			Groups:                         aws.StringSlice(e.bootSecurityGroupIDs),
 			SecondaryPrivateIpAddressCount: aws.Int64(1),
@@ -104,12 +108,6 @@ func (e *AwsEC2) getInstanceNetworkSpec(privateIPOnly bool) []*ec2.InstanceNetwo
 	// Let AWS figure out the subnet/AZ if we didn't specify a subnet
 	networkSpec[0].SubnetId = aws.String(e.subnetID)
 	return networkSpec
-}
-
-func subnetMatchNeeds(privateIP bool, subnet cloud.SubnetAttributes) bool {
-	return (subnet.AddressAffinity == cloud.AnyAddress) ||
-		(privateIP && subnet.AddressAffinity == cloud.PrivateAddress) ||
-		(!privateIP && subnet.AddressAffinity == cloud.PublicAddress)
 }
 
 func (e *AwsEC2) getFirstVolume(instanceId string) *ec2.Volume {
@@ -419,7 +417,7 @@ func (e *AwsEC2) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
 		aws.StringValue(instance.PrivateIpAddress),
 		aws.StringValue(instance.PrivateDnsName),
 	)
-	if !node.Spec.Resources.PrivateIPOnly {
+	if !node.Spec.Resources.PrivateIPOnly && e.usePublicIPs {
 		addresses = api.SetPublicAddresses(
 			aws.StringValue(instance.PublicIpAddress),
 			aws.StringValue(instance.PublicDnsName),

@@ -49,7 +49,7 @@ import (
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
@@ -273,9 +273,9 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		"Metric": metricsRegistry,
 	}
 
-	usePublicIPs := !cloudClient.ControllerInsideVPC()
+	connectWithPublicIPs := cloudClient.ConnectWithPublicIPs()
 	itzoClientFactory := nodeclient.NewItzoFactory(
-		&certFactory.Root, *clientCert, usePublicIPs)
+		&certFactory.Root, *clientCert, connectWithPublicIPs)
 	nodeDispenser := nodemanager.NewNodeDispenser()
 	podController := &PodController{
 		podRegistry:        podRegistry,

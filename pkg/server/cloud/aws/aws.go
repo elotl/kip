@@ -40,11 +40,7 @@ const (
 )
 
 var (
-	maxAWSUserTags        = 45
-	milpaMarketplaceCodes = map[string]string{
-		"7308b6jqx1o1lw351naw9f6sd": "Elotl Milpa AMI",
-		"c4caekm2zerd0yvyxk8h4lp5s": "Elotl EKS worker AMI",
-	}
+	maxAWSUserTags = 45
 )
 
 type AwsEC2 struct {
@@ -58,6 +54,7 @@ type AwsEC2 struct {
 	vpcCIDR              string
 	subnetID             string
 	availabilityZone     string
+	usePublicIPs         bool
 	region               string
 	bootSecurityGroupIDs []string
 	cloudStatus          *cloud.LinkedAZSubnetStatus
@@ -172,28 +169,34 @@ func NewEC2Client(controllerID, nametag, vpcID, subnetID, ecsClusterName string)
 			err, "Error setting up cloud status keeper")
 	}
 
-	// Bit of a hack until cloudStatus goes away
-	client.availabilityZone, err = client.getAvailabilityZone()
+	subnetAttrs, err := client.getSubnetAttributes()
 	if err != nil {
-		return nil, util.WrapError(err, "Error determining availability zone")
+		return nil, util.WrapError(err, "Error getting subnet attributes")
+	}
+	client.availabilityZone = subnetAttrs.AZ
+	client.usePublicIPs = true
+	if subnetAttrs.AddressAffinity == cloud.PrivateAddress {
+		klog.V(2).Infoln("cells will run in a private subnet (no route to internet gateway)")
+		client.usePublicIPs = false
 	}
 	return client, nil
 }
 
-func (c *AwsEC2) getAvailabilityZone() (string, error) {
+func (c *AwsEC2) getSubnetAttributes() (cloud.SubnetAttributes, error) {
+	var sn cloud.SubnetAttributes
 	subnets, err := c.GetSubnets()
 	if err != nil {
-		return "", err
+		return sn, err
 	}
 	if len(subnets) == 0 {
-		return "", fmt.Errorf("No subnets found")
+		return sn, fmt.Errorf("no subnets found")
 	}
 	for _, sn := range subnets {
 		if sn.ID == c.subnetID {
-			return sn.AZ, nil
+			return sn, nil
 		}
 	}
-	return "", fmt.Errorf("Could not match the provided subnetID %s to any subnet in the VPC", c.subnetID)
+	return sn, fmt.Errorf("could not match the provided subnetID %s to any subnet in the VPC", c.subnetID)
 }
 
 func (c *AwsEC2) CloudStatusKeeper() cloud.StatusKeeper {
