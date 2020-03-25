@@ -18,13 +18,14 @@ package server
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/api/annotations"
 	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/kip/pkg/util/k8s/status"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -612,6 +613,13 @@ func addAnnotationsToMilpaPod(milpaPod *api.Pod) {
 	a = milpaPod.Annotations[annotations.PodInstanceType]
 	if strings.ToLower(a) != "" {
 		milpaPod.Spec.InstanceType = a
+	}
+	a = milpaPod.Annotations[annotations.PodResourcesPrivateIPOnly]
+	if a != "" {
+		val, err := strconv.ParseBool(a)
+		if err == nil {
+			milpaPod.Spec.Resources.PrivateIPOnly = val
+		}
 	}
 }
 

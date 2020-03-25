@@ -61,12 +61,12 @@ type ItzoClientFactoryer interface {
 }
 
 type ItzoClientFactory struct {
-	tlsConfig   *tls.Config
-	clients     *timeoutmap.TimeoutMap
-	usePublicIP bool
+	tlsConfig         *tls.Config
+	clients           *timeoutmap.TimeoutMap
+	defaultToPublicIP bool
 }
 
-func NewItzoFactory(rootCert *x509.Certificate, cert tls.Certificate, usePublicIP bool) *ItzoClientFactory {
+func NewItzoFactory(rootCert *x509.Certificate, cert tls.Certificate, defaultToPublicIP bool) *ItzoClientFactory {
 	caCertPool := x509.NewCertPool()
 	caCertPool.AddCert(rootCert)
 	clientFactory := &ItzoClientFactory{
@@ -75,19 +75,27 @@ func NewItzoFactory(rootCert *x509.Certificate, cert tls.Certificate, usePublicI
 			RootCAs:      caCertPool,
 			ServerName:   ServerName,
 		},
-		clients:     timeoutmap.New(false, nil),
-		usePublicIP: usePublicIP,
+		clients:           timeoutmap.New(false, nil),
+		defaultToPublicIP: defaultToPublicIP,
 	}
 	go clientFactory.clients.Start(30 * time.Second)
 	return clientFactory
 }
 
+// Rules for getting the node address: Try to get a public address if
+// we want to connect via public addresses (defaultToPublicAddress).
+// However, if a user boots a node with a private address only (in a
+// public subnet). Fallback to attempt to connect with the private
+// address.
 func (fac *ItzoClientFactory) getAddress(addy []api.NetworkAddress) string {
-	if fac.usePublicIP {
-		return api.GetPublicIP(addy)
-	} else {
-		return api.GetPrivateIP(addy)
+	address := ""
+	if fac.defaultToPublicIP {
+		address = api.GetPublicIP(addy)
 	}
+	if address == "" {
+		address = api.GetPrivateIP(addy)
+	}
+	return address
 }
 
 func (fac *ItzoClientFactory) GetClient(addy []api.NetworkAddress) NodeClient {
