@@ -228,9 +228,9 @@ func (az *AzureClient) getLocalInstanceNetwork() (VirtualNetworkAttributes, clou
 	return vNet, subnet, nil
 }
 
-func (az *AzureClient) ControllerInsideVPC() bool {
+func (az *AzureClient) ConnectWithPublicIPs() bool {
 	_, _, err := az.getLocalInstanceNetwork()
-	return err == nil
+	return err != nil
 }
 
 func (az *AzureClient) ModifySourceDestinationCheck(instanceID string, isEnabled bool) error {

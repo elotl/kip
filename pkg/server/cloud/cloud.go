@@ -57,7 +57,7 @@ type CloudClient interface {
 	GetImageID(spec BootImageSpec) (string, error)
 	SetSustainedCPU(*api.Node, bool) error
 	AddInstanceTags(string, map[string]string) error
-	ControllerInsideVPC() bool
+	ConnectWithPublicIPs() bool
 	ModifySourceDestinationCheck(string, bool) error
 	RemoveRoute(string) error
 	AddRoute(string, string) error

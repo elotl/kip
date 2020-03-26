@@ -133,7 +133,7 @@ func (e *MockCloudClient) CreateSGName(svcName string) string {
 	return fmt.Sprintf("%s.%s.%s", e.ControllerID, "default", svcName)
 }
 
-func (e *MockCloudClient) ControllerInsideVPC() bool {
+func (e *MockCloudClient) ConnectWithPublicIPs() bool {
 	return e.InsideVPC
 }
 

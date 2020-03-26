@@ -27,6 +27,12 @@ const PodLaunchType = "pod.elotl.co/launch-type"
 // override specified resource requests and limits.
 const PodInstanceType = "pod.elotl.co/instance-type"
 
+// PodResourcesPrivateIPOnly is an annotation users can put on their
+// kubernetes pods to tell kip to run this pod on a node that only
+// has a private IP address and no public IP address. Setting this
+// value to false will not override the cloud subnet settings.
+const PodResourcesPrivateIPOnly = "pod.elotl.co/private-ip-only"
+
 // PodSecurityGroups is an annotation users can put on their
 // kubernetes pods to tell kip to add additional security groups
 // to the instance backing their pod.
