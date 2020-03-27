@@ -11,6 +11,7 @@ env:
   - IAM_ACCESS_KEY_ID=AKIA2BCIPONCQ7KY4PEP
   - REGISTRY_USER=elotlbuild
   - TERRAFORM_VERSION=0.12.21
+  - KUBECTL_VERSION=1.18.0
   - IMG_VERSION=0.5.7
   - secure: eQV5LiSp5XP7pL4gFYR98uL8aMdmeI5J5h3oOsRZ8fEBVFB0XBX0QDmK6zpaxAx2GoHfFC6ioUdNQjiVmnatwRHnnmxlplD8w99LXcvYkdfS6mtbyhdd2gZNv3gypIFqzyG73zqqhosNSUou1H8GSMWaQSk+P1Y6W7jHKsPEtrV5fepwu6tSpIK+DZbN2mrbyKdKMgWkdAPd/ni++bLDrvwlsoC8MOyWLerDnjRdC/Enzp4OgP9XR/JcqaNyXGLhMRLrN/PwWUk6mayjiVdGk9MLM+YuzCaVaqmtlHZMQHQQzP8r8KO4wZt+ApfNkVlwj44+ya7YoMkSguS5U4AmC0I3NntwhA4L8tpezk/FhSF0FwmP2MDKbWajYWtptThoXRQ5yU/UTJD/hWPofZPm9halZs7yqtoYNLXQWGfS06zROMyLoDOI7uw8b3VSSxQwVjcy8zjmJ/X5I/Dpl/QXsFGaU3u3u/Q0gE4V7ve/9fhbcittq1pRamcVvvZE/jUiXxWEiVEQ39W2dF/Fsp71nvm9Q7vTkgFKPtZV+lwFykTf9gg8vdbRTJ2qlYz668mQ0B+XUhueR+gxaDV+pIFKHRM+/B32fakTwBkXFHGtonodSL8TCeOydpmWLzJ4KexHAjL9AaUoqj4XKfQtAmtNppPmHpScONfhEZ65V+EnXiE=
   - secure: rwyN3nyJ0+ghzNDC5TmpTZNHFvxdapiyFGTSNgpgsdzBXrBVYtPAc1ygAMYYauS8GyrTTg55wbrZUTrSspWirecwVprtLg3Lby/VacXz/qCtZ5wBsYhWJTkbgX0q/H9j3JqGTPUjJORRe5krRHmCrW2nhy+FrE731IcKgItspCGyXoGbh/O3z5yIZIU9NWKX/BqgzjUf7cYdkm25dphQOUkNJOBzeG7Nv7DumzC0V524F4s2GK4Eqp4P/SAENDjdmnwMw+SC1peikAo1XHmWgz72EvVKncF7b6PVs80rnAOEwNg1Hs8B90VWiZpW+qPWBhJuNjoXOTdNxjaAs0y5S/9BLBNcqvIp6Kj1/QtMuCbk63pVYa9OiUv+2XLlJJ4om0BcqE/CghQvhKtOuNN9gxSHjXP7RP1yqyBMVY3jsXQHU9IZcpbaF2ZmRB587gHCUcDXZbz+wLvBLnw0UjKxCdcJrop9zg7ylwo4r5h2ojfhfXt1lYqH2Lvpz8n98uHYVOvgdShxQsDmw1W37ggNB4jMVxcv7atUBI8jzYMNOg80Qjp2ghuGjYon9KQTMis8ykBg6qOFLwS62cWe6GbZ6LQmjhLg/ZOOieD512p/Re/s47e5cakuHqC//VY8rqDPiEsXCHc0lhZ1HWy5akqes/gYkvoGsNWGUcT5sKdIedg=
@@ -19,7 +20,7 @@ before_script:
 - git fetch --unshallow || true
 - pip install awscli --upgrade --user
 - pip install jq --upgrade --user
-- curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.16.0/bin/linux/amd64/kubectl
+- curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl
   && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 - curl -Os https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
   && curl -Os https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_SHA256SUMS
