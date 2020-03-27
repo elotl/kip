@@ -27,6 +27,6 @@ cells:
 #  extraSecurityGroups:
 #  - FILL_IN
 kubelet:
-  cpu: "10"
+  cpu: "100"
   memory: "512Gi"
-  pods: "100"
+  pods: "200"

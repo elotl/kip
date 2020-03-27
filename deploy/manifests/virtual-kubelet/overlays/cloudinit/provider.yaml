@@ -19,6 +19,6 @@ cells:
     url: https://itzo-kip-download.s3.amazonaws.com
     version: latest
 kubelet:
-  cpu: "20"
+  cpu: "100"
   memory: "512Gi"
   pods: "200"
