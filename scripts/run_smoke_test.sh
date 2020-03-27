@@ -17,7 +17,7 @@ CLUSTER_NAME="build-$BUILD"
 export KUBECONFIG=$(mktemp)
 
 cleanup() {
-    kubectl delete deployment nginx > /dev/null 2>&1 || true
+    kubectl delete pod nginx > /dev/null 2>&1 || true
     kubectl delete svc nginx > /dev/null 2>&1 || true
     kubectl delete pod test > /dev/null 2>&1 || true
     rm -rf $SSH_KEY_FILE
@@ -38,8 +38,8 @@ update_vk() {
 run_smoke_test() {
     local curlcmd="i=0; while [ \$i -lt 300 ]; do i=\$((i+1)); curl nginx | grep 'Welcome to nginx' && exit 0; sleep 1; done; exit 1"
     local waitcmd="phase=\"\"; echo \"Waiting for test results from pod\"; until [[ \$phase = Succeeded ]]; do sleep 1; phase=\$(kubectl get pod test -ojsonpath=\"{.status.phase}\"); if [[ \$phase = Failed ]]; then echo \$phase; kubectl get pods -A; exit 1; fi; echo \$phase; done"
-    kubectl run nginx --image=nginx --replicas=3
-    kubectl expose deployment/nginx --port=80 --type=ClusterIP
+    kubectl run nginx --image=nginx --port=80
+    kubectl expose pod nginx
     kubectl run test --restart=Never --image=radial/busyboxplus:curl --command -- /bin/sh -c "$curlcmd"
     timeout 180s bash -c "$waitcmd"
 }
