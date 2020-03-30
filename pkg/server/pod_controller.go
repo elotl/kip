@@ -19,6 +19,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -1049,6 +1050,24 @@ func (c *PodController) createDNSConfigurer() {
 	}
 }
 
+func createResolverFile(nameservers, searches []string) (string, error) {
+	tmpf, err := ioutil.TempFile("", "resolv-conf")
+	if err != nil {
+		klog.Warningf("creating resolver tempfile: %v", err)
+		return "", err
+	}
+	defer tmpf.Close()
+	for _, ns := range nameservers {
+		tmpf.Write([]byte(fmt.Sprintf("nameserver %s\n", ns)))
+	}
+	if len(searches) > 0 {
+		tmpf.Write(
+			[]byte(fmt.Sprintf("search %s\n", strings.Join(searches, " "))))
+	}
+	resolverConfig := tmpf.Name()
+	return resolverConfig, nil
+}
+
 func (c *PodController) doCreateDNSConfigurer() error {
 	loggingEventRecorder := eventrecorder.NewLoggingEventRecorder(4)
 	nodeRef := &v1.ObjectReference{
@@ -1064,7 +1083,13 @@ func (c *PodController) doCreateDNSConfigurer() error {
 	// want to optionally accept a kubelet config file to be able to better
 	// match kubelet behavior.
 	clusterDomain := "cluster.local"
-	resolverConfig := "/etc/resolv.conf"
+	nameservers, searches, err := c.cloudClient.GetDNSInfo()
+	if err != nil {
+		klog.Warningf("getting cloud DNS info: %v", err)
+		return err
+	}
+	klog.V(2).Infof("host nameservers %v searches %v", nameservers, searches)
+	resolverConfig, err := createResolverFile(nameservers, searches)
 	clusterDNS := net.IP{}
 	services, err := c.resourceManager.ListServices()
 	if err != nil {
