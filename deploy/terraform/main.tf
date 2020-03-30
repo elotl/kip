@@ -166,6 +166,7 @@ resource "aws_iam_role_policy" "k8s-node" {
         "ec2:DeleteSecurityGroup",
         "ec2:DeleteVolume",
         "ec2:DescribeAddresses",
+        "ec2:DescribeDhcpOptions",
         "ec2:DescribeElasticGpus",
         "ec2:DescribeImages",
         "ec2:DescribeInstances",
