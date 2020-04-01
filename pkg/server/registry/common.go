@@ -16,7 +16,23 @@ limitations under the License.
 
 package registry
 
-import "github.com/elotl/kip/pkg/api"
+import (
+	"fmt"
+
+	"github.com/elotl/kip/pkg/api"
+)
+
+func checkObjectMetaForUpdate(dest *api.ObjectMeta, src *api.ObjectMeta) error {
+	if !src.CreationTimestamp.IsZero() && !src.CreationTimestamp.Equal(dest.CreationTimestamp) {
+		return fmt.Errorf("CreationTimestamp is an immutable field %v != %v",
+			src.CreationTimestamp, dest.CreationTimestamp)
+	}
+	if src.UID != "" && src.UID != dest.UID {
+		return fmt.Errorf("UID is an immutable field %v != %v",
+			src.UID, dest.UID)
+	}
+	return nil
+}
 
 func copyObjectMetaForUpdate(dest *api.ObjectMeta, src *api.ObjectMeta) {
 	dest.Labels = src.Labels

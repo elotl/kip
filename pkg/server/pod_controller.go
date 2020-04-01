@@ -152,6 +152,8 @@ func (c *PodController) registerEventHandlers() {
 	c.events.RegisterHandlerFunc(events.PodCreated, c.podCreated)
 	// Useful for kiyot and users updating bare pods
 	c.events.RegisterHandlerFunc(events.PodUpdated, c.podUpdated)
+	// Make deletes synchronous.
+	c.events.RegisterHandlerFunc(events.PodShouldDelete, c.podDeleted)
 }
 
 func (c *PodController) podCreated(e events.Event) error {
@@ -168,6 +170,16 @@ func (c *PodController) podUpdated(e events.Event) error {
 		if err != nil {
 			klog.Errorln("Error updating pod units:", err)
 		}
+	}
+	return nil
+}
+
+func (c *PodController) podDeleted(e events.Event) error {
+	pod := e.Object.(*api.Pod)
+	if pod.Status.BoundNodeName != "" {
+		c.terminateBoundPod(pod)
+	} else {
+		c.terminateUnboundPod(pod)
 	}
 	return nil
 }
