@@ -1,0 +1,19 @@
+bases:
+- ../../manifests/virtual-kubelet/overlays/minikube/
+resources:
+- vpn-deployment.yaml
+configMapGenerator:
+- name: virtual-kubelet-config
+  namespace: kube-system
+  behavior: merge
+  files:
+  - provider.yaml
+- name: aws-vpn-client-config
+  namespace: kube-system
+  env: aws-vpn-client.env
+secretGenerator:
+- name: virtual-kubelet-secrets
+  namespace: kube-system
+  literals:
+  - AWS_ACCESS_KEY_ID=${aws_access_key_id}
+  - AWS_SECRET_ACCESS_KEY=${aws_secret_access_key}
