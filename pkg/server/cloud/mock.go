@@ -45,6 +45,8 @@ type MockCloudClient struct {
 	InstanceListerFilter func([]string) ([]CloudInstance, error)
 	InstanceLister       func() ([]CloudInstance, error)
 
+	DNSInfoGetter func() ([]string, []string, error)
+
 	RouteRemover func(string) error
 	RouteAdder   func(string, string) error
 
@@ -139,6 +141,10 @@ func (e *MockCloudClient) ConnectWithPublicIPs() bool {
 
 func (e *MockCloudClient) ModifySourceDestinationCheck(iid string, enable bool) error {
 	return nil
+}
+
+func (e *MockCloudClient) GetDNSInfo() ([]string, []string, error) {
+	return e.DNSInfoGetter()
 }
 
 func (e *MockCloudClient) RemoveRoute(destinationCIDR string) error {

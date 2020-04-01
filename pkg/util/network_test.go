@@ -18,6 +18,7 @@ package util
 
 import (
 	"fmt"
+	"net"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -54,5 +55,39 @@ func TestCIDRInsideCIDRs(t *testing.T) {
 		result := CIDRInsideCIDRs(tc.A, tc.B)
 		msg := fmt.Sprintf("testcase %d (zero offset) failed", i)
 		assert.Equal(t, tc.inside, result, msg)
+	}
+}
+
+func TestNextIP(t *testing.T) {
+	testCases := []struct {
+		BaseIP net.IP
+		Inc    uint
+		NextIP net.IP
+	}{
+		{
+			BaseIP: net.ParseIP("10.10.0.0"),
+			Inc:    1,
+			NextIP: net.ParseIP("10.10.0.1"),
+		},
+		{
+			BaseIP: net.ParseIP("10.10.0.255"),
+			Inc:    2,
+			NextIP: net.ParseIP("10.10.1.1"),
+		},
+		{
+			BaseIP: net.ParseIP("192.168.100.255"),
+			Inc:    1,
+			NextIP: net.ParseIP("192.168.101.0"),
+		},
+		{
+			BaseIP: net.ParseIP("255.255.255.255"),
+			Inc:    2,
+			NextIP: net.ParseIP("0.0.0.1"),
+		},
+	}
+	for i, tc := range testCases {
+		nextIP := NextIP(tc.BaseIP, tc.Inc)
+		msg := fmt.Sprintf("testcase %d failed", i+1)
+		assert.Equal(t, tc.NextIP, nextIP, msg)
 	}
 }

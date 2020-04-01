@@ -18,6 +18,7 @@ package aws
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -384,4 +385,60 @@ func (e *AwsEC2) AddRoute(destinationCIDR, instanceID string) error {
 		}
 	}
 	return nil
+}
+
+func (e *AwsEC2) GetDNSInfo() ([]string, []string, error) {
+	_, cidr, err := net.ParseCIDR(e.vpcCIDR)
+	if err != nil {
+		return nil, nil, util.WrapError(
+			err, "failed to parse VPC CIDR %q", e.vpcCIDR)
+	}
+	out, err := e.client.DescribeVpcs(&ec2.DescribeVpcsInput{
+		VpcIds: aws.StringSlice([]string{e.vpcID}),
+	})
+	if err != nil {
+		return nil, nil, util.WrapError(
+			err, "DescribeVpcs %q", e.vpcID)
+	}
+	if len(out.Vpcs) != 1 || out.Vpcs[0] == nil {
+		return nil, nil, util.WrapError(
+			err, "DescribeVpcs %q malformed reply %+v", e.vpcID, *out)
+	}
+	dhcpOptionsID := aws.StringValue(out.Vpcs[0].DhcpOptionsId)
+	dhcpOut, err := e.client.DescribeDhcpOptions(&ec2.DescribeDhcpOptionsInput{
+		DhcpOptionsIds: aws.StringSlice([]string{dhcpOptionsID}),
+	})
+	if err != nil {
+		return nil, nil, util.WrapError(
+			err, "DescribeDhcpOptions %q", dhcpOptionsID)
+	}
+	if len(dhcpOut.DhcpOptions) != 1 || dhcpOut.DhcpOptions[0] == nil {
+		return nil, nil, util.WrapError(
+			err,
+			"DescribeDhcpOptions %q malformed reply %+v",
+			dhcpOptionsID,
+			*dhcpOut)
+	}
+	var nameservers []string
+	var searches []string
+	for _, cfg := range dhcpOut.DhcpOptions[0].DhcpConfigurations {
+		if aws.StringValue(cfg.Key) == "domain-name-servers" {
+			if len(cfg.Values) == 1 &&
+				aws.StringValue(cfg.Values[0].Value) == "AmazonProvidedDNS" {
+				// The DNS server in a VPC is always the base address + 2.
+				ip := util.NextIP(cidr.IP, 2)
+				nameservers = []string{ip.String()}
+			} else {
+				for _, value := range cfg.Values {
+					nameservers = append(
+						nameservers, aws.StringValue(value.Value))
+				}
+			}
+		} else if aws.StringValue(cfg.Key) == "domain-name" {
+			for _, value := range cfg.Values {
+				searches = append(searches, aws.StringValue(value.Value))
+			}
+		}
+	}
+	return nameservers, searches, nil
 }

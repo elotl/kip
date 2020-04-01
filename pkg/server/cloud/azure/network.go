@@ -503,3 +503,7 @@ func getMilpaIPConfiguration(iface network.Interface) (*network.InterfaceIPConfi
 	}
 	return nil, fmt.Errorf("Could not find milpa IP configuration")
 }
+
+func (az *AzureClient) GetDNSInfo() ([]string, []string, error) {
+	return nil, nil, fmt.Errorf("Unimplemented")
+}

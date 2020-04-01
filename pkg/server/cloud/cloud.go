@@ -62,6 +62,7 @@ type CloudClient interface {
 	RemoveRoute(string) error
 	AddRoute(string, string) error
 	GetVPCCIDRs() []string
+	GetDNSInfo() ([]string, []string, error)
 	// Address spaces used by cloud-internal services that might initiate
 	// connections to instances in the VPC.
 	CloudStatusKeeper() StatusKeeper
