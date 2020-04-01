@@ -212,6 +212,13 @@ func (reg *PodRegistry) UpdatePodSpecAndLabels(p *api.Pod) (*api.Pod, error) {
 		return nil, err
 	}
 	p, err = reg.AtomicUpdate(p.Name, func(in *api.Pod) error {
+		if api.IsTerminalPodPhase(in.Spec.Phase) {
+			return fmt.Errorf("pod spec is in a terminal phase")
+		}
+		err = checkObjectMetaForUpdate(&in.ObjectMeta, &p.ObjectMeta)
+		if err != nil {
+			return err
+		}
 		copyObjectMetaForUpdate(&in.ObjectMeta, &p.ObjectMeta)
 		in.Spec = p.Spec
 		return nil
