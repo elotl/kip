@@ -109,20 +109,25 @@ If you deployed Kip in an existing cluster, make sure that you first remove all 
 - Stateful workloads and PersistentVolumes are not supported.
 - No support for updating ConfigMaps and Secrets for running Pods and Cells.
 - Virtual-kubelet has limitations on what it supports in the Downward API, e.g. pod.status.podIP is not supported
+- VolumeMounts do not support readOnly, subPath and subPathExpr attributes.
+- VolumeMount mountPropagation is always Bidirectional
 - Unsupported pod attributes:
+    - EphemeralContainers
     - ReadinessGates
     - Lifecycle handlers
     - TerminationGracePeriodSeconds
     - ActiveDeadlineSeconds
     - Subdomain
     - HostAliases
+    - VolumeDevices
+    - TerminationMessagePolicy FallbackToLogsOnError is not implemented
     - The following PodSecurityContext fields
         - FSGroup
         - RunAsNonRoot
         - ShareProcessNamespace
         - HostIPC
         - HostPID
-- Volume mount propagation is always bidirectional
+
 
 We are actively working on adding missing features. One of the main objectives of the project is to provide full support for all Kubernetes features.
 
@@ -166,9 +171,9 @@ We are actively working on adding missing features. One of the main objectives o
 * [Cloud-Init](https://github.com/elotl/cloud-init) a minimal cloud-init implementation
 
 ##
-Q. We have our custom built AMI. Can I use it for running cells?
+**Q.** We have our custom built AMI. Can I use it for running cells?
 
-A. Yes, take a look at [Bring your Own AMI](docs/cells.md#bring-your-own-ami).
+**A.** Yes, take a look at [Bring your Own AMI](docs/cells.md#bring-your-own-ami).
 
 ## How it Works
 * [Cells](docs/cells.md)
