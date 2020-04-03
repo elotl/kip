@@ -191,6 +191,34 @@ func (az *AwsEC2) GetAvailabilityZones() ([]string, error) {
 	return azs.List(), nil
 }
 
+func (az *AwsEC2) IsAvailable() (bool, error) {
+	subnets, err := az.GetSubnets()
+	if err != nil {
+		return false, err
+	}
+	var subnet *cloud.SubnetAttributes
+	for _, sn := range subnets {
+		if sn.ID == az.subnetID {
+			subnet = &sn
+			break
+		}
+	}
+	if subnet == nil {
+		return false, fmt.Errorf("failed to look up subnet %q", az.subnetID)
+	}
+	out, err := az.client.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
+		ZoneNames: aws.StringSlice([]string{subnet.AZ}),
+	})
+	if err != nil {
+		return false, err
+	}
+	if len(out.AvailabilityZones) != 1 {
+		return false, fmt.Errorf("invalid AZ reply")
+	}
+	state := strings.ToLower(aws.StringValue(out.AvailabilityZones[0].State))
+	return state == "available", nil
+}
+
 func makeMilpaSubnets(awsSubnets []*ec2.Subnet, rts []*ec2.RouteTable) ([]cloud.SubnetAttributes, error) {
 	// Todo, return an error if we have a subnet length of 0
 	subnets := make([]cloud.SubnetAttributes, len(awsSubnets))

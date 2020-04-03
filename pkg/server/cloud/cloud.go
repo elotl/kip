@@ -63,12 +63,11 @@ type CloudClient interface {
 	AddRoute(string, string) error
 	GetVPCCIDRs() []string
 	GetDNSInfo() ([]string, []string, error)
-	// Address spaces used by cloud-internal services that might initiate
-	// connections to instances in the VPC.
 	CloudStatusKeeper() StatusKeeper
 	GetSubnets() ([]SubnetAttributes, error)
 	GetAvailabilityZones() ([]string, error)
 	GetAttributes() CloudAttributes
+	IsAvailable() (bool, error)
 }
 
 type CloudAttributes struct {
@@ -111,6 +110,12 @@ type SubnetAttributes struct {
 	// instances and bucket them.
 	AvailableAddresses int
 	//Capacity            int
+}
+
+type AZAttributes struct {
+	ID    string
+	Name  string
+	State string
 }
 
 type Image struct {
