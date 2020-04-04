@@ -17,6 +17,8 @@ CLUSTER_NAME="build-$BUILD"
 export KUBECONFIG=$(mktemp)
 
 cleanup() {
+    kubectl get pods -A || true
+    kubectl logs -n kube-system -l app=virtual-kubelet --tail=-1 || true
     kubectl delete pod nginx > /dev/null 2>&1 || true
     kubectl delete svc nginx > /dev/null 2>&1 || true
     kubectl delete pod test > /dev/null 2>&1 || true
