@@ -52,11 +52,10 @@ func GetNodeForRunningPod(podName, unitName string, podRegistry *registry.PodReg
 		return nil, fmt.Errorf("Pod is not running")
 	}
 	if unitName != "" {
-		allUnits := api.AllPodUnits(pod)
-		names := make([]string, len(allUnits))
-		for i := 0; i < len(allUnits); i++ {
-			names[i] = allUnits[i].Name
-		}
+		names := make([]string, 0, len(pod.Spec.InitUnits)+len(pod.Spec.Units))
+		api.ForAllUnits(pod, func(unit *api.Unit) {
+			names = append(names, unit.Name)
+		})
 		if !util.StringInSlice(unitName, names) {
 			return nil, fmt.Errorf("Could not find a unit named %s. Pod unit names: %s",
 				unitName, strings.Join(names, ", "))

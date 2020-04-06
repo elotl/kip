@@ -40,7 +40,7 @@ import (
 	"github.com/elotl/kip/pkg/util/stats"
 	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	"github.com/virtual-kubelet/node-cli/manager"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog"
@@ -950,13 +950,12 @@ func (c *PodController) savePodLogs(pod *api.Pod) {
 	}
 	client := c.nodeClientFactory.GetClient(podAddresses)
 	podRef := api.ToObjectReference(pod)
-	allUnits := api.AllPodUnits(pod)
-	for _, unit := range allUnits {
+	api.ForAllUnits(pod, func(unit *api.Unit) {
 		data, err := client.GetLogs(unit.Name, 0, nodeclient.SAVE_LOG_BYTES)
 		if err != nil {
 			klog.Errorf("Error saving pod %s log for unit %s: %s",
 				pod.Name, unit.Name, err.Error())
-			continue
+			return
 		}
 		log := api.NewLogFile()
 		log.Name = unit.Name
@@ -967,7 +966,7 @@ func (c *PodController) savePodLogs(pod *api.Pod) {
 			klog.Errorf("Error saving pod %s log for unit %s to registry: %s",
 				pod.Name, unit.Name, err.Error())
 		}
-	}
+	})
 }
 
 func (c *PodController) handlePodSucceeded(pod *api.Pod) {
