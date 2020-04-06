@@ -44,7 +44,7 @@ import (
 
 // NewCommand creates a new top-level command.
 // This command is used to start the virtual-kubelet daemon
-func NewCommand(ctx context.Context, name string, s *provider.Store, o *opts.Opts) *cobra.Command {
+func NewCommand(name string, s *provider.Store, o *opts.Opts) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: name + " provides a virtual kubelet interface for your kubernetes cluster.",
@@ -52,7 +52,7 @@ func NewCommand(ctx context.Context, name string, s *provider.Store, o *opts.Opt
 backend implementation allowing users to create kubernetes nodes without running the kubelet.
 This allows users to schedule kubernetes workloads on nodes that aren't running Kubernetes.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runRootCommand(ctx, s, o)
+			return runRootCommand(cmd.Context(), s, o)
 		},
 	}
 
@@ -61,6 +61,20 @@ This allows users to schedule kubernetes workloads on nodes that aren't running 
 }
 
 func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error {
+	pInit := s.Get(c.Provider)
+	if pInit == nil {
+		return errors.Errorf("provider %q not found", c.Provider)
+	}
+
+	client, err := newClient(c.KubeConfigPath, c.KubeAPIQPS, c.KubeAPIBurst)
+	if err != nil {
+		return err
+	}
+
+	return runRootCommandWithProviderAndClient(ctx, pInit, client, c)
+}
+
+func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.InitFunc, client kubernetes.Interface, c *opts.Opts) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -79,11 +93,6 @@ func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error 
 		if err != nil {
 			return err
 		}
-	}
-
-	client, err := newClient(c.KubeConfigPath)
-	if err != nil {
-		return err
 	}
 
 	// Create a shared informer factory for Kubernetes pods in the current namespace (if specified) and scheduled to the current node.
@@ -128,11 +137,6 @@ func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error 
 		KubeClusterDomain: c.KubeClusterDomain,
 	}
 
-	pInit := s.Get(c.Provider)
-	if pInit == nil {
-		return errors.Errorf("provider %q not found", c.Provider)
-	}
-
 	p, err := pInit(initConfig)
 	if err != nil {
 		return errors.Wrapf(err, "error initializing provider %s", c.Provider)
@@ -150,9 +154,13 @@ func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error 
 		leaseClient = client.CoordinationV1beta1().Leases(corev1.NamespaceNodeLease)
 	}
 
+	nodeProvider, ok := p.(node.NodeProvider)
+	if !ok {
+		nodeProvider = node.NaiveNodeProvider{}
+	}
 	pNode := NodeFromProvider(ctx, c.NodeName, taint, p, c.Version)
 	nodeRunner, err := node.NewNodeController(
-		node.NaiveNodeProvider{},
+		nodeProvider,
 		pNode,
 		client.CoreV1().Nodes(),
 		node.WithNodeEnableLeaseV1Beta1(leaseClient, nil),
@@ -242,7 +250,7 @@ func waitFor(ctx context.Context, time time.Duration, ready <-chan struct{}) err
 	}
 }
 
-func newClient(configPath string) (*kubernetes.Clientset, error) {
+func newClient(configPath string, qps, burst int32) (*kubernetes.Clientset, error) {
 	var config *rest.Config
 
 	// Check if the kubeConfig file exists.
@@ -258,6 +266,14 @@ func newClient(configPath string) (*kubernetes.Clientset, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "error building in cluster config")
 		}
+	}
+
+	if qps != 0 {
+		config.QPS = float32(qps)
+	}
+
+	if burst != 0 {
+		config.Burst = int(burst)
 	}
 
 	if masterURI := os.Getenv("MASTER_URI"); masterURI != "" {
