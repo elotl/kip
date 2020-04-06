@@ -124,6 +124,19 @@ type CellsConfig struct {
 	Nametag             string                        `json:"nametag"`
 }
 
+type HealthCheckConfig struct {
+	Status   *StatusHealthCheck
+	CloudAPI *CloudAPIHealthCheck
+}
+
+type StatusHealthCheck struct {
+	Timeout int
+}
+
+type CloudAPIHealthCheck struct {
+	Foo int
+}
+
 type ItzoConfig struct {
 	Version string `json:"version"`
 	URL     string `json:"url"`
