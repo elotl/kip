@@ -52,3 +52,9 @@ const PodTaskExecutionRole = "pod.elotl.co/task-execution-role"
 // that containers in a fargate task can assume. All containers
 // in the task assume this role.
 const PodTaskRole = "pod.elotl.co/task-role"
+
+// PodCloudRoute can be used to add one or more routes to the cloud subnet
+// route table.  The value must be one or more CIDRs separated by whitespace,
+// e.g. "10.20.30.40/24 192.168.1.0/28". Route to these CIDRs, using the
+// instance as the next hop, will be added to the route table of the subnet.
+const PodCloudRoute = "pod.elotl.co/cloud-route"

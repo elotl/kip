@@ -330,6 +330,7 @@ func (c *NodeController) stopSingleNode(node *api.Node) error {
 	}
 	c.NodeClientFactory.DeleteClient(node.Status.Addresses)
 	go func(n *api.Node) {
+		_ = c.CloudClient.RemoveRoute("", n.Status.InstanceID)
 		_ = c.CloudClient.StopInstance(n.Status.InstanceID)
 		_, err := c.NodeRegistry.PurgeNode(node)
 		if err != nil {

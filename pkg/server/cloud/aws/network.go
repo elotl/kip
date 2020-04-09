@@ -330,57 +330,85 @@ func (e *AwsEC2) ModifySourceDestinationCheck(instanceID string, isEnabled bool)
 	return err
 }
 
-func (e *AwsEC2) RemoveRoute(destinationCIDR string) error {
+func (e *AwsEC2) RemoveRoute(destinationCIDR, instanceID string) error {
+	if destinationCIDR == "" || instanceID == "" {
+		return fmt.Errorf(
+			"invalid input: at least one non-empty value needed (got %q %q)",
+			destinationCIDR, instanceID)
+	}
 	out, err := e.client.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: aws.String("vpc-id"),
-				Values: []*string{
-					aws.String(e.vpcID),
-				},
+				Name:   aws.String("vpc-id"),
+				Values: aws.StringSlice([]string{e.vpcID}),
+			},
+			{
+				Name:   aws.String("association.main"),
+				Values: aws.StringSlice([]string{"false"}),
+			},
+			{
+				Name:   aws.String("association.subnet-id"),
+				Values: aws.StringSlice([]string{e.subnetID}),
 			},
 		},
 	})
 	if err != nil {
-		return util.WrapError(err, "Could not list vpc route tables")
+		return util.WrapError(err, "listing vpc route tables")
 	}
 	for _, table := range out.RouteTables {
 		if len(table.Associations) == 0 {
 			continue
 		}
 		for _, route := range table.Routes {
-			if destinationCIDR == aws.StringValue(route.DestinationCidrBlock) {
-				_, err = e.client.DeleteRoute(&ec2.DeleteRouteInput{
-					DestinationCidrBlock: route.DestinationCidrBlock,
-					RouteTableId:         table.RouteTableId,
-				})
-				if err != nil {
-					return util.WrapError(
-						err,
-						"Error deleting old route table entry for table %s",
-						*table.RouteTableId,
-					)
-				}
-				break
+			if destinationCIDR != "" &&
+				destinationCIDR != aws.StringValue(route.DestinationCidrBlock) {
+				continue
 			}
+			// Ignore any routes that are not instance routes.
+			routeIID := aws.StringValue(route.InstanceId)
+			if routeIID == "" || instanceID != "" && instanceID != routeIID {
+				continue
+			}
+			_, err = e.client.DeleteRoute(&ec2.DeleteRouteInput{
+				DestinationCidrBlock: route.DestinationCidrBlock,
+				RouteTableId:         table.RouteTableId,
+			})
+			if err != nil {
+				return util.WrapError(
+					err,
+					"deleting route %s in table %s",
+					destinationCIDR, *table.RouteTableId)
+			}
+			break
 		}
 	}
 	return nil
 }
 
 func (e *AwsEC2) AddRoute(destinationCIDR, instanceID string) error {
+	if destinationCIDR == "" || instanceID == "" {
+		return fmt.Errorf(
+			"invalid input: empty value (got %q %q)",
+			destinationCIDR, instanceID)
+	}
 	out, err := e.client.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: aws.String("vpc-id"),
-				Values: []*string{
-					aws.String(e.vpcID),
-				},
+				Name:   aws.String("vpc-id"),
+				Values: aws.StringSlice([]string{e.vpcID}),
+			},
+			{
+				Name:   aws.String("association.main"),
+				Values: aws.StringSlice([]string{"false"}),
+			},
+			{
+				Name:   aws.String("association.subnet-id"),
+				Values: aws.StringSlice([]string{e.subnetID}),
 			},
 		},
 	})
 	if err != nil {
-		return util.WrapError(err, "Could not list vpc route tables")
+		return util.WrapError(err, "listing vpc route tables")
 	}
 	for _, table := range out.RouteTables {
 		if len(table.Associations) == 0 {
@@ -393,9 +421,9 @@ func (e *AwsEC2) AddRoute(destinationCIDR, instanceID string) error {
 		})
 		if err != nil {
 			return util.WrapError(
-				err, "Error creating route table entry in table %s",
-				*table.RouteTableId)
-
+				err,
+				"creating route %s via %s in table %s",
+				destinationCIDR, instanceID, *table.RouteTableId)
 		}
 	}
 	return nil

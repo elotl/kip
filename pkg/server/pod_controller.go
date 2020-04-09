@@ -436,6 +436,19 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		}
 	}
 
+	cidr := pod.Annotations[annotations.PodCloudRoute]
+	if len(cidr) != 0 {
+		cidrs := strings.Fields(cidr)
+		err := c.addCloudRoute(node, cidrs)
+		if err != nil {
+			msg := fmt.Sprintf("Error dispatching pod to node, could not add route %s to pod %s: %s", cidrs, pod.Name, err)
+			klog.Errorln(msg)
+			c.markFailedPod(pod, true, msg)
+			return
+		}
+		klog.V(2).Infof("added route %s for %s", cidrs, pod.Name)
+	}
+
 	// Add labels to the instance but don't fail if that fails, just
 	// warn to the user and continue...  Also, lets just launch this
 	/// as a goroutine cause we don't care when it finishes
@@ -489,6 +502,29 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		c.markFailedPod(pod, true, msg)
 		return
 	}
+}
+
+func (c *PodController) addCloudRoute(node *api.Node, cidrs []string) error {
+	instanceID := node.Status.InstanceID
+	err := c.cloudClient.ModifySourceDestinationCheck(instanceID, false)
+	if err != nil {
+		return err
+	}
+	for _, cidr := range cidrs {
+		if _, _, err := net.ParseCIDR(cidr); err != nil {
+			return err
+		}
+		if err := c.cloudClient.AddRoute(cidr, instanceID); err != nil {
+			// We don't remove any existing routes in the route table, so
+			// adding one will fail if there's an existing route for the same
+			// CIDR (but different instance as the next hop). The previous
+			// route should have been cleaned up when its instance terminated,
+			// but there might be race conditions. The garbage collector should
+			// clean the route entry up eventually.
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *PodController) attachSecurityGroupsToNode(node *api.Node, securityGroupsStr string) error {
@@ -827,10 +863,24 @@ func (c *PodController) terminateUnboundPod(pod *api.Pod) {
 func (c *PodController) terminateBoundPod(pod *api.Pod) {
 	c.podRegistry.TerminatePod(pod, api.PodTerminated, "Terminating bound pod")
 
-	// run this in a goroutine in case it blocks (shouldn't ever happen)
 	go func() {
-		klog.V(2).Infof("Returning node %s for pod %s", pod.Status.BoundNodeName, pod.Name)
+		// Return node.
+		klog.V(2).Infof("returning node %s for pod %s",
+			pod.Status.BoundNodeName, pod.Name)
 		c.nodeDispenser.ReturnNode(pod.Status.BoundNodeName, false)
+		// Remove any cloud routes created for this pod.
+		instanceID := pod.Status.BoundInstanceID
+		routes := pod.Annotations[annotations.PodCloudRoute]
+		if instanceID != "" && len(routes) > 0 {
+			klog.V(2).Infof("removing route %s for pod %s", routes, pod.Name)
+			for _, cidr := range strings.Fields(routes) {
+				err := c.cloudClient.RemoveRoute(cidr, instanceID)
+				if err != nil {
+					klog.Warningf("removing cidr %s for pod %s (%s): %v",
+						cidr, pod.Name, instanceID, err)
+				}
+			}
+		}
 	}()
 }
 
