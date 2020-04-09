@@ -145,7 +145,7 @@ func New(ctx context.Context, options ...Option) (*Command, error) {
 		flagOpts.Version = c.k8sVersion
 	}
 
-	c.cmd = root.NewCommand(ctx, name, c.s, flagOpts)
+	c.cmd = root.NewCommand(name, c.s, flagOpts)
 	for _, f := range c.persistentFlags {
 		c.cmd.PersistentFlags().AddFlagSet(f)
 	}
@@ -165,7 +165,7 @@ func New(ctx context.Context, options ...Option) (*Command, error) {
 
 // Run executes the command with the provided args.
 // If args is nil then os.Args[1:] is used
-func (c *Command) Run(args ...string) error {
+func (c *Command) Run(ctx context.Context, args ...string) error {
 	c.cmd.SetArgs(args)
-	return c.cmd.Execute()
+	return c.cmd.ExecuteContext(ctx)
 }

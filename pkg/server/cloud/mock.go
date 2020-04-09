@@ -54,6 +54,8 @@ type MockCloudClient struct {
 	SubnetGetter       func() ([]SubnetAttributes, error)
 	AZGetter           func() ([]string, error)
 
+	AvailabilityChecker func() (bool, error)
+
 	// Container Instance Funcs
 	ContainerClusterEnsurer          func() error
 	ContainerInstanceLister          func() ([]ContainerInstance, error)
@@ -117,6 +119,10 @@ func (c *MockCloudClient) GetSubnets() ([]SubnetAttributes, error) {
 
 func (c *MockCloudClient) GetAvailabilityZones() ([]string, error) {
 	return c.AZGetter()
+}
+
+func (c *MockCloudClient) IsAvailable() (bool, error) {
+	return c.AvailabilityChecker()
 }
 
 func (c *MockCloudClient) EnsureMilpaSecurityGroups([]string, []string) error {

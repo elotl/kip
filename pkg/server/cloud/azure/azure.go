@@ -177,6 +177,12 @@ func (az *AzureClient) GetAttributes() cloud.CloudAttributes {
 		Region:                    az.region,
 	}
 }
+
+func (az *AzureClient) IsAvailable() (bool, error) {
+	// TODO
+	return true, nil
+}
+
 func filterLabelsForTags(resource string, labels map[string]string) (map[string]*string, error) {
 	illegalKeys := []string{"Node", cloud.ControllerTagKey}
 	allErrs := []error{}

@@ -30,7 +30,7 @@ import (
 )
 
 // ExporterInitFunc is the function that is called to initialize an exporter.
-// This is used when registering an exporter and called when a user specifed they want to use the exporter.
+// This is used when registering an exporter and called when a user specified they want to use the exporter.
 type ExporterInitFunc func(*Config) (trace.Exporter, error)
 
 func (c *Config) getExporter(name string) (trace.Exporter, error) {

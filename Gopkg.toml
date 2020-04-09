@@ -35,7 +35,7 @@
 
 [[constraint]]
   name = "github.com/spf13/cobra"
-  version = "0.0.5"
+  version = "0.0.7"
 
 [[constraint]]
   name = "github.com/spf13/pflag"
@@ -79,7 +79,7 @@
 
 [[constraint]]
   name = "github.com/virtual-kubelet/node-cli"
-  revision = "1a25cea73ff271b05db8eaf5e901765fefd21c32"
+  revision = "c0381df9dbcd89a25594f53d49478f9cd97657ce"
 
 #[[constraint]]
 #  name = "github.com/gogo/protobuf"
