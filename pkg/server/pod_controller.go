@@ -19,9 +19,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -35,12 +33,9 @@ import (
 	"github.com/elotl/kip/pkg/server/registry"
 	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/kip/pkg/util/conmap"
-	"github.com/elotl/kip/pkg/util/k8s"
-	"github.com/elotl/kip/pkg/util/k8s/eventrecorder"
 	"github.com/elotl/kip/pkg/util/stats"
 	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	"github.com/virtual-kubelet/node-cli/manager"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog"
@@ -76,8 +71,6 @@ type PodController struct {
 	cleanTimer             stats.LoopTimer
 	lastStatusReply        *conmap.StringTimeTime
 	kubernetesNodeName     string
-	serverURL              string
-	networkAgentSecret     string
 	networkAgentKubeconfig *clientcmdapi.Config
 	dnsConfigurer          *dns.Configurer
 }
@@ -93,55 +86,7 @@ type FullPodStatus struct {
 	Error error
 }
 
-func (c *PodController) createNetworkAgentKubeconfig() {
-	defer func() {
-		if c.networkAgentKubeconfig == nil {
-			klog.Fatal("cell network agent won't run")
-		}
-	}()
-	klog.V(2).Infof("checking kubernetes node name")
-	c.kubernetesNodeName = os.Getenv("NODE_NAME")
-	if c.kubernetesNodeName == "" {
-		klog.Warningf("failed to get NODE_NAME")
-		return
-	}
-	klog.V(2).Infof("creating cell network agent kubeconfig")
-	var (
-		kc  *clientcmdapi.Config
-		err error
-	)
-	// TODO: get rid of this retry loop once VK is fixed.
-	err = util.Retry(
-		// Timeout.
-		15*time.Second,
-		func() error {
-			// Get kubeconfig. This will fail if the informers have not started
-			// up yet.
-			kc, err = k8s.CreateNetworkAgentKubeconfig(
-				c.resourceManager, c.serverURL, c.networkAgentSecret)
-			return err
-		},
-		func(err error) bool {
-			// Always retry.
-			return true
-		},
-	)
-	if err != nil {
-		klog.Warningf("creating kubeconfig: %v", err)
-		return
-	}
-	err = k8s.ValidateKubeconfig(kc)
-	if err != nil {
-		klog.Warningf("validating kubeconfig: %v", err)
-		return
-	}
-	c.networkAgentKubeconfig = kc
-	klog.V(2).Infof("created cell network agent kubeconfig")
-}
-
 func (c *PodController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
-	c.createNetworkAgentKubeconfig()
-	c.createDNSConfigurer()
 	c.registerEventHandlers()
 	c.failDispatchingPods()
 	go c.ControlLoop(quit, wg)
@@ -1090,78 +1035,4 @@ func (c *PodController) ControlPods() {
 			}
 		}
 	}
-}
-
-func (c *PodController) createDNSConfigurer() {
-	if err := c.doCreateDNSConfigurer(); err != nil {
-		klog.Fatalf("creating DNS configurer: %v", err)
-	}
-}
-
-func createResolverFile(nameservers, searches []string) (string, error) {
-	tmpf, err := ioutil.TempFile("", "resolv-conf")
-	if err != nil {
-		klog.Warningf("creating resolver tempfile: %v", err)
-		return "", err
-	}
-	defer tmpf.Close()
-	for _, ns := range nameservers {
-		tmpf.Write([]byte(fmt.Sprintf("nameserver %s\n", ns)))
-	}
-	if len(searches) > 0 {
-		tmpf.Write(
-			[]byte(fmt.Sprintf("search %s\n", strings.Join(searches, " "))))
-	}
-	resolverConfig := tmpf.Name()
-	return resolverConfig, nil
-}
-
-func (c *PodController) doCreateDNSConfigurer() error {
-	loggingEventRecorder := eventrecorder.NewLoggingEventRecorder(4)
-	nodeRef := &v1.ObjectReference{
-		Kind:       "Node",
-		APIVersion: "v1",
-		Name:       c.kubernetesNodeName,
-	}
-	// ClusterDNS, clusterDomain and resolverConfig can be overridden in the
-	// kubelet via the config file or command line parameters. For clusterDNS,
-	// we can look up the VIP of kube-dns assuming this is a standard setup
-	// where the name of the service is "kube-dns" and it resides in the
-	// "kube-system" namespace.  The other two are tricky, though. We might
-	// want to optionally accept a kubelet config file to be able to better
-	// match kubelet behavior.
-	clusterDomain := "cluster.local"
-	nameservers, searches, err := c.cloudClient.GetDNSInfo()
-	if err != nil {
-		klog.Warningf("getting cloud DNS info: %v", err)
-		return err
-	}
-	klog.V(2).Infof("host nameservers %v searches %v", nameservers, searches)
-	resolverConfig, err := createResolverFile(nameservers, searches)
-	clusterDNS := net.IP{}
-	services, err := c.resourceManager.ListServices()
-	if err != nil {
-		klog.Warningf("looking up kube-dns service: %v", err)
-		return err
-	}
-	for _, svc := range services {
-		if svc.Name != "kube-dns" || svc.Namespace != "kube-system" {
-			continue
-		}
-		clusterDNS = net.ParseIP(svc.Spec.ClusterIP)
-	}
-	if clusterDNS.IsUnspecified() {
-		msg := fmt.Sprintf("missing or invalid kube-dns service")
-		klog.Warningf(msg)
-		return fmt.Errorf(msg)
-	}
-	c.dnsConfigurer = dns.NewConfigurer(
-		loggingEventRecorder,
-		nodeRef,
-		nil,
-		[]net.IP{clusterDNS},
-		clusterDomain,
-		resolverConfig,
-	)
-	return nil
 }
