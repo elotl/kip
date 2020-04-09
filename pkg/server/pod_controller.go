@@ -1093,20 +1093,7 @@ func (c *PodController) ControlPods() {
 }
 
 func (c *PodController) createDNSConfigurer() {
-	// TODO: get rid of this retry loop once VK is fixed.
-	err := util.Retry(
-		// Timeout.
-		15*time.Second,
-		func() error {
-			err := c.doCreateDNSConfigurer()
-			return err
-		},
-		func(err error) bool {
-			// Always retry.
-			return true
-		},
-	)
-	if err != nil {
+	if err := c.doCreateDNSConfigurer(); err != nil {
 		klog.Fatalf("creating DNS configurer: %v", err)
 	}
 }
