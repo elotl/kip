@@ -1,5 +1,8 @@
 #!/bin/bash
 
+IPTABLES="iptables-legacy"
+which ${IPTABLES} >/dev/null 2>&1 || IPTABLES="iptables"
+
 while [[ $# -gt 1 ]]; do
 	case ${1} in
 		-ln|--link-name)
@@ -55,8 +58,8 @@ add_route() {
     	for i in "${route[@]}"; do
 	    ip route add ${i} dev ${TUNNEL_NAME} metric ${TUNNEL_MARK} src ${TUNNEL_LOCAL_ENDPOINT}
 	done
-	iptables -t mangle -A FORWARD -o ${TUNNEL_NAME} -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
-	iptables -t mangle -A INPUT -p esp -s ${TUNNEL_REMOTE_ENDPOINT} -d ${TUNNEL_LOCAL_ENDPOINT} -j MARK --set-xmark ${TUNNEL_MARK}
+	${IPTABLES} -t mangle -A FORWARD -o ${TUNNEL_NAME} -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+	${IPTABLES} -t mangle -A INPUT -p esp -s ${TUNNEL_REMOTE_ENDPOINT} -d ${TUNNEL_LOCAL_ENDPOINT} -j MARK --set-xmark ${TUNNEL_MARK}
 	ip route flush table 220
 }
 
@@ -65,8 +68,8 @@ cleanup() {
         for i in "${route[@]}"; do
             ip route del ${i} dev ${TUNNEL_NAME} metric ${TUNNEL_MARK} src ${TUNNEL_LOCAL_ENDPOINT}
         done
-	iptables -t mangle -D FORWARD -o ${TUNNEL_NAME} -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
-	iptables -t mangle -D INPUT -p esp -s ${TUNNEL_REMOTE_ENDPOINT} -d ${TUNNEL_LOCAL_ENDPOINT} -j MARK --set-xmark ${TUNNEL_MARK}
+	${IPTABLES} -t mangle -D FORWARD -o ${TUNNEL_NAME} -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+	${IPTABLES} -t mangle -D INPUT -p esp -s ${TUNNEL_REMOTE_ENDPOINT} -d ${TUNNEL_LOCAL_ENDPOINT} -j MARK --set-xmark ${TUNNEL_MARK}
 	ip route flush cache
 }
 
@@ -78,7 +81,7 @@ delete_interface() {
 # main execution starts here
 
 command_exists ip || echo "ERROR: ip command is required to execute the script, check if you are running as root, mostly to do with path, /sbin/" >&2 2>&2
-command_exists iptables || echo "ERROR: iptables command is required to execute the script, check if you are running as root, mostly to do with path, /sbin/" >&2 2>&2
+command_exists $IPTABLES || echo "ERROR: iptables or iptables-legacy command is required to execute the script, check if you are running as root, mostly to do with path, /sbin/" >&2 2>&2
 command_exists sysctl || echo "ERROR: sysctl command is required to execute the script, check if you are running as root, mostly to do with path, /sbin/" >&2 2>&2
 
 case "${PLUTO_VERB}" in
