@@ -113,6 +113,24 @@ resource "local_file" "provider-yaml" {
   file_permission   = "0600"
 }
 
+resource "local_file" "deployment-yaml" {
+  content = templatefile("${path.module}/kustomization/deployment.yaml.tmpl", {
+    local_dns=var.local_dns,
+  })
+  filename          = "${path.module}/kustomization/deployment.yaml"
+  file_permission   = "0644"
+}
+
+resource "local_file" "node-local-dns-yaml" {
+  content = templatefile("${path.module}/kustomization/node-local-dns.yaml.tmpl", {
+    cluster_domain=var.cluster_domain,
+    local_dns=var.local_dns,
+    kube_dns=var.kube_dns,
+  })
+  filename          = "${path.module}/kustomization/node-local-dns.yaml"
+  file_permission   = "0644"
+}
+
 resource "null_resource" "deploy" {
   count = var.deploy_to_kubernetes ? 1 : 0
 
@@ -128,15 +146,19 @@ resource "null_resource" "deploy" {
 
   triggers = {
     vpn-deployment-yaml=local_file.vpn-deployment-yaml.content,
+    node-local-dns-yaml=local_file.node-local-dns-yaml.content
     aws-vpn-client-env=local_file.aws-vpn-client-env.sensitive_content,
     kustomization-yaml=local_file.kustomization-yaml.sensitive_content,
+    deployment-yaml=local_file.deployment-yaml.content,
     provider-yaml=local_file.provider-yaml.sensitive_content,
   }
 
   depends_on = [
     local_file.vpn-deployment-yaml,
+    local_file.node-local-dns-yaml,
     local_file.aws-vpn-client-env,
     local_file.kustomization-yaml,
+    local_file.deployment-yaml,
     local_file.provider-yaml,
   ]
 }
