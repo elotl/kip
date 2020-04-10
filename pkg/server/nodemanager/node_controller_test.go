@@ -47,6 +47,10 @@ var (
 
 type StartStopFunc func(node *api.Node) error
 
+func StringStringReturnNil(cidr, iid string) error {
+	return nil
+}
+
 func ReturnNil(iid string) error {
 	return nil
 }
@@ -84,10 +88,11 @@ func MakeNodeController() (*NodeController, func()) {
 	podRegistry, closer3 := registry.SetupTestPodRegistry()
 	closer := func() { closer1(); closer2(); closer3() }
 	cloudClient := &cloud.MockCloudClient{
-		Starter:     StartReturnsOK,
-		SpotStarter: StartReturnsOK,
-		Stopper:     ReturnNil,
-		Waiter:      ReturnAddresses,
+		Starter:      StartReturnsOK,
+		SpotStarter:  StartReturnsOK,
+		Stopper:      ReturnNil,
+		Waiter:       ReturnAddresses,
+		RouteRemover: StringStringReturnNil,
 	}
 	imageIdCache := timeoutmap.New(false, make(chan struct{}))
 	imageIdCache.Add(defaultBootImageSpec.String(), defaultBootImageID, 5*time.Minute, timeoutmap.Noop)
@@ -608,10 +613,11 @@ func TestDoPoolsCalculation(t *testing.T) {
 	ctl, closer := MakeNodeController()
 	defer closer()
 	ctl.CloudClient = &cloud.MockCloudClient{
-		Starter:     StartReturnsOK,
-		SpotStarter: StartReturnsOK,
-		Stopper:     ReturnNil,
-		Waiter:      ReturnAddresses,
+		Starter:      StartReturnsOK,
+		SpotStarter:  StartReturnsOK,
+		Stopper:      ReturnNil,
+		Waiter:       ReturnAddresses,
+		RouteRemover: StringStringReturnNil,
 		ImageIDGetter: func(spec cloud.BootImageSpec) (string, error) {
 			return "", nil
 		},
