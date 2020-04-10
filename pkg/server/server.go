@@ -36,11 +36,11 @@ import (
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/server/cloud/azure"
 	"github.com/elotl/kip/pkg/server/events"
+	"github.com/elotl/kip/pkg/server/healthcheck"
 	"github.com/elotl/kip/pkg/server/nodemanager"
 	"github.com/elotl/kip/pkg/server/registry"
 	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/kip/pkg/util/cloudinitfile"
-	"github.com/elotl/kip/pkg/util/conmap"
 	"github.com/elotl/kip/pkg/util/instanceselector"
 	"github.com/elotl/kip/pkg/util/timeoutmap"
 	"github.com/elotl/kip/pkg/util/validation/field"
@@ -277,6 +277,23 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 	itzoClientFactory := nodeclient.NewItzoFactory(
 		&certFactory.Root, *clientCert, connectWithPublicIPs)
 	nodeDispenser := nodemanager.NewNodeDispenser()
+	var healthChecker *healthcheck.HealthCheckController
+	if serverConfigFile.Cells.HealthCheck.CloudAPI != nil {
+		healthChecker = healthcheck.NewCloudAPIHealthChecker(
+			podRegistry,
+			cloudClient,
+			time.Duration(serverConfigFile.Cells.HealthCheck.CloudAPI.Period)*time.Second,
+			time.Duration(serverConfigFile.Cells.HealthCheck.CloudAPI.Timeout)*time.Second,
+		)
+	} else {
+		healthChecker = healthcheck.NewStatusHealthChecker(
+			podRegistry,
+			nodeRegistry,
+			itzoClientFactory,
+			PodControllerCleanPeriod,
+			time.Duration(serverConfigFile.Cells.HealthCheck.Status.Timeout)*time.Second,
+		)
+	}
 	podController := &PodController{
 		podRegistry:        podRegistry,
 		logRegistry:        logRegistry,
@@ -289,10 +306,10 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		cloudClient:        cloudClient,
 		controllerID:       controllerID,
 		nametag:            nametag,
-		lastStatusReply:    conmap.NewStringTimeTime(),
 		serverURL:          serverURL,
 		networkAgentSecret: networkAgentSecret,
 		kubernetesNodeName: nodeName,
+		healthChecker:      healthChecker,
 	}
 	imageIdCache := timeoutmap.New(false, nil)
 	cloudInitFile, err := cloudinitfile.New(serverConfigFile.Cells.CloudInitFile)

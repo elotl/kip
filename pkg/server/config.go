@@ -42,6 +42,10 @@ const (
 )
 
 var (
+	defaultCloudAPIHealthCheckPeriod  = 60
+	defaultCloudAPIHealthCheckTimeout = 180
+	defaultStatusHealthCheckTimeout   = 90
+
 	defaultCPUCapacity    = resource.MustParse("20")
 	defaultMemoryCapacity = resource.MustParse("100Gi")
 	defaultPodCapacity    = resource.MustParse("20")
@@ -122,19 +126,21 @@ type CellsConfig struct {
 	ExtraCIDRs          []string                      `json:"extraCIDRs"`
 	ExtraSecurityGroups []string                      `json:"extraSecurityGroups"`
 	Nametag             string                        `json:"nametag"`
+	HealthCheck         HealthCheckConfig             `json:"healthcheck"`
 }
 
 type HealthCheckConfig struct {
-	Status   *StatusHealthCheck
-	CloudAPI *CloudAPIHealthCheck
+	Status   *StatusHealthCheck   `json:"status"`
+	CloudAPI *CloudAPIHealthCheck `json:"cloudAPI"`
 }
 
 type StatusHealthCheck struct {
-	Timeout int
+	Timeout int `json:"timeout"`
 }
 
 type CloudAPIHealthCheck struct {
-	Foo int
+	Timeout int `json:"timeout"`
+	Period  int `json:"period"`
 }
 
 type ItzoConfig struct {
@@ -161,6 +167,11 @@ func serverConfigFileWithDefaults() *ServerConfigFile {
 			BootImageSpec:     cloud.BootImageSpec{},
 			StandbyCells:      []nodemanager.StandbyNodeSpec{},
 			DefaultVolumeSize: "5Gi",
+			HealthCheck: HealthCheckConfig{
+				Status: &StatusHealthCheck{
+					Timeout: defaultStatusHealthCheckTimeout,
+				},
+			},
 		},
 		Kubelet: KubeletConfig{
 			CPU:    defaultCPUCapacity,
@@ -313,7 +324,25 @@ func ParseConfig(path string) (*ServerConfigFile, error) {
 		return nil, util.WrapError(err, "Error parsing provider.yaml")
 	}
 
+	setConfigDefaults(configFile)
 	return configFile, nil
+}
+
+// Sets default values for parameters that can only be set once the
+// ServerConfigFile has been parsed
+func setConfigDefaults(config *ServerConfigFile) {
+	if config.Cells.HealthCheck.Status != nil {
+		if config.Cells.HealthCheck.Status.Timeout == 0 {
+			config.Cells.HealthCheck.Status.Timeout = defaultStatusHealthCheckTimeout
+		}
+	} else if config.Cells.HealthCheck.CloudAPI != nil {
+		if config.Cells.HealthCheck.CloudAPI.Timeout == 0 {
+			config.Cells.HealthCheck.CloudAPI.Timeout = defaultCloudAPIHealthCheckTimeout
+		}
+		if config.Cells.HealthCheck.CloudAPI.Period == 0 {
+			config.Cells.HealthCheck.CloudAPI.Period = defaultCloudAPIHealthCheckPeriod
+		}
+	}
 }
 
 func ConfigureCloud(configFile *ServerConfigFile, controllerID, nametag string) (cloud.CloudClient, error) {
@@ -408,6 +437,9 @@ func validateServerConfigFile(cf *ServerConfigFile) field.ErrorList {
 		allErrs = append(allErrs, field.Required(fldPath.Child("defaultInstanceType"), ""))
 	}
 
+	if cells.HealthCheck.Status != nil && cells.HealthCheck.CloudAPI != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("healthcheck"), "multiple healthchecks configured", "cannot set both status and cloudAPI healthchecks"))
+	}
 	// Sadly we can't validate the default instance type until
 	// after we initialize the instanceselector and the instance
 	// selector needs the cloud config in order to be initialized

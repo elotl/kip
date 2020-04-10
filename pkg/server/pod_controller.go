@@ -31,16 +31,16 @@ import (
 	"github.com/elotl/kip/pkg/nodeclient"
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/server/events"
+	"github.com/elotl/kip/pkg/server/healthcheck"
 	"github.com/elotl/kip/pkg/server/nodemanager"
 	"github.com/elotl/kip/pkg/server/registry"
 	"github.com/elotl/kip/pkg/util"
-	"github.com/elotl/kip/pkg/util/conmap"
 	"github.com/elotl/kip/pkg/util/k8s"
 	"github.com/elotl/kip/pkg/util/k8s/eventrecorder"
 	"github.com/elotl/kip/pkg/util/stats"
 	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	"github.com/virtual-kubelet/node-cli/manager"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog"
@@ -48,8 +48,11 @@ import (
 
 // make this configurable
 const (
-	statusReplyTimeout time.Duration = 90 * time.Second
-	podUnboundTooLong  time.Duration = 1 * time.Minute
+	statusReplyTimeout          = 90 * time.Second
+	podUnboundTooLong           = 1 * time.Minute
+	PodControllerCleanPeriod    = 20 * time.Second
+	PodControllerControlPeriod  = 5 * time.Second
+	PodControllerFullSyncPeriod = 31 * time.Second
 )
 
 var lastWrongPod map[string]string
@@ -74,12 +77,12 @@ type PodController struct {
 	nametag                string
 	controlLoopTimer       stats.LoopTimer
 	cleanTimer             stats.LoopTimer
-	lastStatusReply        *conmap.StringTimeTime
 	kubernetesNodeName     string
 	serverURL              string
 	networkAgentSecret     string
 	networkAgentKubeconfig *clientcmdapi.Config
 	dnsConfigurer          *dns.Configurer
+	healthChecker          *healthcheck.HealthCheckController
 }
 
 type FullPodStatus struct {
@@ -144,6 +147,7 @@ func (c *PodController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
 	c.createDNSConfigurer()
 	c.registerEventHandlers()
 	c.failDispatchingPods()
+	go c.healthChecker.Start()
 	go c.ControlLoop(quit, wg)
 }
 
@@ -205,9 +209,9 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	klog.V(2).Info("starting pod controller")
-	ticker := time.NewTicker(5 * time.Second)
-	cleanTicker := time.NewTicker(20 * time.Second)
-	fullSyncTicker := time.NewTicker(31 * time.Second)
+	ticker := time.NewTicker(PodControllerControlPeriod)
+	cleanTicker := time.NewTicker(PodControllerCleanPeriod)
+	fullSyncTicker := time.NewTicker(PodControllerFullSyncPeriod)
 	defer ticker.Stop()
 	defer cleanTicker.Stop()
 	defer fullSyncTicker.Stop()
@@ -235,11 +239,23 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 			c.cleanTimer.StartLoop()
 			c.checkClaimedNodes()
 			c.checkRunningPods()
-			c.pruneLastStatusReplies()
-			c.handleReplyTimeouts()
+			c.terminateHealthCheckFailedPods()
 			c.cleanTimer.EndLoop()
 		case <-quit:
 			klog.V(2).Info("Stopping PodController")
+			return
+		}
+	}
+}
+
+func (c *PodController) terminateHealthCheckFailedPods() {
+	for {
+		select {
+		case pod := <-c.healthChecker.TerminatePodsChan():
+			msg := fmt.Sprintf("pod %s failed health checks, failing pod", pod.Name)
+			klog.Warningf(msg)
+			c.markFailedPod(pod, false, msg)
+		default:
 			return
 		}
 	}
@@ -482,6 +498,10 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		return
 	}
 
+	// Make sure we clear out the last status reply from this pod
+	// in case it was previously running
+	c.healthChecker.ClearLastStatusTime(pod.Name)
+
 	err = setPodRunning(pod, node.Name, c.podRegistry, c.events)
 	if err != nil {
 		msg := fmt.Sprintf("Error updating pod status to running: %v", err)
@@ -588,72 +608,6 @@ func (c *PodController) handlePodStatusReply(reply FullPodStatus) {
 
 	if len(reply.ResourceUsage) > 0 {
 		c.metricsRegistry.Insert(pod.Name, api.Now(), reply.ResourceUsage)
-	}
-}
-
-// Remove pods from the map that have been terminated.
-func (c *PodController) pruneLastStatusReplies() {
-	runningPods := make(map[string]bool)
-	_, err := c.podRegistry.ListPods(func(p *api.Pod) bool {
-		if p.Status.Phase == api.PodRunning {
-			runningPods[p.Name] = true
-		}
-		return false
-	})
-	if err != nil {
-		klog.Errorf("Error getting list of pods from registry")
-		return
-	}
-	for _, replyItem := range c.lastStatusReply.Items() {
-		replyPodName := replyItem.Key
-		_, exists := runningPods[replyPodName]
-		if !exists {
-			c.lastStatusReply.Delete(replyPodName)
-		}
-	}
-}
-
-// Handle pods that failed to respond to status requests.
-func (c *PodController) handleReplyTimeouts() {
-	podList, err := c.podRegistry.ListPods(func(p *api.Pod) bool {
-		return p.Status.Phase == api.PodRunning
-	})
-	if err != nil {
-		klog.Errorf("Error getting list of pods from registry")
-		return
-	}
-	now := time.Now().UTC()
-	for _, pod := range podList.Items {
-		last, exists := c.lastStatusReply.GetOK(pod.Name)
-		if !exists {
-			c.lastStatusReply.Set(pod.Name, now)
-			continue
-		}
-		if now.Sub(last) < statusReplyTimeout {
-			continue
-		}
-		go c.maybeFailUnresponsivePod(pod)
-	}
-}
-
-func (c *PodController) maybeFailUnresponsivePod(pod *api.Pod) {
-	node, err := c.nodeLister.GetNode(pod.Status.BoundNodeName)
-	if err != nil {
-		msg := fmt.Sprintf("No node found for pod %s", pod.Name)
-		klog.Warningf(msg)
-		c.markFailedPod(pod, false, msg)
-		return
-	}
-	client := c.nodeClientFactory.GetClient(node.Status.Addresses)
-	_, err = client.GetStatus()
-	if err != nil {
-		msg := fmt.Sprintf("No status reply from pod %s in %ds failing pod",
-			pod.Name, int(statusReplyTimeout.Seconds()))
-		klog.Warningf(msg)
-		c.markFailedPod(pod, false, msg)
-	} else {
-		klog.Warningf("Last chance healthcheck for pod %s saved the pod from failure. Pod status is possibly out of date", pod.Name)
-		c.lastStatusReply.Set(pod.Name, time.Now().UTC())
 	}
 }
 
@@ -858,7 +812,7 @@ func (c *PodController) queryPodStatus(pod *api.Pod) FullPodStatus {
 		}
 		return reply
 	}
-	c.lastStatusReply.Set(pod.Name, time.Now().UTC())
+	c.healthChecker.SetLastStatusTime(pod.Name)
 	replyMap := make(map[string]api.UnitStatus)
 	for _, s := range replyStatuses.UnitStatuses {
 		replyMap[s.Name] = s

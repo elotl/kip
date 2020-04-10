@@ -7,7 +7,7 @@ else
 IMAGE_DEV_OR_LATEST=latest
 endif
 
-LD_VERSION_FLAGS=-X main.buildVersion=$(GIT_VERSION) -X main.buildTime=$(CURRENT_TIME) -X github.com/elotl/cloud-instance-provider/pkg/util.VERSION=$(GIT_VERSION)
+LD_VERSION_FLAGS=-X main.buildVersion=$(GIT_VERSION) -X main.buildTime=$(CURRENT_TIME) -X github.com/elotl/kip/pkg/util.VERSION=$(GIT_VERSION)
 LDFLAGS=-ldflags "$(LD_VERSION_FLAGS)"
 
 BINARIES=virtual-kubelet kipctl
@@ -32,7 +32,7 @@ $(TOP_DIR)pkg/clientapi/clientapi.pb.go: $(TOP_DIR)pkg/clientapi/clientapi.proto
 	protoc -I=$(TOP_DIR) --go_out=plugins=grpc:. $(TOP_DIR)pkg/clientapi/clientapi.proto
 
 $(TOP_DIR)pkg/api/deepcopy_generated.go: $(TOP_DIR)pkg/api/types.go
-	deepcopy-gen --input-dirs=github.com/elotl/cloud-instance-provider/pkg/api
+	deepcopy-gen --input-dirs=github.com/elotl/kip/pkg/api
 
 # kipctl is compiled staticly so it'll run on pods
 kipctl: $(PKG_SRC) $(VENDOR_SRC) $(KIPCTL_SRC)
