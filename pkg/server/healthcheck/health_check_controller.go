@@ -136,7 +136,6 @@ func (c *HealthCheckController) handlePodTimeouts() {
 	}
 }
 
-// Implementation of this differs between the two
 func (c *HealthCheckController) maybeFailUnresponsivePod(pod *api.Pod) {
 	if c.checker.podHasFailed(pod) {
 		klog.Warningf("No status reply from pod %s/%s in %ds failing pod",

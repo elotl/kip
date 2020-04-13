@@ -498,8 +498,11 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		return
 	}
 
-	// Make sure we clear out the last status reply from this pod
-	// in case it was previously running
+	// Make sure we clear out the last status reply from this pod in
+	// case it was previously running. If it took a long time to
+	// re-dispatch the pod, there could be a race between setting the
+	// pod to running, a healthcheck and updating the pod's
+	// lastStatusTime.
 	c.healthChecker.ClearLastStatusTime(pod.Name)
 
 	err = setPodRunning(pod, node.Name, c.podRegistry, c.events)
