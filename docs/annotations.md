@@ -27,7 +27,7 @@ In AWS, Kip cells will get a public IP address if the cell is run in a subnet co
 
 ```yaml
 annotations:
-  pod.elotl.co/private-ip-only: true
+  pod.elotl.co/private-ip-only: 'true'
 ```
 
 **pod.elotl.co/security-groups**
