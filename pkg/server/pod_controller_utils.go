@@ -123,9 +123,13 @@ func computePodPhase(policy api.RestartPolicy, unitstatus []api.UnitStatus, podN
 	return phase, failMsg
 }
 
+func podShouldBeRestarted(pod *api.Pod) bool {
+	return pod.Status.StartFailures <= allowedStartFailures &&
+		pod.Spec.RestartPolicy != api.RestartPolicyNever
+}
+
 func remedyFailedPod(pod *api.Pod, podRegistry *registry.PodRegistry) {
-	if pod.Status.StartFailures <= allowedStartFailures &&
-		pod.Spec.RestartPolicy != api.RestartPolicyNever {
+	if podShouldBeRestarted(pod) {
 		msg := fmt.Sprintf("Pod %s has failed to start %d times, retrying",
 			pod.Name, pod.Status.StartFailures)
 		klog.Warningf("%s", msg)

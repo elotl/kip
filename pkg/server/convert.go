@@ -72,7 +72,14 @@ func getStatus(internalIP string, milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
 	case api.PodSucceeded:
 		phase = v1.PodSucceeded
 	case api.PodFailed:
-		phase = v1.PodFailed
+		// If we set the pod to Failed in K8s, it never comes
+		// back out of that phase A failed pod in kip that should
+		// be restarted is "pending" in k8s
+		if podShouldBeRestarted(milpaPod) {
+			phase = v1.PodPending
+		} else {
+			phase = v1.PodFailed
+		}
 	case api.PodTerminated:
 		phase = v1.PodFailed
 	}
