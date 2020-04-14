@@ -165,10 +165,6 @@ func (n *NodeStatusController) UpdateNode(node *corev1.Node) {
 		n.cidrs = n.cloudClient.GetVPCCIDRs()
 		klog.V(5).Infof("setting pod CIDRs to %v", n.cidrs)
 	}
-	if len(n.cidrs) >= 1 {
-		node.Spec.PodCIDR = n.cidrs[0]
-		node.Spec.PodCIDRs = n.cidrs
-	}
 	node.Status = n.GetNodeStatus()
 	// Save node metadata and spec.
 	n.node = node.DeepCopy()
