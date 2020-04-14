@@ -465,6 +465,7 @@ func (p *InstanceProvider) addOrRemovePodPortMappings(pod *v1.Pod, add bool) err
 	portMappings := getPortMappings(
 		append(pod.Spec.InitContainers, pod.Spec.Containers...))
 	if len(portMappings) == 0 {
+		klog.V(5).Infof("no host port mappings found for pod %q", pod.Name)
 		return nil
 	}
 	podIP := net.ParseIP(pod.Status.PodIP)
@@ -481,31 +482,31 @@ func (p *InstanceProvider) addOrRemovePodPortMappings(pod *v1.Pod, add bool) err
 }
 
 func (p *InstanceProvider) Handle(ev events.Event) error {
-	milpaPod, ok := ev.Object.(*api.Pod)
+	kipPod, ok := ev.Object.(*api.Pod)
 	if !ok {
 		klog.Errorf("event %v with unknown object", ev)
 		return nil
 	}
-	pod, err := milpaToK8sPod(p.nodeName, p.internalIP, milpaPod)
+	klog.V(4).Infof("kip pod %q (%v) event %v",
+		kipPod.Name, kipPod.Status.Phase, ev)
+	pod, err := milpaToK8sPod(p.nodeName, p.internalIP, kipPod)
 	if err != nil {
-		klog.Errorf("converting milpa pod %s: %v", milpaPod.Name, err)
+		klog.Errorf("converting kip pod %s: %v", kipPod.Name, err)
 		return nil
 	}
-	if ev.Status == events.PodUpdated {
-		if milpaPod.Status.Phase == api.PodRunning &&
-			pod.Status.PodIP != "" {
-			// Pod is up and running, let's set up its hostport mappings.
-			if err := p.addOrRemovePodPortMappings(pod, true); err != nil {
-				klog.Warningf("adding hostports %q: %v", milpaPod.Name, err)
-			}
-		} else if api.IsTerminalPodPhase(milpaPod.Status.Phase) {
-			// Remove port mappings if pod has been terminated or stopped.
-			if err := p.addOrRemovePodPortMappings(pod, false); err != nil {
-				klog.Warningf("removing hostports %q: %v", milpaPod.Name, err)
-			}
+	if ev.Status == events.PodUpdated &&
+		kipPod.Status.Phase == api.PodRunning &&
+		pod.Status.PodIP != "" {
+		// Pod is up and running, let's set up its hostport mappings.
+		if err := p.addOrRemovePodPortMappings(pod, true); err != nil {
+			klog.Warningf("adding hostports %q: %v", kipPod.Name, err)
+		}
+	} else if ev.Status == events.PodTerminated {
+		// Remove port mappings if pod has been terminated.
+		if err := p.addOrRemovePodPortMappings(pod, false); err != nil {
+			klog.Warningf("removing hostports %q: %v", kipPod.Name, err)
 		}
 	}
-	klog.V(4).Infof("milpa pod %q event %v", milpaPod.Name, ev)
 	p.podNotifier(pod)
 	return nil
 }
