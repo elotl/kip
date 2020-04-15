@@ -26,3 +26,31 @@ func AllPodUnits(pod *Pod) []Unit {
 	}
 	return units
 }
+
+// Run through all units in a pod and call f to modify each container
+func ForAllUnits(pod *Pod, f func(unit *Unit)) {
+	for i := range pod.Spec.InitUnits {
+		f(&pod.Spec.InitUnits[i])
+	}
+	for i := range pod.Spec.Units {
+		f(&pod.Spec.Units[i])
+	}
+}
+
+// Run through all units in a pod and call f to modify each unit. Stop
+// iterating if f returns an error.
+func ForAllUnitsWithError(pod *Pod, f func(unit *Unit) error) error {
+	for i := range pod.Spec.InitUnits {
+		err := f(&pod.Spec.InitUnits[i])
+		if err != nil {
+			return err
+		}
+	}
+	for i := range pod.Spec.Units {
+		err := f(&pod.Spec.Units[i])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

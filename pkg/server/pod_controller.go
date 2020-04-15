@@ -918,13 +918,12 @@ func (c *PodController) savePodLogs(pod *api.Pod) {
 	}
 	client := c.nodeClientFactory.GetClient(podAddresses)
 	podRef := api.ToObjectReference(pod)
-	allUnits := api.AllPodUnits(pod)
-	for _, unit := range allUnits {
+	api.ForAllUnits(pod, func(unit *api.Unit) {
 		data, err := client.GetLogs(unit.Name, 0, nodeclient.SAVE_LOG_BYTES)
 		if err != nil {
 			klog.Errorf("Error saving pod %s log for unit %s: %s",
 				pod.Name, unit.Name, err.Error())
-			continue
+			return
 		}
 		log := api.NewLogFile()
 		log.Name = unit.Name
@@ -935,7 +934,7 @@ func (c *PodController) savePodLogs(pod *api.Pod) {
 			klog.Errorf("Error saving pod %s log for unit %s to registry: %s",
 				pod.Name, unit.Name, err.Error())
 		}
-	}
+	})
 }
 
 func (c *PodController) handlePodSucceeded(pod *api.Pod) {

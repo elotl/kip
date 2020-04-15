@@ -823,12 +823,12 @@
   version = "v0.1.4"
 
 [[projects]]
-  digest = "1:e096613fb7cf34743d49af87d197663cfccd61876e2219853005a57baedfa562"
+  digest = "1:1e80255eea46af2e2db7da90f95e4b5cfe84f3b58d9a8598ec35b0f2a75c60e4"
   name = "github.com/spf13/cobra"
   packages = ["."]
   pruneopts = "UT"
-  revision = "f2b07da1e2c38d5f12845a4f607e2e1018cbb1f5"
-  version = "v0.0.5"
+  revision = "6607e6b8603f56adb027298ee6695e06ffb3a819"
+  version = "0.0.7"
 
 [[projects]]
   digest = "1:524b71991fc7d9246cc7dc2d9e0886ccb97648091c63e30eef619e6862c955dd"
@@ -874,7 +874,7 @@
   version = "v1.5.1"
 
 [[projects]]
-  digest = "1:e55df715e4af4e0f3fbd2cfb54b22ffef2ab9038e55bc234489ebc7689ae3dab"
+  digest = "1:c0b015461fdbecef5b399c2aab5d0fb3f3212ea63b394a1a2b17923393eec564"
   name = "github.com/virtual-kubelet/node-cli"
   packages = [
     ".",
@@ -887,7 +887,7 @@
     "provider",
   ]
   pruneopts = "UT"
-  revision = "1a25cea73ff271b05db8eaf5e901765fefd21c32"
+  revision = "c0381df9dbcd89a25594f53d49478f9cd97657ce"
 
 [[projects]]
   digest = "1:ee29cb0ae9cc471817ddfdf0173e8706a8ec227f140c33e30634503917915ced"

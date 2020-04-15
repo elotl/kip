@@ -104,7 +104,7 @@ func main() {
 		log.G(ctx).Fatal(err)
 	}
 
-	if err := node.Run(); err != nil {
+	if err := node.Run(ctx); err != nil {
 		log.G(ctx).Fatal(err)
 	}
 }

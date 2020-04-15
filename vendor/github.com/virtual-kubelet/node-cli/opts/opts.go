@@ -82,6 +82,11 @@ type Opts struct {
 	// Startup Timeout is how long to wait for the kubelet to start
 	StartupTimeout time.Duration
 
+	// KubeAPIQPS is the QPS to use while talking with kubernetes apiserver
+	KubeAPIQPS int32
+	// KubeAPIBurst is the burst to allow while talking with kubernetes apiserver
+	KubeAPIBurst int32
+
 	Version string
 }
 

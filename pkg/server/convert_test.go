@@ -25,7 +25,7 @@ import (
 	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/kip/pkg/util/rand"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -43,11 +43,11 @@ func fakeInstanceProvider() (string, string) {
 //func getStatus(milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus
 func TestGetStatus(t *testing.T) {
 	_, ip := fakeInstanceProvider()
-	milpaPod := api.GetFakePod()
 	pod := &v1.Pod{}
 	testCases := []struct {
 		milpaPodPhase api.PodPhase
 		k8sPodPhase   v1.PodPhase
+		modPod        func(*api.Pod)
 	}{
 		{
 			milpaPodPhase: api.PodDispatching,
@@ -55,7 +55,21 @@ func TestGetStatus(t *testing.T) {
 		},
 		{
 			milpaPodPhase: api.PodFailed,
+			k8sPodPhase:   v1.PodPending,
+		},
+		{
+			milpaPodPhase: api.PodFailed,
 			k8sPodPhase:   v1.PodFailed,
+			modPod: func(p *api.Pod) {
+				p.Spec.RestartPolicy = api.RestartPolicyNever
+			},
+		},
+		{
+			milpaPodPhase: api.PodFailed,
+			k8sPodPhase:   v1.PodFailed,
+			modPod: func(p *api.Pod) {
+				p.Status.StartFailures = allowedStartFailures + 1
+			},
 		},
 		{
 			milpaPodPhase: api.PodRunning,
@@ -75,7 +89,11 @@ func TestGetStatus(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
+		milpaPod := api.GetFakePod()
 		milpaPod.Status.Phase = tc.milpaPodPhase
+		if tc.modPod != nil {
+			tc.modPod(milpaPod)
+		}
 		podStatus := getStatus(ip, milpaPod, pod)
 		assert.Equal(t, podStatus.Phase, tc.k8sPodPhase)
 	}

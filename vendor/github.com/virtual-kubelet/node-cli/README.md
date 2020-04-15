@@ -33,7 +33,7 @@ func main() {
 	log.L = logruslogger.FromLogrus(logrus.NewEntry(logger))
 	logConfig := &logruscli.Config{LogLevel: "info"}
 
-	node, err := cli.New(ctx,
+	node, err := cli.New(
 		cli.WithProvider("demo", func(cfg provider.InitConfig) (provider.Provider, error) {
 			return nil, errors.New("your implementation goes here")
 		}),
@@ -47,13 +47,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	// Notice that the context is not passed in here, this is due to limitations
-	// of the underlying CLI library (cobra).
-	// contexts get passed through from `cli.New()`
-	//
 	// Args can be specified here, or os.Args[1:] will be used.
-	if err := node.Run(); err != nil {
+	if err := node.Run(ctx); err != nil {
 		panic(err)
 	}
 }

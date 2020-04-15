@@ -38,6 +38,7 @@ import (
 	"github.com/elotl/kip/pkg/server/events"
 	"github.com/elotl/kip/pkg/server/healthcheck"
 	"github.com/elotl/kip/pkg/server/nodemanager"
+	"github.com/elotl/kip/pkg/server/nodestatus"
 	"github.com/elotl/kip/pkg/server/registry"
 	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/kip/pkg/util/cloudinitfile"
@@ -50,7 +51,6 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/klog"
@@ -79,21 +79,19 @@ type Controller interface {
 }
 
 type InstanceProvider struct {
-	Registries         map[string]registry.Registryer
-	Encoder            api.MilpaCodec
-	SystemQuit         <-chan struct{}
-	SystemWaitGroup    *sync.WaitGroup
-	Controllers        map[string]Controller
-	ItzoClientFactory  nodeclient.ItzoClientFactoryer
-	cloudClient        cloud.CloudClient
-	controllerManager  *ControllerManager
-	nodeName           string
-	internalIP         string
-	daemonEndpointPort int32
-	kubeletConfig      KubeletConfig
-	startTime          time.Time
-	notifier           func(*v1.Pod)
-	portManager        *portmanager.PortManager
+	Registries        map[string]registry.Registryer
+	Encoder           api.MilpaCodec
+	SystemQuit        <-chan struct{}
+	SystemWaitGroup   *sync.WaitGroup
+	Controllers       map[string]Controller
+	ItzoClientFactory nodeclient.ItzoClientFactoryer
+	cloudClient       cloud.CloudClient
+	controllerManager *ControllerManager
+	nodeName          string
+	internalIP        string
+	startTime         time.Time
+	podNotifier       func(*v1.Pod)
+	portManager       *portmanager.PortManager
 }
 
 func validateWriteToEtcd(client *etcd.SimpleEtcd) error {
@@ -381,12 +379,25 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		os.Exit(1)
 	}
 
+	kubeletCapacity := v1.ResourceList{
+		"cpu":    serverConfigFile.Kubelet.CPU,
+		"memory": serverConfigFile.Kubelet.Memory,
+		"pods":   serverConfigFile.Kubelet.Pods,
+	}
+	nodeStatusController := nodestatus.NewNodeStatusController(
+		cloudClient,
+		internalIP,
+		daemonEndpointPort,
+		kubeletCapacity,
+	)
+
 	controllers := map[string]Controller{
-		"PodController":     podController,
-		"NodeController":    nodeController,
-		"GarbageController": garbageController,
-		"MetricsController": metricsController,
-		"CellController":    cellController,
+		"PodController":        podController,
+		"NodeController":       nodeController,
+		"GarbageController":    garbageController,
+		"MetricsController":    metricsController,
+		"CellController":       cellController,
+		"NodeStatusController": nodeStatusController,
 	}
 
 	if azClient, ok := cloudClient.(*azure.AzureClient); ok {
@@ -404,14 +415,10 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		ItzoClientFactory: itzoClientFactory,
 		cloudClient:       cloudClient,
 		controllerManager: controllerManager,
-
-		// Todo: cleanup these parameters after initial commit
-		nodeName:           nodeName,
-		internalIP:         internalIP,
-		daemonEndpointPort: daemonEndpointPort,
-		kubeletConfig:      serverConfigFile.Kubelet,
-		startTime:          time.Now(),
-		portManager:        portManager,
+		nodeName:          nodeName,
+		internalIP:        internalIP,
+		startTime:         time.Now(),
+		portManager:       portManager,
 	}
 	eventSystem.RegisterHandler(events.PodRunning, s)
 	eventSystem.RegisterHandler(events.PodTerminated, s)
@@ -476,6 +483,7 @@ func (p *InstanceProvider) addOrRemovePodPortMappings(pod *v1.Pod, add bool) err
 	portMappings := getPortMappings(
 		append(pod.Spec.InitContainers, pod.Spec.Containers...))
 	if len(portMappings) == 0 {
+		klog.V(5).Infof("no host port mappings found for pod %q", pod.Name)
 		return nil
 	}
 	podIP := net.ParseIP(pod.Status.PodIP)
@@ -492,32 +500,32 @@ func (p *InstanceProvider) addOrRemovePodPortMappings(pod *v1.Pod, add bool) err
 }
 
 func (p *InstanceProvider) Handle(ev events.Event) error {
-	milpaPod, ok := ev.Object.(*api.Pod)
+	kipPod, ok := ev.Object.(*api.Pod)
 	if !ok {
 		klog.Errorf("event %v with unknown object", ev)
 		return nil
 	}
-	pod, err := milpaToK8sPod(p.nodeName, p.internalIP, milpaPod)
+	klog.V(4).Infof("kip pod %q (%v) event %v",
+		kipPod.Name, kipPod.Status.Phase, ev)
+	pod, err := milpaToK8sPod(p.nodeName, p.internalIP, kipPod)
 	if err != nil {
-		klog.Errorf("converting milpa pod %s: %v", milpaPod.Name, err)
+		klog.Errorf("converting kip pod %s: %v", kipPod.Name, err)
 		return nil
 	}
-	if ev.Status == events.PodUpdated {
-		if milpaPod.Status.Phase == api.PodRunning &&
-			pod.Status.PodIP != "" {
-			// Pod is up and running, let's set up its hostport mappings.
-			if err := p.addOrRemovePodPortMappings(pod, true); err != nil {
-				klog.Warningf("adding hostports %q: %v", milpaPod.Name, err)
-			}
-		} else if api.IsTerminalPodPhase(milpaPod.Status.Phase) {
-			// Remove port mappings if pod has been terminated or stopped.
-			if err := p.addOrRemovePodPortMappings(pod, false); err != nil {
-				klog.Warningf("removing hostports %q: %v", milpaPod.Name, err)
-			}
+	if ev.Status == events.PodUpdated &&
+		kipPod.Status.Phase == api.PodRunning &&
+		pod.Status.PodIP != "" {
+		// Pod is up and running, let's set up its hostport mappings.
+		if err := p.addOrRemovePodPortMappings(pod, true); err != nil {
+			klog.Warningf("adding hostports %q: %v", kipPod.Name, err)
+		}
+	} else if ev.Status == events.PodTerminated {
+		// Remove port mappings if pod has been terminated.
+		if err := p.addOrRemovePodPortMappings(pod, false); err != nil {
+			klog.Warningf("removing hostports %q: %v", kipPod.Name, err)
 		}
 	}
-	klog.V(4).Infof("milpa pod %q event %v", milpaPod.Name, ev)
-	p.notifier(pod)
+	p.podNotifier(pod)
 	return nil
 }
 
@@ -594,7 +602,7 @@ func (p *InstanceProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 		klog.Errorf("CreatePod %q: %v", pod.Name, err)
 		return err
 	}
-	p.notifier(pod)
+	p.podNotifier(pod)
 	return nil
 }
 
@@ -618,7 +626,7 @@ func (p *InstanceProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 		klog.Errorf("UpdatePod %q: %v", pod.Name, err)
 		return err
 	}
-	p.notifier(pod)
+	p.podNotifier(pod)
 	return nil
 }
 
@@ -642,7 +650,7 @@ func (p *InstanceProvider) DeletePod(ctx context.Context, pod *v1.Pod) (err erro
 		klog.Errorf("DeletePod %q: %v", pod.Name, err)
 		return err
 	}
-	p.notifier(pod)
+	p.podNotifier(pod)
 	return nil
 }
 
@@ -710,93 +718,36 @@ func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 	return pods, nil
 }
 
+func (p *InstanceProvider) getNodeStatusController() *nodestatus.NodeStatusController {
+	ctrl, _ := p.controllerManager.GetController("NodeStatusController")
+	return ctrl.(*nodestatus.NodeStatusController)
+}
+
 func (p *InstanceProvider) ConfigureNode(ctx context.Context, n *v1.Node) {
 	ctx, span := trace.StartSpan(ctx, "ConfigureNode")
 	defer span.End()
 	klog.V(5).Infof("ConfigureNode")
-	n.Status.Capacity = p.capacity()
-	n.Status.Allocatable = p.capacity()
-	n.Status.Conditions = p.nodeConditions()
-	n.Status.Addresses = p.nodeAddresses()
-	n.Status.DaemonEndpoints = p.nodeDaemonEndpoints()
-	n.Status.NodeInfo.OperatingSystem = "Linux"
-	n.Status.NodeInfo.Architecture = "amd64"
-}
-
-func (p *InstanceProvider) capacity() v1.ResourceList {
-	return v1.ResourceList{
-		"cpu":    p.kubeletConfig.CPU,
-		"memory": p.kubeletConfig.Memory,
-		"pods":   p.kubeletConfig.Pods,
-	}
-}
-
-func (p *InstanceProvider) nodeConditions() []v1.NodeCondition {
-	return []v1.NodeCondition{
-		{
-			Type:               "Ready",
-			Status:             v1.ConditionTrue,
-			LastHeartbeatTime:  metav1.Now(),
-			LastTransitionTime: metav1.Now(),
-			Reason:             "KubeletReady",
-			Message:            "kubelet is ready",
-		},
-		{
-			Type:               "OutOfDisk",
-			Status:             v1.ConditionFalse,
-			LastHeartbeatTime:  metav1.Now(),
-			LastTransitionTime: metav1.Now(),
-			Reason:             "KubeletHasSufficientDisk",
-			Message:            "kubelet has sufficient disk space available",
-		},
-		{
-			Type:               "MemoryPressure",
-			Status:             v1.ConditionFalse,
-			LastHeartbeatTime:  metav1.Now(),
-			LastTransitionTime: metav1.Now(),
-			Reason:             "KubeletHasSufficientMemory",
-			Message:            "kubelet has sufficient memory available",
-		},
-		{
-			Type:               "DiskPressure",
-			Status:             v1.ConditionFalse,
-			LastHeartbeatTime:  metav1.Now(),
-			LastTransitionTime: metav1.Now(),
-			Reason:             "KubeletHasNoDiskPressure",
-			Message:            "kubelet has no disk pressure",
-		},
-		{
-			Type:               "NetworkUnavailable",
-			Status:             v1.ConditionFalse,
-			LastHeartbeatTime:  metav1.Now(),
-			LastTransitionTime: metav1.Now(),
-			Reason:             "RouteCreated",
-			Message:            "RouteController created a route",
-		},
-	}
-}
-
-func (p *InstanceProvider) nodeAddresses() []v1.NodeAddress {
-	return []v1.NodeAddress{
-		{
-			Type:    "InternalIP",
-			Address: p.internalIP,
-		},
-	}
-}
-
-func (p *InstanceProvider) nodeDaemonEndpoints() v1.NodeDaemonEndpoints {
-	return v1.NodeDaemonEndpoints{
-		KubeletEndpoint: v1.DaemonEndpoint{
-			Port: p.daemonEndpointPort,
-		},
-	}
+	ctrl := p.getNodeStatusController()
+	ctrl.UpdateNode(n)
+	n.Status = ctrl.GetNodeStatus()
 }
 
 // NotifyPods is called to set a pod notifier callback function. This should be
 // called before any operations are done within the provider.
 func (p *InstanceProvider) NotifyPods(ctx context.Context, notifier func(*v1.Pod)) {
-	p.notifier = notifier
+	p.podNotifier = notifier
+}
+
+func (p *InstanceProvider) Ping(ctx context.Context) error {
+	klog.V(5).Infof("received node ping")
+	ctrl := p.getNodeStatusController()
+	return ctrl.Ping(ctx)
+}
+
+func (p *InstanceProvider) NotifyNodeStatus(ctx context.Context, notifier func(*v1.Node)) {
+	klog.V(5).Infof("registering node status callback")
+	ctrl := p.getNodeStatusController()
+	ctrl.NotifyNodeStatus(ctx, notifier)
 }
 
 func addAttributes(ctx context.Context, span trace.Span, attrs ...string) context.Context {
