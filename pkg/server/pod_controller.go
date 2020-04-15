@@ -82,6 +82,7 @@ type PodController struct {
 	networkAgentSecret     string
 	networkAgentKubeconfig *clientcmdapi.Config
 	dnsConfigurer          *dns.Configurer
+	statusInterval         time.Duration
 	healthChecker          *healthcheck.HealthCheckController
 }
 
@@ -208,11 +209,20 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 
+	// TODO: under high load, some functions might take seconds to run
+	// in that case, certain sections below might not get run every X
+	// seconds.  It might be better to use timers instead of tickers
+	// and reset the timer after every successful run of its case
+	// statement.  That doesn't have to happen in every controller,
+	// but the loop below has enough cases the likelyhood of starving
+	// a case statement under high load is pretty good.
 	klog.V(2).Info("starting pod controller")
-	ticker := time.NewTicker(PodControllerControlPeriod)
+	controlTicker := time.NewTicker(PodControllerControlPeriod)
+	statusTicker := time.NewTicker(c.statusInterval)
 	cleanTicker := time.NewTicker(PodControllerCleanPeriod)
 	fullSyncTicker := time.NewTicker(PodControllerFullSyncPeriod)
-	defer ticker.Stop()
+	defer controlTicker.Stop()
+	defer statusTicker.Stop()
 	defer cleanTicker.Stop()
 	defer fullSyncTicker.Stop()
 
@@ -225,14 +235,15 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 		default:
 		}
 		select {
-		case <-ticker.C:
+		case <-controlTicker.C:
 			// todo, see if we can detect ourselves running over time here
 			// that would mean that the time between running this section
 			// exceeds 2x the c.config.Interval
 			c.controlLoopTimer.StartLoop()
-			c.checkRunningPodStatus()
 			c.ControlPods()
 			c.controlLoopTimer.EndLoop()
+		case <-statusTicker.C:
+			c.checkRunningPodStatus()
 		case <-fullSyncTicker.C:
 			c.SyncRunningPods()
 		case <-cleanTicker.C:

@@ -282,8 +282,8 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		healthChecker = healthcheck.NewCloudAPIHealthChecker(
 			podRegistry,
 			cloudClient,
-			time.Duration(serverConfigFile.Cells.HealthCheck.CloudAPI.Period)*time.Second,
-			time.Duration(serverConfigFile.Cells.HealthCheck.CloudAPI.Timeout)*time.Second,
+			time.Duration(serverConfigFile.Cells.HealthCheck.CloudAPI.Interval)*time.Second,
+			time.Duration(serverConfigFile.Cells.HealthCheck.CloudAPI.HealthyTimeout)*time.Second,
 		)
 	} else {
 		healthChecker = healthcheck.NewStatusHealthChecker(
@@ -291,7 +291,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 			nodeRegistry,
 			itzoClientFactory,
 			PodControllerCleanPeriod,
-			time.Duration(serverConfigFile.Cells.HealthCheck.Status.Timeout)*time.Second,
+			time.Duration(serverConfigFile.Cells.HealthCheck.Status.HealthyTimeout)*time.Second,
 		)
 	}
 	podController := &PodController{
@@ -309,6 +309,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		serverURL:          serverURL,
 		networkAgentSecret: networkAgentSecret,
 		kubernetesNodeName: nodeName,
+		statusInterval:     time.Duration(serverConfigFile.Cells.StatusInterval) * time.Second,
 		healthChecker:      healthChecker,
 	}
 	imageIdCache := timeoutmap.New(false, nil)

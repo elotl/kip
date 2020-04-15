@@ -76,7 +76,7 @@ func TestHandlePodTimeouts(t *testing.T) {
 			name: "expired but annotated pod doesn't fail",
 			podMod: func(p *api.Pod) {
 				p.Annotations = map[string]string{
-					annotations.PodHealthcheckTimeout: "1000000",
+					annotations.PodHealthcheckHealthyTimeout: "1000000",
 				}
 			},
 			lastCheckin: time.Now().Add(-1 * time.Hour),

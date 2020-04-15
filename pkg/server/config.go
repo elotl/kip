@@ -42,9 +42,10 @@ const (
 )
 
 var (
-	defaultCloudAPIHealthCheckPeriod  = 60
-	defaultCloudAPIHealthCheckTimeout = 180
-	defaultStatusHealthCheckTimeout   = 90
+	defaultStatusInterval              = 5
+	defaultCloudAPIHealthCheckInterval = 60
+	defaultCloudAPIHealthCheckTimeout  = 180
+	defaultStatusHealthCheckTimeout    = 90
 
 	defaultCPUCapacity    = resource.MustParse("20")
 	defaultMemoryCapacity = resource.MustParse("100Gi")
@@ -126,6 +127,7 @@ type CellsConfig struct {
 	ExtraCIDRs          []string                      `json:"extraCIDRs"`
 	ExtraSecurityGroups []string                      `json:"extraSecurityGroups"`
 	Nametag             string                        `json:"nametag"`
+	StatusInterval      int                           `json:"statusInterval"`
 	HealthCheck         HealthCheckConfig             `json:"healthcheck"`
 }
 
@@ -135,12 +137,12 @@ type HealthCheckConfig struct {
 }
 
 type StatusHealthCheck struct {
-	Timeout int `json:"timeout"`
+	HealthyTimeout int `json:"healthyTimeout"`
 }
 
 type CloudAPIHealthCheck struct {
-	Timeout int `json:"timeout"`
-	Period  int `json:"period"`
+	Interval       int `json:"interval"`
+	HealthyTimeout int `json:"healthyTimeout"`
 }
 
 type ItzoConfig struct {
@@ -167,9 +169,10 @@ func serverConfigFileWithDefaults() *ServerConfigFile {
 			BootImageSpec:     cloud.BootImageSpec{},
 			StandbyCells:      []nodemanager.StandbyNodeSpec{},
 			DefaultVolumeSize: "5Gi",
+			StatusInterval:    defaultStatusInterval,
 			HealthCheck: HealthCheckConfig{
 				Status: &StatusHealthCheck{
-					Timeout: defaultStatusHealthCheckTimeout,
+					HealthyTimeout: defaultStatusHealthCheckTimeout,
 				},
 			},
 		},
@@ -332,15 +335,15 @@ func ParseConfig(path string) (*ServerConfigFile, error) {
 // ServerConfigFile has been parsed
 func setConfigDefaults(config *ServerConfigFile) {
 	if config.Cells.HealthCheck.Status != nil {
-		if config.Cells.HealthCheck.Status.Timeout == 0 {
-			config.Cells.HealthCheck.Status.Timeout = defaultStatusHealthCheckTimeout
+		if config.Cells.HealthCheck.Status.HealthyTimeout == 0 {
+			config.Cells.HealthCheck.Status.HealthyTimeout = defaultStatusHealthCheckTimeout
 		}
 	} else if config.Cells.HealthCheck.CloudAPI != nil {
-		if config.Cells.HealthCheck.CloudAPI.Timeout == 0 {
-			config.Cells.HealthCheck.CloudAPI.Timeout = defaultCloudAPIHealthCheckTimeout
+		if config.Cells.HealthCheck.CloudAPI.HealthyTimeout == 0 {
+			config.Cells.HealthCheck.CloudAPI.HealthyTimeout = defaultCloudAPIHealthCheckTimeout
 		}
-		if config.Cells.HealthCheck.CloudAPI.Period == 0 {
-			config.Cells.HealthCheck.CloudAPI.Period = defaultCloudAPIHealthCheckPeriod
+		if config.Cells.HealthCheck.CloudAPI.Interval == 0 {
+			config.Cells.HealthCheck.CloudAPI.Interval = defaultCloudAPIHealthCheckInterval
 		}
 	}
 }
@@ -435,6 +438,10 @@ func validateServerConfigFile(cf *ServerConfigFile) field.ErrorList {
 
 	if cells.DefaultInstanceType == "" {
 		allErrs = append(allErrs, field.Required(fldPath.Child("defaultInstanceType"), ""))
+	}
+
+	if cells.StatusInterval < 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("statusInterval"), cells.StatusInterval, "cells.statusInterval must be >= 1"))
 	}
 
 	if cells.HealthCheck.Status != nil && cells.HealthCheck.CloudAPI != nil {

@@ -21,9 +21,11 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/elotl/kip/pkg/api"
+	apiannotations "github.com/elotl/kip/pkg/api/annotations"
 	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/kip/pkg/util/instanceselector"
 	"github.com/elotl/kip/pkg/util/validation"
@@ -140,6 +142,26 @@ func ValidateFileExists(path string, fldPath *field.Path) field.ErrorList {
 	return allErrs
 }
 
+func ValidatePodAnnotations(annotations map[string]string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	for k, v := range annotations {
+		switch k {
+		case apiannotations.PodHealthcheckHealthyTimeout:
+			_, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child(k), v, "Could not parse annotation value as int or float"))
+			}
+		case apiannotations.PodResourcesPrivateIPOnly:
+			_, err := strconv.ParseBool(v)
+			fmt.Println("parsed bool")
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child(k), v, "Could not parse annotation value as bool"))
+			}
+		}
+	}
+	return allErrs
+}
+
 // ValidateAnnotations validates that a set of annotations are correctly defined.
 func ValidateAnnotations(annotations map[string]string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
@@ -193,6 +215,7 @@ func ValidateObjectMeta(meta *api.ObjectMeta, requiresNamespace bool, nameFn Val
 		}
 	}
 	allErrs = append(allErrs, ValidateLabels(meta.Labels, fldPath.Child("labels"))...)
+	allErrs = append(allErrs, ValidateAnnotations(meta.Annotations, fldPath.Child("annotations"))...)
 	return allErrs
 }
 
@@ -247,6 +270,7 @@ func ValidatePod(pod *api.Pod) field.ErrorList {
 	fldPath := field.NewPath("metadata")
 	allErrs := ValidateObjectMeta(&pod.ObjectMeta, true, ValidatePodName, fldPath)
 	allErrs = append(allErrs, ValidatePodSpec(&pod.Spec, field.NewPath("spec"))...)
+	allErrs = append(allErrs, ValidatePodAnnotations(pod.Annotations, field.NewPath("metadata.annotations"))...)
 	return allErrs
 }
 

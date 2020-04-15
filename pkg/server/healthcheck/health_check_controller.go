@@ -46,7 +46,7 @@ type healthChecker interface {
 type HealthCheckController struct {
 	podLister               registry.PodLister
 	lastStatusTime          *conmap.StringTimeTime
-	checkPeriod             time.Duration
+	checkInterval           time.Duration
 	defaultUnhealthyTimeout time.Duration
 	terminateChan           chan *api.Pod
 	checker                 healthChecker
@@ -56,12 +56,12 @@ func NewStatusHealthChecker(
 	podLister registry.PodLister,
 	nodeLister registry.NodeLister,
 	nodeClientFactory nodeclient.ItzoClientFactoryer,
-	checkPeriod time.Duration,
+	checkInterval time.Duration,
 	defaultUnhealthyTimeout time.Duration) *HealthCheckController {
 	return &HealthCheckController{
 		podLister:               podLister,
 		lastStatusTime:          conmap.NewStringTimeTime(),
-		checkPeriod:             checkPeriod,
+		checkInterval:           checkInterval,
 		defaultUnhealthyTimeout: defaultUnhealthyTimeout,
 		terminateChan:           make(chan *api.Pod, terminateChanSize),
 		checker: &statusHealthCheck{
@@ -74,12 +74,12 @@ func NewStatusHealthChecker(
 func NewCloudAPIHealthChecker(
 	podLister registry.PodLister,
 	cloudClient cloud.CloudClient,
-	checkPeriod time.Duration,
+	checkInterval time.Duration,
 	defaultUnhealthyTimeout time.Duration) *HealthCheckController {
 	return &HealthCheckController{
 		podLister:               podLister,
 		lastStatusTime:          conmap.NewStringTimeTime(),
-		checkPeriod:             checkPeriod,
+		checkInterval:           checkInterval,
 		defaultUnhealthyTimeout: defaultUnhealthyTimeout,
 		terminateChan:           make(chan *api.Pod, terminateChanSize),
 		checker: &cloudAPIHealthCheck{
@@ -90,7 +90,7 @@ func NewCloudAPIHealthChecker(
 }
 
 func (c *HealthCheckController) Start() {
-	for range time.Tick(c.checkPeriod) {
+	for range time.Tick(c.checkInterval) {
 		if err := c.checker.checkPods(c.lastStatusTime); err != nil {
 			// If our pod check fails, don't try to terminate pods
 			// pods should only be terminated if we know they're not
@@ -121,7 +121,7 @@ func (c *HealthCheckController) handlePodTimeouts() {
 			continue
 		}
 		unhealthyTimeout := c.defaultUnhealthyTimeout
-		if val, ok := pod.Annotations[annotations.PodHealthcheckTimeout]; ok {
+		if val, ok := pod.Annotations[annotations.PodHealthcheckHealthyTimeout]; ok {
 			t, err := strconv.ParseFloat(val, 64)
 			if err == nil {
 				unhealthyTimeout = time.Duration(t) * time.Second

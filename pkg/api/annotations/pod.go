@@ -53,10 +53,10 @@ const PodTaskExecutionRole = "pod.elotl.co/task-execution-role"
 // in the task assume this role.
 const PodTaskRole = "pod.elotl.co/task-role"
 
-// The PodHealthcheckTimeout annotation is used to customize the
+// The PodHealthcheckHealthyTimeout annotation is used to customize the
 // healthcheck timeout for pods. If a pod doesn't have a healthy
 // response to healthcheck probes for greater than healthcheck-timeout
 // the pod will be terminated and restarted according to the pod's
 // restartPolicy.  A healthcheck-timeout less than zero means the pod
 // will not be terminated due to failing healthchecks.
-const PodHealthcheckTimeout = "pod.elotl.co/healthcheck-timeout"
+const PodHealthcheckHealthyTimeout = "pod.elotl.co/healthcheck-healthy-timeout"

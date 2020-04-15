@@ -148,4 +148,32 @@ cells:
   # itzo:
   #   version: 532
   #   url: "http://itzo-kip-download.s3.amazonaws.com"
+
+  # statusPeriod controls how often (in seconds) kip will query cells
+  # for their status.
+
+  # statusInterval: 5
+
+  # the healthCheck section is used to configure how cells are
+  # health checked.  Kip supports two methods of determining cell health:
+  # 1) status health checks that ensure nodes are responding to status
+  #    queries from kip
+  # 2) cloud API healthchecks that query the cloud API to determine
+  #    cell health.
+  # status is the default healthcheck mode. cloudAPI health checks are
+  # useful for configurations where where kip is connected to the
+  # cloud network through the internet. Kip will query the
+  # cloud provider's API to determine if a node is running. cloudAPI
+  # healthchecks provide less confidence the cells are functioning
+  # correctly but allows cells to survive temporary network
+  # connectivity issues between the kip controller and the cells.
+  # Only one of status or cloudAPI healthcheck can be specified in the
+  # healthcheck section
+
+  # healthcheck:
+  #   status:
+  #     timeout: 90
+  #   cloudAPI:
+  #     timeout: 180
+
 ```
