@@ -170,11 +170,6 @@ func serverConfigFileWithDefaults() *ServerConfigFile {
 			StandbyCells:      []nodemanager.StandbyNodeSpec{},
 			DefaultVolumeSize: "5Gi",
 			StatusInterval:    defaultStatusInterval,
-			HealthCheck: HealthCheckConfig{
-				Status: &StatusHealthCheck{
-					HealthyTimeout: defaultStatusHealthCheckTimeout,
-				},
-			},
 		},
 		Kubelet: KubeletConfig{
 			CPU:    defaultCPUCapacity,
@@ -334,6 +329,13 @@ func ParseConfig(path string) (*ServerConfigFile, error) {
 // Sets default values for parameters that can only be set once the
 // ServerConfigFile has been parsed
 func setConfigDefaults(config *ServerConfigFile) {
+	if config.Cells.HealthCheck.Status == nil && config.Cells.HealthCheck.CloudAPI == nil {
+		config.Cells.HealthCheck = HealthCheckConfig{
+			Status: &StatusHealthCheck{
+				HealthyTimeout: defaultStatusHealthCheckTimeout,
+			},
+		}
+	}
 	if config.Cells.HealthCheck.Status != nil {
 		if config.Cells.HealthCheck.Status.HealthyTimeout == 0 {
 			config.Cells.HealthCheck.Status.HealthyTimeout = defaultStatusHealthCheckTimeout
@@ -342,7 +344,7 @@ func setConfigDefaults(config *ServerConfigFile) {
 		if config.Cells.HealthCheck.CloudAPI.HealthyTimeout == 0 {
 			config.Cells.HealthCheck.CloudAPI.HealthyTimeout = defaultCloudAPIHealthCheckTimeout
 		}
-		if config.Cells.HealthCheck.CloudAPI.Interval == 0 {
+		if config.Cells.HealthCheck.CloudAPI.Interval <= 0 {
 			config.Cells.HealthCheck.CloudAPI.Interval = defaultCloudAPIHealthCheckInterval
 		}
 	}

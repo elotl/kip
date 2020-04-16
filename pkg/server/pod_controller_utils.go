@@ -130,8 +130,10 @@ func podShouldBeRestarted(pod *api.Pod) bool {
 
 func remedyFailedPod(pod *api.Pod, podRegistry *registry.PodRegistry) {
 	if podShouldBeRestarted(pod) {
-		msg := fmt.Sprintf("Pod %s has failed to start %d times, retrying",
-			pod.Name, pod.Status.StartFailures)
+		msg := fmt.Sprintf("Pod %s is being restarted on a new cell", pod.Name)
+		if pod.Status.StartFailures > 0 {
+			msg += fmt.Sprintf(", pod has failed to start %d times", pod.Status.StartFailures)
+		}
 		klog.Warningf("%s", msg)
 		// reset most everything in the status
 		pod.Status = api.PodStatus{
@@ -140,8 +142,7 @@ func remedyFailedPod(pod *api.Pod, podRegistry *registry.PodRegistry) {
 		}
 		podRegistry.UpdatePodStatus(pod, msg)
 	} else {
-		klog.Errorf("pod %s has failed to start %d times. Not trying again, pod has failed",
-			pod.Name, pod.Status.StartFailures)
+		klog.Errorf("pod %s has failed to start %d times. Not trying again, pod has failed", pod.Name, pod.Status.StartFailures)
 		podRegistry.TerminatePod(pod, api.PodFailed,
 			"Pod failed: too many start failures")
 	}

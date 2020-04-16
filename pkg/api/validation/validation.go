@@ -153,7 +153,6 @@ func ValidatePodAnnotations(annotations map[string]string, fldPath *field.Path) 
 			}
 		case apiannotations.PodResourcesPrivateIPOnly:
 			_, err := strconv.ParseBool(v)
-			fmt.Println("parsed bool")
 			if err != nil {
 				allErrs = append(allErrs, field.Invalid(fldPath.Child(k), v, "Could not parse annotation value as bool"))
 			}

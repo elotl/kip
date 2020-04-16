@@ -17,6 +17,8 @@ limitations under the License.
 package healthcheck
 
 import (
+	"time"
+
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/nodeclient"
 	"github.com/elotl/kip/pkg/server/registry"
@@ -27,6 +29,7 @@ import (
 type statusHealthCheck struct {
 	nodeLister        registry.NodeLister
 	nodeClientFactory nodeclient.ItzoClientFactoryer
+	lastStatusTime    *conmap.StringTimeTime
 }
 
 // This is taken care of by the PodController
@@ -34,7 +37,7 @@ func (shc *statusHealthCheck) checkPods(lastStatusReply *conmap.StringTimeTime) 
 	return nil
 }
 
-func (shc *statusHealthCheck) podHasFailed(pod *api.Pod) bool {
+func (shc *statusHealthCheck) hasPodFailed(pod *api.Pod) bool {
 	node, err := shc.nodeLister.GetNode(pod.Status.BoundNodeName)
 	if err != nil {
 		klog.Warningf("No node found for pod %s", pod.Name)
@@ -48,4 +51,26 @@ func (shc *statusHealthCheck) podHasFailed(pod *api.Pod) bool {
 
 	klog.Warningf("Last chance healthcheck for pod %s saved the pod from failure. Pod status is possibly out of date", pod.Name)
 	return false
+}
+
+// This tries one last time to check the status of the pod and then
+// fails it if that doesn't work.  The one last check (hasPodFailed)
+// comes from working with an overloaded system that couldn't process
+// all the status replies coming into the system.
+func (shc *statusHealthCheck) maybeFailUnresponsivePod(pod *api.Pod, terminateChan chan *api.Pod) {
+	go func() {
+		if shc.hasPodFailed(pod) {
+			// We'll run this syncronously to ensure that, if nothing is
+			// processing failed pods, more pods don't get failed. We use
+			// a buffered channel to allow up to a full iteration through
+			// the list of running pods.
+			klog.Errorf("failing pod %s", pod.Name)
+			terminateChan <- pod
+		} else {
+			// We've gotten a good status back from the pod, lets
+			// reset the lastStatusTime and come back to this pod if
+			// it fails again.
+			shc.lastStatusTime.Set(pod.Name, time.Now().UTC())
+		}
+	}()
 }

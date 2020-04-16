@@ -241,6 +241,7 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 			// exceeds 2x the c.config.Interval
 			c.controlLoopTimer.StartLoop()
 			c.ControlPods()
+			c.terminateHealthCheckFailedPods()
 			c.controlLoopTimer.EndLoop()
 		case <-statusTicker.C:
 			c.checkRunningPodStatus()
@@ -250,7 +251,6 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 			c.cleanTimer.StartLoop()
 			c.checkClaimedNodes()
 			c.checkRunningPods()
-			c.terminateHealthCheckFailedPods()
 			c.cleanTimer.EndLoop()
 		case <-quit:
 			klog.V(2).Info("Stopping PodController")
@@ -259,11 +259,14 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 	}
 }
 
+// If this isn't called quick enough, the terminate chan can be backed
+// up For now, calling markFailedPod multiple times isn't a very bad
+// thing.
 func (c *PodController) terminateHealthCheckFailedPods() {
 	for {
 		select {
 		case pod := <-c.healthChecker.TerminatePodsChan():
-			msg := fmt.Sprintf("pod %s failed health checks, failing pod", pod.Name)
+			msg := fmt.Sprintf("pod %s failed health checks", pod.Name)
 			klog.Warningf(msg)
 			c.markFailedPod(pod, false, msg)
 		default:
@@ -681,8 +684,8 @@ func (c *PodController) checkClaimedNodes() {
 	lastWrongPod = wrongPod
 }
 
-// make sure that all running pods are
-// actually running on the nodes they say they're running on
+// make sure that all running pods are actually running on the nodes
+// they say they're running on
 func (c *PodController) checkRunningPods() {
 	// get claimed nodes, store in nodeName -> podName
 	// go through running pods, get BoundNodeName, compare to nodeToPod

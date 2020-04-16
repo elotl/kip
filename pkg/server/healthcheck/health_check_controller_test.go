@@ -1,7 +1,6 @@
 package healthcheck
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -14,27 +13,29 @@ import (
 
 type mockHealthChecker struct {
 	podChecker func(*conmap.StringTimeTime) error
-	podFailer  func(*api.Pod) bool
+	podFailer  func(pod *api.Pod, terminateChan chan *api.Pod)
 }
 
 func (m *mockHealthChecker) checkPods(cm *conmap.StringTimeTime) error {
 	return m.podChecker(cm)
 }
 
-func (m *mockHealthChecker) podHasFailed(pod *api.Pod) bool {
-	return m.podFailer(pod)
+func (m *mockHealthChecker) maybeFailUnresponsivePod(pod *api.Pod, terminateChan chan *api.Pod) {
+	m.podFailer(pod, terminateChan)
 }
 
 func makeTestHealthChecker() (*HealthCheckController, func()) {
 	podReg, closer := registry.SetupTestPodRegistry()
 	hc := HealthCheckController{
-		podLister:               podReg,
-		lastStatusTime:          conmap.NewStringTimeTime(),
-		checkPeriod:             1 * time.Second,
-		defaultUnhealthyTimeout: 10 * time.Second,
-		terminateChan:           make(chan *api.Pod, terminateChanSize),
+		podLister:        podReg,
+		lastStatusTime:   conmap.NewStringTimeTime(),
+		checkInterval:    1 * time.Second,
+		unhealthyTimeout: 10 * time.Second,
+		terminateChan:    make(chan *api.Pod, terminateChanSize),
 		checker: &mockHealthChecker{
-			podFailer: func(p *api.Pod) bool { return true },
+			podFailer: func(pod *api.Pod, terminateChan chan *api.Pod) {
+				terminateChan <- pod
+			},
 		},
 	}
 	return &hc, closer
@@ -43,10 +44,8 @@ func makeTestHealthChecker() (*HealthCheckController, func()) {
 func podWasFailed(c <-chan *api.Pod) bool {
 	select {
 	case <-c:
-		fmt.Println("returning true")
 		return true
 	default:
-		fmt.Println("returning false")
 		return false
 	}
 }
@@ -96,6 +95,7 @@ func TestHandlePodTimeouts(t *testing.T) {
 	for _, tc := range tests {
 		ctl, closer := makeTestHealthChecker()
 		defer closer()
+
 		podReg := ctl.podLister.(*registry.PodRegistry)
 
 		p := api.GetFakePod()
@@ -121,24 +121,6 @@ func TestHandlePodTimeouts(t *testing.T) {
 			assert.False(t, tm.IsZero(), tc.name)
 		}
 	}
-}
-
-func TestMaybeFailUnresponsivePod(t *testing.T) {
-	ctl, closer := makeTestHealthChecker()
-	defer closer()
-	p := api.GetFakePod()
-	ctl.checker = &mockHealthChecker{
-		podFailer: func(p *api.Pod) bool { return true },
-	}
-	ctl.maybeFailUnresponsivePod(p)
-	assert.True(t, podWasFailed(ctl.TerminatePodsChan()))
-	ctl.checker = &mockHealthChecker{
-		podFailer: func(p *api.Pod) bool { return false },
-	}
-	ctl.maybeFailUnresponsivePod(p)
-	assert.False(t, podWasFailed(ctl.TerminatePodsChan()))
-	_, ok := ctl.lastStatusTime.GetOK(p.Name)
-	assert.True(t, ok)
 }
 
 func TestCleanupLastStatusTimes(t *testing.T) {

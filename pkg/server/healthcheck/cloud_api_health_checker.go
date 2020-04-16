@@ -64,9 +64,6 @@ func (chc *cloudAPIHealthCheck) checkPods(lastStatusTime *conmap.StringTimeTime)
 	return nil
 }
 
-// We could send one last query to the cloud to see if the instance
-// is alive but, that might risk flooding the cloud with lots of
-// individual queries for instances
-func (chc *cloudAPIHealthCheck) podHasFailed(pod *api.Pod) bool {
-	return true
+func (c *cloudAPIHealthCheck) maybeFailUnresponsivePod(pod *api.Pod, terminateChan chan *api.Pod) {
+	terminateChan <- pod
 }

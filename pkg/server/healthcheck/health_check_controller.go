@@ -38,18 +38,21 @@ type healthChecker interface {
 	// is healthy.  This is a bit of a kluge since, for the
 	// statusHealthCheck the PodController actually updates the conmap
 	checkPods(*conmap.StringTimeTime) error
-	// Allow one last check to see if the pod is healthy, if
-	// pod is not healthy, we chuck it into the terminateChan
-	podHasFailed(pod *api.Pod) bool
+
+	// Fail the pod after one last check.  This got pushed into the
+	// interface since it needs to be a goroutine for
+	// statusHealthCheck but should be syncronous for tests and for
+	// the cloudAPIHealthCheck
+	maybeFailUnresponsivePod(pod *api.Pod, terminateChan chan *api.Pod)
 }
 
 type HealthCheckController struct {
-	podLister               registry.PodLister
-	lastStatusTime          *conmap.StringTimeTime
-	checkInterval           time.Duration
-	defaultUnhealthyTimeout time.Duration
-	terminateChan           chan *api.Pod
-	checker                 healthChecker
+	podLister        registry.PodLister
+	lastStatusTime   *conmap.StringTimeTime
+	checkInterval    time.Duration
+	unhealthyTimeout time.Duration
+	terminateChan    chan *api.Pod
+	checker          healthChecker
 }
 
 func NewStatusHealthChecker(
@@ -57,16 +60,18 @@ func NewStatusHealthChecker(
 	nodeLister registry.NodeLister,
 	nodeClientFactory nodeclient.ItzoClientFactoryer,
 	checkInterval time.Duration,
-	defaultUnhealthyTimeout time.Duration) *HealthCheckController {
+	unhealthyTimeout time.Duration) *HealthCheckController {
+	lastStatusTime := conmap.NewStringTimeTime()
 	return &HealthCheckController{
-		podLister:               podLister,
-		lastStatusTime:          conmap.NewStringTimeTime(),
-		checkInterval:           checkInterval,
-		defaultUnhealthyTimeout: defaultUnhealthyTimeout,
-		terminateChan:           make(chan *api.Pod, terminateChanSize),
+		podLister:        podLister,
+		lastStatusTime:   lastStatusTime,
+		checkInterval:    checkInterval,
+		unhealthyTimeout: unhealthyTimeout,
+		terminateChan:    make(chan *api.Pod, terminateChanSize),
 		checker: &statusHealthCheck{
 			nodeLister:        nodeLister,
 			nodeClientFactory: nodeClientFactory,
+			lastStatusTime:    lastStatusTime,
 		},
 	}
 }
@@ -75,13 +80,13 @@ func NewCloudAPIHealthChecker(
 	podLister registry.PodLister,
 	cloudClient cloud.CloudClient,
 	checkInterval time.Duration,
-	defaultUnhealthyTimeout time.Duration) *HealthCheckController {
+	unhealthyTimeout time.Duration) *HealthCheckController {
 	return &HealthCheckController{
-		podLister:               podLister,
-		lastStatusTime:          conmap.NewStringTimeTime(),
-		checkInterval:           checkInterval,
-		defaultUnhealthyTimeout: defaultUnhealthyTimeout,
-		terminateChan:           make(chan *api.Pod, terminateChanSize),
+		podLister:        podLister,
+		lastStatusTime:   conmap.NewStringTimeTime(),
+		checkInterval:    checkInterval,
+		unhealthyTimeout: unhealthyTimeout,
+		terminateChan:    make(chan *api.Pod, terminateChanSize),
 		checker: &cloudAPIHealthCheck{
 			podLister:   podLister,
 			cloudClient: cloudClient,
@@ -104,7 +109,19 @@ func (c *HealthCheckController) Start() {
 	}
 }
 
-// If a pod hasn't updated lastStatusTime
+func (c *HealthCheckController) getPodHealthCheckTimeout(pod *api.Pod) time.Duration {
+	unhealthyTimeout := c.unhealthyTimeout
+	if val, ok := pod.Annotations[annotations.PodHealthcheckHealthyTimeout]; ok {
+		t, err := strconv.ParseFloat(val, 64)
+		if err == nil {
+			unhealthyTimeout = time.Duration(t) * time.Second
+		}
+	}
+	return unhealthyTimeout
+}
+
+// Check if a pod has timed out, if so, call checker.maybeFailUnresponsivePod
+// to terminate the unresponsive pod
 func (c *HealthCheckController) handlePodTimeouts() {
 	podList, err := c.podLister.ListPods(func(p *api.Pod) bool {
 		return p.Status.Phase == api.PodRunning
@@ -120,33 +137,14 @@ func (c *HealthCheckController) handlePodTimeouts() {
 			c.lastStatusTime.Set(pod.Name, now)
 			continue
 		}
-		unhealthyTimeout := c.defaultUnhealthyTimeout
-		if val, ok := pod.Annotations[annotations.PodHealthcheckHealthyTimeout]; ok {
-			t, err := strconv.ParseFloat(val, 64)
-			if err == nil {
-				unhealthyTimeout = time.Duration(t) * time.Second
-			}
-		}
+		unhealthyTimeout := c.getPodHealthCheckTimeout(pod)
 		if unhealthyTimeout <= 0 {
 			continue
 		}
 		if now.Sub(last) >= unhealthyTimeout {
-			c.maybeFailUnresponsivePod(pod)
+			klog.Warningf("pod %s has failed healthchecks for %ds pod has likely failed", pod.Name, int(unhealthyTimeout.Seconds()))
+			c.checker.maybeFailUnresponsivePod(pod, c.terminateChan)
 		}
-	}
-}
-
-func (c *HealthCheckController) maybeFailUnresponsivePod(pod *api.Pod) {
-	if c.checker.podHasFailed(pod) {
-		klog.Warningf("No status reply from pod %s/%s in %ds failing pod",
-			pod.Namespace, pod.Name, int(c.defaultUnhealthyTimeout.Seconds()))
-		// We'll run this syncronously to ensure that, if nothing is
-		// processing failed pods, more pods don't get failed. We use
-		// a buffered channel to allow up to a full iteration through
-		// the list of running pods.
-		c.terminateChan <- pod
-	} else {
-		c.lastStatusTime.Set(pod.Name, time.Now().UTC())
 	}
 }
 

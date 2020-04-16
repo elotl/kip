@@ -288,7 +288,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 			podRegistry,
 			nodeRegistry,
 			itzoClientFactory,
-			PodControllerCleanPeriod,
+			time.Duration(serverConfigFile.Cells.StatusInterval)*time.Second,
 			time.Duration(serverConfigFile.Cells.HealthCheck.Status.HealthyTimeout)*time.Second,
 		)
 	}

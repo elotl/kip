@@ -172,8 +172,8 @@ cells:
 
   # healthcheck:
   #   status:
-  #     timeout: 90
+  #     healthyTimeout: 90
   #   cloudAPI:
-  #     timeout: 180
+  #     healthyTimeout: 180
 
 ```
