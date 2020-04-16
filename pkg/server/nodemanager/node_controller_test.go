@@ -636,20 +636,29 @@ func TestDoPoolsCalculation(t *testing.T) {
 	startedNode, err := ctl.NodeRegistry.GetNode(boundNodeName)
 	assert.NoError(t, err)
 	assert.Equal(t, pod.Spec.InstanceType, startedNode.Spec.InstanceType)
-	nodes, err := ctl.NodeRegistry.ListAllNodes(func(n *api.Node) bool {
-		return n.Name == node.Name
-	})
-	assert.NoError(t, err)
-	// This is a strange flake and I can't seem to figure out what
-	// exactly is going on...  We sometimes pull 2 identically named
-	// pods back from the registry.
-	if len(nodes.Items) == 0 {
-		assert.Fail(t, "expected to find a terminated node in the registry")
-	} else {
-		stoppedNode := nodes.Items[0]
-		possiblePhases := []api.NodePhase{api.NodeTerminating, api.NodeTerminated}
-		assert.Contains(t, possiblePhases, stoppedNode.Status.Phase)
+	// We'll retry this up to 2 seconds
+	for i := 0; i < 20; i++ {
+		nodes, err := ctl.NodeRegistry.ListAllNodes(func(n *api.Node) bool {
+			return n.Name == node.Name
+		})
+		assert.NoError(t, err)
+		// This is a strange flake and I can't seem to figure out what
+		// exactly is going on...  We sometimes pull 2 identically named
+		// pods back from the registry.
+		if len(nodes.Items) == 0 {
+			// There's a race between deleting the node and creating
+			// the trashed node in storage
+			fmt.Println("expected to find a terminated node in the registry", i)
+			time.Sleep(100 * time.Millisecond)
+			continue
+		} else {
+			stoppedNode := nodes.Items[0]
+			possiblePhases := []api.NodePhase{api.NodeTerminating, api.NodeTerminated}
+			assert.Contains(t, possiblePhases, stoppedNode.Status.Phase)
+			return
+		}
 	}
+	assert.Fail(t, "Did not find terminated node in the registry")
 }
 
 type ErroringNodeScaler struct{}
