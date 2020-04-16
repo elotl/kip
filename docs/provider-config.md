@@ -156,19 +156,23 @@ cells:
 
   # the healthCheck section is used to configure how cells are
   # health checked.  Kip supports two methods of determining cell health:
-  # 1) status health checks that ensure nodes are responding to status
-  #    queries from kip
-  # 2) cloud API healthchecks that query the cloud API to determine
-  #    cell health.
-  # status is the default healthcheck mode. cloudAPI health checks are
-  # useful for configurations where where kip is connected to the
-  # cloud network through the internet. Kip will query the
-  # cloud provider's API to determine if a node is running. cloudAPI
-  # healthchecks provide less confidence the cells are functioning
-  # correctly but allows cells to survive temporary network
-  # connectivity issues between the kip controller and the cells.
-  # Only one of status or cloudAPI healthcheck can be specified in the
-  # healthcheck section
+  # 1) Status health checks that ensure cells are responding to
+  #    status queries from kip.
+  # 2) Cloud API healthchecks that query the cloud API to determine
+  #    cell health based on the status of the cell's backing compute
+  #    instance.
+
+  # status is the default healthcheck mode and is the more robust of
+  # the two methods. cloudAPI health checks are useful for
+  # configurations where where kip is connected to the cloud network
+  # through the internet. Kip will query the cloud provider's API to
+  # determine if a cell is running. cloudAPI healthchecks provide less
+  # confidence the cells are functioning correctly but allows cells to
+  # survive temporary network connectivity issues between the kip
+  # controller and the cells.  Only one of status or cloudAPI
+  # healthcheck can be specified in the healthcheck section. When
+  # cloudAPI health checks are used, status queries are still used to
+  # check cell status.
 
   # healthcheck:
   #   status:

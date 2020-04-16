@@ -148,7 +148,7 @@ func (c *PodController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
 	c.createDNSConfigurer()
 	c.registerEventHandlers()
 	c.failDispatchingPods()
-	go c.healthChecker.Start()
+	c.healthChecker.Start()
 	go c.ControlLoop(quit, wg)
 }
 
@@ -209,13 +209,14 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 
-	// TODO: under high load, some functions might take seconds to run
-	// in that case, certain sections below might not get run every X
-	// seconds.  It might be better to use timers instead of tickers
-	// and reset the timer after every successful run of its case
-	// statement.  That doesn't have to happen in every controller,
-	// but the loop below has enough cases the likelyhood of starving
-	// a case statement under high load is pretty good.
+	// TODO: under high load, some functions might take seconds to
+	// run.  When that happens, certain sections below might not get
+	// run every X seconds.  It might be better to use timers instead
+	// of tickers and reset the timer after every successful run of
+	// its case statement. Tickers are much more convenient to use
+	// than timers so that change doesn't have to happen in every
+	// controller, but the loop below has enough cases the likelyhood
+	// of starving a case statement under high load is pretty good.
 	klog.V(2).Info("starting pod controller")
 	controlTicker := time.NewTicker(PodControllerControlPeriod)
 	statusTicker := time.NewTicker(c.statusInterval)

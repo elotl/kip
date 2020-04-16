@@ -95,6 +95,10 @@ func NewCloudAPIHealthChecker(
 }
 
 func (c *HealthCheckController) Start() {
+	go c.controlLoop()
+}
+
+func (c *HealthCheckController) controlLoop() {
 	for range time.Tick(c.checkInterval) {
 		if err := c.checker.checkPods(c.lastStatusTime); err != nil {
 			// If our pod check fails, don't try to terminate pods

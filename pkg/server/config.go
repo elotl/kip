@@ -449,6 +449,13 @@ func validateServerConfigFile(cf *ServerConfigFile) field.ErrorList {
 	if cells.HealthCheck.Status != nil && cells.HealthCheck.CloudAPI != nil {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("healthcheck"), "multiple healthchecks configured", "cannot set both status and cloudAPI healthchecks"))
 	}
+	if cells.HealthCheck.Status != nil && cells.HealthCheck.Status.HealthyTimeout <= 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("healthcheck.status.healthyTimeout"), cells.HealthCheck.Status.HealthyTimeout, "healthyTimeout must be positive"))
+	}
+	if cells.HealthCheck.CloudAPI != nil && cells.HealthCheck.CloudAPI.HealthyTimeout <= 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("healthcheck.cloudAPI.healthyTimeout"), cells.HealthCheck.CloudAPI.HealthyTimeout, "healthyTimeout must be positive"))
+	}
+
 	// Sadly we can't validate the default instance type until
 	// after we initialize the instanceselector and the instance
 	// selector needs the cloud config in order to be initialized
