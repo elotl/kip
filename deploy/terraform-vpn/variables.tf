@@ -41,7 +41,7 @@ variable "azs" {
 variable "local_cidrs" {
   type        = list(string)
   default     = ["192.168.0.0/16", "172.16.0.0/12", "10.0.2.0/24"]
-  description = "This CIDRs will be routed back from the VPC via the VPN connection."
+  description = "These CIDRs will be routed back from the VPC via the VPN connection."
 }
 
 variable "tunnel1_inside_cidr" {
