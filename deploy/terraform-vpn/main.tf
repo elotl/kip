@@ -10,7 +10,7 @@ locals {
   client_ip           = length(var.client_ip) > 0 ? var.client_ip : chomp(data.http.client_ip.body)
   client_cidr         = "${local.client_ip}/32"
   extra_cidrs         = concat([local.client_cidr], var.local_cidrs)
-  vpc_public_subnets  = [cidrsubnet(var.vpc_cidr, 4, 1)]
+  vpc_public_subnets  = [cidrsubnet(var.vpc_cidr, 4, 1), cidrsubnet(var.vpc_cidr, 4, 2)]
 }
 
 module "vpn_gateway" {
@@ -18,11 +18,12 @@ module "vpn_gateway" {
   version = "~> 2.0"
 
   create_vpn_connection                     = true
-  vpn_connection_static_routes_only         = true
+
+  vpn_connection_static_routes_only         = var.static_routes_only
   vpn_connection_static_routes_destinations = var.local_cidrs
 
   vpn_gateway_id      = module.vpc.vgw_id
-  customer_gateway_id = aws_customer_gateway.main.id
+  customer_gateway_id = module.vpc.cgw_ids[0]
 
   vpc_id                       = module.vpc.vpc_id
   vpc_subnet_route_table_ids   = module.vpc.public_route_table_ids
@@ -32,16 +33,6 @@ module "vpn_gateway" {
   tunnel2_inside_cidr   = var.tunnel2_inside_cidr
   tunnel1_preshared_key = var.tunnel1_psk
   tunnel2_preshared_key = var.tunnel2_psk
-}
-
-resource "aws_customer_gateway" "main" {
-  bgp_asn    = 65000
-  ip_address = local.client_ip
-  type       = "ipsec.1"
-
-  tags = {
-    Name = var.name
-  }
 }
 
 module "vpc" {
@@ -54,14 +45,30 @@ module "vpc" {
   public_subnets  = local.vpc_public_subnets
   enable_nat_gateway = false
   enable_vpn_gateway = true
+  amazon_side_asn    = var.amazon_side_asn
+
+  customer_gateways = {
+    cgw = {
+      bgp_asn    = var.bgp_asn
+      ip_address = local.client_ip
+      type       = "ipsec.1"
+      tags       = "Name=${var.name}"
+    }
+  }
 
   tags = {
     Name        = var.name
   }
 }
 
-data "local_file" "vpn-deployment-yaml" {
-  filename = "${path.module}/kustomization/vpn-deployment.yaml"
+resource "local_file" "vpn-deployment-yaml" {
+  content         = templatefile("${path.module}/kustomization/vpn-deployment.yaml.tmpl", {
+    dnspolicy=var.vpn_hostnetwork ? "ClusterFirstWithHostNet" : "ClusterFirst",
+    hostnetwork=var.vpn_hostnetwork ? "true" : "false",
+    enable_bgp_agent=var.enable_bgp_agent,
+  })
+  filename        = "${path.module}/kustomization/vpn-deployment.yaml"
+  file_permission = "0644"
 }
 
 resource "local_file" "kustomization-yaml" {
@@ -83,7 +90,10 @@ resource "local_file" "aws-vpn-client-env" {
     tunnel2_cgw_inside_address=module.vpn_gateway.vpn_connection_tunnel2_cgw_inside_address,
     tunnel2_vgw_inside_address=module.vpn_gateway.vpn_connection_tunnel2_vgw_inside_address,
     tunnel2_psk=var.tunnel2_psk,
-    vpc_cidr=var.vpc_cidr,
+    vpc_cidr=var.static_routes_only ? var.vpc_cidr : "",
+    bgp_asn=var.bgp_asn,
+    k8s_asn=var.k8s_asn,
+    amazon_side_asn=var.amazon_side_asn,
   })
   filename          = "${path.module}/kustomization/aws-vpn-client.env"
   file_permission   = "0600"
@@ -98,7 +108,7 @@ resource "local_file" "provider-yaml" {
     extra_cidrs=local.extra_cidrs,
   })
   filename          = "${path.module}/kustomization/provider.yaml"
-  file_permission   = "0644"
+  file_permission   = "0600"
 }
 
 resource "null_resource" "deploy" {
@@ -115,14 +125,14 @@ resource "null_resource" "deploy" {
   }
 
   triggers = {
-    vpn-deployment-yaml=data.local_file.vpn-deployment-yaml.content,
+    vpn-deployment-yaml=local_file.vpn-deployment-yaml.content,
     aws-vpn-client-env=local_file.aws-vpn-client-env.sensitive_content,
     kustomization-yaml=local_file.kustomization-yaml.sensitive_content,
     provider-yaml=local_file.provider-yaml.sensitive_content,
   }
 
   depends_on = [
-    data.local_file.vpn-deployment-yaml,
+    local_file.vpn-deployment-yaml,
     local_file.aws-vpn-client-env,
     local_file.kustomization-yaml,
     local_file.provider-yaml,

@@ -71,3 +71,39 @@ variable "deploy_to_kubernetes" {
   default     = true
   description = "Whether the generated Kubernetes resources will be applied via kubectl. Disable if you only need the kustomization/ directory generated, and you plan to apply it separately. If enabled, it needs kubectl >= 1.14."
 }
+
+variable "static_routes_only" {
+  type        = bool
+  default     = true
+  description = "If true, the CIDRs set in local_cidrs will be propagated into the VPC subnet route table. Enable if you plan NOT to use BGP over the tunnel, and static routes to the local cluster are all that is needed. Disable if BGP is used via the VPN tunnel. You can still use BGP inside your Kubernetes cluster, and peer with the VPN pod even if you enable static routes via the VPN tunnel (see k8s_asn below)."
+}
+
+variable "amazon_side_asn" {
+  type        = number
+  default     = 64620
+  description = "The ASN for the AWS side, if BGP over the VPN connection is used. This is set in the VPN gateway as 'AmazonSideAsn'."
+}
+
+variable "bgp_asn" {
+  type        = number
+  default     = 65220
+  description = "The ASN for the VPN client side, if BGP over the VPN connection is used. This is set in the AWS customer gateway as 'BgpAsn'."
+}
+
+variable "k8s_asn" {
+  type        = number
+  default     = 64512
+  description = "If BGP is used for route distribution in your Kubernetes cluster, set this to the ASN used in the cluster."
+}
+
+variable "enable_bgp_agent" {
+  type        = bool
+  default     = false
+  description = "Whether to run a BGP agent in the VPN client pod. If it is enabled, it will set up BGP via the VPN tunnel using bgp_asn for its own ASN and amazon_side_asn for its own ASN. It will also enable BGP connection from the Kubernetes cluster, expecting k8s_asn to be used as the ASN in cluster. You can also use an external BGP agent, and enable host network mode for the VPN client pod instead."
+}
+
+variable "vpn_hostnetwork" {
+  type        = bool
+  default     = true
+  description = "Whether to run the VPN client pod in host network mode, thus directly adding routes on the worker node host (useful for a simple static route setup). If you plan on using BGP with the VPN tunnel, set it to false, and instead add the VPN client pod as a BGP peer."
+}
