@@ -452,8 +452,13 @@ func validateServerConfigFile(cf *ServerConfigFile) field.ErrorList {
 	if cells.HealthCheck.Status != nil && cells.HealthCheck.Status.HealthyTimeout <= 0 {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("healthcheck.status.healthyTimeout"), cells.HealthCheck.Status.HealthyTimeout, "healthyTimeout must be positive"))
 	}
-	if cells.HealthCheck.CloudAPI != nil && cells.HealthCheck.CloudAPI.HealthyTimeout <= 0 {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("healthcheck.cloudAPI.healthyTimeout"), cells.HealthCheck.CloudAPI.HealthyTimeout, "healthyTimeout must be positive"))
+	if cells.HealthCheck.CloudAPI != nil {
+		if cells.HealthCheck.CloudAPI.HealthyTimeout <= 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("healthcheck.cloudAPI.healthyTimeout"), cells.HealthCheck.CloudAPI.HealthyTimeout, "healthyTimeout must be positive"))
+		}
+		if cells.HealthCheck.CloudAPI.Interval < 10 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("healthcheck.cloudAPI.interval"), cells.HealthCheck.CloudAPI.Interval, "cloudAPI interval must be greater than or equal to 10 (seconds)"))
+		}
 	}
 
 	// Sadly we can't validate the default instance type until

@@ -158,26 +158,27 @@ cells:
   # health checked.  Kip supports two methods of determining cell health:
   # 1) Status health checks that ensure cells are responding to
   #    status queries from kip.
-  # 2) Cloud API healthchecks that query the cloud API to determine
-  #    cell health based on the status of the cell's backing compute
-  #    instance.
+  # 2) Cloud API healthchecks supplement status checks by also
+  #    querying the cloud API to determine cell health based on the
+  #    status of the cell's backing compute instance.
 
   # status is the default healthcheck mode and is the more robust of
   # the two methods. cloudAPI health checks are useful for
-  # configurations where where kip is connected to the cloud network
-  # through the internet. Kip will query the cloud provider's API to
-  # determine if a cell is running. cloudAPI healthchecks provide less
-  # confidence the cells are functioning correctly but allows cells to
-  # survive temporary network connectivity issues between the kip
-  # controller and the cells.  Only one of status or cloudAPI
-  # healthcheck can be specified in the healthcheck section. When
-  # cloudAPI health checks are used, status queries are still used to
-  # check cell status.
+  # configurations where where kip running outside the cloud network
+  # and connected to cells through the internet. Kip will query the
+  # cloud provider's API to determine if a cell is running. cloudAPI
+  # healthchecks provide less confidence the cells are functioning
+  # correctly but allows cells to survive temporary network
+  # connectivity issues between the kip controller and the cells.
+  # Only one of status or cloudAPI healthcheck can be specified in the
+  # healthcheck section. When cloudAPI health checks are used, status
+  # queries are still used to check cell status.
 
   # healthcheck:
   #   status:
   #     healthyTimeout: 90
   #   cloudAPI:
   #     healthyTimeout: 180
-
+  #     # interval between checks must be >= 10, default is 60
+  #     interval: 60
 ```
