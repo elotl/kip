@@ -33,9 +33,7 @@ type cloudAPIHealthCheck struct {
 	cloudClient cloud.CloudClient
 }
 
-// This is taken care of by the PodController
 func (chc *cloudAPIHealthCheck) checkPods(lastStatusTime *conmap.StringTimeTime) error {
-	// list instances, put in set
 	instances, err := chc.cloudClient.ListInstances()
 	if err != nil {
 		return util.WrapError(err, "error listing cloud instances for cloud API health check")
@@ -54,7 +52,7 @@ func (chc *cloudAPIHealthCheck) checkPods(lastStatusTime *conmap.StringTimeTime)
 	for _, pod := range podList.Items {
 		podInstID := pod.Status.BoundInstanceID
 		if podInstID == "" {
-			klog.Warningf("cloud instance health check found pod with empty BoundInstanceID: %s/%s", pod.Namespace, pod.Name)
+			klog.Warningf("cloud instance health check found running pod with empty BoundInstanceID: %s", pod.Name)
 			continue
 		}
 		if instIDs.Has(podInstID) {
@@ -64,6 +62,7 @@ func (chc *cloudAPIHealthCheck) checkPods(lastStatusTime *conmap.StringTimeTime)
 	return nil
 }
 
-func (c *cloudAPIHealthCheck) maybeFailUnresponsivePod(pod *api.Pod, terminateChan chan *api.Pod) {
+// The cloudAPI healthchecker just fails pods without another check
+func (chc *cloudAPIHealthCheck) maybeFailUnresponsivePod(pod *api.Pod, terminateChan chan *api.Pod) {
 	terminateChan <- pod
 }

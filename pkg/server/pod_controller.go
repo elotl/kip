@@ -261,8 +261,8 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 }
 
 // If this isn't called quick enough, the terminate chan can be backed
-// up For now, calling markFailedPod multiple times isn't a very bad
-// thing.
+// up with multiple entries for a pod. For now, calling markFailedPod
+// multiple times isn't a very bad thing so we won't deduplicate.
 func (c *PodController) terminateHealthCheckFailedPods() {
 	for {
 		select {
