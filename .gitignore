@@ -4,6 +4,10 @@
 *.dll
 *.so
 *.dylib
+*.pyc
+
+# editor backup data
+.\#*
 
 # Test binary, built with `go test -c`
 *.test
