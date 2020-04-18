@@ -22,7 +22,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
-              - key: kubernetes.io/hostname
+              - key: type
                 operator: NotIn
                 values:
                 - virtual-kubelet
