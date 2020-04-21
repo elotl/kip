@@ -56,10 +56,10 @@ type instanceSelector struct {
 
 var selector *instanceSelector
 
-func Setup(cloud, region, defaultInstanceType string) error {
+func Setup(cloud, regionOrZone, defaultInstanceType string) error {
 	switch cloud {
 	case "aws":
-		d, err := getSelectorData(awsInstanceJson, region)
+		d, err := getSelectorData(awsInstanceJson, regionOrZone)
 		if err != nil {
 			return err
 		}
@@ -79,7 +79,7 @@ func Setup(cloud, region, defaultInstanceType string) error {
 			containerInstanceSelector: FargateInstanceSelector,
 		}
 	case "azure":
-		d, err := getSelectorData(azureInstanceJson, region)
+		d, err := getSelectorData(azureInstanceJson, regionOrZone)
 		if err != nil {
 			return err
 		}
@@ -100,15 +100,15 @@ func Setup(cloud, region, defaultInstanceType string) error {
 	return nil
 }
 
-func getSelectorData(data, region string) ([]InstanceData, error) {
+func getSelectorData(data, regionOrZone string) ([]InstanceData, error) {
 	d := make(map[string][]InstanceData)
 	err := json.Unmarshal([]byte(data), &d)
 	if err != nil {
 		return nil, err
 	}
-	regionData, exists := d[region]
+	regionData, exists := d[regionOrZone]
 	if !exists {
-		return nil, fmt.Errorf("could not find instance data for cloud region: %s", region)
+		return nil, fmt.Errorf("could not find instance data for cloud region/zone: %s", regionOrZone)
 	}
 	return regionData, nil
 }
