@@ -355,9 +355,12 @@ func (e *AwsEC2) RemoveRoute(destinationCIDR, instanceID string) error {
 			continue
 		}
 		for _, route := range table.Routes {
-			// Ignore any routes that are not instance routes.
+			// Ignore any routes that are not instance routes. If the instance
+			// has been terminated, the route will be a blackhole and EC2 will
+			// set route.NetworkInterfaceId while clearing up route.InstanceId.
 			routeIID := aws.StringValue(route.InstanceId)
-			if routeIID == "" {
+			routeNetIID := aws.StringValue(route.NetworkInterfaceId)
+			if routeIID == "" && routeNetIID == "" {
 				continue
 			}
 			// If instanceID is provided, match on it.
@@ -383,9 +386,12 @@ func (e *AwsEC2) RemoveRoute(destinationCIDR, instanceID string) error {
 				return util.WrapError(
 					err,
 					"deleting route %s in table %s",
-					destinationCIDR, *table.RouteTableId)
+					aws.StringValue(route.DestinationCidrBlock),
+					aws.StringValue(table.RouteTableId))
 			}
-			break
+			klog.V(5).Infof("removed route %s in table %s",
+				aws.StringValue(route.DestinationCidrBlock),
+				aws.StringValue(table.RouteTableId))
 		}
 	}
 	return nil
@@ -429,8 +435,10 @@ func (e *AwsEC2) AddRoute(destinationCIDR, instanceID string) error {
 			return util.WrapError(
 				err,
 				"creating route %s via %s in table %s",
-				destinationCIDR, instanceID, *table.RouteTableId)
+				destinationCIDR, instanceID, aws.StringValue(table.RouteTableId))
 		}
+		klog.V(5).Infof("added route %s in table %s",
+			destinationCIDR, aws.StringValue(table.RouteTableId))
 	}
 	return nil
 }
