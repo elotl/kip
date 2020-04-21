@@ -28,6 +28,6 @@ func (c *ServerConfig) FlagSet() *pflag.FlagSet {
 	flags := pflag.NewFlagSet("serverconfig", pflag.ContinueOnError)
 	flags.BoolVar(&c.DebugServer, "debug-server", c.DebugServer, "Enable a listener in the server for inspecting internal kip structures.")
 	flags.StringVar(&c.NetworkAgentSecret, "network-agent-secret", c.NetworkAgentSecret, "Service account secret for the cell network agent, in the form of <namespace>/<name>")
-	flags.StringVar(&c.ClusterDNS, "cluster-dns", c.ClusterDNS, "Default cluster DNS server to use")
+	flags.StringVar(&c.ClusterDNS, "cluster-dns", c.ClusterDNS, "Default cluster DNS server to use; if not specified, the kube-system/kube-dns service IP will be used")
 	return flags
 }
