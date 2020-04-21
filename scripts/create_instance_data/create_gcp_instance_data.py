@@ -120,7 +120,6 @@ def get_instance_family(desc, group):
         return 'g1'
     elif group == 'f1micro':
         return 'f1'
-    desc = desc.lower()
     if 'compute optimized' in desc:
         return 'c2'
     elif 'e2' in desc:
@@ -153,9 +152,9 @@ def get_price(sku):
     tiered_rates = pricing_info[0]['pricingExpression']['tieredRates']
     assert len(tiered_rates) > 0
     max_price = 0.0
-    # there can be multiple prices listed, so far I've only
-    # seen the additional prices be $0.0  For now, just
-    # take the highest priced entry.
+    # there can be multiple prices listed, so far I've only seen the
+    # additional prices be $0.0 For now, we'll take the highest priced
+    # entry.
     for rate in tiered_rates:
         unit_price = rate['unitPrice']
         if 'currencyCode' not in unit_price:
@@ -257,7 +256,6 @@ def get_skus(client, parent):
 
 
 def get_compute_skus():
-
     client = googleapiclient.discovery.build('cloudbilling', 'v1')
     print('getting services')
     ce_svc = get_service(client, 'Compute Engine')
@@ -288,7 +286,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--project_id', help='Your Google Cloud project ID.',
+    parser.add_argument('--project_id', help='Google Cloud project ID.',
                         default='milpa-207719')
     args = parser.parse_args()
     instance_data = get_instance_data(args.project_id)
