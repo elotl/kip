@@ -1,6 +1,6 @@
 package instanceselector
 
-const gcpInstanceJson = `
+const gceInstanceJson = `
 {
     "southamerica-east1-a": [
         {

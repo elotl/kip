@@ -15,7 +15,7 @@ custom_baselines = {
 }
 
 
-def gcp_to_kip_memory(memory_mb):
+def gce_to_kip_memory(memory_mb):
     gb = memory_mb / 1024.0
     return round(gb, 2)
 
@@ -37,7 +37,7 @@ def make_instance_data(machine, pricing):
     baseline = cpus
     if name in custom_baselines:
         baseline = custom_baselines[name]
-    memory = gcp_to_kip_memory(machine['memoryMb'])
+    memory = gce_to_kip_memory(machine['memoryMb'])
     price = compute_machine_price(pricing, family, cpus, memory)
     return {
         "baseline": baseline,
@@ -291,4 +291,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     instance_data = get_instance_data(args.project_id)
     jsonfp = dumpjson(instance_data)
-    write_go('gcp', jsonfp)
+    write_go('gce', jsonfp)

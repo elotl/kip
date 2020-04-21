@@ -22,6 +22,6 @@ import (
 	"github.com/elotl/kip/pkg/api"
 )
 
-func GCPContainenrInstanceSelector(rs *api.ResourceSpec) (int64, int64, error) {
-	return 0, 0, fmt.Errorf("GCP does not support container instances")
+func GCEContainenrInstanceSelector(rs *api.ResourceSpec) (int64, int64, error) {
+	return 0, 0, fmt.Errorf("GCE does not support container instances")
 }

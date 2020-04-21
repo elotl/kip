@@ -93,8 +93,8 @@ func Setup(cloud, regionOrZone, defaultInstanceType string) error {
 			},
 			containerInstanceSelector: AzureContainenrInstanceSelector,
 		}
-	case "gcp":
-		d, err := getSelectorData(gcpInstanceJson, regionOrZone)
+	case "gce":
+		d, err := getSelectorData(gceInstanceJson, regionOrZone)
 		if err != nil {
 			return err
 		}
@@ -106,7 +106,7 @@ func Setup(cloud, regionOrZone, defaultInstanceType string) error {
 			memorySpecParser: func(q resource.Quantity) float32 {
 				return util.ToGiBFloat32(&q)
 			},
-			containerInstanceSelector: GCPContainenrInstanceSelector,
+			containerInstanceSelector: GCEContainenrInstanceSelector,
 		}
 
 	default:
