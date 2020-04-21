@@ -6,10 +6,12 @@ import os
 import boto3
 
 
-def get_milpadir():
+def get_kipdir():
     gopath = os.getenv("GOPATH")
-    milpadir = os.path.join(gopath, "src/github.com/elotl/milpa")
-    return milpadir
+    if not gopath:
+        raise Exception("GOPATH must be set")
+    kipdir = os.path.join(gopath, "src/github.com/elotl/kip")
+    return kipdir
 
 
 def parse_args():
@@ -38,11 +40,10 @@ def upload(key, jsonfp):
 def write_go(cloudname, jsonfp):
     '''cloudname should be one of aws, azure or gce'''
     print("Writing go files")
-    milpadir = get_milpadir()
+    kipdir = get_kipdir()
     filepath = "pkg/util/instanceselector/{}_instance_data.go".format(
         cloudname)
-    outfile = os.path.join(milpadir, filepath)
-
+    outfile = os.path.join(kipdir, filepath)
     with open(outfile, "w") as fp:
         fp.write("""package instanceselector
 

@@ -1,4 +1,3 @@
-from cStringIO import StringIO
 import json
 from collections import defaultdict
 import os
@@ -8,7 +7,7 @@ import awspricing
 import boto3
 
 from util import (
-    get_milpadir,
+    get_kipdir,
     parse_args,
     upload,
     write_go,
@@ -103,9 +102,9 @@ def get_instance_data(raw_data):
 
 def get_raw_instance_data():
     print("reading data")
-    milpadir = get_milpadir()
+    kipdir = get_kipdir()
     filename = os.path.join(
-        milpadir, "scripts/create_instance_data/aws_instances.json")
+        kipdir, "scripts/create_instance_data/aws_instances.json")
     raw_data = json.load(open(filename))
     return raw_data
 
