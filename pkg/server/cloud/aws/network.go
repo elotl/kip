@@ -331,11 +331,6 @@ func (e *AwsEC2) ModifySourceDestinationCheck(instanceID string, isEnabled bool)
 }
 
 func (e *AwsEC2) RemoveRoute(destinationCIDR, instanceID string) error {
-	if destinationCIDR == "" || instanceID == "" {
-		return fmt.Errorf(
-			"invalid input: at least one non-empty value needed (got %q %q)",
-			destinationCIDR, instanceID)
-	}
 	out, err := e.client.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
 			{
@@ -360,13 +355,24 @@ func (e *AwsEC2) RemoveRoute(destinationCIDR, instanceID string) error {
 			continue
 		}
 		for _, route := range table.Routes {
+			// Ignore any routes that are not instance routes.
+			routeIID := aws.StringValue(route.InstanceId)
+			if routeIID == "" {
+				continue
+			}
+			// If instanceID is provided, match on it.
+			if instanceID != "" && instanceID != routeIID {
+				continue
+			}
+			// If destinationCIDR is provided, match on it.
 			if destinationCIDR != "" &&
 				destinationCIDR != aws.StringValue(route.DestinationCidrBlock) {
 				continue
 			}
-			// Ignore any routes that are not instance routes.
-			routeIID := aws.StringValue(route.InstanceId)
-			if routeIID == "" || instanceID != "" && instanceID != routeIID {
+			// If both instanceID and destinationCIDR are empty, remove
+			// blackhole instance routes.
+			if destinationCIDR == "" && instanceID == "" &&
+				aws.StringValue(route.State) != ec2.RouteStateBlackhole {
 				continue
 			}
 			_, err = e.client.DeleteRoute(&ec2.DeleteRouteInput{

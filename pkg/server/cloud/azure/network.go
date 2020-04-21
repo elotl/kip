@@ -266,7 +266,10 @@ func (az *AzureClient) ModifySourceDestinationCheck(instanceID string, isEnabled
 }
 
 func (az *AzureClient) RemoveRoute(destinationCIDR, instanceID string) error {
-	if destinationCIDR == "" || instanceID == "" {
+	if destinationCIDR == "" && instanceID == "" {
+		// TODO: Azure does not provide route state like AWS does, so we don't
+		// know if an instance route is dangling. We need to check if the next
+		// hop IP is in use, or has gone away.
 		return fmt.Errorf(
 			"invalid input: at least one non-empty value needed (got %q %q)",
 			destinationCIDR, instanceID)
@@ -361,7 +364,7 @@ func (az *AzureClient) RemoveRoute(destinationCIDR, instanceID string) error {
 }
 
 func (az *AzureClient) AddRoute(destinationCIDR, instanceID string) error {
-	if destinationCIDR == "" && instanceID == "" {
+	if destinationCIDR == "" || instanceID == "" {
 		return fmt.Errorf(
 			"invalid input: empty value (got %q %q)",
 			destinationCIDR, instanceID)
