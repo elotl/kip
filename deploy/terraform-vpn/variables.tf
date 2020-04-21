@@ -40,7 +40,7 @@ variable "azs" {
 
 variable "local_cidrs" {
   type        = list(string)
-  default     = ["192.168.0.0/16", "172.16.0.0/12", "10.0.2.0/24"]
+  default     = ["192.168.0.0/16", "172.16.0.0/12", "10.0.2.0/24", "10.244.0.0/16"]
   description = "These CIDRs will be routed back from the VPC via the VPN connection."
 }
 
@@ -94,6 +94,18 @@ variable "k8s_asn" {
   type        = number
   default     = 64512
   description = "If BGP is used for route distribution in your Kubernetes cluster, set this to the ASN used in the cluster."
+}
+
+variable "k8s_bgp_peer_ips" {
+  type        = string
+  default     = ""
+  description = "If you would like the BGP agent to actively initiate connections to peers in Kubernetes, set the whitespace-separated list of peer IPs here. Example: \"172.17.0.2 172.17.0.3\"."
+}
+
+variable "k8s_bgp_dynamic_neighbor_prefix" {
+  type        = string
+  default     = ""
+  description = "Kubernetes BGP peers from this CIDR will be accepted. Set it to the prefix where the Kubernetes BGP agents can their IP addresses from. Example: 172.17.0.0/16."
 }
 
 variable "enable_bgp_agent" {

@@ -30,10 +30,24 @@ spec:
       - command:
         - bash
         - -c
-        - envsubst < /etc/ipsec.conf.tmpl > /data/ipsec.conf; envsubst < /etc/ipsec.secrets.tmpl > /data/ipsec.secrets; envsubst < /etc/gobgp.conf.tmpl > /data/gobgp.conf
+        - envsubst < /etc/ipsec.conf.tmpl > /data/ipsec.conf; envsubst < /etc/ipsec.secrets.tmpl > /data/ipsec.secrets
         image: elotl/aws-vpn-client:latest
         imagePullPolicy: Always
-        name: aws-vpn-client-init
+        name: ipsec-init
+        envFrom:
+        - configMapRef:
+            name: aws-vpn-client-config
+        volumeMounts:
+        - name: data
+          mountPath: /data
+%{ if enable_bgp_agent }
+      - command:
+        - bash
+        - -c
+        - confd -backend env -onetime
+        image: elotl/aws-vpn-client:latest
+        imagePullPolicy: Always
+        name: bgp-init
         env:
         - name: POD_IP
           valueFrom:
@@ -45,6 +59,7 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /data
+%{ endif }
       containers:
       - command:
         - bash
@@ -83,7 +98,7 @@ spec:
       - command:
         - bash
         - -c
-        - /etc/init.d/zebra start; exec gobgpd -f /data/gobgp.conf -p
+        - /etc/init.d/zebra start; exec gobgpd -f /data/gobgpd.conf -p
         image: elotl/aws-vpn-client:latest
         imagePullPolicy: Always
         name: bgp

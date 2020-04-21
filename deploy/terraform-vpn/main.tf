@@ -94,6 +94,8 @@ resource "local_file" "aws-vpn-client-env" {
     bgp_asn=var.bgp_asn,
     k8s_asn=var.k8s_asn,
     amazon_side_asn=var.amazon_side_asn,
+    k8s_bgp_peer_ips=var.k8s_bgp_peer_ips,
+    k8s_bgp_dynamic_neighbor_prefix=var.k8s_bgp_dynamic_neighbor_prefix,
   })
   filename          = "${path.module}/kustomization/aws-vpn-client.env"
   file_permission   = "0600"
