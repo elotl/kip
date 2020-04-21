@@ -93,6 +93,21 @@ func Setup(cloud, regionOrZone, defaultInstanceType string) error {
 			},
 			containerInstanceSelector: AzureContainenrInstanceSelector,
 		}
+	case "gcp":
+		d, err := getSelectorData(gcpInstanceJson, regionOrZone)
+		if err != nil {
+			return err
+		}
+		selector = &instanceSelector{
+			defaultInstanceType:  defaultInstanceType,
+			data:                 d,
+			unsupportedInstances: sets.NewString(),
+			sustainedCPUSupport:  false,
+			memorySpecParser: func(q resource.Quantity) float32 {
+				return util.ToGiBFloat32(&q)
+			},
+			containerInstanceSelector: GCPContainenrInstanceSelector,
+		}
 
 	default:
 		return fmt.Errorf("unknown cloud for instanceselector setup: %s", cloud)
@@ -259,7 +274,7 @@ func noResourceSpecified(ps *api.PodSpec) bool {
 		ps.Resources.GPU == ""
 }
 
-// Used by validation code in Milpa
+// Used by validation code in Kip
 func IsUnsupportedInstance(instanceType string) bool {
 	if len(instanceType) < 2 {
 		return true
