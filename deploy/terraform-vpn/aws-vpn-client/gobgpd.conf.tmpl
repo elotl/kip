@@ -1,0 +1,67 @@
+[global.config]
+  as = {{getv "/bgp/asn"}}
+  router-id = "{{getv "/pod/ip"}}"
+
+[global.apply-policy.config]
+  export-policy-list = ["fix-next-hop"]
+
+[zebra]
+  [zebra.config]
+    enabled = true
+    url = "unix:/var/run/quagga/zserv.api"
+    redistribute-route-type-list = ["bgp"]
+    version = 3
+
+[[peer-groups]]
+  [peer-groups.config]
+    peer-group-name = "k8s-bgp-peers"
+    peer-as = {{getv "/k8s/asn"}}
+  [peer-groups.graceful-restart.config]
+    enabled = true
+  [peer-groups.ebgp-multihop.config]
+    enabled = true
+{{- if getv "/k8s/bgp/dynamic/neighbor/prefix" }}
+[[dynamic-neighbors]]
+  [dynamic-neighbors.config]
+    prefix = "{{getv "/k8s/bgp/dynamic/neighbor/prefix"}}"
+    peer-group = "k8s-bgp-peers"
+{{- end }}
+{{- $peer_ips := split (getv "/k8s/bgp/peer/ips") " " -}}
+{{- range $peer_ips }}
+{{- if . }}
+[[neighbors]]
+  [neighbors.config]
+    neighbor-address = "{{.}}"
+    peer-group = "k8s-bgp-peers"
+{{- end -}}
+{{- end }}
+
+[[peer-groups]]
+  [peer-groups.config]
+    peer-group-name = "aws-vpn-bgp-peers"
+    peer-as = {{getv "/amazon/side/asn"}}
+  [peer-groups.graceful-restart.config]
+    enabled = true
+[[neighbors]]
+  [neighbors.config]
+    neighbor-address = "{{getv "/tunnel1/vgw/inside/address"}}"
+    peer-group = "aws-vpn-bgp-peers"
+[[neighbors]]
+  [neighbors.config]
+    neighbor-address = "{{getv "/tunnel2/vgw/inside/address"}}"
+    peer-group = "aws-vpn-bgp-peers"
+
+[[defined-sets.bgp-defined-sets.as-path-sets]]
+  as-path-set-name = "aws-aspath"
+  as-path-list = ["^{{getv "/amazon/side/asn"}}_"]
+[[policy-definitions]]
+  name = "fix-next-hop"
+  [[policy-definitions.statements]]
+    name = "statement-fix-next-hop"
+    [policy-definitions.statements.conditions.bgp-conditions.match-as-path-set]
+      as-path-set = "aws-aspath"
+      match-set-options = "any"
+    [policy-definitions.statements.actions]
+      route-disposition = "accept-route"
+    [policy-definitions.statements.actions.bgp-actions]
+      set-next-hop = "{{getv "/pod/ip"}}"

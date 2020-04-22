@@ -33,55 +33,57 @@ $ terraform apply
 
 Run `terraform destroy` to tear down the VPC (but leave the local cluster unchanged). You have to delete the pods running in the VPC first via `kubectl delete`.
 
-### Use via Minikube
+### Use BGP instead of static routes
 
-If you have a Linux environment, you can start minikube via:
+By default, the VPN client will add static routes for the VPC CIDR, and add CIDRs used by Kubernetes on the AWS side (see the `local_cidrs` variable). If you want to use BGP for advertising routes, disable static routes:
+
+    static_routes_only=false
+
+It is also recommended to run the pod without host network mode in this case:
+
+    vpn_hostnetwork=false
+
+Check the IP of the VPN client pod, and use that as a BGP peer to receive AWS routes and advertise routes from the cluster. For example, if you use calico and the aws-vpn-client pod IP is 192.168.120.71:
+
+    cat <<EOF | calicoctl apply -f -
+    apiVersion: projectcalico.org/v3
+    kind: BGPPeer
+    metadata:
+      name: aws-vpn-client
+    spec:
+      peerIP: 192.168.120.71
+      asNumber: 65220
+    EOF
+
+See `variables.tf` for all related configuration parameters and their descriptions.
+
+### Using via Minikube
+
+The official minikube iso does not have a few kernel modules needed by the VPN client, so e.g. using the VirtualBox driver and installing the VPN won't work. If you have a Linux environment, you can use the `docker` or the `none` drivers instead:
 
     $ minikube start --vm-driver=none
 
-Alternatively, you can spin up a Linux VM, and run minikube in it:
+or
 
-    $ vagrant init ubuntu/bionic64
-    $ vagrant ssh
+    $ minikube start --vm-driver=docker
 
-Now you're in the VM. Install dependencies and set up minikube:
+Alternatively, you can use also an ISO we built that includes the missing kernel modules:
 
-    vagrant@ubuntu-bionic:~$ sudo apt-get update && sudo apt-get install -y conntrack docker.io unzip
-    vagrant@ubuntu-bionic:~$ curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl && chmod 755 kubectl && sudo mv kubectl /usr/local/bin/
-    vagrant@ubuntu-bionic:~$ curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube
-    vagrant@ubuntu-bionic:~$ sudo mv minikube /usr/local/bin/
-    vagrant@ubuntu-bionic:~$ sudo minikube start --vm-driver=none
-    [...]
-    vagrant@ubuntu-bionic:~$ sudo chown -R vagrant: /home/vagrant/.{kube,minikube}
+    $ minikube start --iso-url=https://kip-builds.s3.amazonaws.com/minikube.iso
 
-Minikube should start without errors. Install terraform:
+### Teardown
 
-    vagrant@ubuntu-bionic:~$ curl -LO https://releases.hashicorp.com/terraform/0.12.24/terraform_0.12.24_linux_amd64.zip && unzip terraform_0.12.24_linux_amd64.zip && chmod 755 terraform && sudo mv terraform /usr/local/bin/
+Don't forget to delete any pods you have created. You can check them:
 
-Docker by default drops forwarded packets. Enable it:
+    $ kubectl get pods -A --field-selector spec.nodeName=virtual-kubelet
+    NAMESPACE     NAME                       READY   STATUS    RESTARTS   AGE
+    default       debug-vk                   1/1     Running   0          3h16m
+    kube-system   coredns-66bff467f8-vctcc   1/1     Running   0          3h50m
+    kube-system   kube-proxy-48ggm           1/1     Running   0          3h51m
 
-    vagrant@ubuntu-bionic:~$ sudo iptables -P FORWARD ACCEPT
+Then you can remove the VPC and VPN gateway via:
 
-Clone this repo:
-
-    vagrant@ubuntu-bionic:~$ git clone https://github.com/elotl/kip && cd kip && git checkout vilmos-minikube && cd deploy/terraform-vpn
-    vagrant@ubuntu-bionic:/kip/deploy/terraform-vpn$ terraform init
-    [...]
-
-Set tunnel1_psk, tunnel2_psk, aws_access_key_id and aws_secret_access_key (check variables.tf for all possible configuration variables):
-
-    vagrant@ubuntu-bionic:/kip/deploy/terraform-vpn$ vi myenv.tfvars
-
-Make sure you also set up AWS access for terraform:
-
-    vagrant@ubuntu-bionic:/kip/deploy/terraform-vpn$ export AWS_ACCESS_KEY_ID=...
-    vagrant@ubuntu-bionic:/kip/deploy/terraform-vpn$ export AWS_SECRET_ACCESS_KEY=...
-    vagrant@ubuntu-bionic:/kip/deploy/terraform-vpn$ terraform apply -var-file myenv.tfvars
-    [...]
-
-Once terraform finishes, you should have a working cluster with a VPN link into an AWS VPC, and kip set up to create pods in the VPC. You can interact with your cluster in your vagrant VM via `kubectl` as the default (vagrant) user.
-
-Don't forget to delete any pods you created, and to remove the VPC and VPN gateway via `terraform destroy -var-file myenv.tfvars` before deleting your vagrant VM.
+    $ terraform destroy -var-file myenv.tfvars
 
 ## Customizing your setup
 

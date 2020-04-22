@@ -22,7 +22,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
-              - key: kubernetes.io/hostname
+              - key: type
                 operator: NotIn
                 values:
                 - virtual-kubelet
@@ -33,13 +33,33 @@ spec:
         - envsubst < /etc/ipsec.conf.tmpl > /data/ipsec.conf; envsubst < /etc/ipsec.secrets.tmpl > /data/ipsec.secrets
         image: elotl/aws-vpn-client:latest
         imagePullPolicy: Always
-        name: aws-vpn-client-init
+        name: ipsec-init
         envFrom:
         - configMapRef:
             name: aws-vpn-client-config
         volumeMounts:
         - name: data
           mountPath: /data
+%{ if enable_bgp_agent }
+      - command:
+        - bash
+        - -c
+        - confd -backend env -onetime
+        image: elotl/aws-vpn-client:latest
+        imagePullPolicy: Always
+        name: bgp-init
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        envFrom:
+        - configMapRef:
+            name: aws-vpn-client-config
+        volumeMounts:
+        - name: data
+          mountPath: /data
+%{ endif }
       containers:
       - command:
         - bash
@@ -47,7 +67,7 @@ spec:
         - cp /data/ipsec.conf /etc/ipsec.conf; cp /data/ipsec.secrets /etc/ipsec.secrets; exec ipsec start --nofork
         image: elotl/aws-vpn-client:latest
         imagePullPolicy: Always
-        name: aws-vpn-client
+        name: ipsec
         resources:
           limits:
             cpu: "500m"
@@ -74,9 +94,39 @@ spec:
           readOnly: true
         securityContext:
           privileged: true
-      dnsPolicy: ClusterFirstWithHostNet
+%{ if enable_bgp_agent }
+      - command:
+        - bash
+        - -c
+        - /etc/init.d/zebra start; exec gobgpd -f /data/gobgpd.conf -p
+        image: elotl/aws-vpn-client:latest
+        imagePullPolicy: Always
+        name: bgp
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          exec:
+            command:
+            - bash
+            - -c
+            - vtysh -c 'show ip route'
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        securityContext:
+          privileged: true
+%{ endif }
       restartPolicy: Always
-      hostNetwork: true
+      dnsPolicy: ${dnspolicy}
+      hostNetwork: ${hostnetwork}
       tolerations:
       - key: "node-role.kubernetes.io/master"
         effect: "NoSchedule"
