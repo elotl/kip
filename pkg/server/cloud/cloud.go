@@ -59,7 +59,7 @@ type CloudClient interface {
 	AddInstanceTags(string, map[string]string) error
 	ConnectWithPublicIPs() bool
 	ModifySourceDestinationCheck(string, bool) error
-	RemoveRoute(string) error
+	RemoveRoute(string, string) error
 	AddRoute(string, string) error
 	GetVPCCIDRs() []string
 	GetDNSInfo() ([]string, []string, error)

@@ -119,3 +119,21 @@ variable "vpn_hostnetwork" {
   default     = true
   description = "Whether to run the VPN client pod in host network mode, thus directly adding routes on the worker node host (useful for a simple static route setup). If you plan on using BGP with the VPN tunnel, set it to false, and instead add the VPN client pod as a BGP peer."
 }
+
+variable "cluster_domain" {
+  type = string
+  default = "cluster.local"
+  description = "The Kubernetes cluster domain, used by pods. See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/ for more information."
+}
+
+variable "kube_dns" {
+  type = string
+  default = "10.96.0.10"
+  description = "The clusterIP of the main DNS service (usually called kube-dns) in Kubernetes. See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/ for more information."
+}
+
+variable "local_dns" {
+  type = string
+  default = "169.254.10.20"
+  description = "The IP address used for the local DNS cache pod that will be launched in the VPC to improve DNS performance. See https://kubernetes.io/docs/tasks/administer-cluster/nodelocaldns/ on DNS caching."
+}

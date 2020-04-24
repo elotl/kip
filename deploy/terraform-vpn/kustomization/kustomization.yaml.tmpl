@@ -2,6 +2,9 @@ bases:
 - ../../manifests/virtual-kubelet/overlays/minikube/
 resources:
 - vpn-deployment.yaml
+- node-local-dns.yaml
+patchesStrategicMerge:
+- deployment.yaml
 configMapGenerator:
 - name: virtual-kubelet-config
   namespace: kube-system

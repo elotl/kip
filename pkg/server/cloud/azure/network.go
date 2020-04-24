@@ -265,10 +265,30 @@ func (az *AzureClient) ModifySourceDestinationCheck(instanceID string, isEnabled
 	return nil
 }
 
-func (az *AzureClient) RemoveRoute(destinationCIDR string) error {
+func (az *AzureClient) RemoveRoute(destinationCIDR, instanceID string) error {
+	if destinationCIDR == "" && instanceID == "" {
+		// TODO: Azure does not provide route state like AWS does, so we don't
+		// know if an instance route is dangling. We need to check if the next
+		// hop IP is in use, or has gone away.
+		return fmt.Errorf(
+			"invalid input: at least one non-empty value needed (got %q %q)",
+			destinationCIDR, instanceID)
+	}
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, azureDefaultTimeout)
 	defer cancel()
+	ipAddress := ""
+	if instanceID != "" {
+		nic, err := az.nics.Get(timeoutCtx, instanceID, instanceID, "")
+		if err != nil {
+			return util.WrapError(err, "looking up NIC for adding route")
+		}
+		ipconfig, err := getMilpaIPConfiguration(nic)
+		if err != nil {
+			return util.WrapError(err, "getting IP config for adding route")
+		}
+		ipAddress = to.String(ipconfig.PrivateIPAddress)
+	}
 	vnet, err := az.vnets.Get(
 		timeoutCtx, az.virtualNetwork.ResourceGroup, az.virtualNetwork.Name, "")
 	if err != nil {
@@ -300,8 +320,16 @@ func (az *AzureClient) RemoveRoute(destinationCIDR string) error {
 			if route.RoutePropertiesFormat == nil {
 				continue
 			}
+			if route.RoutePropertiesFormat.NextHopType !=
+				network.RouteNextHopTypeVnetLocal {
+				continue
+			}
 			cidr := to.String(route.RoutePropertiesFormat.AddressPrefix)
-			if cidr != destinationCIDR {
+			if destinationCIDR != "" && cidr != destinationCIDR {
+				continue
+			}
+			nextHop := to.String(route.RoutePropertiesFormat.NextHopIPAddress)
+			if ipAddress != "" && nextHop != ipAddress {
 				continue
 			}
 			details, err = azure.ParseResourceID(to.String(route.ID))
@@ -336,6 +364,11 @@ func (az *AzureClient) RemoveRoute(destinationCIDR string) error {
 }
 
 func (az *AzureClient) AddRoute(destinationCIDR, instanceID string) error {
+	if destinationCIDR == "" || instanceID == "" {
+		return fmt.Errorf(
+			"invalid input: empty value (got %q %q)",
+			destinationCIDR, instanceID)
+	}
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, azureDefaultTimeout)
 	defer cancel()
