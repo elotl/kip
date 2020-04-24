@@ -24,4 +24,4 @@ Templating makes it really easy to override certain parameters or configuration 
       files:
       - provider.yaml
     EOF
-    $ kubectl apply -k overlays/local/dev/
+    $ kubectl apply -k overlays/local-dev/
