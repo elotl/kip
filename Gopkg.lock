@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:805922a698719105a020d35c21420478beab6505764348ab994cb443cdc1ac4b"
+  name = "cloud.google.com/go"
+  packages = ["compute/metadata"]
+  pruneopts = "UT"
+  revision = "69e77e66e59741e053c986d469791a983ee1d6a5"
+  version = "v0.56.0"
+
+[[projects]]
   digest = "1:892e39e5c083d0943f1e80ab8351690f183c6a5ab24e1d280adcad424c26255e"
   name = "contrib.go.opencensus.io/exporter/ocagent"
   packages = ["."]
@@ -517,6 +525,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:766102087520f9d54f2acc72bd6637045900ac735b4a419b128d216f0c5c4876"
+  name = "github.com/googleapis/gax-go"
+  packages = ["v2"]
+  pruneopts = "UT"
+  revision = "bd5b16380fd03dc758d11cef74ba2e3bc8b0e8c2"
+  version = "v2.0.5"
+
+[[projects]]
   digest = "1:e35285db21b7d730a52b891a959783e567ca516ea64f2748070f1f917fbccd82"
   name = "github.com/googleapis/gnostic"
   packages = [
@@ -1006,10 +1022,11 @@
   revision = "fdd1cda4f05fd1fd86124f0ef9ce31a0b72c8448"
 
 [[projects]]
-  digest = "1:207bd4bfe9e112c5fe3fd4c354bfe7ccab139ed6d11d56e17094014e03d6bf41"
+  digest = "1:67686af9cfc1f9240844093152585cfe8331b4882d7b09c35e8274bcd02949a7"
   name = "golang.org/x/net"
   packages = [
     "context",
+    "context/ctxhttp",
     "http/httpguts",
     "http/httpproxy",
     "http2",
@@ -1023,14 +1040,18 @@
   revision = "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
 
 [[projects]]
-  digest = "1:9359217acc6040b4be710ce34473acef28023ad39bfafecea34ffaea7f1e1890"
+  branch = "master"
+  digest = "1:79edde3241bb55de9f4143d5083bfcff722e550c3cb8db94084eab50d0e440b5"
   name = "golang.org/x/oauth2"
   packages = [
     ".",
+    "google",
     "internal",
+    "jws",
+    "jwt",
   ]
   pruneopts = "UT"
-  revision = "a6bd8cefa1811bd24b86f8902872e4e8225f74c4"
+  revision = "bf48bf16ab8d622ce64ec6ce98d2c98f916b6303"
 
 [[projects]]
   branch = "master"
@@ -1145,21 +1166,35 @@
   version = "v0.7.0"
 
 [[projects]]
-  digest = "1:8ecb30641e6b0ae61b99f147381b16ea6d40508f56c16293df5181786fe6da30"
+  digest = "1:ca2f9095ee426455c8819fb8b2ab4788afa9336b5854a7f0f72e7ea5c2da7189"
   name = "google.golang.org/api"
-  packages = ["support/bundler"]
+  packages = [
+    "compute/v1",
+    "googleapi",
+    "googleapi/transport",
+    "internal",
+    "internal/gensupport",
+    "internal/third_party/uritemplates",
+    "option",
+    "support/bundler",
+    "transport/http",
+    "transport/http/internal/propagation",
+  ]
   pruneopts = "UT"
   revision = "aa5d4e47691e7ae1aebb5221ff8e4beea23fad72"
   version = "v0.15.0"
 
 [[projects]]
-  digest = "1:e0a1881f9e0564bebdeac98c75e59f07acdde6ed3a5396e0e613eaad31194866"
+  digest = "1:3c03b58f57452764a4499c55c582346c0ee78c8a5033affe5bdfd9efd3da5bd1"
   name = "google.golang.org/appengine"
   packages = [
+    ".",
     "internal",
+    "internal/app_identity",
     "internal/base",
     "internal/datastore",
     "internal/log",
+    "internal/modules",
     "internal/remote_api",
     "internal/urlfetch",
     "urlfetch",
@@ -1778,6 +1813,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "cloud.google.com/go/compute/metadata",
     "contrib.go.opencensus.io/exporter/ocagent",
     "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-10-01/compute",
     "github.com/Azure/azure-sdk-for-go/services/network/mgmt/2018-08-01/network",
@@ -1838,6 +1874,8 @@
     "golang.org/x/crypto/ssh/terminal",
     "golang.org/x/net/context",
     "golang.org/x/sys/unix",
+    "google.golang.org/api/compute/v1",
+    "google.golang.org/api/option",
     "google.golang.org/grpc",
     "google.golang.org/grpc/codes",
     "google.golang.org/grpc/status",
