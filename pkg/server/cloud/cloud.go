@@ -105,8 +105,8 @@ type SubnetAttributes struct {
 	// way to specify placement, knock yourself out.
 	AddressAffinity SubnetAddressAffinity
 	// In AWS and Azure (pretty sure...), we can get availability
-	// stats However, they're harder to come by in GCP.  That said, in
-	// GCP you can resize your subnets and we can always query
+	// stats However, they're harder to come by in GCE.  That said, in
+	// GCE you can resize your subnets and we can always query
 	// instances and bucket them.
 	AvailableAddresses int
 	//Capacity            int
