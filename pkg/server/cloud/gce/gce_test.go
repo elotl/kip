@@ -20,7 +20,6 @@ func TestGCECloud(t *testing.T) {
 	fmt.Printf("Running Cloud Test\n")
 	controllerID := "bcoxtestcontroller"
 	cloudClient := getGCE(t, controllerID)
-	fmt.Println(cloudClient)
 	err := cloudClient.EnsureMilpaSecurityGroups(
 		[]string{},
 		[]string{},

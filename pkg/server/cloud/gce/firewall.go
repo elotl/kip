@@ -195,9 +195,6 @@ func (c *gceClient) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string
 			PortRangeSize: 1,
 		},
 	}
-	fmt.Println(c)
-	fmt.Println("VPC CIDR", c.vpcCIDRs)
-	cidrs := make([]string, len(c.vpcCIDRs))
 	copy(cidrs, c.vpcCIDRs)
 	for _, cidr := range extraCIDRs {
 		if cidr != "" {
@@ -210,7 +207,6 @@ func (c *gceClient) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string
 		return util.WrapError(err, "could not setup Kip API cloud firewall rules")
 	}
 	ids := append(extraGroupIDs, apiGroup.ID)
-	log.Println("security group name", apiGroupName, ids)
 	c.SetBootSecurityGroupIDs(ids)
 	return nil
 }
