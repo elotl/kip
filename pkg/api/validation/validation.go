@@ -21,9 +21,11 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/elotl/kip/pkg/api"
+	apiannotations "github.com/elotl/kip/pkg/api/annotations"
 	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/kip/pkg/util/instanceselector"
 	"github.com/elotl/kip/pkg/util/validation"
@@ -156,6 +158,30 @@ func ValidateAnnotations(annotations map[string]string, fldPath *field.Path) fie
 	return allErrs
 }
 
+// ValidatePodAnnotations validates pod annotations.
+func ValidatePodAnnotations(annotations map[string]string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	for k, v := range annotations {
+		switch k {
+		case apiannotations.PodResourcesPrivateIPOnly:
+			_, err := strconv.ParseBool(v)
+			fmt.Println("parsed bool")
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child(k), v, "Could not parse annotation value as bool"))
+			}
+		case apiannotations.PodCloudRoute:
+			cidrs := v
+			for _, cidr := range strings.Fields(cidrs) {
+				_, _, err := net.ParseCIDR(cidr)
+				if err != nil {
+					allErrs = append(allErrs, field.Invalid(fldPath.Child(k), v, "Could not parse annotation value as CIDR"))
+				}
+			}
+		}
+	}
+	return allErrs
+}
+
 // ValidateLabelName validates that the label name is correctly defined.
 func ValidateLabelName(labelName string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
@@ -246,6 +272,7 @@ func validateSpotPolicy(spotPolicy *api.SpotPolicy, fldPath *field.Path) field.E
 func ValidatePod(pod *api.Pod) field.ErrorList {
 	fldPath := field.NewPath("metadata")
 	allErrs := ValidateObjectMeta(&pod.ObjectMeta, true, ValidatePodName, fldPath)
+	allErrs = append(allErrs, ValidatePodAnnotations(pod.Annotations, field.NewPath("metadata.annotations"))...)
 	allErrs = append(allErrs, ValidatePodSpec(&pod.Spec, field.NewPath("spec"))...)
 	return allErrs
 }

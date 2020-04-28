@@ -90,6 +90,7 @@ func (c *GarbageController) GCLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 		case <-instancesTicker.C:
 			c.timer.StartLoop()
 			c.CleanInstances()
+			c.CleanDanglingRoutes()
 			c.timer.EndLoop()
 		case <-cleanTermiantedTicker.C:
 			c.CleanTerminatedNodes()
@@ -99,6 +100,13 @@ func (c *GarbageController) GCLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 			klog.V(2).Info("Stopping GarbageController")
 			return
 		}
+	}
+}
+
+func (c *GarbageController) CleanDanglingRoutes() {
+	err := c.cloudClient.RemoveRoute("", "")
+	if err != nil {
+		klog.Warningf("cleaning up dangling routes: %v", err)
 	}
 }
 

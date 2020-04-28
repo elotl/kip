@@ -56,10 +56,10 @@ type instanceSelector struct {
 
 var selector *instanceSelector
 
-func Setup(cloud, region, defaultInstanceType string) error {
+func Setup(cloud, regionOrZone, defaultInstanceType string) error {
 	switch cloud {
 	case "aws":
-		d, err := getSelectorData(awsInstanceJson, region)
+		d, err := getSelectorData(awsInstanceJson, regionOrZone)
 		if err != nil {
 			return err
 		}
@@ -79,7 +79,7 @@ func Setup(cloud, region, defaultInstanceType string) error {
 			containerInstanceSelector: FargateInstanceSelector,
 		}
 	case "azure":
-		d, err := getSelectorData(azureInstanceJson, region)
+		d, err := getSelectorData(azureInstanceJson, regionOrZone)
 		if err != nil {
 			return err
 		}
@@ -93,6 +93,21 @@ func Setup(cloud, region, defaultInstanceType string) error {
 			},
 			containerInstanceSelector: AzureContainenrInstanceSelector,
 		}
+	case "gce":
+		d, err := getSelectorData(gceInstanceJson, regionOrZone)
+		if err != nil {
+			return err
+		}
+		selector = &instanceSelector{
+			defaultInstanceType:  defaultInstanceType,
+			data:                 d,
+			unsupportedInstances: sets.NewString(),
+			sustainedCPUSupport:  false,
+			memorySpecParser: func(q resource.Quantity) float32 {
+				return util.ToGiBFloat32(&q)
+			},
+			containerInstanceSelector: GCEContainenrInstanceSelector,
+		}
 
 	default:
 		return fmt.Errorf("unknown cloud for instanceselector setup: %s", cloud)
@@ -100,15 +115,15 @@ func Setup(cloud, region, defaultInstanceType string) error {
 	return nil
 }
 
-func getSelectorData(data, region string) ([]InstanceData, error) {
+func getSelectorData(data, regionOrZone string) ([]InstanceData, error) {
 	d := make(map[string][]InstanceData)
 	err := json.Unmarshal([]byte(data), &d)
 	if err != nil {
 		return nil, err
 	}
-	regionData, exists := d[region]
+	regionData, exists := d[regionOrZone]
 	if !exists {
-		return nil, fmt.Errorf("could not find instance data for cloud region: %s", region)
+		return nil, fmt.Errorf("could not find instance data for cloud region/zone: %s", regionOrZone)
 	}
 	return regionData, nil
 }
@@ -259,7 +274,7 @@ func noResourceSpecified(ps *api.PodSpec) bool {
 		ps.Resources.GPU == ""
 }
 
-// Used by validation code in Milpa
+// Used by validation code in Kip
 func IsUnsupportedInstance(instanceType string) bool {
 	if len(instanceType) < 2 {
 		return true

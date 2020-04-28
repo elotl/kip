@@ -4,6 +4,10 @@
 *.dll
 *.so
 *.dylib
+*.pyc
+
+# editor backup data
+.\#*
 
 # Test binary, built with `go test -c`
 *.test
@@ -26,5 +30,4 @@ kubeconfig
 deploy/terraform/.terraform/
 deploy/manifests/virtual-kubelet/overlays/local-*
 deploy/terraform-vpn/kustomization/aws-vpn-client.env
-deploy/terraform-vpn/kustomization/kustomization.yaml
-deploy/terraform-vpn/kustomization/provider.yaml
+deploy/terraform-vpn/kustomization/*.yaml

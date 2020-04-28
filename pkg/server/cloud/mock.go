@@ -47,7 +47,7 @@ type MockCloudClient struct {
 
 	DNSInfoGetter func() ([]string, []string, error)
 
-	RouteRemover func(string) error
+	RouteRemover func(string, string) error
 	RouteAdder   func(string, string) error
 
 	StatusKeeperGetter func() StatusKeeper
@@ -153,8 +153,8 @@ func (e *MockCloudClient) GetDNSInfo() ([]string, []string, error) {
 	return e.DNSInfoGetter()
 }
 
-func (e *MockCloudClient) RemoveRoute(destinationCIDR string) error {
-	return e.RouteRemover(destinationCIDR)
+func (e *MockCloudClient) RemoveRoute(destinationCIDR, nextHop string) error {
+	return e.RouteRemover(destinationCIDR, nextHop)
 }
 
 func (e *MockCloudClient) AddRoute(destinationCIDR, instanceID string) error {
@@ -303,11 +303,11 @@ func NewMockClient() *MockCloudClient {
 		return p, nil
 	}
 
-	net.RouteRemover = func(destinationCIDR string) error {
+	net.RouteRemover = func(destinationCIDR, nextHop string) error {
 		return nil
 	}
 
-	net.RouteAdder = func(destinationCIDR, instanceID string) error {
+	net.RouteAdder = func(destinationCIDR, nextHop string) error {
 		return nil
 	}
 
