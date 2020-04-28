@@ -24,6 +24,7 @@ import (
 	"cloud.google.com/go/compute/metadata"
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
+	"k8s.io/klog"
 )
 
 func zoneToRegion(zone string) (string, error) {
@@ -42,26 +43,27 @@ func (c *gceClient) ConnectWithPublicIPs() bool {
 	}
 }
 
-func (c *gceClient) setupVPC(vpcName string) error {
-	if vpcName == "" {
-		detectedVPC, err := c.detectCurrentVPC()
-		if err != nil {
-			vpcError := fmt.Errorf("could not autodetect VPC, please set the cloud vpc name in provider.yaml. The error was: %s", err)
-			return vpcError
-		} else {
-			c.vpcName = detectedVPC
-		}
-	}
-	// make sure the VPC exists
+func (c *gceClient) getVPCCIDRs(vpcName string) ([]string, error) {
 	ctx := context.Background()
 	resp, err := c.service.Networks.Get(c.projectID, vpcName).Context(ctx).Do()
 	if err != nil {
-		return util.WrapError(err, "error querying VPC %s in GCP", vpcName)
+		return nil, util.WrapError(err, "error querying VPC %s in GCP", vpcName)
 	}
-	c.vpcName = resp.Name
-	c.vpcCIDR = resp.IPv4Range
-
-	return nil
+	if resp == nil {
+		return nil, nilResponseError("Networks.Get")
+	}
+	//spew.Dump(resp)
+	if len(resp.Subnetworks) == 0 {
+		return nil, fmt.Errorf("Network error: no subnetworks found in %s network", vpcName)
+	}
+	// Todo, need to get cidrs from all the subnets
+	//resp, err := c.service.Subnetworks.Get(c.projectID, c.region, subnetName).Context(ctx).Do()
+	// cidrs := make([]string{}, 0, len(resp.Subnetworks))
+	// for _, subnetwork := range resp.Subnetworks {
+	// 	c.service.Get()
+	// }
+	// return resp.IPv4Range, nil
+	return nil, TODO()
 }
 
 func (c *gceClient) detectCurrentVPC() (string, error) {
@@ -109,6 +111,22 @@ func (c *gceClient) autodetectRegionAndZone() (string, string, error) {
 	return region, zone, nil
 }
 
+func (c *gceClient) autodetectSubnet() (string, string, error) {
+	return "", "", TODO()
+}
+
+func (c *gceClient) getSubnetCIDR(subnetName string) (string, error) {
+	ctx := context.Background()
+	resp, err := c.service.Subnetworks.Get(c.projectID, c.region, subnetName).Context(ctx).Do()
+	if err != nil {
+		return "", util.WrapError(err, "Error looking up subnet %s", subnetName)
+	}
+	if resp == nil {
+		return "", nilResponseError("Subnetworks.Get")
+	}
+	return resp.IpCidrRange, nil
+}
+
 func (c *gceClient) GetSubnets() ([]cloud.SubnetAttributes, error) {
 	sns := []cloud.SubnetAttributes{{
 		Name:            c.subnetName,
@@ -125,25 +143,38 @@ func (c *gceClient) GetAvailabilityZones() ([]string, error) {
 }
 
 func (c *gceClient) AddRoute(destinationCIDR, instanceID string) error {
-	return NI()
+	return TODO()
 }
 
-func (c *gceClient) RemoveRoute(destinationCIDR string) error {
-	return NI()
+func (c *gceClient) RemoveRoute(destinationCIDR, instanceID string) error {
+	return TODO()
 }
 
 func (c *gceClient) ModifySourceDestinationCheck(instanceID string, isEnabled bool) error {
-	return NI()
+	return TODO()
 }
 
 func (c *gceClient) GetDNSInfo() ([]string, []string, error) {
-	return nil, nil, NI()
+	// resolv.conf contents:
+	//
+	// domain c.milpa-207719.internal
+	// search c.milpa-207719.internal. google.internal.
+	// nameserver 169.254.169.254
+
+	klog.Warningln("Need to implement GETDNSInfo()")
+
+	zoneLetter := c.zone[len(c.zone)-1]
+	s := fmt.Sprintf("%s.%s.internal.", string(zoneLetter), c.projectID)
+	searches := []string{s, "google.internal."}
+	nameservers := []string{"169.254.169.254"}
+	return nameservers, searches, nil
 }
 
 func (c *gceClient) GetVPCCIDRs() []string {
-	return []string{c.vpcCIDR}
+	return c.vpcCIDRs
 }
 
 func (c *gceClient) IsAvailable() (bool, error) {
-	return false, NI()
+	klog.Errorln("Need to implement: gce.IsAvailable()")
+	return true, nil
 }

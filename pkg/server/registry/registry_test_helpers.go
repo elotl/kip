@@ -90,7 +90,7 @@ func SetupTestNodeRegistry() (*NodeRegistry, func()) {
 }
 
 func SetupTestPodRegistry() (*PodRegistry, func()) {
-	instanceselector.Setup("aws", "us-east-1", "t2.nano")
+	instanceselector.Setup("aws", "us-east-1", "", "t2.nano")
 	es, KVStore, closer := makeRegistryComponents()
 	sv := makeFakeStatefulValidator()
 	podRegistry := NewPodRegistry(KVStore, api.VersioningCodec{}, es, sv)

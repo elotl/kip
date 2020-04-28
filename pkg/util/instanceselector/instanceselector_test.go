@@ -26,13 +26,13 @@ import (
 
 func TestSetupInstanceSelector(t *testing.T) {
 	defaultInstanceType := "t2.nano"
-	err := Setup("aws", "us-east-1", defaultInstanceType)
+	err := Setup("aws", "us-east-1", "", defaultInstanceType)
 	assert.NoError(t, err)
 }
 
 func TestHappy(t *testing.T) {
 	defaultInstanceType := "t2.nano"
-	_ = Setup("aws", "us-east-1", defaultInstanceType)
+	_ = Setup("aws", "us-east-1", "", defaultInstanceType)
 	ps := api.PodSpec{}
 	ps.Resources.CPU = "1"
 	ps.Resources.Memory = "1Gi"
@@ -50,7 +50,7 @@ func TestHappy(t *testing.T) {
 
 func TestAWSGPUInstance(t *testing.T) {
 	defaultInstanceType := "t2.nano"
-	_ = Setup("aws", "us-east-1", defaultInstanceType)
+	_ = Setup("aws", "us-east-1", "", defaultInstanceType)
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1"
 	inst, _, err := ResourcesToInstanceType(&ps)
@@ -60,7 +60,7 @@ func TestAWSGPUInstance(t *testing.T) {
 }
 
 func TestHasInstanceType(t *testing.T) {
-	_ = Setup("aws", "us-east-1", "t2.nano")
+	_ = Setup("aws", "us-east-1", "", "t2.nano")
 	ps := api.PodSpec{}
 	specType := "m4.xlarge"
 	ps.InstanceType = specType
@@ -83,14 +83,14 @@ func TestHasInstanceType(t *testing.T) {
 }
 
 func TestIsUnsupportedInstance(t *testing.T) {
-	_ = Setup("aws", "us-east-1", "t2.nano")
+	_ = Setup("aws", "us-east-1", "", "t2.nano")
 	selector.unsupportedInstances.Insert("ZZ")
 	v := IsUnsupportedInstance("ZZ.top")
 	assert.True(t, v)
 }
 
 func TestNoMatch(t *testing.T) {
-	_ = Setup("aws", "us-east-1", "t2.nano")
+	_ = Setup("aws", "us-east-1", "", "t2.nano")
 	ps := api.PodSpec{}
 	ps.Resources.CPU = "1000"
 	ps.Resources.Memory = "1"
@@ -103,7 +103,7 @@ func TestNoMatch(t *testing.T) {
 }
 
 func TestAWSResourcesToInstanceType(t *testing.T) {
-	_ = Setup("aws", "us-east-1", "t2.nano")
+	_ = Setup("aws", "us-east-1", "", "t2.nano")
 	f := false
 	testCases := []struct {
 		Resources    api.ResourceSpec
@@ -169,7 +169,7 @@ func TestAWSResourcesToInstanceType(t *testing.T) {
 }
 
 func TestAzureResourcesToInstanceType(t *testing.T) {
-	_ = Setup("azure", "East US", "Standard_B1s")
+	_ = Setup("azure", "East US", "", "Standard_B1s")
 	testCases := []struct {
 		Resources    api.ResourceSpec
 		instanceType string

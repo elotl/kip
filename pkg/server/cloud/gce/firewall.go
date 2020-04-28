@@ -25,15 +25,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elotl/gce-poc/pkg/cloud"
-	"github.com/elotl/gce-poc/pkg/util"
 	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/server/cloud"
+	"github.com/elotl/kip/pkg/util"
 	"google.golang.org/api/compute/v1"
 )
 
 // todo: is this too long?
 const (
-	KipAPISGSuffix = "CellSecurityGroup"
+	KipAPISGSuffix = "CellsFWRule"
 )
 
 func (c *gceClient) SetBootSecurityGroupIDs(ids []string) {
@@ -86,19 +86,19 @@ func formatInstancePort(port, portRangeSize int) string {
 	return portStr
 }
 
-func gceProtocolToKipProtocol(proto string) cloud.Protocol {
+func gceProtocolToKipProtocol(proto string) api.Protocol {
 	proto = strings.ToLower(proto)
 	switch proto {
 	case "tcp":
-		return cloud.ProtocolTCP
+		return api.ProtocolTCP
 	case "udp":
-		return cloud.ProtocolUDP
+		return api.ProtocolUDP
 	case "sctp":
-		return cloud.ProtocolSCTP
+		return api.ProtocolSCTP
 	case "ICMP":
-		return cloud.ProtocolICMP
+		return api.ProtocolICMP
 	}
-	return cloud.Protocol("")
+	return api.Protocol("")
 }
 
 func portStringToInstancePort(p string) (int, int) {
@@ -162,42 +162,48 @@ func firewallToSecurityGroup(fw *compute.Firewall) *cloud.SecurityGroup {
 
 func (c *gceClient) toFirewallRule(sgName string, ports []cloud.InstancePort, sourceRanges []string) *compute.Firewall {
 	return &compute.Firewall{
-		Allowed:     portsToAllowedRules(ports),
-		Description: c.getRuleDescription(),
-		Direction:   "INGRESS",
-		Name:        sgName,
-		// Todo: setup network/vpc and select that here
-		// Use default priority
+		Allowed:      portsToAllowedRules(ports),
+		Description:  c.getRuleDescription(),
+		Direction:    "INGRESS",
+		Name:         sgName,
+		Network:      c.getNetworkURL(),
 		SourceRanges: sourceRanges,
-		TargetTags:   []string{util.CreateKipCellNetworkTag(c.controllerID)},
+		TargetTags:   []string{CreateKipCellNetworkTag(c.controllerID)},
 	}
 }
 
 func (c *gceClient) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string) error {
 	milpaPorts := []cloud.InstancePort{
 		{
-			Protocol:      cloud.ProtocolTCP,
+			Protocol:      api.ProtocolTCP,
 			Port:          cloud.RestAPIPort,
 			PortRangeSize: 1,
 		},
 		{
-			Protocol:      cloud.ProtocolTCP,
+			Protocol:      api.ProtocolTCP,
 			Port:          1,
 			PortRangeSize: math.MaxUint16,
 		},
 		{
-			Protocol:      cloud.ProtocolUDP,
+			Protocol:      api.ProtocolUDP,
 			Port:          1,
 			PortRangeSize: math.MaxUint16,
 		},
 		{
-			Protocol:      cloud.ProtocolICMP,
+			Protocol:      api.ProtocolICMP,
 			Port:          -1,
 			PortRangeSize: 1,
 		},
 	}
-	vpcCIDRs := []string{c.vpcCIDR}
-	cidrs := append(vpcCIDRs, extraCIDRs...)
+	fmt.Println(c)
+	fmt.Println("VPC CIDR", c.vpcCIDRs)
+	cidrs := make([]string, len(c.vpcCIDRs))
+	copy(cidrs, c.vpcCIDRs)
+	for _, cidr := range extraCIDRs {
+		if cidr != "" {
+			cidrs = append(cidrs, cidr)
+		}
+	}
 	apiGroupName := util.CreateSecurityGroupName(c.controllerID, KipAPISGSuffix)
 	apiGroup, err := c.EnsureSecurityGroup(apiGroupName, milpaPorts, cidrs)
 	if err != nil {
@@ -213,6 +219,9 @@ func (c *gceClient) FindSecurityGroup(sgName string) (*cloud.SecurityGroup, erro
 	ctx := context.Background()
 	resp, err := c.service.Firewalls.Get(c.projectID, sgName).Context(ctx).Do()
 	if err != nil {
+		if isNotFoundError(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	fmt.Printf("%#v\n", resp)
@@ -227,7 +236,9 @@ func portsToAllowedRules(ports []cloud.InstancePort) []*compute.FirewallAllowed 
 		portString := formatInstancePort(ports[i].Port, ports[i].PortRangeSize)
 		allowed[i] = &compute.FirewallAllowed{
 			IPProtocol: proto,
-			Ports:      []string{portString},
+		}
+		if proto == "tcp" || proto == "udp" || proto == "sctp" {
+			allowed[i].Ports = []string{portString}
 		}
 	}
 	return allowed
@@ -248,14 +259,14 @@ func (c *gceClient) UpdateSecurityGroup(cloudSG cloud.SecurityGroup, ports []clo
 func (c *gceClient) CreateSecurityGroup(sgName string, ports []cloud.InstancePort, sourceRanges []string) (*cloud.SecurityGroup, error) {
 	rule := c.toFirewallRule(sgName, ports, sourceRanges)
 	ctx := context.Background()
-	resp, err := c.service.Firewalls.Insert(c.projectID, rule).Context(ctx).Do()
+	_, err := c.service.Firewalls.Insert(c.projectID, rule).Context(ctx).Do()
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("%#v\n", resp)
-	return nil, nil
+	sg := cloud.NewSecurityGroup(sgName, sgName, ports, sourceRanges)
+	return &sg, nil
 }
 
 func (c *gceClient) AttachSecurityGroups(node *api.Node, groups []string) error {
-	return NI()
+	return TODO()
 }

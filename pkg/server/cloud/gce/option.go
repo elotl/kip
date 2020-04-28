@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
@@ -23,13 +22,6 @@ func (w WithZone) Apply(c *gceClient) error {
 	return err
 }
 
-// type WithProject string
-
-// func (w WithProject) Apply(c *gceClient) error {
-// 	c.projectID = string(w)
-// 	return nil
-// }
-
 type WithVPCName string
 
 func (w WithVPCName) Apply(c *gceClient) error {
@@ -47,14 +39,17 @@ func (w WithSubnetName) Apply(c *gceClient) error {
 type WithCredentialsFile string
 
 func (w WithCredentialsFile) Apply(c *gceClient) error {
-	envVar := "GOOGLE_APPLICATION_CREDENTIALS"
-	if os.Getenv(envVar) == "" {
-		err := os.Setenv(envVar, string(w))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	// envVar := "GOOGLE_APPLICATION_CREDENTIALS"
+	// if os.Getenv(envVar) == "" {
+	// 	err := os.Setenv(envVar, string(w))
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
+	var err error
+	ctx := context.Background()
+	c.service, err = compute.NewService(ctx, option.WithCredentialsFile(string(w)))
+	return err
 }
 
 type withCredentials struct {
@@ -91,10 +86,6 @@ func (w withCredentials) Apply(c *gceClient) error {
 	}
 
 	ctx := context.Background()
-	service, err := compute.NewService(ctx, option.WithCredentialsJSON(b))
-	if err != nil {
-		return err
-	}
-	c.service = service
-	return nil
+	c.service, err = compute.NewService(ctx, option.WithCredentialsJSON(b))
+	return err
 }

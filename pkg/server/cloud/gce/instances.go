@@ -19,26 +19,27 @@ package gce
 import (
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/server/cloud"
+	"k8s.io/klog"
 )
 
 func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	return nil, NI()
+	return nil, TODO()
 }
 
 func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	return nil, NI()
+	return nil, TODO()
 }
 
 func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
-	return nil, NI()
+	return nil, TODO()
 }
 
 func (c *gceClient) StopInstance(instanceID string) error {
-	return NI()
+	return TODO()
 }
 
 func (c *gceClient) ResizeVolume(node *api.Node, size int64) (error, bool) {
-	return NI(), false
+	return TODO(), false
 }
 
 func (c *gceClient) SetSustainedCPU(node *api.Node, enabled bool) error {
@@ -46,21 +47,23 @@ func (c *gceClient) SetSustainedCPU(node *api.Node, enabled bool) error {
 }
 
 func (c *gceClient) ListInstancesFilterID(ids []string) ([]cloud.CloudInstance, error) {
-	return nil, NI()
+	return nil, TODO()
 }
 
 func (c *gceClient) ListInstances() ([]cloud.CloudInstance, error) {
-	return nil, NI()
+	return nil, TODO()
 }
 
 func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error {
-	return NI()
+	return TODO()
 }
 
 func (c *gceClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
-	return "", NI()
+	klog.Errorln("Need to get boot image from spec")
+	bootDiskImageURL := c.getProjectURL() + "debian-cloud/global/images/debian-7-wheezy-v20140606"
+	return bootDiskImageURL, nil
 }
 
 func (c *gceClient) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
-	return NI()
+	return TODO()
 }

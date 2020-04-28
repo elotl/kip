@@ -98,7 +98,7 @@ type GCEConfig struct {
 	Credentials     *GCECredentials `json:"credentials,omitempty"`
 	Zone            string          `json:"zone,omitempty"`
 	VPCName         string          `json:"vpcName,omitempty"`
-	SubnetName      string          `json:"subnetName,omitempty"` // unsure if this is necessary.. can we autodetect the subnet?
+	SubnetName      string          `json:"subnetName,omitempty"`
 }
 
 type GCECredentials struct {
@@ -318,7 +318,7 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 		if err != nil {
 			return nil, util.WrapError(err, "Error creating GCE cloud client")
 		}
-		return client, fmt.Errorf("GCE Client doesn't implement cloud.CloudClient")
+		return client, nil
 	} else {
 		return nil, fmt.Errorf("You must specify a cloud configuration in provider.yaml")
 	}

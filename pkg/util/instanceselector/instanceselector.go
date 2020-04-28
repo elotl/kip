@@ -56,10 +56,10 @@ type instanceSelector struct {
 
 var selector *instanceSelector
 
-func Setup(cloud, regionOrZone, defaultInstanceType string) error {
+func Setup(cloud, region, zone, defaultInstanceType string) error {
 	switch cloud {
 	case "aws":
-		d, err := getSelectorData(awsInstanceJson, regionOrZone)
+		d, err := getSelectorData(awsInstanceJson, region)
 		if err != nil {
 			return err
 		}
@@ -79,7 +79,7 @@ func Setup(cloud, regionOrZone, defaultInstanceType string) error {
 			containerInstanceSelector: FargateInstanceSelector,
 		}
 	case "azure":
-		d, err := getSelectorData(azureInstanceJson, regionOrZone)
+		d, err := getSelectorData(azureInstanceJson, region)
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func Setup(cloud, regionOrZone, defaultInstanceType string) error {
 			containerInstanceSelector: AzureContainenrInstanceSelector,
 		}
 	case "gce":
-		d, err := getSelectorData(gceInstanceJson, regionOrZone)
+		d, err := getSelectorData(gceInstanceJson, zone)
 		if err != nil {
 			return err
 		}
@@ -108,7 +108,6 @@ func Setup(cloud, regionOrZone, defaultInstanceType string) error {
 			},
 			containerInstanceSelector: GCEContainenrInstanceSelector,
 		}
-
 	default:
 		return fmt.Errorf("unknown cloud for instanceselector setup: %s", cloud)
 	}

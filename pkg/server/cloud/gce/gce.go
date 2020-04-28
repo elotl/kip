@@ -17,17 +17,31 @@ limitations under the License.
 package gce
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"runtime"
 
 	"cloud.google.com/go/compute/metadata"
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/server/cloud"
+	"github.com/elotl/kip/pkg/util"
 	"google.golang.org/api/compute/v1"
+	"k8s.io/klog"
 )
 
-func NI() error {
-	return fmt.Errorf("Not implemented yet!")
+func TODO() error {
+	msg := "TODO: Not implemented yet!"
+	pc, file, line, ok := runtime.Caller(1)
+	if ok {
+		fName := "unknown"
+		details := runtime.FuncForPC(pc)
+		if details != nil {
+			fName = details.Name()
+		}
+		msg = fmt.Sprintf("TODO: [%s.%d] %s not implemented yet", file, line, fName)
+	}
+	return fmt.Errorf(msg)
 }
 
 type gceClient struct {
@@ -39,8 +53,8 @@ type gceClient struct {
 	zone                 string
 	vpcName              string
 	subnetName           string
-	vpcCIDR              string // Unsure if this is needed?
-	subnetCIDR           string // Unsure if this is needed?
+	vpcCIDRs             []string // Unsure if this is needed?
+	subnetCIDR           string   // Unsure if this is needed?
 	usePublicIPs         bool
 	bootSecurityGroupIDs []string
 	cloudStatus          *cloud.AZSubnetStatus
@@ -79,17 +93,49 @@ func NewGCEClient(controllerID, nametag, projectID string, opts ...ClientOption)
 			return nil, err
 		}
 	}
-	err = client.setupVPC(client.vpcName)
+
+	// Setup VPC Parameters
+	if client.vpcName == "" {
+		client.vpcName, err = client.detectCurrentVPC()
+		if err != nil {
+			return nil, err
+		}
+	}
+	// client.vpcCIDRs, err = client.getVPCCIDRs(client.vpcName)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// fmt.Println("returned vpc cidr", client.vpcCIDRs)
+
+	// Setup subnet parameters
+	if client.subnetName == "" {
+		client.subnetName, client.subnetCIDR, err = client.autodetectSubnet()
+		if err != nil {
+			return nil, err
+		}
+	}
+	client.subnetCIDR, err = client.getSubnetCIDR(client.subnetName)
+	// Todo: fixme, pull all cidrs from all subnets in the network
+	klog.Warningln("Todo: need to get all subnet cidrs")
+	client.vpcCIDRs = []string{client.subnetCIDR}
 	if err != nil {
 		return nil, err
 	}
+
+	client.cloudStatus, err = cloud.NewAZSubnetStatus(client)
+	if err != nil {
+		return nil, util.WrapError(err, "Error creating gce cloud status keeper")
+	}
+
 	return client, nil
 }
 
 // Try to get credentials from environment variables or from
 // the environment the machine is running in
 func serviceFromEnvironment() (*compute.Service, error) {
-	return nil, fmt.Errorf("Not implemented")
+	ctx := context.Background()
+	service, err := compute.NewService(ctx)
+	return service, err
 }
 
 func (c *gceClient) autodetectProject() (string, error) {
@@ -112,6 +158,7 @@ func (c *gceClient) GetAttributes() cloud.CloudAttributes {
 		FixedSizeVolume: false,
 		Provider:        cloud.ProviderGCE,
 		Region:          c.region,
+		Zone:            c.zone,
 	}
 }
 
@@ -120,5 +167,9 @@ func (c *gceClient) CloudStatusKeeper() cloud.StatusKeeper {
 }
 
 func (c *gceClient) GetRegistryAuth() (string, string, error) {
-	return "", "", NI()
+	return "", "", TODO()
+}
+
+func nilResponseError(call string) error {
+	return fmt.Errorf("Nil response from GCE API %s RPC", call)
 }

@@ -238,7 +238,8 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 	)
 	err = instanceselector.Setup(
 		cloudClient.GetAttributes().Provider,
-		cloudRegion,
+		cloudClient.GetAttributes().Region,
+		cloudClient.GetAttributes().Zone,
 		serverConfigFile.Cells.DefaultInstanceType)
 	if err != nil {
 		return nil, fmt.Errorf("error setting up instance selector %s", err)
