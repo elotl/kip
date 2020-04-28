@@ -1088,8 +1088,9 @@ type PodTemplateSpec struct {
 type StorageType string
 
 const (
-	StorageGP2         StorageType = "gp2"
-	StorageStandardSSD StorageType = "StandardSSD"
+	StorageGP2             StorageType = "gp2"
+	StorageStandardSSD     StorageType = "StandardSSD"
+	StandardPersistentDisk StorageType = "StandardPersistentDisk"
 )
 
 // There are two different styles of label selectors used in versioned types:

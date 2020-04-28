@@ -170,11 +170,10 @@ func (az *AzureClient) GetVPCCIDRs() []string {
 
 func (az *AzureClient) GetAttributes() cloud.CloudAttributes {
 	return cloud.CloudAttributes{
-		DiskProductName:           api.StorageStandardSSD,
-		FixedSizeVolume:           true,
-		MaxInstanceSecurityGroups: 1,
-		Provider:                  cloud.ProviderAzure,
-		Region:                    az.region,
+		DiskProductName: api.StorageStandardSSD,
+		FixedSizeVolume: true,
+		Provider:        cloud.ProviderAzure,
+		Region:          az.region,
 	}
 }
 

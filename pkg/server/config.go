@@ -314,11 +314,11 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 		if cc.GCE.Credentials != nil {
 			options = append(options, gce.WithCredentials(cc.GCE.Credentials.ClientEmail, cc.GCE.Credentials.PrivateKey))
 		}
-		_, err := gce.NewGCEClient(controllerID, nametag, cc.GCE.ProjectID, options...)
+		client, err := gce.NewGCEClient(controllerID, nametag, cc.GCE.ProjectID, options...)
 		if err != nil {
 			return nil, util.WrapError(err, "Error creating GCE cloud client")
 		}
-		return nil, fmt.Errorf("GCE Client doesn't implement cloud.CloudClient")
+		return client, fmt.Errorf("GCE Client doesn't implement cloud.CloudClient")
 	} else {
 		return nil, fmt.Errorf("You must specify a cloud configuration in provider.yaml")
 	}

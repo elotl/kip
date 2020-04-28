@@ -173,9 +173,8 @@ func (e *MockCloudClient) AddInstances(insts ...CloudInstance) {
 
 func (m *MockCloudClient) GetAttributes() CloudAttributes {
 	return CloudAttributes{
-		DiskProductName:           api.StorageGP2,
-		FixedSizeVolume:           false,
-		MaxInstanceSecurityGroups: 5,
+		DiskProductName: api.StorageGP2,
+		FixedSizeVolume: false,
 	}
 }
 
