@@ -195,6 +195,7 @@ func (c *gceClient) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string
 			PortRangeSize: 1,
 		},
 	}
+	cidrs := make([]string, len(c.vpcCIDRs))
 	copy(cidrs, c.vpcCIDRs)
 	for _, cidr := range extraCIDRs {
 		if cidr != "" {

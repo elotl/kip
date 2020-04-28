@@ -1,7 +1,6 @@
 package gce
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -16,14 +15,13 @@ func getGCE(t *testing.T, controllerID string) *gceClient {
 	return c
 }
 
-func TestGCECloud(t *testing.T) {
-	fmt.Printf("Running Cloud Test\n")
-	controllerID := "bcoxtestcontroller"
-	cloudClient := getGCE(t, controllerID)
-	err := cloudClient.EnsureMilpaSecurityGroups(
-		[]string{},
-		[]string{},
-	)
-	assert.NoError(t, err)
-
-}
+// func TestGCECloud(t *testing.T) {
+// 	fmt.Printf("Running Cloud Test\n")
+// 	controllerID := "bcoxtestcontroller"
+// 	cloudClient := getGCE(t, controllerID)
+// 	err := cloudClient.EnsureMilpaSecurityGroups(
+// 		[]string{},
+// 		[]string{},
+// 	)
+// 	assert.NoError(t, err)
+// }
