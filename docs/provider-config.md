@@ -149,7 +149,7 @@ cells:
   #   version: 532
   #   url: "http://itzo-kip-download.s3.amazonaws.com"
 
-  # statusPeriod controls how often (in seconds) kip will query cells
+  # statusInterval controls how often (in seconds) kip will query cells
   # for their status.
 
   # statusInterval: 5
