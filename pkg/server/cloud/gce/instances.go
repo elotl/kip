@@ -25,7 +25,7 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-func (c *gceCompute) getNodeLabels() map[string]string {
+func (c *gceClient) getNodeLabels() map[string]string {
 	// TODO this is different from the one in utils in that it
 	// uses unix timestamps to accommodate gcp naming convention
 	nametag := c.createUnboundNodeNameTag()
@@ -55,8 +55,7 @@ func (c *gceClient) getAttachedDisk(isBoot bool, size int64, name, typeURL, imag
 	return diskSpec
 }
 
-func (c *gceCompute) getInstanceNetworkSpec(privateIPOnly bool) []*compute.NetworkInterface {
-	prefixWithProjectID := baseURLPrefix + c.projectID
+func (c *gceClient) getInstanceNetworkSpec(privateIPOnly bool) []*compute.NetworkInterface {
 	networkURL := c.getNetworkURL()
 	subNetworkURL := c.getSubNetworkURL()
 
@@ -89,14 +88,14 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 	bootVolName := c.nametag + "-boot-volume"
 	diskType := c.getDiskTypeURL()
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
-	disks := c.getAttachedDisk(true, volSizeGiB, bootVolName, diskType, node.Spec.BootImage)
+	disks := c.getAttachedDisk(true, int64(volSizeGiB), bootVolName, diskType, node.Spec.BootImage)
 	labels := c.getNodeLabels()
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
 	spec := &compute.Instance{
 		Disks:             disks,
 		Labels:            labels,
-		MachineType:       node.spec.InstanceType,
+		MachineType:       node.Spec.InstanceType,
 		Name:              c.nametag,
 		NetworkInterfaces: networkInterfaces,
 		Tags: &compute.Tags{
@@ -110,7 +109,7 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
 	}
-	cloudID := operation.TargetID
+	cloudID := string(operation.TargetId)
 	startResult := &cloud.StartNodeResult{
 		InstanceID:       cloudID,
 		AvailabilityZone: c.zone,
@@ -123,7 +122,7 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 	volName := c.nametag + "-boot-volume"
 	diskType := c.getDiskTypeURL()
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
-	disks := c.getAttachedDisk(true, volSizeGiB, volName, diskType, node.Spec.BootImage)
+	disks := c.getAttachedDisk(true, int64(volSizeGiB), volName, diskType, node.Spec.BootImage)
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	labels := c.getNodeLabels()
 	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
@@ -131,7 +130,7 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 	spec := &compute.Instance{
 		Disks:             disks,
 		Labels:            labels,
-		MachineType:       node.spec.InstanceType,
+		MachineType:       node.Spec.InstanceType,
 		Name:              c.nametag,
 		NetworkInterfaces: networkInterfaces,
 		Scheduling: &compute.Scheduling{
@@ -150,7 +149,7 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
 	}
-	cloudID := operation.TargetID
+	cloudID := string(operation.TargetId)
 	startResult := &cloud.StartNodeResult{
 		InstanceID:       cloudID,
 		AvailabilityZone: c.zone,
