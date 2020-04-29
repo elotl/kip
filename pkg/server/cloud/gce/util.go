@@ -43,11 +43,6 @@ func CreateKipCellNetworkTag(controllerID string) string {
 	return fmt.Sprintf("kip-%s", controllerID)
 }
 
-func (c *gceClient) createUnboundNodeNameTag() string {
-	return fmt.Sprintf(
-		"kip-node-%s-%d", c.nametag, time.Now().Unix())
-}
-
 func getPodIpFromCIDR(cidr string) (string, error) {
 	_, ipNet, err := net.ParseCIDR(cidr)
 	if err != nil {
@@ -59,6 +54,11 @@ func getPodIpFromCIDR(cidr string) (string, error) {
 	}
 	addr := ipNet.IP.String()
 	return addr, nil
+}
+
+func (c *gceClient) createUnboundNodeNameTag() string {
+	return fmt.Sprintf(
+		"kip-node-%s-%d", c.nametag, time.Now().Unix())
 }
 
 func (c *gceClient) getNetworkURL() string {
@@ -80,6 +80,13 @@ func (c *gceClient) getProjectURL() string {
 func (c *gceClient) getDiskTypeURL() string {
 	return gceComputeAPIEndpoint + strings.Join(
 		[]string{"projects", c.projectID, "zones", c.zone, "diskTypes", "pd-standard"},
+		"/",
+	)
+}
+
+func (c *gceClient) getInstanceTypeURL(instanceType string) string {
+	return gceComputeAPIEndpoint + strings.Join(
+		[]string{"projects", c.projectID, "zones", c.zone, "machineTypes", instanceType},
 		"/",
 	)
 }

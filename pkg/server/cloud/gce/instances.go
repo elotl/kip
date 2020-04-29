@@ -115,10 +115,11 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 	labels := c.getNodeLabels()
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
+	instanceType := c.getInstanceTypeURL(node.Spec.InstanceType)
 	spec := &compute.Instance{
 		Disks:             disks,
 		Labels:            labels,
-		MachineType:       node.Spec.InstanceType,
+		MachineType:       instanceType,
 		Name:              c.nametag,
 		NetworkInterfaces: networkInterfaces,
 		Tags: &compute.Tags{
@@ -149,11 +150,12 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	labels := c.getNodeLabels()
 	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
+	instanceType := c.getInstanceTypeURL(node.Spec.InstanceType)
 	autoRestart := false
 	spec := &compute.Instance{
 		Disks:             disks,
 		Labels:            labels,
-		MachineType:       node.Spec.InstanceType,
+		MachineType:       instanceType,
 		Name:              c.nametag,
 		NetworkInterfaces: networkInterfaces,
 		Scheduling: &compute.Scheduling{
@@ -270,7 +272,7 @@ func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error 
 
 func (c *gceClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
 	klog.Errorln("Need to get boot image from spec")
-	bootDiskImageURL := c.getProjectURL() + "ubuntu-os-cloud/global/images/ubuntu-1804-bionic-v20200414"
+	bootDiskImageURL := c.getProjectURL() + "/ubuntu-os-cloud/global/images/ubuntu-1804-bionic-v20200414"
 	return bootDiskImageURL, nil
 }
 
