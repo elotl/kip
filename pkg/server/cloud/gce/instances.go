@@ -19,7 +19,6 @@ package gce
 import (
 	"context"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/elotl/kip/pkg/api"
@@ -50,22 +49,6 @@ func (c *gceClient) getNodeStatus(instanceID string) (string, error) {
 	return instance.Status, nil
 }
 
-func (c *gceClient) getFirstVolume(instanceID string) *compute.AttachedDisk {
-	instance, err := c.getNodeSpec(instanceID)
-	if err != nil {
-		// TODO error handling for googleapi errors
-		klog.Errorf("error retrieving instance volume: %v", err)
-		return nil
-	}
-
-	volumes := instance.Disks
-	if len(volumes) == 0 {
-		return nil
-	}
-
-	return volumes[0]
-}
-
 func (c *gceClient) getNodeLabels() map[string]string {
 	// TODO this is different from the one in utils in that it
 	// uses unix timestamps to accommodate gcp naming convention
@@ -78,7 +61,7 @@ func (c *gceClient) getNodeLabels() map[string]string {
 	}
 }
 
-func (c *gceClient) getAttachedDisk(isBoot bool, size int64, name, typeURL, imageURL string) []*compute.AttachedDisk {
+func (c *gceClient) getAttachedDiskSpec(isBoot bool, size int64, name, typeURL, imageURL string) []*compute.AttachedDisk {
 	diskSpec := []*compute.AttachedDisk{
 		{
 			Boot:       isBoot,
@@ -131,7 +114,7 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 	bootVolName := c.nametag + "-boot-volume"
 	diskType := c.getDiskTypeURL()
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
-	disks := c.getAttachedDisk(true, int64(volSizeGiB), bootVolName, diskType, node.Spec.BootImage)
+	disks := c.getAttachedDiskSpec(true, int64(volSizeGiB), bootVolName, diskType, node.Spec.BootImage)
 	labels := c.getNodeLabels()
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
@@ -148,7 +131,7 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 	}
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		c.bootSecurityGroupIDs, c.subnetName)
-	operation, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
+	_, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
 	if err != nil {
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
@@ -166,7 +149,7 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 	volName := c.nametag + "-boot-volume"
 	diskType := c.getDiskTypeURL()
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
-	disks := c.getAttachedDisk(true, int64(volSizeGiB), volName, diskType, node.Spec.BootImage)
+	disks := c.getAttachedDiskSpec(true, int64(volSizeGiB), volName, diskType, node.Spec.BootImage)
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	labels := c.getNodeLabels()
 	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
@@ -189,7 +172,7 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 	}
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		c.bootSecurityGroupIDs, c.subnetName)
-	operation, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
+	_, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
 	if err != nil {
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
@@ -233,7 +216,7 @@ func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 	)
 
 	if !node.Spec.Resources.PrivateIPOnly && c.usePublicIPs {
-		if len(instance.NetwokInterfaces[0].AccessConfigs) == 0 {
+		if len(instance.NetworkInterfaces[0].AccessConfigs) == 0 {
 			return nil, fmt.Errorf("missing Public IP address")
 		}
 
@@ -270,22 +253,41 @@ func (c *gceClient) StopInstance(instanceID string) error {
 	return nil
 }
 
+func (c *gceClient) getFirstVolume(instanceID string) *compute.AttachedDisk {
+	instance, err := c.getNodeSpec(instanceID)
+	if err != nil {
+		// TODO error handling for googleapi errors
+		klog.Errorf("error retrieving instance volume: %v", err)
+		return nil
+	}
+
+	volumes := instance.Disks
+	if len(volumes) == 0 {
+		return nil
+	}
+
+	return volumes[0]
+}
+
 func (c *gceClient) ResizeVolume(node *api.Node, size int64) (error, bool) {
 	vol := c.getFirstVolume(node.Status.InstanceID)
-	if vol == nil || vol.DiskSizeGb == nil {
+	// in GCE zonal standard persistent disks cannot be smaller than 10GiB
+	if vol == nil || vol.InitializeParams.DiskSizeGb < 10 {
 		return fmt.Errorf("Error retrieving volume info for node %s: %v",
 			node.Name, vol), false
 	}
 
-	if *vol.DiskSizeGb > size {
+	if vol.InitializeParams.DiskSizeGb > size {
 		klog.V(2).Infof("Volume on node %s is %dGiB >= %dGiB",
-			node.Name, *vol.Size, size)
+			node.Name, vol.InitializeParams.DiskSizeGb, size)
 		return nil, false
 	}
 
 	klog.V(2).Infof("Resizing volume to %dGiB for node: %v", size, node)
+	// TODO proper way to retrieve diskname
+	diskName := c.nametag + "-boot-volume"
 	resizeRequest := compute.DisksResizeRequest{SizeGb: size}
-	_, err := c.client.Disks.Resize(c.projectID, c.zone, diskName, &resizeRequest).Do()
+	_, err := c.service.Disks.Resize(c.projectID, c.zone, diskName, &resizeRequest).Do()
 	if err != nil {
 		return util.WrapError(err, "Failed to resize volume"), false
 	}
