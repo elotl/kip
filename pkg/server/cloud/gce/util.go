@@ -18,6 +18,7 @@ package gce
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -45,6 +46,19 @@ func CreateKipCellNetworkTag(controllerID string) string {
 func (c *gceClient) createUnboundNodeNameTag() string {
 	return fmt.Sprintf(
 		"kip-node-%s-%d", c.nametag, time.Now().Unix())
+}
+
+func getPodIpFromCIDR(cidr string) (string, error) {
+	_, ipNet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return "", err
+	}
+	_, bits := ipNet.Mask.Size()
+	if bits != 32 {
+		return "", fmt.Errorf("cannot get pod ip over an ip range")
+	}
+	addr := ipNet.IP.String()
+	return addr, nil
 }
 
 func (c *gceClient) getNetworkURL() string {

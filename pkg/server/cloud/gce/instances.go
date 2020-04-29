@@ -17,6 +17,9 @@ limitations under the License.
 package gce
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
@@ -24,6 +27,26 @@ import (
 
 	"google.golang.org/api/compute/v1"
 )
+
+func (c *gceClient) getNodeStatus(instanceID string) (string, error) {
+	instance, err := c.service.Instances.Get(c.projectID, c.zone, instanceID).Do()
+	if err != nil {
+		// TODO error handling for googleapi errors
+		klog.Errorf("error retrieving instance status: %v", err)
+		return "", err
+	}
+	return instance.Status, nil
+}
+
+func (c *gceClient) getNodeSpec(instanceID string) (*compute.Instance, error) {
+	instance, err := c.service.Instances.Get(c.projectID, c.zone, instanceID).Do()
+	if err != nil {
+		// TODO error handling for googleapi errors
+		klog.Errorf("error retrieving instance network interfaces: %v", err)
+		return nil, err
+	}
+	return instance, nil
+}
 
 func (c *gceClient) getNodeLabels() map[string]string {
 	// TODO this is different from the one in utils in that it
@@ -158,7 +181,59 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 }
 
 func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
-	return nil, TODO()
+	for {
+		status, err := c.getNodeStatus(node.Status.InstanceID)
+		if err != nil {
+			klog.Errorf("Error waiting for instance to start: %v", err)
+			// TODO add error checking for googleapi using helpers in util
+			return nil, err
+		}
+
+		klog.V(2).Infof("status: %s", status)
+		if status == "RUNNING" {
+			break
+		}
+		time.Sleep(10 * time.Second)
+	}
+	instance, err := c.getNodeSpec(node.Status.InstanceID)
+	if err != nil {
+		// TODO add error checking for googleapi using helpers in util
+		return nil, err
+	}
+
+	if len(instance.NetworkInterfaces) == 0 {
+		return nil, fmt.Errorf("missing private IP address(es)")
+	}
+
+	addresses := api.NewNetworkAddresses(
+		instance.NetworkInterfaces[0].NetworkIP,
+		instance.Hostname,
+	)
+
+	if !node.Spec.Resources.PrivateIPOnly && c.usePublicIPs {
+		if len(instance.NetworkInterfaces[0].AccessConfigs) == 0 {
+			return nil, fmt.Errorf("missing Public IP address")
+		}
+
+		addresses = api.SetPublicAddresses(
+			instance.NetworkInterfaces[0].AccessConfigs[0].NatIP,
+			instance.NetworkInterfaces[0].AccessConfigs[0].PublicPtrDomainName,
+			addresses,
+		)
+	}
+
+	if len(instance.NetworkInterfaces[0].AliasIpRanges) == 0 {
+		return nil, fmt.Errorf("missing Pod IP address")
+	}
+
+	podIP, err := getPodIpFromCIDR(instance.NetworkInterfaces[0].AliasIpRanges[0].IpCidrRange)
+	if err != nil {
+		klog.Errorf("Error retrieving Pod IP: %v", err)
+		return nil, err
+	}
+	addresses = api.SetPodIP(podIP, addresses)
+
+	return addresses, nil
 }
 
 func (c *gceClient) StopInstance(instanceID string) error {
