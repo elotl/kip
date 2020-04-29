@@ -28,8 +28,18 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-func (c *gceClient) getNodeStatus(instanceID string) (string, error) {
+func (c *gceClient) getNodeSpec(instanceID string) (*compute.Instance, error) {
 	instance, err := c.service.Instances.Get(c.projectID, c.zone, instanceID).Do()
+	if err != nil {
+		// TODO error handling for googleapi errors
+		klog.Errorf("error retrieving instance specification: %v", err)
+		return nil, err
+	}
+	return instance, nil
+}
+
+func (c *gceClient) getNodeStatus(instanceID string) (string, error) {
+	instance, err := c.getNodeSpec(instanceID)
 	if err != nil {
 		// TODO error handling for googleapi errors
 		klog.Errorf("error retrieving instance status: %v", err)
@@ -38,14 +48,20 @@ func (c *gceClient) getNodeStatus(instanceID string) (string, error) {
 	return instance.Status, nil
 }
 
-func (c *gceClient) getNodeSpec(instanceID string) (*compute.Instance, error) {
-	instance, err := c.service.Instances.Get(c.projectID, c.zone, instanceID).Do()
+func (c *gceClient) getFirstVolume(instanceID string) *compute.AttachedDisk {
+	instance, err := c.getNodeSpec(instanceID)
 	if err != nil {
 		// TODO error handling for googleapi errors
-		klog.Errorf("error retrieving instance network interfaces: %v", err)
-		return nil, err
+		klog.Errorf("error retrieving instance volume: %v", err)
+		return nil
 	}
-	return instance, nil
+
+	volumes := instance.Disks
+	if len(volumes) == 0 {
+		return nil
+	}
+
+	return volumes[0]
 }
 
 func (c *gceClient) getNodeLabels() map[string]string {
@@ -133,7 +149,7 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
 	}
-	cloudID := string(operation.TargetId)
+	cloudID := c.nametag
 	startResult := &cloud.StartNodeResult{
 		InstanceID:       cloudID,
 		AvailabilityZone: c.zone,
@@ -174,7 +190,7 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
 	}
-	cloudID := string(operation.TargetId)
+	cloudID := c.nametag
 	startResult := &cloud.StartNodeResult{
 		InstanceID:       cloudID,
 		AvailabilityZone: c.zone,
@@ -251,7 +267,26 @@ func (c *gceClient) StopInstance(instanceID string) error {
 }
 
 func (c *gceClient) ResizeVolume(node *api.Node, size int64) (error, bool) {
-	return TODO(), false
+	vol := c.getFirstVolume(node.Status.InstanceID)
+	if vol == nil || vol.DiskSizeGb == nil {
+		return fmt.Errorf("Error retrieving volume info for node %s: %v",
+			node.Name, vol), false
+	}
+
+	if *vol.DiskSizeGb > size {
+		klog.V(2).Infof("Volume on node %s is %dGiB >= %dGiB",
+			node.Name, *vol.Size, size)
+		return nil, false
+	}
+
+	klog.V(2).Infof("Resizing volume to %dGiB for node: %v", size, node)
+	resizeRequest := compute.DisksResizeRequest{SizeGb: size}
+	_, err := c.client.Disks.Resize(c.projectID, c.zone, diskName, &resizeRequest).Do()
+	if err != nil {
+		return util.WrapError(err, "Failed to resize volume"), false
+	}
+
+	return nil, true
 }
 
 func (c *gceClient) SetSustainedCPU(node *api.Node, enabled bool) error {
