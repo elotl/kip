@@ -1875,6 +1875,7 @@
     "golang.org/x/net/context",
     "golang.org/x/sys/unix",
     "google.golang.org/api/compute/v1",
+    "google.golang.org/api/googleapi",
     "google.golang.org/api/option",
     "google.golang.org/grpc",
     "google.golang.org/grpc/codes",

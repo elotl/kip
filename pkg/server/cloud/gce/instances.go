@@ -19,15 +19,143 @@ package gce
 import (
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/server/cloud"
+	"github.com/elotl/kip/pkg/util"
 	"k8s.io/klog"
+
+	"google.golang.org/api/compute/v1"
 )
 
+func (c *gceCompute) getNodeLabels() map[string]string {
+	// TODO this is different from the one in utils in that it
+	// uses unix timestamps to accommodate gcp naming convention
+	nametag := c.createUnboundNodeNameTag()
+	return map[string]string{
+		"name": nametag,
+		"node": c.nametag,
+	}
+}
+
+func (c *gceClient) getAttachedDisk(isBoot bool, size int64, name, typeURL, imageURL string) []*compute.AttachedDisk {
+	diskSpec := []*compute.AttachedDisk{
+		{
+			Boot:       isBoot,
+			AutoDelete: true,
+			// RW or RO
+			Mode: "READ_WRITE",
+			// SCSI or NVMe
+			Interface: "SCSI",
+			InitializeParams: &compute.AttachedDiskInitializeParams{
+				DiskName:    name,
+				DiskSizeGb:  size,
+				DiskType:    typeURL,
+				SourceImage: imageURL,
+			},
+		},
+	}
+	return diskSpec
+}
+
+func (c *gceCompute) getInstanceNetworkSpec(privateIPOnly bool) []*compute.NetworkInterface {
+	prefixWithProjectID := baseURLPrefix + c.projectID
+	networkURL := c.getNetworkURL()
+	subNetworkURL := c.getSubNetworkURL()
+
+	accessConfig := &compute.AccessConfig{
+		Name:        "External NAT",
+		NetworkTier: "STANDARD",
+		Type:        "ONE_TO_ONE_NAT",
+	}
+	// If we are only using private IP set the access config to nil
+	if privateIPOnly || !c.usePublicIPs {
+		accessConfig = nil
+	}
+	networkSpec := []*compute.NetworkInterface{
+		{
+			AccessConfigs: []*compute.AccessConfig{accessConfig},
+			AliasIpRanges: []*compute.AliasIpRange{
+				{
+					IpCidrRange: "/32",
+				},
+			},
+			Network:    networkURL,
+			Subnetwork: subNetworkURL,
+		},
+	}
+	return networkSpec
+}
+
 func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	return nil, TODO()
+	klog.V(2).Infof("Starting instance for node: %v", node)
+	bootVolName := c.nametag + "-boot-volume"
+	diskType := c.getDiskTypeURL()
+	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
+	disks := c.getAttachedDisk(true, volSizeGiB, bootVolName, diskType, node.Spec.BootImage)
+	labels := c.getNodeLabels()
+	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
+	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
+	spec := &compute.Instance{
+		Disks:             disks,
+		Labels:            labels,
+		MachineType:       node.spec.InstanceType,
+		Name:              c.nametag,
+		NetworkInterfaces: networkInterfaces,
+		Tags: &compute.Tags{
+			Items: []string{kipNetworkTag},
+		},
+	}
+	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
+		c.bootSecurityGroupIDs, c.subnetName)
+	operation, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
+	if err != nil {
+		// TODO add error checking for googleapi using helpers in util
+		return nil, util.WrapError(err, "startup error")
+	}
+	cloudID := operation.TargetID
+	startResult := &cloud.StartNodeResult{
+		InstanceID:       cloudID,
+		AvailabilityZone: c.zone,
+	}
+	return startResult, nil
 }
 
 func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	return nil, TODO()
+	klog.V(2).Infof("Starting instance for node: %v", node)
+	volName := c.nametag + "-boot-volume"
+	diskType := c.getDiskTypeURL()
+	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
+	disks := c.getAttachedDisk(true, volSizeGiB, volName, diskType, node.Spec.BootImage)
+	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
+	labels := c.getNodeLabels()
+	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
+	autoRestart := false
+	spec := &compute.Instance{
+		Disks:             disks,
+		Labels:            labels,
+		MachineType:       node.spec.InstanceType,
+		Name:              c.nametag,
+		NetworkInterfaces: networkInterfaces,
+		Scheduling: &compute.Scheduling{
+			AutomaticRestart:  &autoRestart,
+			OnHostMaintenance: "TERMINATE",
+			Preemptible:       true,
+		},
+		Tags: &compute.Tags{
+			Items: []string{kipNetworkTag},
+		},
+	}
+	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
+		c.bootSecurityGroupIDs, c.subnetName)
+	operation, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
+	if err != nil {
+		// TODO add error checking for googleapi using helpers in util
+		return nil, util.WrapError(err, "startup error")
+	}
+	cloudID := operation.TargetID
+	startResult := &cloud.StartNodeResult{
+		InstanceID:       cloudID,
+		AvailabilityZone: c.zone,
+	}
+	return startResult, nil
 }
 
 func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
@@ -60,7 +188,7 @@ func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error 
 
 func (c *gceClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
 	klog.Errorln("Need to get boot image from spec")
-	bootDiskImageURL := c.getProjectURL() + "debian-cloud/global/images/debian-7-wheezy-v20140606"
+	bootDiskImageURL := c.getProjectURL() + "ubuntu-os-cloud/global/images/ubuntu-1804-bionic-v20200414"
 	return bootDiskImageURL, nil
 }
 

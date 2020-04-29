@@ -41,10 +41,30 @@ func CreateKipCellNetworkTag(controllerID string) string {
 	return fmt.Sprintf("kip-%s", controllerID)
 }
 
+func (c *gceClient) createUnboundNodeNameTag() string {
+	return fmt.Sprintf(
+		"kip-node-%s-%d", c.nametag, time.Now().Unix())
+}
+
 func (c *gceClient) getNetworkURL() string {
 	return gceComputeAPIEndpoint + strings.Join([]string{"projects", c.projectID, "global", "networks", c.vpcName}, "/")
 }
 
+func (c *gceClient) getSubNetworkURL() string {
+	return gceComputeAPIEndpoint + strings.Join(
+		[]string{"projects", c.projectID, "regions", c.region, "subnetworks", c.subnetName},
+		"/",
+	)
+}
+
 func (c *gceClient) getProjectURL() string {
 	return gceComputeAPIEndpoint + strings.Join([]string{"projects", c.projectID}, "/")
+}
+
+// TOOD figure out better way to pull disk type
+func (c *gceClient) getDiskTypeURL() string {
+	return gceComputeAPIEndpoint + strings.Join(
+		[]string{"projects", c.projectID, "zones", c.zone, "diskTypes", "pd-standard"},
+		"/",
+	)
 }
