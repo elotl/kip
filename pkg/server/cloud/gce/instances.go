@@ -17,7 +17,9 @@ limitations under the License.
 package gce
 
 import (
+	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/elotl/kip/pkg/api"
@@ -69,8 +71,10 @@ func (c *gceClient) getNodeLabels() map[string]string {
 	// uses unix timestamps to accommodate gcp naming convention
 	nametag := c.createUnboundNodeNameTag()
 	return map[string]string{
-		"name": nametag,
-		"node": c.nametag,
+		"name":                 nametag,
+		"node":                 c.nametag,
+		cloud.ControllerTagKey: c.controllerID,
+		cloud.NametagTagKey:    c.nametag,
 	}
 }
 
@@ -229,7 +233,7 @@ func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 	)
 
 	if !node.Spec.Resources.PrivateIPOnly && c.usePublicIPs {
-		if len(instance.NetworkInterfaces[0].AccessConfigs) == 0 {
+		if len(instance.NetwokInterfaces[0].AccessConfigs) == 0 {
 			return nil, fmt.Errorf("missing Public IP address")
 		}
 
@@ -294,11 +298,43 @@ func (c *gceClient) SetSustainedCPU(node *api.Node, enabled bool) error {
 }
 
 func (c *gceClient) ListInstancesFilterID(ids []string) ([]cloud.CloudInstance, error) {
-	return nil, TODO()
+	instances, err := c.ListInstances()
+	if err != nil {
+		// TODO add error checking for googleapi using helpers in util
+		return nil, err
+	}
+	var filteredList []cloud.CloudInstance
+	find := func(id string) {
+		for _, ci := range instances {
+			if ci.ID == id {
+				filteredList = append(filteredList, ci)
+			}
+		}
+	}
+	for _, id := range ids {
+		find(id)
+	}
+	return filteredList, nil
 }
 
 func (c *gceClient) ListInstances() ([]cloud.CloudInstance, error) {
-	return nil, TODO()
+	listCall := c.service.Instances.List(c.projectID, c.zone)
+	listCall = listCall.Filter("labels.cloud.ControllerTagKey = " + c.controllerID)
+	var instances []cloud.CloudInstance
+	f := func(page *compute.InstanceList) error {
+		for _, instance := range page.Items {
+			instances = append(instances, cloud.CloudInstance{
+				ID:       instance.Name,
+				NodeName: "",
+			})
+		}
+		return nil
+	}
+	if err := listCall.Pages(context.Background(), f); err != nil {
+		// TODO add error checking for googleapi using helpers in util
+		return nil, err
+	}
+	return instances, nil
 }
 
 func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error {
