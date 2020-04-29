@@ -162,7 +162,15 @@ func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 }
 
 func (c *gceClient) StopInstance(instanceID string) error {
-	return TODO()
+	_, err := c.service.Instances.Delete(c.projectID, c.zone, instanceID).Do()
+	if err != nil {
+		klog.Errorf("Error terminating instance: %v", err)
+		// todo, check on status of instance, set status of instance
+		// based on that, prepare to come back and clean this
+		// inconsistency up
+		return err
+	}
+	return nil
 }
 
 func (c *gceClient) ResizeVolume(node *api.Node, size int64) (error, bool) {
