@@ -317,7 +317,7 @@ func makeIPPermissions(rules []cloud.IngressRule) []*ec2.IpPermission {
 }
 
 func (e *AwsEC2) AttachSecurityGroups(node *api.Node, groups []string) error {
-	allGroups := append(e.bootSecurityGroupIDs, groups...)
+	allGroups := append(groups, e.bootSecurityGroupIDs...)
 	for i := range allGroups {
 		allGroups[i] = strings.TrimSpace(allGroups[i])
 	}

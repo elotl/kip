@@ -265,5 +265,11 @@ func (c *gceClient) CreateSecurityGroup(sgName string, ports []cloud.InstancePor
 }
 
 func (c *gceClient) AttachSecurityGroups(node *api.Node, groups []string) error {
-	return TODO()
+	allTags := append(groups, c.bootSecurityGroupIDs...)
+	rb := &compute.Tags{
+		Items: allTags,
+	}
+	ctx := context.Background()
+	_, err := c.service.Instances.SetTags(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
+	return err
 }
