@@ -24,6 +24,7 @@ import (
 	"cloud.google.com/go/compute/metadata"
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
+	"google.golang.org/api/compute/v1"
 	"k8s.io/klog"
 )
 
@@ -43,7 +44,7 @@ func (c *gceClient) ConnectWithPublicIPs() bool {
 	}
 }
 
-func (c *gceClient) getVPCCIDRs(vpcName string) ([]string, error) {
+func (c *gceClient) getVPCRegionCIDRs(vpcName string) ([]string, error) {
 	ctx := context.Background()
 	resp, err := c.service.Networks.Get(c.projectID, vpcName).Context(ctx).Do()
 	if err != nil {
@@ -52,38 +53,29 @@ func (c *gceClient) getVPCCIDRs(vpcName string) ([]string, error) {
 	if resp == nil {
 		return nil, nilResponseError("Networks.Get")
 	}
-	//spew.Dump(resp)
 	if len(resp.Subnetworks) == 0 {
 		return nil, fmt.Errorf("Network error: no subnetworks found in %s network", vpcName)
 	}
-	// Todo, need to get cidrs from all the subnets
-	//resp, err := c.service.Subnetworks.Get(c.projectID, c.region, subnetName).Context(ctx).Do()
-	// cidrs := make([]string{}, 0, len(resp.Subnetworks))
-	// for _, subnetwork := range resp.Subnetworks {
-	// 	c.service.Get()
-	// }
-	// return resp.IPv4Range, nil
 
-	/*
-		       @ Brendan
-
-			   If you have a vpc url you can do something like the following. This however will only retrieve per region
-			   Not everything the VPC owns
-
-			   vpcURL := "https://www.googleapis.com/compute/v1/projects/credentials-testing/global/networks/testing-vpc"
-			   listCall := c.client.Subnetworks.List(c.projectID, c.region)
-			   listCall = listCall.Filter("network eq " + vpcURL)
-			   f := func(page *compute.SubnetworkList) error {
-			       for _, subnet := range page.Items {
-			           fmt.Println(subnet.IpCidrRange)
-			       }
-			       return nil
-			   }
-			   if err := listCall.Pages(context.Background(), f); err != nil {
-			       return nil , err
-			   }
-	*/
-	return nil, TODO()
+	// Clusters shouldn't span regions, only open the firewall rules
+	// to all subnets in the controller's region
+	vpcURL := resp.SelfLink
+	lister := c.service.Subnetworks.List(c.projectID, c.region)
+	lister = lister.Filter("network eq " + vpcURL)
+	vpcCIDRs := make([]string, 0, len(resp.Subnetworks))
+	f := func(page *compute.SubnetworkList) error {
+		for _, subnet := range page.Items {
+			vpcCIDRs = append(vpcCIDRs, subnet.IpCidrRange)
+		}
+		return nil
+	}
+	if err := lister.Pages(context.Background(), f); err != nil {
+		return nil, err
+	}
+	if len(vpcCIDRs) == 0 {
+		return nil, fmt.Errorf("Could not list any subnets in %s - %s", vpcName, c.region)
+	}
+	return vpcCIDRs, nil
 }
 
 func (c *gceClient) detectCurrentVPC() (string, error) {
@@ -163,15 +155,18 @@ func (c *gceClient) GetAvailabilityZones() ([]string, error) {
 }
 
 func (c *gceClient) AddRoute(destinationCIDR, instanceID string) error {
-	return TODO()
+	klog.Warningln("AddRoute not implemented for GCE")
+	return nil
 }
 
 func (c *gceClient) RemoveRoute(destinationCIDR, instanceID string) error {
-	return TODO()
+	klog.Warningln("RemoveRoute not implemented for GCE")
+	return nil
 }
 
 func (c *gceClient) ModifySourceDestinationCheck(instanceID string, isEnabled bool) error {
-	return TODO()
+	klog.Warningln("ModifySourceDestinationCheck not implemented for GCE")
+	return nil
 }
 
 func (c *gceClient) GetDNSInfo() ([]string, []string, error) {
@@ -181,7 +176,7 @@ func (c *gceClient) GetDNSInfo() ([]string, []string, error) {
 	// search c.milpa-207719.internal. google.internal.
 	// nameserver 169.254.169.254
 
-	klog.Warningln("Need to implement GETDNSInfo()")
+	klog.Warningln("Need to improve GETDNSInfo()")
 
 	zoneLetter := c.zone[len(c.zone)-1]
 	s := fmt.Sprintf("%s.%s.internal.", string(zoneLetter), c.projectID)

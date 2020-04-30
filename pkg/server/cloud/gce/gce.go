@@ -27,7 +27,6 @@ import (
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
 	"google.golang.org/api/compute/v1"
-	"k8s.io/klog"
 )
 
 func TODO() error {
@@ -101,11 +100,10 @@ func NewGCEClient(controllerID, nametag, projectID string, opts ...ClientOption)
 			return nil, err
 		}
 	}
-	// client.vpcCIDRs, err = client.getVPCCIDRs(client.vpcName)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// fmt.Println("returned vpc cidr", client.vpcCIDRs)
+	client.vpcCIDRs, err = client.getVPCRegionCIDRs(client.vpcName)
+	if err != nil {
+		return nil, err
+	}
 
 	// Setup subnet parameters
 	if client.subnetName == "" {
@@ -115,9 +113,6 @@ func NewGCEClient(controllerID, nametag, projectID string, opts ...ClientOption)
 		}
 	}
 	client.subnetCIDR, err = client.getSubnetCIDR(client.subnetName)
-	// Todo: fixme, pull all cidrs from all subnets in the network
-	klog.Warningln("Todo: need to get all subnet cidrs")
-	client.vpcCIDRs = []string{client.subnetCIDR}
 	if err != nil {
 		return nil, err
 	}
