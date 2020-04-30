@@ -66,7 +66,9 @@ func (c *gceClient) getLabelCompareFilter(mapKey, compare string) string {
 }
 
 func (c *gceClient) getNetworkURL() string {
-	return gceComputeAPIEndpoint + strings.Join([]string{"projects", c.projectID, "global", "networks", c.vpcName}, "/")
+	return gceComputeAPIEndpoint + strings.Join([]string{"projects", c.projectID, "global", "networks", c.vpcName},
+		"/",
+	)
 }
 
 func (c *gceClient) getSubNetworkURL() string {
@@ -77,13 +79,22 @@ func (c *gceClient) getSubNetworkURL() string {
 }
 
 func (c *gceClient) getProjectURL() string {
-	return gceComputeAPIEndpoint + strings.Join([]string{"projects", c.projectID}, "/")
+	return gceComputeAPIEndpoint + strings.Join([]string{"projects", c.projectID},
+		"/",
+	)
 }
 
 // TOOD figure out better way to pull disk type
 func (c *gceClient) getDiskTypeURL() string {
 	return gceComputeAPIEndpoint + strings.Join(
 		[]string{"projects", c.projectID, "zones", c.zone, "diskTypes", "pd-standard"},
+		"/",
+	)
+}
+
+func (c *gceClient) getVPCURL() string {
+	return gceComputeAPIEndpoint + strings.Join(
+		[]string{"projects", c.projectID, "global", "networks", c.vpcName},
 		"/",
 	)
 }

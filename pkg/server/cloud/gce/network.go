@@ -19,6 +19,7 @@ package gce
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 
 	"cloud.google.com/go/compute/metadata"
@@ -56,21 +57,15 @@ func (c *gceClient) getVPCRegionCIDRs(vpcName string) ([]string, error) {
 	if len(resp.Subnetworks) == 0 {
 		return nil, fmt.Errorf("Network error: no subnetworks found in %s network", vpcName)
 	}
-
 	// Clusters shouldn't span regions, only open the firewall rules
 	// to all subnets in the controller's region
-	vpcURL := resp.SelfLink
-	lister := c.service.Subnetworks.List(c.projectID, c.region)
-	lister = lister.Filter("network eq " + vpcURL)
-	vpcCIDRs := make([]string, 0, len(resp.Subnetworks))
-	f := func(page *compute.SubnetworkList) error {
-		for _, subnet := range page.Items {
-			vpcCIDRs = append(vpcCIDRs, subnet.IpCidrRange)
-		}
-		return nil
+	subnets, err := c.getRegionSubnets()
+	if err != nil {
+		return nil, util.WrapError(err, "Error listing network subnets in region")
 	}
-	if err := lister.Pages(context.Background(), f); err != nil {
-		return nil, err
+	vpcCIDRs := make([]string, len(resp.Subnetworks))
+	for i := range subnets {
+		vpcCIDRs[i] = subnets[i].IpCidrRange
 	}
 	if len(vpcCIDRs) == 0 {
 		return nil, fmt.Errorf("Could not list any subnets in %s - %s", vpcName, c.region)
@@ -123,8 +118,53 @@ func (c *gceClient) autodetectRegionAndZone() (string, string, error) {
 	return region, zone, nil
 }
 
+func (c *gceClient) getRegionSubnets() ([]*compute.Subnetwork, error) {
+	vpcURL := c.getVPCURL()
+	lister := c.service.Subnetworks.List(c.projectID, c.region)
+	lister = lister.Filter("network eq " + vpcURL)
+	subnets := []*compute.Subnetwork{}
+	f := func(page *compute.SubnetworkList) error {
+		for _, subnet := range page.Items {
+			if subnet != nil {
+				subnets = append(subnets, subnet)
+			}
+		}
+		return nil
+	}
+	if err := lister.Pages(context.Background(), f); err != nil {
+		return nil, err
+	}
+	return subnets, nil
+}
+
 func (c *gceClient) autodetectSubnet() (string, string, error) {
-	return "", "", TODO()
+	if !metadata.OnGCE() {
+		return "", "", fmt.Errorf("instance is not running inside GCE, could not determine the instance's subnet automatically. Please specify the subnet in cloud.gce.subnetName in provider.yaml")
+	}
+
+	// get the current subnet's CIDR
+	md := newMetadataClient()
+	ipStr, err := md.InternalIP()
+	if err != nil {
+		return "", "", util.WrapError(err, "error getting IP address from GCE metadata service")
+	}
+	ip := net.ParseIP(ipStr)
+	subnets, err := c.getRegionSubnets()
+	if err != nil {
+		return "", "", util.WrapError(err, "Error listing network subnets in region")
+	}
+	for i := range subnets {
+		subnetCIDR := subnets[i].IpCidrRange
+		_, ipnet, err := net.ParseCIDR(subnetCIDR)
+		if err != nil {
+			return "", "", util.WrapError(err, "Could not parse CIDR returned from GCP API: %s", subnetCIDR)
+		}
+		if ipnet.Contains(ip) {
+			return subnets[i].Name, subnets[i].IpCidrRange, nil
+		}
+	}
+
+	return "", "", fmt.Errorf("Could not determine this machine's subnet from local metadata and querying the API. Please specify a subnet name at cloud.gce.subnetName in provider.yaml")
 }
 
 func (c *gceClient) getSubnetCIDR(subnetName string) (string, error) {

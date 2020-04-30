@@ -111,10 +111,11 @@ func NewGCEClient(controllerID, nametag, projectID string, opts ...ClientOption)
 		if err != nil {
 			return nil, err
 		}
-	}
-	client.subnetCIDR, err = client.getSubnetCIDR(client.subnetName)
-	if err != nil {
-		return nil, err
+	} else {
+		client.subnetCIDR, err = client.getSubnetCIDR(client.subnetName)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	client.cloudStatus, err = cloud.NewAZSubnetStatus(client)
