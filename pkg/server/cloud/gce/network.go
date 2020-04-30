@@ -63,6 +63,26 @@ func (c *gceClient) getVPCCIDRs(vpcName string) ([]string, error) {
 	// 	c.service.Get()
 	// }
 	// return resp.IPv4Range, nil
+
+	/*
+		       @ Brendan
+
+			   If you have a vpc url you can do something like the following. This however will only retrieve per region
+			   Not everything the VPC owns
+
+			   vpcURL := "https://www.googleapis.com/compute/v1/projects/credentials-testing/global/networks/testing-vpc"
+			   listCall := c.client.Subnetworks.List(c.projectID, c.region)
+			   listCall = listCall.Filter("network eq " + vpcURL)
+			   f := func(page *compute.SubnetworkList) error {
+			       for _, subnet := range page.Items {
+			           fmt.Println(subnet.IpCidrRange)
+			       }
+			       return nil
+			   }
+			   if err := listCall.Pages(context.Background(), f); err != nil {
+			       return nil , err
+			   }
+	*/
 	return nil, TODO()
 }
 
