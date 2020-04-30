@@ -29,6 +29,18 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
+func getLabelKey(key string) string {
+	switch key {
+	case cloud.ControllerTagKey:
+		return "kip-controller-id"
+	case cloud.NametagTagKey:
+		return "kip-nametag"
+	default:
+		klog.Errorf("Error label key %s does not exist", key)
+		return ""
+	}
+}
+
 func (c *gceClient) getNodeSpec(instanceID string) (*compute.Instance, error) {
 	instance, err := c.service.Instances.Get(c.projectID, c.zone, instanceID).Do()
 	if err != nil {
@@ -53,11 +65,13 @@ func (c *gceClient) getNodeLabels() map[string]string {
 	// TODO this is different from the one in utils in that it
 	// uses unix timestamps to accommodate gcp naming convention
 	nametag := c.createUnboundNodeNameTag()
+	controllerLabelKey := getLabelKey(cloud.ControllerTagKey)
+	nametagLabelKey := getLabelKey(cloud.NametagTagKey)
 	return map[string]string{
-		"name":                 nametag,
-		"node":                 c.nametag,
-		cloud.ControllerTagKey: c.controllerID,
-		cloud.NametagTagKey:    c.nametag,
+		"name":             nametag,
+		"node":             c.nametag,
+		controllerLabelKey: c.controllerID,
+		nametagLabelKey:    c.nametag,
 	}
 }
 
@@ -321,7 +335,8 @@ func (c *gceClient) ListInstancesFilterID(ids []string) ([]cloud.CloudInstance, 
 
 func (c *gceClient) ListInstances() ([]cloud.CloudInstance, error) {
 	listCall := c.service.Instances.List(c.projectID, c.zone)
-	listCall = listCall.Filter("labels.cloud.ControllerTagKey = " + c.controllerID)
+	filter := c.getLabelCompareFilter(cloud.ControllerTagKey, c.controllerID)
+	listCall = listCall.Filter(filter)
 	var instances []cloud.CloudInstance
 	f := func(page *compute.InstanceList) error {
 		for _, instance := range page.Items {
@@ -345,7 +360,7 @@ func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error 
 
 func (c *gceClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
 	klog.Errorln("Need to get boot image from spec")
-	bootDiskImageURL := c.getProjectURL() + "/ubuntu-os-cloud/global/images/ubuntu-1804-bionic-v20200414"
+	bootDiskImageURL := gceComputeAPIEndpoint + "projects/ubuntu-os-cloud/global/images/ubuntu-1804-bionic-v20200414"
 	return bootDiskImageURL, nil
 }
 

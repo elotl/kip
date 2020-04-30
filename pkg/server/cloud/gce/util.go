@@ -61,6 +61,10 @@ func (c *gceClient) createUnboundNodeNameTag() string {
 		"kip-node-%s-%d", c.nametag, time.Now().Unix())
 }
 
+func (c *gceClient) getLabelCompareFilter(mapKey, compare string) string {
+	return fmt.Sprintf("labels.%s = %s", mapKey, compare)
+}
+
 func (c *gceClient) getNetworkURL() string {
 	return gceComputeAPIEndpoint + strings.Join([]string{"projects", c.projectID, "global", "networks", c.vpcName}, "/")
 }
