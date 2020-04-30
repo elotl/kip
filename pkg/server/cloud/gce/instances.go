@@ -29,12 +29,16 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-func getLabelKey(key string) string {
+func convertLabelKey(key string) string {
 	switch key {
 	case cloud.ControllerTagKey:
 		return "kip-controller-id"
 	case cloud.NametagTagKey:
 		return "kip-nametag"
+	case "kip-controller-id":
+		return cloud.ControllerTagKey
+	case "kip-nametag":
+		return cloud.NametagTagKey
 	default:
 		klog.Errorf("Error label key %s does not exist", key)
 		return ""
@@ -65,8 +69,8 @@ func (c *gceClient) getNodeLabels() map[string]string {
 	// TODO this is different from the one in utils in that it
 	// uses unix timestamps to accommodate gcp naming convention
 	nametag := c.createUnboundNodeNameTag()
-	controllerLabelKey := getLabelKey(cloud.ControllerTagKey)
-	nametagLabelKey := getLabelKey(cloud.NametagTagKey)
+	controllerLabelKey := convertLabelKey(cloud.ControllerTagKey)
+	nametagLabelKey := convertLabelKey(cloud.NametagTagKey)
 	return map[string]string{
 		"name":             nametag,
 		"node":             c.nametag,
@@ -76,6 +80,11 @@ func (c *gceClient) getNodeLabels() map[string]string {
 }
 
 func (c *gceClient) getAttachedDiskSpec(isBoot bool, size int64, name, typeURL, imageURL string) []*compute.AttachedDisk {
+	var minimumDiskSize int64 = 10
+	if size < 10 {
+		klog.V(2).Info("GCE does not allow disk smaller than 10GiB, defaulting size to 10")
+		size = minimumDiskSize
+	}
 	diskSpec := []*compute.AttachedDisk{
 		{
 			Boot:       isBoot,
