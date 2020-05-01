@@ -368,11 +368,32 @@ func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error 
 }
 
 func (c *gceClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
-	klog.Errorln("Need to get boot image from spec")
-	bootDiskImageURL := gceComputeAPIEndpoint + "projects/ubuntu-os-cloud/global/images/ubuntu-1804-bionic-v20200414"
-	return bootDiskImageURL, nil
+	project, ok := spec["project"]
+	if !ok {
+		return "", fmt.Errorf("project is a required boot image value. Please specify cells.bootImageSpec.project in provider.yaml")
+	}
+	image, ok := spec["image"]
+	if !ok {
+		return "", fmt.Errorf("image is a required boot image value. Please specify cells.bootImageSpec.image in provider.yaml")
+	}
+	ctx := context.Background()
+	resp, err := c.service.Images.Get(project, image).Context(ctx).Do()
+	if err != nil {
+		return "", util.WrapError(err, "Error looking up boot image %s/%s", project, image)
+	}
+	if resp == nil {
+		return "", nilResponseError("Images.Get")
+	}
+	return resp.SelfLink, nil
 }
 
 func (c *gceClient) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
+	rb := &compute.InstancesSetServiceAccountRequest{
+		// TODO: Add desired fields of the request body.
+	}
+
+	ctx := context.Background()
+	_, _ = c.service.Instances.SetServiceAccount(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
+
 	return TODO()
 }

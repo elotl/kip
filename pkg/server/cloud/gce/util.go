@@ -92,6 +92,13 @@ func (c *gceClient) getDiskTypeURL() string {
 	)
 }
 
+func (c *gceClient) getDiskImageURL(project, image string) string {
+	return gceComputeAPIEndpoint + strings.Join(
+		[]string{"projects", project, "global", "images", image},
+		"/",
+	)
+}
+
 func (c *gceClient) getVPCURL() string {
 	return gceComputeAPIEndpoint + strings.Join(
 		[]string{"projects", c.projectID, "global", "networks", c.vpcName},
