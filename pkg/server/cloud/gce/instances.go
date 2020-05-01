@@ -18,6 +18,7 @@ package gce
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -133,8 +134,14 @@ func (c *gceClient) getInstanceNetworkSpec(privateIPOnly bool) []*compute.Networ
 }
 
 func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
+	md, err := base64.StdEncoding.DecodeString(metadata)
+	if err != nil {
+		return nil, util.WrapError(err, "Could not decode metadata string")
+	}
+	mds := string(md)
 	klog.V(2).Infof("Starting instance for node: %v", node)
-	bootVolName := c.nametag + "-boot-volume"
+	name := makeInstanceID(c.controllerID, node.Name)
+	bootVolName := name
 	diskType := c.getDiskTypeURL()
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
 	disks := c.getAttachedDiskSpec(true, int64(volSizeGiB), bootVolName, diskType, node.Spec.BootImage)
@@ -146,22 +153,29 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 		Disks:             disks,
 		Labels:            labels,
 		MachineType:       instanceType,
-		Name:              c.nametag,
+		Name:              name,
 		NetworkInterfaces: networkInterfaces,
 		Tags: &compute.Tags{
 			Items: []string{kipNetworkTag},
 		},
+		Metadata: &compute.Metadata{
+			Items: []*compute.MetadataItems{
+				{
+					Key:   "user-data",
+					Value: &mds,
+				},
+			},
+		},
 	}
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		c.bootSecurityGroupIDs, c.subnetName)
-	_, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
+	_, err = c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
 	if err != nil {
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
 	}
-	cloudID := c.nametag
 	startResult := &cloud.StartNodeResult{
-		InstanceID:       cloudID,
+		InstanceID:       name,
 		AvailabilityZone: c.zone,
 	}
 	return startResult, nil

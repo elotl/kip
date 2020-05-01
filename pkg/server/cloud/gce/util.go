@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/elotl/kip/pkg/util/hash"
+	uuid "github.com/satori/go.uuid"
 	"google.golang.org/api/googleapi"
 )
 
@@ -125,4 +127,19 @@ func getServiceAccountScopes(scopes []string) []string {
 		scopeURLs = append(scopeURLs, s)
 	}
 	return scopeURLs
+}
+
+func makeInstanceID(controllerID, nodeName string) string {
+	nodeUUID, err := uuid.FromString(nodeName)
+	var compressedID string
+	if err != nil {
+		compressedID = strings.Replace(nodeName, "-", "", -1)
+		if len(compressedID) > 26 {
+			compressedID = compressedID[:26]
+		}
+	} else {
+		compressedID = hash.Base32EncodeNoPad(nodeUUID.Bytes())
+	}
+
+	return fmt.Sprintf("kip-%s-%s", controllerID, compressedID)
 }

@@ -221,7 +221,10 @@ func (c *gceClient) FindSecurityGroup(sgName string) (*cloud.SecurityGroup, erro
 		}
 		return nil, err
 	}
-	fmt.Printf("%#v\n", resp)
+	if resp == nil {
+		return nil, nilResponseError("Firewalls.Get")
+	}
+
 	sg := firewallToSecurityGroup(resp)
 	return sg, nil
 }
@@ -248,7 +251,10 @@ func (c *gceClient) UpdateSecurityGroup(cloudSG cloud.SecurityGroup, ports []clo
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%#v\n", resp)
+	if resp == nil {
+		return nilResponseError("Firewalls.Patch")
+	}
+
 	return nil
 }
 

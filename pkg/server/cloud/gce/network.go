@@ -46,19 +46,18 @@ func (c *gceClient) ConnectWithPublicIPs() bool {
 }
 
 func (c *gceClient) getVPCRegionCIDRs(vpcName string) ([]string, error) {
-	/*
-		ctx := context.Background()
-		resp, err := c.service.Networks.Get(c.projectID, vpcName).Context(ctx).Do()
-		if err != nil {
-			return nil, util.WrapError(err, "error querying VPC %s in GCP", vpcName)
-		}
-		if resp == nil {
-			return nil, nilResponseError("Networks.Get")
-		}
-		if len(resp.Subnetworks) == 0 {
-			return nil, fmt.Errorf("Network error: no subnetworks found in %s network", vpcName)
-		}
-	*/
+	ctx := context.Background()
+	resp, err := c.service.Networks.Get(c.projectID, vpcName).Context(ctx).Do()
+	if err != nil {
+		return nil, util.WrapError(err, "error querying VPC %s in GCP", vpcName)
+	}
+	if resp == nil {
+		return nil, nilResponseError("Networks.Get")
+	}
+	if len(resp.Subnetworks) == 0 {
+		return nil, fmt.Errorf("Network error: no subnetworks found in %s network", vpcName)
+	}
+
 	// Clusters shouldn't span regions, only open the firewall rules
 	// to all subnets in the controller's region
 	subnets, err := c.getRegionSubnets()
@@ -68,7 +67,6 @@ func (c *gceClient) getVPCRegionCIDRs(vpcName string) ([]string, error) {
 	// TODO remove logs
 	klog.V(2).Infof("Subnet result length: %d", len(subnets))
 	klog.V(2).Infof("Subnet result: %v", subnets)
-	//vpcCIDRs := make([]string, len(resp.Subnetworks))
 	vpcCIDRs := make([]string, len(subnets))
 	for i := range subnets {
 		vpcCIDRs[i] = subnets[i].IpCidrRange
