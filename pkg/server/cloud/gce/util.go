@@ -27,6 +27,7 @@ import (
 )
 
 const (
+	gceAuthAPIEndpoint    = "https://www.googleapis.com/auth/"
 	gceComputeAPIEndpoint = "https://www.googleapis.com/compute/v1/"
 )
 
@@ -111,4 +112,17 @@ func (c *gceClient) getInstanceTypeURL(instanceType string) string {
 		[]string{"projects", c.projectID, "zones", c.zone, "machineTypes", instanceType},
 		"/",
 	)
+}
+
+func getServiceAccountScopes(scopes []string) []string {
+	scopeLen := len(scopes)
+	if scopeLen == 1 {
+		return []string{gceAuthAPIEndpoint + scopes[0]}
+	}
+	scopeURLs := make([]string, scopeLen)
+	for _, scope := range scopes {
+		s := gceAuthAPIEndpoint + scope
+		scopeURLs = append(scopeURLs, s)
+	}
+	return scopeURLs
 }

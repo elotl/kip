@@ -401,12 +401,21 @@ func (c *gceClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
 }
 
 func (c *gceClient) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
+	scopes := getServiceAccountScopes([]string{"compute"})
 	rb := &compute.InstancesSetServiceAccountRequest{
-		// TODO: Add desired fields of the request body.
+		// InstanceProfile should be in format
+		// service-account-name@project-id.iam.gserviceaccount.com
+		Email:  instanceProfile,
+		Scopes: scopes,
+	}
+	ctx := context.Background()
+	resp, err := c.service.Instances.SetServiceAccount(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
+	if err != nil {
+		return util.WrapError(err, "Error attaching profile to instance %s", node.Status.InstanceID)
+	}
+	if resp == nil {
+		return nilResponseError("Instances.SetServiceAccount")
 	}
 
-	ctx := context.Background()
-	_, _ = c.service.Instances.SetServiceAccount(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
-
-	return TODO()
+	return nil
 }
