@@ -83,7 +83,7 @@ func (c *gceClient) getNodeLabels() map[string]string {
 func (c *gceClient) getAttachedDiskSpec(isBoot bool, size int64, name, typeURL, imageURL string) []*compute.AttachedDisk {
 	var minimumDiskSize int64 = 10
 	if size < 10 {
-		klog.V(2).Info("GCE does not allow disk smaller than 10GiB, defaulting size to 10")
+		klog.V(2).Infof("GCE does not allow disk smaller than 10GiB. requested size: %dGib, using default: 10GiB", size)
 		size = minimumDiskSize
 	}
 	diskSpec := []*compute.AttachedDisk{
@@ -134,12 +134,12 @@ func (c *gceClient) getInstanceNetworkSpec(privateIPOnly bool) []*compute.Networ
 }
 
 func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
+	klog.V(2).Infof("Starting instance for node: %v", node)
 	md, err := base64.StdEncoding.DecodeString(metadata)
 	if err != nil {
 		return nil, util.WrapError(err, "Could not decode metadata string")
 	}
 	mds := string(md)
-	klog.V(2).Infof("Starting instance for node: %v", node)
 	name := makeInstanceID(c.controllerID, node.Name)
 	bootVolName := name
 	diskType := c.getDiskTypeURL()
@@ -183,6 +183,11 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 
 func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
+	md, err := base64.StdEncoding.DecodeString(metadata)
+	if err != nil {
+		return nil, util.WrapError(err, "Could not decode metadata string")
+	}
+	mds := string(md)
 	volName := c.nametag + "-boot-volume"
 	diskType := c.getDiskTypeURL()
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
@@ -205,6 +210,14 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 		},
 		Tags: &compute.Tags{
 			Items: []string{kipNetworkTag},
+		},
+		Metadata: &compute.Metadata{
+			Items: []*compute.MetadataItems{
+				{
+					Key:   "user-data",
+					Value: &mds,
+				},
+			},
 		},
 	}
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
