@@ -319,6 +319,7 @@ func (c *gceClient) ResizeVolume(node *api.Node, size int64) (error, bool) {
 }
 
 func (c *gceClient) SetSustainedCPU(node *api.Node, enabled bool) error {
+	// Not supported in GCE return nil
 	return nil
 }
 
@@ -364,7 +365,19 @@ func (c *gceClient) ListInstances() ([]cloud.CloudInstance, error) {
 }
 
 func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error {
-	return TODO()
+	// in GCE "labels" are what AWS considers tags
+	labelRequest := compute.InstancesSetLabelsRequest{
+		Labels: labels,
+	}
+	ctx := context.Background()
+	resp, err := c.service.Instances.SetLabels(c.projectID, c.zone, iid, &labelRequest).Context(ctx).Do()
+	if err != nil {
+		return util.WrapError(err, "Error attaching instance labels %s", err)
+	}
+	if resp == nil {
+		return nilResponseError("Instances.SetLabels")
+	}
+	return nil
 }
 
 func (c *gceClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
