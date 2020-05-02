@@ -42,7 +42,7 @@ func convertLabelKey(key string) string {
 	}
 }
 
-func (c *gceClient) getNodeSpec(instanceID string) (*compute.Instance, error) {
+func (c *gceClient) getInstanceSpec(instanceID string) (*compute.Instance, error) {
 	instance, err := c.service.Instances.Get(c.projectID, c.zone, instanceID).Do()
 	if err != nil {
 		// TODO error handling for googleapi errors
@@ -52,8 +52,8 @@ func (c *gceClient) getNodeSpec(instanceID string) (*compute.Instance, error) {
 	return instance, nil
 }
 
-func (c *gceClient) getNodeStatus(instanceID string) (string, error) {
-	instance, err := c.getNodeSpec(instanceID)
+func (c *gceClient) getInstanceStatus(instanceID string) (string, error) {
+	instance, err := c.getInstanceSpec(instanceID)
 	if err != nil {
 		// TODO error handling for googleapi errors
 		klog.Errorf("error retrieving instance status: %v", err)
@@ -62,7 +62,7 @@ func (c *gceClient) getNodeStatus(instanceID string) (string, error) {
 	return instance.Status, nil
 }
 
-func (c *gceClient) getNodeLabels() map[string]string {
+func (c *gceClient) getInstanceLabels() map[string]string {
 	// TODO this is different from the one in utils in that it
 	// uses unix timestamps to accommodate gcp naming convention
 	nametag := c.createUnboundNodeNameTag()
@@ -128,19 +128,17 @@ func (c *gceClient) getInstanceNetworkSpec(privateIPOnly bool) []*compute.Networ
 	return networkSpec
 }
 
-func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	klog.V(2).Infof("Starting instance for node: %v", node)
+func (c *gceClient) createInstanceSpec(node *api.Node, metadata string) (*compute.Instance, error) {
 	md, err := base64.StdEncoding.DecodeString(metadata)
 	if err != nil {
 		return nil, util.WrapError(err, "Could not decode metadata string")
 	}
 	mds := string(md)
 	name := makeInstanceID(c.controllerID, node.Name)
-	bootVolName := name
 	diskType := c.getDiskTypeURL()
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
-	disks := c.getAttachedDiskSpec(true, int64(volSizeGiB), bootVolName, diskType, node.Spec.BootImage)
-	labels := c.getNodeLabels()
+	disks := c.getAttachedDiskSpec(true, int64(volSizeGiB), name, diskType, node.Spec.BootImage)
+	labels := c.getInstanceLabels()
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
 	instanceType := c.getInstanceTypeURL(node.Spec.InstanceType)
@@ -162,6 +160,23 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 			},
 		},
 	}
+	if node.Spec.Spot {
+		ar := false
+		spec.Scheduling = &compute.Scheduling{
+			AutomaticRestart:  &ar,
+			OnHostMaintenance: "TERMINATE",
+			Preemptible:       true,
+		}
+	}
+	return spec, nil
+}
+
+func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
+	klog.V(2).Infof("Starting instance for node: %v", node)
+	spec, err := c.createInstanceSpec(node, metadata)
+	if err != nil {
+		return nil, err
+	}
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		c.bootSecurityGroupIDs, c.subnetName)
 	_, err = c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
@@ -170,7 +185,7 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 		return nil, util.WrapError(err, "startup error")
 	}
 	startResult := &cloud.StartNodeResult{
-		InstanceID:       name,
+		InstanceID:       spec.Name,
 		AvailabilityZone: c.zone,
 	}
 	return startResult, nil
@@ -178,42 +193,9 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 
 func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
-	md, err := base64.StdEncoding.DecodeString(metadata)
+	spec, err := c.createInstanceSpec(node, metadata)
 	if err != nil {
-		return nil, util.WrapError(err, "Could not decode metadata string")
-	}
-	mds := string(md)
-	volName := c.nametag + "-boot-volume"
-	diskType := c.getDiskTypeURL()
-	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
-	disks := c.getAttachedDiskSpec(true, int64(volSizeGiB), volName, diskType, node.Spec.BootImage)
-	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
-	labels := c.getNodeLabels()
-	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
-	instanceType := c.getInstanceTypeURL(node.Spec.InstanceType)
-	autoRestart := false
-	spec := &compute.Instance{
-		Disks:             disks,
-		Labels:            labels,
-		MachineType:       instanceType,
-		Name:              c.nametag,
-		NetworkInterfaces: networkInterfaces,
-		Scheduling: &compute.Scheduling{
-			AutomaticRestart:  &autoRestart,
-			OnHostMaintenance: "TERMINATE",
-			Preemptible:       true,
-		},
-		Tags: &compute.Tags{
-			Items: []string{kipNetworkTag},
-		},
-		Metadata: &compute.Metadata{
-			Items: []*compute.MetadataItems{
-				{
-					Key:   "user-data",
-					Value: &mds,
-				},
-			},
-		},
+		return nil, err
 	}
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		c.bootSecurityGroupIDs, c.subnetName)
@@ -232,7 +214,7 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 
 func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
 	for {
-		status, err := c.getNodeStatus(node.Status.InstanceID)
+		status, err := c.getInstanceStatus(node.Status.InstanceID)
 		if err != nil {
 			klog.Errorf("Error waiting for instance to start: %v", err)
 			// TODO add error checking for googleapi using helpers in util
@@ -245,7 +227,7 @@ func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 		}
 		time.Sleep(10 * time.Second)
 	}
-	instance, err := c.getNodeSpec(node.Status.InstanceID)
+	instance, err := c.getInstanceSpec(node.Status.InstanceID)
 	if err != nil {
 		// TODO add error checking for googleapi using helpers in util
 		return nil, err
@@ -299,7 +281,7 @@ func (c *gceClient) StopInstance(instanceID string) error {
 }
 
 func (c *gceClient) getFirstVolume(instanceID string) *compute.AttachedDisk {
-	instance, err := c.getNodeSpec(instanceID)
+	instance, err := c.getInstanceSpec(instanceID)
 	if err != nil {
 		// TODO error handling for googleapi errors
 		klog.Errorf("error retrieving instance volume: %v", err)
@@ -373,7 +355,8 @@ func (c *gceClient) ListInstances() ([]cloud.CloudInstance, error) {
 	f := func(page *compute.InstanceList) error {
 		for _, instance := range page.Items {
 			instances = append(instances, cloud.CloudInstance{
-				ID:       instance.Name,
+				ID: instance.Name,
+				// TODO add proper naming for "NodeName"
 				NodeName: "",
 			})
 		}
