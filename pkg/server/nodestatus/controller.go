@@ -84,7 +84,7 @@ func (n *NodeStatusController) setNodeStatus() {
 	}
 	n.nodeReady = nodeReady
 	n.networkUnavailable = networkUnavailable
-	klog.V(2).Infof("node status changed ready: %v network unavailabe: %v",
+	klog.V(2).Infof("node status changed ready: %v network unavailable: %v",
 		n.nodeReady, n.networkUnavailable)
 	if n.cb == nil {
 		klog.Infoln("no callback for node status")

@@ -84,7 +84,7 @@ func (c *gceClient) getInstanceLabels(nodeName string) map[string]string {
 func (c *gceClient) getAttachedDiskSpec(isBoot bool, size int64, name, typeURL, imageURL string) []*compute.AttachedDisk {
 	var minimumDiskSize int64 = 10
 	if size < 10 {
-		klog.V(2).Infof("GCE does not allow disk smaller than 10GiB. requested size: %dGib, using default: 10GiB", size)
+		klog.V(2).Infof("GCE does not allow disk smaller than 10GiB. requested size: %dGiB, using default: 10GiB", size)
 		size = minimumDiskSize
 	}
 	diskSpec := []*compute.AttachedDisk{
