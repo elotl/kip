@@ -231,6 +231,14 @@ func (c *gceClient) GetVPCCIDRs() []string {
 }
 
 func (c *gceClient) IsAvailable() (bool, error) {
-	klog.Errorln("Need to implement: gce.IsAvailable()")
-	return true, nil
+	ctx := context.Background()
+	resp, err := c.service.Zones.Get(c.projectID, c.zone).Context(ctx).Do()
+	if err != nil {
+		return true, err
+	}
+	if resp == nil {
+		return true, nilResponseError("Zones.Get")
+	}
+	isAvailable := resp.Status != "DOWN"
+	return isAvailable, nil
 }
