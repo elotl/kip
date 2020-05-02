@@ -46,6 +46,16 @@ func convertLabelKeys(labels map[string]string) map[string]string {
 		default:
 			k = strings.ToLower(k)
 		}
+		// TODO values need to be lowercase and have no spaces as well
+		// something like the following
+		/*
+		       if strings.Contains(v, " ") {
+		           v = strings.ReplaceAll(v, " ", "-")
+		       }
+		       v = strings.ToLower(v)
+
+		   Leaving this comment here to see if you have thoughts
+		*/
 		convertedLabels[k] = v
 	}
 	return convertedLabels
