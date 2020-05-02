@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/elotl/kip/pkg/api"
@@ -30,23 +31,27 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-func convertLabelKey(key string) string {
-	switch key {
-	case cloud.ControllerTagKey:
-		return "kip-controller-id"
-	case cloud.NametagTagKey:
-		return "kip-nametag"
-	case "kip-controller-id":
-		return cloud.ControllerTagKey
-	case "kip-nametag":
-		return cloud.NametagTagKey
-	default:
-		klog.Errorf("Error label key %s does not exist", key)
-		return ""
+func convertLabelKeys(labels map[string]string) map[string]string {
+	convertedLabels := make(map[string]string)
+	for k, v := range labels {
+		switch k {
+		case cloud.ControllerTagKey:
+			k = "kip-controller-id"
+		case cloud.NametagTagKey:
+			k = "kip-nametag"
+		case cloud.NamespaceTagKey:
+			k = "kip-namespace"
+		case cloud.PodNameTagKey:
+			k = "kip-pod-name"
+		default:
+			k = strings.ToLower(k)
+		}
+		convertedLabels[k] = v
 	}
+	return convertedLabels
 }
 
-func (c *gceClient) getNodeSpec(instanceID string) (*compute.Instance, error) {
+func (c *gceClient) getInstanceSpec(instanceID string) (*compute.Instance, error) {
 	instance, err := c.service.Instances.Get(c.projectID, c.zone, instanceID).Do()
 	if err != nil {
 		// TODO error handling for googleapi errors
@@ -56,8 +61,8 @@ func (c *gceClient) getNodeSpec(instanceID string) (*compute.Instance, error) {
 	return instance, nil
 }
 
-func (c *gceClient) getNodeStatus(instanceID string) (string, error) {
-	instance, err := c.getNodeSpec(instanceID)
+func (c *gceClient) getInstanceStatus(instanceID string) (string, error) {
+	instance, err := c.getInstanceSpec(instanceID)
 	if err != nil {
 		// TODO error handling for googleapi errors
 		klog.Errorf("error retrieving instance status: %v", err)
@@ -66,15 +71,11 @@ func (c *gceClient) getNodeStatus(instanceID string) (string, error) {
 	return instance.Status, nil
 }
 
-func (c *gceClient) getNodeLabels() map[string]string {
-	// TODO this is different from the one in utils in that it
-	// uses unix timestamps to accommodate gcp naming convention
+func (c *gceClient) getInstanceLabels(nodeName string) map[string]string {
 	nametag := c.createUnboundNodeNameTag()
-	controllerLabelKey := convertLabelKey(cloud.ControllerTagKey)
-	nametagLabelKey := convertLabelKey(cloud.NametagTagKey)
 	return map[string]string{
 		"name":             nametag,
-		"node":             c.nametag,
+		"node":             nodeName,
 		controllerLabelKey: c.controllerID,
 		nametagLabelKey:    c.nametag,
 	}
@@ -145,7 +146,7 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 	diskType := c.getDiskTypeURL()
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
 	disks := c.getAttachedDiskSpec(true, int64(volSizeGiB), bootVolName, diskType, node.Spec.BootImage)
-	labels := c.getNodeLabels()
+	labels := c.getInstanceLabels(node.Name)
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
 	instanceType := c.getInstanceTypeURL(node.Spec.InstanceType)
@@ -193,7 +194,7 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
 	disks := c.getAttachedDiskSpec(true, int64(volSizeGiB), volName, diskType, node.Spec.BootImage)
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
-	labels := c.getNodeLabels()
+	labels := c.getInstanceLabels(node.Name)
 	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
 	instanceType := c.getInstanceTypeURL(node.Spec.InstanceType)
 	autoRestart := false
@@ -237,7 +238,7 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 
 func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
 	for {
-		status, err := c.getNodeStatus(node.Status.InstanceID)
+		status, err := c.getInstanceStatus(node.Status.InstanceID)
 		if err != nil {
 			klog.Errorf("Error waiting for instance to start: %v", err)
 			// TODO add error checking for googleapi using helpers in util
@@ -250,7 +251,7 @@ func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 		}
 		time.Sleep(10 * time.Second)
 	}
-	instance, err := c.getNodeSpec(node.Status.InstanceID)
+	instance, err := c.getInstanceSpec(node.Status.InstanceID)
 	if err != nil {
 		// TODO add error checking for googleapi using helpers in util
 		return nil, err
@@ -304,7 +305,7 @@ func (c *gceClient) StopInstance(instanceID string) error {
 }
 
 func (c *gceClient) getFirstVolume(instanceID string) *compute.AttachedDisk {
-	instance, err := c.getNodeSpec(instanceID)
+	instance, err := c.getInstanceSpec(instanceID)
 	if err != nil {
 		// TODO error handling for googleapi errors
 		klog.Errorf("error retrieving instance volume: %v", err)
@@ -372,14 +373,14 @@ func (c *gceClient) ListInstancesFilterID(ids []string) ([]cloud.CloudInstance, 
 
 func (c *gceClient) ListInstances() ([]cloud.CloudInstance, error) {
 	listCall := c.service.Instances.List(c.projectID, c.zone)
-	filter := c.getLabelCompareFilter(cloud.ControllerTagKey, c.controllerID)
+	filter := c.getLabelCompareFilter(controllerLabelKey, c.controllerID)
 	listCall = listCall.Filter(filter)
 	var instances []cloud.CloudInstance
 	f := func(page *compute.InstanceList) error {
 		for _, instance := range page.Items {
 			instances = append(instances, cloud.CloudInstance{
 				ID:       instance.Name,
-				NodeName: "",
+				NodeName: instance.Labels["node"],
 			})
 		}
 		return nil
@@ -393,16 +394,15 @@ func (c *gceClient) ListInstances() ([]cloud.CloudInstance, error) {
 
 func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error {
 	// in GCE "labels" are what AWS considers tags
+	labels = convertLabelKeys(labels)
 	labelRequest := compute.InstancesSetLabelsRequest{
 		Labels: labels,
 	}
+
 	ctx := context.Background()
-	resp, err := c.service.Instances.SetLabels(c.projectID, c.zone, iid, &labelRequest).Context(ctx).Do()
+	_, err := c.service.Instances.SetLabels(c.projectID, c.zone, iid, &labelRequest).Context(ctx).Do()
 	if err != nil {
 		return util.WrapError(err, "Error attaching instance labels %s", err)
-	}
-	if resp == nil {
-		return nilResponseError("Instances.SetLabels")
 	}
 	return nil
 }

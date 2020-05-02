@@ -64,9 +64,6 @@ func (c *gceClient) getVPCRegionCIDRs(vpcName string) ([]string, error) {
 	if err != nil {
 		return nil, util.WrapError(err, "Error listing network subnets in region")
 	}
-	// TODO remove logs
-	klog.V(2).Infof("Subnet result length: %d", len(subnets))
-	klog.V(2).Infof("Subnet result: %v", subnets)
 	vpcCIDRs := make([]string, len(subnets))
 	for i := range subnets {
 		vpcCIDRs[i] = subnets[i].IpCidrRange
@@ -234,6 +231,14 @@ func (c *gceClient) GetVPCCIDRs() []string {
 }
 
 func (c *gceClient) IsAvailable() (bool, error) {
-	klog.Errorln("Need to implement: gce.IsAvailable()")
-	return true, nil
+	ctx := context.Background()
+	resp, err := c.service.Zones.Get(c.projectID, c.zone).Context(ctx).Do()
+	if err != nil {
+		return true, err
+	}
+	if resp == nil {
+		return true, nilResponseError("Zones.Get")
+	}
+	isAvailable := resp.Status != "DOWN"
+	return isAvailable, nil
 }

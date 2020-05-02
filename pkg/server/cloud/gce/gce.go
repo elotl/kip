@@ -29,6 +29,12 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
+const controllerLabelKey = "kip-controller-id"
+const nameLabelKey = "name"
+const namespaceLabelKey = "kip-namespace"
+const nametagLabelKey = "kip-nametag"
+const podNameLabelKey = "kip-pod-name"
+
 func TODO() error {
 	msg := "TODO: Not implemented yet!"
 	pc, file, line, ok := runtime.Caller(1)
