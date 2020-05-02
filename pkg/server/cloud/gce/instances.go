@@ -32,13 +32,9 @@ import (
 
 func convertLabelKey(key string) string {
 	switch key {
-	case cloud.ControllerTagKey:
-		return "kip-controller-id"
 	case cloud.NametagTagKey:
-		return "kip-nametag"
-	case "kip-controller-id":
-		return cloud.ControllerTagKey
-	case "kip-nametag":
+		return gceNametagTagKey
+	case gceNametagTagKey:
 		return cloud.NametagTagKey
 	default:
 		klog.Errorf("Error label key %s does not exist", key)
@@ -70,13 +66,12 @@ func (c *gceClient) getNodeLabels() map[string]string {
 	// TODO this is different from the one in utils in that it
 	// uses unix timestamps to accommodate gcp naming convention
 	nametag := c.createUnboundNodeNameTag()
-	controllerLabelKey := convertLabelKey(cloud.ControllerTagKey)
 	nametagLabelKey := convertLabelKey(cloud.NametagTagKey)
 	return map[string]string{
-		"name":             nametag,
-		"node":             c.nametag,
-		controllerLabelKey: c.controllerID,
-		nametagLabelKey:    c.nametag,
+		"name":              nametag,
+		"node":              c.nametag,
+		gceControllerTagKey: c.controllerID,
+		nametagLabelKey:     c.nametag,
 	}
 }
 

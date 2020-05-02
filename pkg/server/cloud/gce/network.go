@@ -64,9 +64,6 @@ func (c *gceClient) getVPCRegionCIDRs(vpcName string) ([]string, error) {
 	if err != nil {
 		return nil, util.WrapError(err, "Error listing network subnets in region")
 	}
-	// TODO remove logs
-	klog.V(2).Infof("Subnet result length: %d", len(subnets))
-	klog.V(2).Infof("Subnet result: %v", subnets)
 	vpcCIDRs := make([]string, len(subnets))
 	for i := range subnets {
 		vpcCIDRs[i] = subnets[i].IpCidrRange

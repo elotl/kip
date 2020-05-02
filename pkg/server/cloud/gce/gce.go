@@ -29,6 +29,11 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
+const (
+	gceControllerTagKey = "kip-controller-id"
+	gceNametagTagKey    = "kip-nametag"
+)
+
 func TODO() error {
 	msg := "TODO: Not implemented yet!"
 	pc, file, line, ok := runtime.Caller(1)
