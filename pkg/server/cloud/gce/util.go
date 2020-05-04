@@ -64,14 +64,6 @@ func (c *gceClient) createUnboundNodeNameTag() string {
 		"kip-node-%s-%d", c.nametag, time.Now().Unix())
 }
 
-func (c *gceClient) createNetworkTags() []string {
-	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
-	tags := make([]string, len(c.bootSecurityGroupIDs)+1)
-	copy(tags, c.bootSecurityGroupIDs)
-	tags = append(tags, kipNetworkTag)
-	return tags
-}
-
 func (c *gceClient) getLabelCompareFilter(mapKey, compare string) string {
 	return fmt.Sprintf("labels.%s = %s", mapKey, compare)
 }

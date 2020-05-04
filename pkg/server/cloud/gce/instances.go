@@ -156,7 +156,6 @@ func (c *gceClient) createInstanceSpec(node *api.Node, metadata string) (*comput
 	disks := c.getAttachedDiskSpec(true, int64(volSizeGiB), name, diskType, node.Spec.BootImage)
 	labels := c.getInstanceLabels(node.Name)
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
-	kipNetworkTag := CreateKipCellNetworkTag(c.controllerID)
 	instanceType := c.getInstanceTypeURL(node.Spec.InstanceType)
 	spec := &compute.Instance{
 		Disks:             disks,
@@ -165,7 +164,7 @@ func (c *gceClient) createInstanceSpec(node *api.Node, metadata string) (*comput
 		Name:              name,
 		NetworkInterfaces: networkInterfaces,
 		Tags: &compute.Tags{
-			Items: []string{kipNetworkTag},
+			Items: c.bootSecurityGroupIDs,
 		},
 		Metadata: &compute.Metadata{
 			Items: []*compute.MetadataItems{
