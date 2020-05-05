@@ -16,16 +16,28 @@ spec:
     metadata:
       labels:
         app: virtual-kubelet
+        virtual-kubelet: ""
     spec:
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
-              - key: kubernetes.io/hostname
+              - key: type
                 operator: NotIn
                 values:
                 - virtual-kubelet
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: virtual-kubelet
+                  operator: In
+                  values:
+                  - ""
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+            weight: 100
       containers:
       - command:
         - /virtual-kubelet

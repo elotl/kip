@@ -7,6 +7,6 @@ To re-generate the gen-conmaps.go with updates from conmaps.go:
 go get github.com/justnoise/genny
 cd $GOPATH/src/github.com/justnoise/genny
 go install
-cd $GOPATH/src/github.com/elotl/cloud-instance-provider/pkg/util/conmap
+cd $GOPATH/src/github.com/elotl/kip/pkg/util/conmap
 go generate
 ```

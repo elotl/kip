@@ -1,0 +1,13 @@
+[template]
+src = "gobgpd.conf.tmpl"
+dest = "/data/gobgpd.conf"
+keys = [
+    "BGP_ASN",
+    "POD_IP",
+    "K8S_ASN",
+    "K8S_BGP_DYNAMIC_NEIGHBOR_PREFIX",
+    "K8S_BGP_PEER_IPS",
+    "AMAZON_SIDE_ASN",
+    "TUNNEL1_VGW_INSIDE_ADDRESS",
+    "TUNNEL2_VGW_INSIDE_ADDRESS",
+]

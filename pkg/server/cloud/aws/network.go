@@ -330,57 +330,97 @@ func (e *AwsEC2) ModifySourceDestinationCheck(instanceID string, isEnabled bool)
 	return err
 }
 
-func (e *AwsEC2) RemoveRoute(destinationCIDR string) error {
+func (e *AwsEC2) RemoveRoute(destinationCIDR, instanceID string) error {
 	out, err := e.client.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: aws.String("vpc-id"),
-				Values: []*string{
-					aws.String(e.vpcID),
-				},
+				Name:   aws.String("vpc-id"),
+				Values: aws.StringSlice([]string{e.vpcID}),
+			},
+			{
+				Name:   aws.String("association.main"),
+				Values: aws.StringSlice([]string{"false"}),
+			},
+			{
+				Name:   aws.String("association.subnet-id"),
+				Values: aws.StringSlice([]string{e.subnetID}),
 			},
 		},
 	})
 	if err != nil {
-		return util.WrapError(err, "Could not list vpc route tables")
+		return util.WrapError(err, "listing vpc route tables")
 	}
 	for _, table := range out.RouteTables {
 		if len(table.Associations) == 0 {
 			continue
 		}
 		for _, route := range table.Routes {
-			if destinationCIDR == aws.StringValue(route.DestinationCidrBlock) {
-				_, err = e.client.DeleteRoute(&ec2.DeleteRouteInput{
-					DestinationCidrBlock: route.DestinationCidrBlock,
-					RouteTableId:         table.RouteTableId,
-				})
-				if err != nil {
-					return util.WrapError(
-						err,
-						"Error deleting old route table entry for table %s",
-						*table.RouteTableId,
-					)
-				}
-				break
+			// Ignore any routes that are not instance routes. If the instance
+			// has been terminated, the route will be a blackhole and EC2 will
+			// set route.NetworkInterfaceId while clearing up route.InstanceId.
+			routeIID := aws.StringValue(route.InstanceId)
+			routeNetIID := aws.StringValue(route.NetworkInterfaceId)
+			if routeIID == "" && routeNetIID == "" {
+				continue
 			}
+			// If instanceID is provided, match on it.
+			if instanceID != "" && instanceID != routeIID {
+				continue
+			}
+			// If destinationCIDR is provided, match on it.
+			if destinationCIDR != "" &&
+				destinationCIDR != aws.StringValue(route.DestinationCidrBlock) {
+				continue
+			}
+			// If both instanceID and destinationCIDR are empty, remove
+			// blackhole instance routes.
+			if destinationCIDR == "" && instanceID == "" &&
+				aws.StringValue(route.State) != ec2.RouteStateBlackhole {
+				continue
+			}
+			_, err = e.client.DeleteRoute(&ec2.DeleteRouteInput{
+				DestinationCidrBlock: route.DestinationCidrBlock,
+				RouteTableId:         table.RouteTableId,
+			})
+			if err != nil {
+				return util.WrapError(
+					err,
+					"deleting route %s in table %s",
+					aws.StringValue(route.DestinationCidrBlock),
+					aws.StringValue(table.RouteTableId))
+			}
+			klog.V(5).Infof("removed route %s in table %s",
+				aws.StringValue(route.DestinationCidrBlock),
+				aws.StringValue(table.RouteTableId))
 		}
 	}
 	return nil
 }
 
 func (e *AwsEC2) AddRoute(destinationCIDR, instanceID string) error {
+	if destinationCIDR == "" || instanceID == "" {
+		return fmt.Errorf(
+			"invalid input: empty value (got %q %q)",
+			destinationCIDR, instanceID)
+	}
 	out, err := e.client.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: aws.String("vpc-id"),
-				Values: []*string{
-					aws.String(e.vpcID),
-				},
+				Name:   aws.String("vpc-id"),
+				Values: aws.StringSlice([]string{e.vpcID}),
+			},
+			{
+				Name:   aws.String("association.main"),
+				Values: aws.StringSlice([]string{"false"}),
+			},
+			{
+				Name:   aws.String("association.subnet-id"),
+				Values: aws.StringSlice([]string{e.subnetID}),
 			},
 		},
 	})
 	if err != nil {
-		return util.WrapError(err, "Could not list vpc route tables")
+		return util.WrapError(err, "listing vpc route tables")
 	}
 	for _, table := range out.RouteTables {
 		if len(table.Associations) == 0 {
@@ -393,10 +433,12 @@ func (e *AwsEC2) AddRoute(destinationCIDR, instanceID string) error {
 		})
 		if err != nil {
 			return util.WrapError(
-				err, "Error creating route table entry in table %s",
-				*table.RouteTableId)
-
+				err,
+				"creating route %s via %s in table %s",
+				destinationCIDR, instanceID, aws.StringValue(table.RouteTableId))
 		}
+		klog.V(5).Infof("added route %s in table %s",
+			destinationCIDR, aws.StringValue(table.RouteTableId))
 	}
 	return nil
 }

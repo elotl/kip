@@ -23,5 +23,5 @@ import (
 )
 
 func AzureContainenrInstanceSelector(rs *api.ResourceSpec) (int64, int64, error) {
-	return 0, 0, fmt.Errorf("Azure container instances is not implemented on milpa")
+	return 0, 0, fmt.Errorf("Azure container instances is not implemented in Kip")
 }

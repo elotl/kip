@@ -1,0 +1,143 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: aws-vpn-client
+  name: aws-vpn-client
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aws-vpn-client
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: aws-vpn-client
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: type
+                operator: NotIn
+                values:
+                - virtual-kubelet
+      initContainers:
+      - command:
+        - bash
+        - -c
+        - envsubst < /etc/ipsec.conf.tmpl > /data/ipsec.conf; envsubst < /etc/ipsec.secrets.tmpl > /data/ipsec.secrets
+        image: elotl/aws-vpn-client:latest
+        imagePullPolicy: Always
+        name: ipsec-init
+        envFrom:
+        - configMapRef:
+            name: aws-vpn-client-config
+        volumeMounts:
+        - name: data
+          mountPath: /data
+%{ if enable_bgp_agent }
+      - command:
+        - bash
+        - -c
+        - confd -backend env -onetime
+        image: elotl/aws-vpn-client:latest
+        imagePullPolicy: Always
+        name: bgp-init
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        envFrom:
+        - configMapRef:
+            name: aws-vpn-client-config
+        volumeMounts:
+        - name: data
+          mountPath: /data
+%{ endif }
+      containers:
+      - command:
+        - bash
+        - -c
+        - cp /data/ipsec.conf /etc/ipsec.conf; cp /data/ipsec.secrets /etc/ipsec.secrets; exec ipsec start --nofork
+        image: elotl/aws-vpn-client:latest
+        imagePullPolicy: Always
+        name: ipsec
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          exec:
+            command:
+            - bash
+            - -c
+            - ipsec status Tunnel1 | grep ESTABLISHED || ipsec status Tunnel2 | grep ESTABLISHED && ip link ls Tunnel1 && ip link ls Tunnel2
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: xtables-lock
+          mountPath: /run/xtables.lock
+        - name: lib-modules
+          mountPath: /lib/modules
+          readOnly: true
+        securityContext:
+          privileged: true
+%{ if enable_bgp_agent }
+      - command:
+        - bash
+        - -c
+        - /etc/init.d/zebra start; exec gobgpd -f /data/gobgpd.conf -p
+        image: elotl/aws-vpn-client:latest
+        imagePullPolicy: Always
+        name: bgp
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          exec:
+            command:
+            - bash
+            - -c
+            - vtysh -c 'show ip route'
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        securityContext:
+          privileged: true
+%{ endif }
+      restartPolicy: Always
+      dnsPolicy: ${dnspolicy}
+      hostNetwork: ${hostnetwork}
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        effect: "NoSchedule"
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: xtables-lock
+        hostPath:
+          path: /run/xtables.lock
+          type: FileOrCreate
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
+          type: ""

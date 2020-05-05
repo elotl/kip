@@ -60,3 +60,9 @@ const PodTaskRole = "pod.elotl.co/task-role"
 // restartPolicy.  A healthcheck-timeout equal to zero means the pod
 // will not be terminated due to failing healthchecks.
 const PodHealthcheckHealthyTimeout = "pod.elotl.co/healthcheck-healthy-timeout"
+
+// PodCloudRoute can be used to add one or more routes to the cloud subnet
+// route table.  The value must be one or more CIDRs separated by whitespace,
+// e.g. "10.20.30.40/24 192.168.1.0/28". Route to these CIDRs, using the
+// instance as the next hop, will be added to the route table of the subnet.
+const PodCloudRoute = "pod.elotl.co/cloud-route"

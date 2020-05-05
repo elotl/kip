@@ -87,6 +87,8 @@ func main() {
 					internalIP,
 					serverURL,
 					serverConfig.NetworkAgentSecret,
+					serverConfig.ClusterDNS,
+					cfg.KubeClusterDomain,
 					cfg.DaemonPort,
 					serverConfig.DebugServer,
 					cfg.ResourceManager,

@@ -27,7 +27,7 @@ In AWS, Kip cells will get a public IP address if the cell is run in a subnet co
 
 ```yaml
 annotations:
-  pod.elotl.co/private-ip-only: true
+  pod.elotl.co/private-ip-only: 'true'
 ```
 
 **pod.elotl.co/security-groups**
@@ -55,4 +55,12 @@ Use this annotation to change the healthcheck timeout for individual pods from t
 ```yaml
 annotations:
   pod.elotl.co/healthcheck-healthy-timeout: "300"
+
+**pod.elotl.co/cloud-route**
+
+This annotation can be used to add one or more routes to the cloud subnet route table.  The value must be one or more CIDRs separated by whitespace, e.g. "10.20.30.40/24 192.168.1.0/28". Route to these CIDRs, using the instance as the next hop, will be added to the route table of the subnet.
+
+```yaml
+annotations:
+  pod.elotl.co/cloud-route: "10.20.30.40/24 192.168.1.0/28"
 ```

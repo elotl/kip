@@ -171,7 +171,7 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 }
 
 // InstanceProvider should implement node.PodLifecycleHandler
-func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networkAgentSecret string, daemonEndpointPort int32, debugServer bool, rm *manager.ResourceManager, systemQuit <-chan struct{}) (*InstanceProvider, error) {
+func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networkAgentSecret, clusterDNS, clusterDomain string, daemonEndpointPort int32, debugServer bool, rm *manager.ResourceManager, systemQuit <-chan struct{}) (*InstanceProvider, error) {
 	systemWG := &sync.WaitGroup{}
 
 	execer := utilexec.New()
@@ -271,6 +271,18 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		"Metric": metricsRegistry,
 	}
 
+	dnsConfigurer, err := createDNSConfigurer(
+		nodeName, clusterDNS, clusterDomain, cloudClient, rm)
+	if err != nil {
+		return nil, util.WrapError(err, "creating DNS configurer")
+	}
+
+	networkAgentKubeconfig, err := createNetworkAgentKubeconfig(
+		nodeName, networkAgentSecret, serverURL, rm)
+	if err != nil {
+		return nil, util.WrapError(err, "creating network-agent kubeconfig")
+	}
+
 	connectWithPublicIPs := cloudClient.ConnectWithPublicIPs()
 	itzoClientFactory := nodeclient.NewItzoFactory(
 		&certFactory.Root, *clientCert, connectWithPublicIPs)
@@ -293,22 +305,22 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		)
 	}
 	podController := &PodController{
-		podRegistry:        podRegistry,
-		logRegistry:        logRegistry,
-		metricsRegistry:    metricsRegistry,
-		nodeLister:         nodeRegistry,
-		resourceManager:    rm,
-		nodeDispenser:      nodeDispenser,
-		nodeClientFactory:  itzoClientFactory,
-		events:             eventSystem,
-		cloudClient:        cloudClient,
-		controllerID:       controllerID,
-		nametag:            nametag,
-		serverURL:          serverURL,
-		networkAgentSecret: networkAgentSecret,
-		kubernetesNodeName: nodeName,
-		statusInterval:     time.Duration(serverConfigFile.Cells.StatusInterval) * time.Second,
-		healthChecker:      healthChecker,
+		podRegistry:            podRegistry,
+		logRegistry:            logRegistry,
+		metricsRegistry:        metricsRegistry,
+		nodeLister:             nodeRegistry,
+		resourceManager:        rm,
+		nodeDispenser:          nodeDispenser,
+		nodeClientFactory:      itzoClientFactory,
+		events:                 eventSystem,
+		cloudClient:            cloudClient,
+		controllerID:           controllerID,
+		nametag:                nametag,
+		kubernetesNodeName:     nodeName,
+		dnsConfigurer:          dnsConfigurer,
+		networkAgentKubeconfig: networkAgentKubeconfig,
+		statusInterval:         time.Duration(serverConfigFile.Cells.StatusInterval) * time.Second,
+		healthChecker:          healthChecker,
 	}
 	imageIdCache := timeoutmap.New(false, nil)
 	cloudInitFile, err := cloudinitfile.New(serverConfigFile.Cells.CloudInitFile)
