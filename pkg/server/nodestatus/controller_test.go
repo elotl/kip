@@ -20,13 +20,23 @@ func TestCheckCloud(t *testing.T) {
 	ctrl := &NodeStatusController{
 		cloudClient: cloud,
 	}
-	ctrl.setNodeStatus()
+
+	wasSet := ctrl.setNodeStatus()
+	assert.False(t, wasSet)
+	ctrl.cb = func(*corev1.Node) {}
+	wasSet = ctrl.setNodeStatus()
+	assert.False(t, wasSet)
+
+	ctrl.node = &corev1.Node{}
+	wasSet = ctrl.setNodeStatus()
+	assert.True(t, wasSet)
 	assert.True(t, ctrl.nodeReady)
 	assert.False(t, ctrl.networkUnavailable)
 	cloud.AvailabilityChecker = func() (bool, error) {
 		return false, nil
 	}
-	ctrl.setNodeStatus()
+	wasSet = ctrl.setNodeStatus()
+	assert.True(t, wasSet)
 	assert.False(t, ctrl.nodeReady)
 	assert.True(t, ctrl.networkUnavailable)
 }
@@ -49,6 +59,8 @@ func TestGetNodeStatus(t *testing.T) {
 		internalIP:         "10.20.30.40",
 		daemonEndpointPort: 12345,
 		kubeletCapacity:    capacity,
+		cb:                 func(*corev1.Node) {},
+		node:               &corev1.Node{},
 	}
 	status := ctrl.GetNodeStatus()
 	assert.Equal(t, "10.20.30.40", status.Addresses[0].Address)

@@ -54,7 +54,13 @@ func (n *NodeStatusController) controlLoop(quit <-chan struct{}, wg *sync.WaitGr
 	defer wg.Done()
 	ticker := time.NewTicker(59 * time.Second)
 	defer ticker.Stop()
-	n.setNodeStatus()
+	for {
+		wasSet := n.setNodeStatus()
+		if wasSet {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
 	for {
 		select {
 		case <-ticker.C:
@@ -70,30 +76,29 @@ func (n *NodeStatusController) controlLoop(quit <-chan struct{}, wg *sync.WaitGr
 	}
 }
 
-func (n *NodeStatusController) setNodeStatus() {
+func (n *NodeStatusController) setNodeStatus() bool {
 	available, err := n.cloudClient.IsAvailable()
 	if err != nil {
 		klog.Errorf("checking cloud available status: %v", err)
-		return
+		return false
 	}
 	nodeReady := available
 	networkUnavailable := !available
 	if nodeReady == n.nodeReady && networkUnavailable == n.networkUnavailable {
 		klog.V(5).Infof("node status unchanged")
-		return
+		return false
 	}
+	node := n.createNode()
+	if node == nil || n.cb == nil {
+		return false
+	}
+	klog.V(5).Infof("updating node spec %+v status %+v", node.Spec, node.Status)
+	n.cb(node)
 	n.nodeReady = nodeReady
 	n.networkUnavailable = networkUnavailable
 	klog.V(2).Infof("node status changed ready: %v network unavailabe: %v",
 		n.nodeReady, n.networkUnavailable)
-	if n.cb == nil {
-		return
-	}
-	node := n.createNode()
-	if node != nil {
-		klog.V(5).Infof("updating node spec %+v status %+v", node.Spec, node.Status)
-		n.cb(node)
-	}
+	return true
 }
 
 func (n *NodeStatusController) createNode() *corev1.Node {
