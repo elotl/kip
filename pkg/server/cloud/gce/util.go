@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -32,6 +33,8 @@ const (
 	gceAuthAPIEndpoint    = "https://www.googleapis.com/auth/"
 	gceComputeAPIEndpoint = "https://www.googleapis.com/compute/v1/"
 )
+
+var labelValueRegex = regexp.MustCompile("[^a-z0-9-_]+")
 
 func isNotFoundError(err error) bool {
 	return isHTTPErrorCode(err, http.StatusNotFound)
@@ -142,4 +145,8 @@ func makeInstanceID(controllerID, nodeName string) string {
 	}
 
 	return fmt.Sprintf("kip-%s-%s", controllerID, compressedID)
+}
+
+func replaceReservedLabelChars(label string) string {
+	return labelValueRegex.ReplaceAllString(label, "-")
 }

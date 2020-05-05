@@ -46,18 +46,11 @@ func convertLabelKeys(labels map[string]string) map[string]string {
 		default:
 			k = strings.ToLower(k)
 		}
-		// TODO values need to be lowercase and have no spaces as well
-		// something like the following
-		/*
-		       if strings.Contains(v, " ") {
-		           v = strings.ReplaceAll(v, " ", "-")
-		       }
-		       v = strings.ToLower(v)
-
-		   Leaving this comment here to see if you have thoughts
-		*/
+		v = strings.ToLower(v)
+		v = replaceReservedLabelChars(v)
 		convertedLabels[k] = v
 	}
+	fmt.Println("Labels should be", convertedLabels)
 	return convertedLabels
 }
 
@@ -386,12 +379,24 @@ func (c *gceClient) ListInstances() ([]cloud.CloudInstance, error) {
 func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error {
 	// in GCE "labels" are what AWS considers tags
 	labels = convertLabelKeys(labels)
+
+	// Todo, pull this from short term instance cache
+	inst, err := c.getInstanceSpec(iid)
+	if err != nil {
+		return util.WrapError(err, "error retrieving instance's label fingerprint from GKE")
+	}
+	mergedLabels := inst.Labels
+	for k, v := range labels {
+		mergedLabels[k] = v
+	}
+
 	labelRequest := compute.InstancesSetLabelsRequest{
-		Labels: labels,
+		LabelFingerprint: inst.LabelFingerprint,
+		Labels:           mergedLabels,
 	}
 
 	ctx := context.Background()
-	_, err := c.service.Instances.SetLabels(c.projectID, c.zone, iid, &labelRequest).Context(ctx).Do()
+	_, err = c.service.Instances.SetLabels(c.projectID, c.zone, iid, &labelRequest).Context(ctx).Do()
 	if err != nil {
 		return util.WrapError(err, "Error attaching instance labels %s", err)
 	}

@@ -272,11 +272,22 @@ func (c *gceClient) CreateSecurityGroup(sgName string, ports []cloud.InstancePor
 }
 
 func (c *gceClient) AttachSecurityGroups(node *api.Node, groups []string) error {
+	// Todo, pull this from short term instance cache
+	inst, err := c.getInstanceSpec(node.Status.InstanceID)
+	if err != nil {
+		return util.WrapError(err, "error retrieving instance's network tags fingerprint from GKE")
+	}
+	fp := ""
+	if inst.Tags != nil {
+		fp = inst.Tags.Fingerprint
+	}
 	allTags := append(groups, c.bootSecurityGroupIDs...)
 	rb := &compute.Tags{
-		Items: allTags,
+		Fingerprint: fp,
+		Items:       allTags,
 	}
+
 	ctx := context.Background()
-	_, err := c.service.Instances.SetTags(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
+	_, err = c.service.Instances.SetTags(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
 	return err
 }
