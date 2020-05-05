@@ -128,16 +128,32 @@ func podShouldBeRestarted(pod *api.Pod) bool {
 		pod.Spec.RestartPolicy != api.RestartPolicyNever
 }
 
+// Here we create a new status and populate UnitStatuses.LastTerminationState
+// with the last unit status
+func cleanFailedPodStatus(pod *api.Pod) {
+	newStatus := api.PodStatus{
+		Phase:            api.PodWaiting,
+		StartFailures:    pod.Status.StartFailures,
+		InitUnitStatuses: pod.Status.InitUnitStatuses,
+		UnitStatuses:     pod.Status.UnitStatuses,
+	}
+	for i := range newStatus.InitUnitStatuses {
+		newStatus.InitUnitStatuses[i].LastTerminationState = newStatus.InitUnitStatuses[i].State
+		newStatus.InitUnitStatuses[i].State = api.UnitState{}
+	}
+	for i := range newStatus.UnitStatuses {
+		newStatus.UnitStatuses[i].LastTerminationState = newStatus.UnitStatuses[i].State
+		newStatus.UnitStatuses[i].State = api.UnitState{}
+	}
+	pod.Status = newStatus
+}
+
 func remedyFailedPod(pod *api.Pod, podRegistry *registry.PodRegistry) {
 	if podShouldBeRestarted(pod) {
 		msg := fmt.Sprintf("Pod %s has failed to start %d times, retrying",
 			pod.Name, pod.Status.StartFailures)
 		klog.Warningf("%s", msg)
-		// reset most everything in the status
-		pod.Status = api.PodStatus{
-			Phase:         api.PodWaiting,
-			StartFailures: pod.Status.StartFailures,
-		}
+		cleanFailedPodStatus(pod)
 		podRegistry.UpdatePodStatus(pod, msg)
 	} else {
 		klog.Errorf("pod %s has failed to start %d times. Not trying again, pod has failed",
