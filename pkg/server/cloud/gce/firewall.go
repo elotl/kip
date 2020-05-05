@@ -202,7 +202,8 @@ func (c *gceClient) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string
 			cidrs = append(cidrs, cidr)
 		}
 	}
-	apiGroupName := util.CreateSecurityGroupName(c.controllerID, KipAPISGSuffix)
+
+	apiGroupName := CreateKipCellNetworkTag(c.controllerID)
 	apiGroup, err := c.EnsureSecurityGroup(apiGroupName, milpaPorts, cidrs)
 	if err != nil {
 		return util.WrapError(err, "could not setup Kip API cloud firewall rules")
