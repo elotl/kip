@@ -42,6 +42,11 @@ const (
 )
 
 var (
+	defaultStatusInterval              = 5
+	defaultCloudAPIHealthCheckInterval = 60
+	defaultCloudAPIHealthCheckTimeout  = 180
+	defaultStatusHealthCheckTimeout    = 90
+
 	defaultCPUCapacity    = resource.MustParse("20")
 	defaultMemoryCapacity = resource.MustParse("100Gi")
 	defaultPodCapacity    = resource.MustParse("20")
@@ -122,6 +127,22 @@ type CellsConfig struct {
 	ExtraCIDRs          []string                      `json:"extraCIDRs"`
 	ExtraSecurityGroups []string                      `json:"extraSecurityGroups"`
 	Nametag             string                        `json:"nametag"`
+	StatusInterval      int                           `json:"statusInterval"`
+	HealthCheck         HealthCheckConfig             `json:"healthcheck"`
+}
+
+type HealthCheckConfig struct {
+	Status   *StatusHealthCheck   `json:"status"`
+	CloudAPI *CloudAPIHealthCheck `json:"cloudAPI"`
+}
+
+type StatusHealthCheck struct {
+	HealthyTimeout int `json:"healthyTimeout"`
+}
+
+type CloudAPIHealthCheck struct {
+	Interval       int `json:"interval"`
+	HealthyTimeout int `json:"healthyTimeout"`
 }
 
 type ItzoConfig struct {
@@ -148,6 +169,7 @@ func serverConfigFileWithDefaults() *ServerConfigFile {
 			BootImageSpec:     cloud.BootImageSpec{},
 			StandbyCells:      []nodemanager.StandbyNodeSpec{},
 			DefaultVolumeSize: "5Gi",
+			StatusInterval:    defaultStatusInterval,
 		},
 		Kubelet: KubeletConfig{
 			CPU:    defaultCPUCapacity,
@@ -300,7 +322,32 @@ func ParseConfig(path string) (*ServerConfigFile, error) {
 		return nil, util.WrapError(err, "Error parsing provider.yaml")
 	}
 
+	setConfigDefaults(configFile)
 	return configFile, nil
+}
+
+// Sets default values for parameters that can only be set once the
+// ServerConfigFile has been parsed
+func setConfigDefaults(config *ServerConfigFile) {
+	if config.Cells.HealthCheck.Status == nil && config.Cells.HealthCheck.CloudAPI == nil {
+		config.Cells.HealthCheck = HealthCheckConfig{
+			Status: &StatusHealthCheck{
+				HealthyTimeout: defaultStatusHealthCheckTimeout,
+			},
+		}
+	}
+	if config.Cells.HealthCheck.Status != nil {
+		if config.Cells.HealthCheck.Status.HealthyTimeout == 0 {
+			config.Cells.HealthCheck.Status.HealthyTimeout = defaultStatusHealthCheckTimeout
+		}
+	} else if config.Cells.HealthCheck.CloudAPI != nil {
+		if config.Cells.HealthCheck.CloudAPI.HealthyTimeout == 0 {
+			config.Cells.HealthCheck.CloudAPI.HealthyTimeout = defaultCloudAPIHealthCheckTimeout
+		}
+		if config.Cells.HealthCheck.CloudAPI.Interval <= 0 {
+			config.Cells.HealthCheck.CloudAPI.Interval = defaultCloudAPIHealthCheckInterval
+		}
+	}
 }
 
 func ConfigureCloud(configFile *ServerConfigFile, controllerID, nametag string) (cloud.CloudClient, error) {
@@ -393,6 +440,25 @@ func validateServerConfigFile(cf *ServerConfigFile) field.ErrorList {
 
 	if cells.DefaultInstanceType == "" {
 		allErrs = append(allErrs, field.Required(fldPath.Child("defaultInstanceType"), ""))
+	}
+
+	if cells.StatusInterval < 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("statusInterval"), cells.StatusInterval, "cells.statusInterval must be >= 1"))
+	}
+
+	if cells.HealthCheck.Status != nil && cells.HealthCheck.CloudAPI != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("healthcheck"), "multiple healthchecks configured", "cannot set both status and cloudAPI healthchecks"))
+	}
+	if cells.HealthCheck.Status != nil && cells.HealthCheck.Status.HealthyTimeout <= 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("healthcheck.status.healthyTimeout"), cells.HealthCheck.Status.HealthyTimeout, "healthyTimeout must be positive"))
+	}
+	if cells.HealthCheck.CloudAPI != nil {
+		if cells.HealthCheck.CloudAPI.HealthyTimeout <= 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("healthcheck.cloudAPI.healthyTimeout"), cells.HealthCheck.CloudAPI.HealthyTimeout, "healthyTimeout must be positive"))
+		}
+		if cells.HealthCheck.CloudAPI.Interval < 10 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("healthcheck.cloudAPI.interval"), cells.HealthCheck.CloudAPI.Interval, "cloudAPI interval must be greater than or equal to 10 (seconds)"))
+		}
 	}
 
 	// Sadly we can't validate the default instance type until

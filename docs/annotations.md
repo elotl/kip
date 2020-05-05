@@ -48,6 +48,14 @@ annotations:
   pod.elotl.co/instance-profile: "arn:aws:iam::11123456789:instance-profile/kip-s3-full-access-role"
 ```
 
+**pod.elotl.co/healthcheck-healthy-timeout"**
+
+Use this annotation to change the healthcheck timeout for individual pods from the value specified in provider.yaml. If a pod doesn't have a healthy response to healthcheck probes for greater than healthcheck-timeout the pod will be terminated and restarted according to the pod's restartPolicy.  A healthcheck-timeout of zero means the pod will not be terminated due to failing healthchecks.
+
+```yaml
+annotations:
+  pod.elotl.co/healthcheck-healthy-timeout: "300"
+
 **pod.elotl.co/cloud-route**
 
 This annotation can be used to add one or more routes to the cloud subnet route table.  The value must be one or more CIDRs separated by whitespace, e.g. "10.20.30.40/24 192.168.1.0/28". Route to these CIDRs, using the instance as the next hop, will be added to the route table of the subnet.

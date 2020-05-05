@@ -18,6 +18,7 @@ export KUBECONFIG=$(mktemp)
 
 cleanup() {
     kubectl get pods -A || true
+    kubectl get nodes
     kubectl logs -n kube-system -l app=virtual-kubelet --tail=-1 || true
     kubectl delete pod nginx > /dev/null 2>&1 || true
     kubectl delete svc nginx > /dev/null 2>&1 || true

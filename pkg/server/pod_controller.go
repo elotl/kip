@@ -29,10 +29,10 @@ import (
 	"github.com/elotl/kip/pkg/nodeclient"
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/server/events"
+	"github.com/elotl/kip/pkg/server/healthcheck"
 	"github.com/elotl/kip/pkg/server/nodemanager"
 	"github.com/elotl/kip/pkg/server/registry"
 	"github.com/elotl/kip/pkg/util"
-	"github.com/elotl/kip/pkg/util/conmap"
 	"github.com/elotl/kip/pkg/util/stats"
 	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	"github.com/virtual-kubelet/node-cli/manager"
@@ -43,8 +43,11 @@ import (
 
 // make this configurable
 const (
-	statusReplyTimeout time.Duration = 90 * time.Second
-	podUnboundTooLong  time.Duration = 1 * time.Minute
+	statusReplyTimeout          = 90 * time.Second
+	podUnboundTooLong           = 1 * time.Minute
+	PodControllerCleanPeriod    = 20 * time.Second
+	PodControllerControlPeriod  = 5 * time.Second
+	PodControllerFullSyncPeriod = 31 * time.Second
 )
 
 var lastWrongPod map[string]string
@@ -69,10 +72,11 @@ type PodController struct {
 	nametag                string
 	controlLoopTimer       stats.LoopTimer
 	cleanTimer             stats.LoopTimer
-	lastStatusReply        *conmap.StringTimeTime
 	kubernetesNodeName     string
 	networkAgentKubeconfig *clientcmdapi.Config
 	dnsConfigurer          *dns.Configurer
+	statusInterval         time.Duration
+	healthChecker          *healthcheck.HealthCheckController
 }
 
 type FullPodStatus struct {
@@ -89,6 +93,7 @@ type FullPodStatus struct {
 func (c *PodController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
 	c.registerEventHandlers()
 	c.failDispatchingPods()
+	c.healthChecker.Start()
 	go c.ControlLoop(quit, wg)
 }
 
@@ -149,11 +154,21 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 
+	// TODO: under high load, some functions might take seconds to
+	// run.  When that happens, certain sections below might not get
+	// run every X seconds.  It might be better to use timers instead
+	// of tickers and reset the timer after every successful run of
+	// its case statement. Tickers are much more convenient to use
+	// than timers so that change doesn't have to happen in every
+	// controller, but the loop below has enough cases the likelyhood
+	// of starving a case statement under high load is pretty good.
 	klog.V(2).Info("starting pod controller")
-	ticker := time.NewTicker(5 * time.Second)
-	cleanTicker := time.NewTicker(20 * time.Second)
-	fullSyncTicker := time.NewTicker(31 * time.Second)
-	defer ticker.Stop()
+	controlTicker := time.NewTicker(PodControllerControlPeriod)
+	statusTicker := time.NewTicker(c.statusInterval)
+	cleanTicker := time.NewTicker(PodControllerCleanPeriod)
+	fullSyncTicker := time.NewTicker(PodControllerFullSyncPeriod)
+	defer controlTicker.Stop()
+	defer statusTicker.Stop()
 	defer cleanTicker.Stop()
 	defer fullSyncTicker.Stop()
 
@@ -166,25 +181,41 @@ func (c *PodController) ControlLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 		default:
 		}
 		select {
-		case <-ticker.C:
+		case <-controlTicker.C:
 			// todo, see if we can detect ourselves running over time here
 			// that would mean that the time between running this section
 			// exceeds 2x the c.config.Interval
 			c.controlLoopTimer.StartLoop()
-			c.checkRunningPodStatus()
 			c.ControlPods()
+			c.terminateHealthCheckFailedPods()
 			c.controlLoopTimer.EndLoop()
+		case <-statusTicker.C:
+			c.checkRunningPodStatus()
 		case <-fullSyncTicker.C:
 			c.SyncRunningPods()
 		case <-cleanTicker.C:
 			c.cleanTimer.StartLoop()
 			c.checkClaimedNodes()
 			c.checkRunningPods()
-			c.pruneLastStatusReplies()
-			c.handleReplyTimeouts()
 			c.cleanTimer.EndLoop()
 		case <-quit:
 			klog.V(2).Info("Stopping PodController")
+			return
+		}
+	}
+}
+
+// If this isn't called quick enough, the terminate chan can be backed
+// up with multiple entries for a pod. For now, calling markFailedPod
+// multiple times isn't a very bad thing so we won't deduplicate.
+func (c *PodController) terminateHealthCheckFailedPods() {
+	for {
+		select {
+		case pod := <-c.healthChecker.TerminatePodsChan():
+			msg := fmt.Sprintf("pod %s failed health checks", pod.Name)
+			klog.Warningf(msg)
+			c.markFailedPod(pod, false, msg)
+		default:
 			return
 		}
 	}
@@ -440,6 +471,13 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		return
 	}
 
+	// Make sure we clear out the last status reply from this pod in
+	// case it was previously running. If it took a long time to
+	// re-dispatch the pod, there could be a race between setting the
+	// pod to running, a healthcheck and updating the pod's
+	// lastStatusTime.
+	c.healthChecker.ClearLastStatusTime(pod.Name)
+
 	err = setPodRunning(pod, node.Name, c.podRegistry, c.events)
 	if err != nil {
 		msg := fmt.Sprintf("Error updating pod status to running: %v", err)
@@ -572,72 +610,6 @@ func (c *PodController) handlePodStatusReply(reply FullPodStatus) {
 	}
 }
 
-// Remove pods from the map that have been terminated.
-func (c *PodController) pruneLastStatusReplies() {
-	runningPods := make(map[string]bool)
-	_, err := c.podRegistry.ListPods(func(p *api.Pod) bool {
-		if p.Status.Phase == api.PodRunning {
-			runningPods[p.Name] = true
-		}
-		return false
-	})
-	if err != nil {
-		klog.Errorf("Error getting list of pods from registry")
-		return
-	}
-	for _, replyItem := range c.lastStatusReply.Items() {
-		replyPodName := replyItem.Key
-		_, exists := runningPods[replyPodName]
-		if !exists {
-			c.lastStatusReply.Delete(replyPodName)
-		}
-	}
-}
-
-// Handle pods that failed to respond to status requests.
-func (c *PodController) handleReplyTimeouts() {
-	podList, err := c.podRegistry.ListPods(func(p *api.Pod) bool {
-		return p.Status.Phase == api.PodRunning
-	})
-	if err != nil {
-		klog.Errorf("Error getting list of pods from registry")
-		return
-	}
-	now := time.Now().UTC()
-	for _, pod := range podList.Items {
-		last, exists := c.lastStatusReply.GetOK(pod.Name)
-		if !exists {
-			c.lastStatusReply.Set(pod.Name, now)
-			continue
-		}
-		if now.Sub(last) < statusReplyTimeout {
-			continue
-		}
-		go c.maybeFailUnresponsivePod(pod)
-	}
-}
-
-func (c *PodController) maybeFailUnresponsivePod(pod *api.Pod) {
-	node, err := c.nodeLister.GetNode(pod.Status.BoundNodeName)
-	if err != nil {
-		msg := fmt.Sprintf("No node found for pod %s", pod.Name)
-		klog.Warningf(msg)
-		c.markFailedPod(pod, false, msg)
-		return
-	}
-	client := c.nodeClientFactory.GetClient(node.Status.Addresses)
-	_, err = client.GetStatus()
-	if err != nil {
-		msg := fmt.Sprintf("No status reply from pod %s in %ds failing pod",
-			pod.Name, int(statusReplyTimeout.Seconds()))
-		klog.Warningf(msg)
-		c.markFailedPod(pod, false, msg)
-	} else {
-		klog.Warningf("Last chance healthcheck for pod %s saved the pod from failure. Pod status is possibly out of date", pod.Name)
-		c.lastStatusReply.Set(pod.Name, time.Now().UTC())
-	}
-}
-
 // Periodically we should go through and do a consistency check of the
 // nodes we have claimed.  We look to see if we are really using them
 // claimed but unused nodes can come from a few places, most likely a
@@ -694,8 +666,8 @@ func (c *PodController) checkClaimedNodes() {
 	lastWrongPod = wrongPod
 }
 
-// make sure that all running pods are
-// actually running on the nodes they say they're running on
+// make sure that all running pods are actually running on the nodes
+// they say they're running on
 func (c *PodController) checkRunningPods() {
 	// get claimed nodes, store in nodeName -> podName
 	// go through running pods, get BoundNodeName, compare to nodeToPod
@@ -853,7 +825,7 @@ func (c *PodController) queryPodStatus(pod *api.Pod) FullPodStatus {
 		}
 		return reply
 	}
-	c.lastStatusReply.Set(pod.Name, time.Now().UTC())
+	c.healthChecker.SetLastStatusTime(pod.Name)
 	replyMap := make(map[string]api.UnitStatus)
 	for _, s := range replyStatuses.UnitStatuses {
 		replyMap[s.Name] = s

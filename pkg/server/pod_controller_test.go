@@ -27,9 +27,9 @@ import (
 	"github.com/elotl/kip/pkg/nodeclient"
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/server/events"
+	"github.com/elotl/kip/pkg/server/healthcheck"
 	"github.com/elotl/kip/pkg/server/nodemanager"
 	"github.com/elotl/kip/pkg/server/registry"
-	"github.com/elotl/kip/pkg/util/conmap"
 	"github.com/elotl/kip/pkg/util/k8s/eventrecorder"
 	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	"github.com/stretchr/testify/assert"
@@ -43,6 +43,13 @@ func createPodController(c nodeclient.ItzoClientFactoryer) (*PodController, func
 	nodeRegistry, closer3 := registry.SetupTestNodeRegistry()
 	closer := func() { closer1(); closer2(); closer3() }
 	dispenser := nodemanager.NewNodeDispenser()
+	healthChecker := healthcheck.NewStatusHealthChecker(
+		podRegistry,
+		nodeRegistry,
+		c,
+		10*time.Second,
+		100*time.Second,
+	)
 	controller := &PodController{
 		podRegistry:       podRegistry,
 		logRegistry:       logRegistry,
@@ -52,7 +59,7 @@ func createPodController(c nodeclient.ItzoClientFactoryer) (*PodController, func
 		nodeClientFactory: c,
 		events:            events.NewEventSystem(quit, wg),
 		cloudClient:       cloud.NewMockClient(),
-		lastStatusReply:   conmap.NewStringTimeTime(),
+		healthChecker:     healthChecker,
 	}
 	controller.dnsConfigurer = dns.NewConfigurer(
 		eventrecorder.NewLoggingEventRecorder(5),
@@ -341,7 +348,7 @@ func TestCheckPodStatusRunning(t *testing.T) {
 	reply := ctl.queryPodStatus(p)
 	assert.Nil(t, reply.Error)
 	assert.Equal(t, p.Name, reply.Name)
-	_, exists := ctl.lastStatusReply.GetOK(p.Name)
+	_, exists := ctl.healthChecker.LastStatusTime(p.Name)
 	assert.True(t, exists)
 }
 
@@ -402,66 +409,8 @@ func TestCheckPodStatusError(t *testing.T) {
 	assert.Nil(t, err)
 	reply := ctl.queryPodStatus(p)
 	assert.NotNil(t, reply.Error)
-	_, exists := ctl.lastStatusReply.GetOK(p.Name)
+	_, exists := ctl.healthChecker.LastStatusTime(p.Name)
 	assert.False(t, exists)
-}
-
-func TestPruneLastStatusReplies(t *testing.T) {
-	t.Parallel()
-	client := nodeclient.NewMockItzoClientFactory()
-	client.Status = FailStatus
-	ctl, closer := createPodController(client)
-	defer closer()
-	p1 := api.GetFakePod()
-	p1.Name = "pod1"
-	p1.Spec.Phase = api.PodRunning
-	p1.Status.Phase = api.PodRunning
-	p1, err := ctl.podRegistry.CreatePod(p1)
-	assert.Nil(t, err)
-	p2 := api.GetFakePod()
-	p2.Name = "pod2"
-	p2.Spec.Phase = api.PodTerminated
-	p2.Status.Phase = api.PodTerminated
-	p2, err = ctl.podRegistry.CreatePod(p2)
-	assert.Nil(t, err)
-	ctl.lastStatusReply.Set(p1.Name, time.Now().UTC())
-	ctl.lastStatusReply.Set(p2.Name, time.Now().UTC())
-	ctl.pruneLastStatusReplies()
-	_, exists := ctl.lastStatusReply.GetOK(p1.Name)
-	assert.True(t, exists)
-	_, exists = ctl.lastStatusReply.GetOK(p2.Name)
-	assert.False(t, exists)
-}
-
-func TestHandleReplyTimeouts(t *testing.T) {
-	t.Parallel()
-	client := nodeclient.NewMockItzoClientFactory()
-	client.Status = FailStatus
-	ctl, closer := createPodController(client)
-	defer closer()
-	p1 := api.GetFakePod()
-	p1.Name = "pod1"
-	p1.Spec.Phase = api.PodRunning
-	p1.Status.Phase = api.PodRunning
-	p1, err := ctl.podRegistry.CreatePod(p1)
-	assert.Nil(t, err)
-	p2 := api.GetFakePod()
-	p2.Name = "pod2"
-	p2.Spec.Phase = api.PodTerminated
-	p2.Status.Phase = api.PodTerminated
-	p2, err = ctl.podRegistry.CreatePod(p2)
-	assert.Nil(t, err)
-	ctl.lastStatusReply.Set(p1.Name, time.Now().UTC().Add(-2*statusReplyTimeout))
-	ctl.lastStatusReply.Set(p2.Name, time.Now().UTC().Add(-2*statusReplyTimeout))
-	ctl.handleReplyTimeouts()
-	pod, err := ctl.podRegistry.GetPod(p1.Name)
-	assert.Nil(t, err)
-	//assert.Equal(t, api.PodFailed, pod.Status.Phase)
-	waitForPodInState(t, ctl, pod.Name, api.PodFailed)
-	pod, err = ctl.podRegistry.GetPod(p2.Name)
-	assert.Nil(t, err)
-	//assert.Equal(t, api.PodTerminated, pod.Status.Phase)
-	waitForPodInState(t, ctl, pod.Name, api.PodTerminated)
 }
 
 func TestQueryPodStatus(t *testing.T) {
@@ -520,29 +469,6 @@ func bindPodToANode(t *testing.T, pod *api.Pod, ctl *PodController) *api.Node {
 	_, err = ctl.podRegistry.Update(pod)
 	assert.NoError(t, err)
 	return node
-}
-
-func TestPCMaybeFailUnresponsivePod(t *testing.T) {
-	client := nodeclient.NewMockItzoClientFactory()
-	ctl, closer := createPodController(client)
-	defer closer()
-	pod := api.GetFakePod()
-	pod.Status.Phase = api.PodRunning
-	pod, err := ctl.podRegistry.CreatePod(pod)
-	assert.NoError(t, err)
-	bindPodToANode(t, pod, ctl)
-	ctl.maybeFailUnresponsivePod(pod)
-	_, exists := ctl.lastStatusReply.GetOK(pod.Name)
-	assert.True(t, exists)
-	// now fail the status check
-	ctl.lastStatusReply.Delete(pod.Name)
-	client.Status = FailStatus
-	ctl.maybeFailUnresponsivePod(pod)
-	pod, err = ctl.podRegistry.GetPod(pod.Name)
-	assert.NoError(t, err)
-	assert.Equal(t, api.PodFailed, pod.Status.Phase)
-	_, exists = ctl.lastStatusReply.GetOK(pod.Name)
-	assert.False(t, exists)
 }
 
 func TestSetPodDispatchingParams(t *testing.T) {
