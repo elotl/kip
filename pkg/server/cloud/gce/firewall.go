@@ -293,8 +293,11 @@ func (c *gceClient) AttachSecurityGroups(node *api.Node, groups []string) error 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	op, err := c.service.Instances.SetTags(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
+	if err != nil {
+		return util.WrapError(err, "Error attaching instance tags %s", err)
+	}
 	if err := c.waitOnOperation(op.Name, c.getGlobalOperation); err != nil {
 		return err
 	}
-	return err
+	return nil
 }
