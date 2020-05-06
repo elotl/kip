@@ -428,5 +428,6 @@ func (c *gceClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
 }
 
 func (c *gceClient) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
-	return fmt.Errorf("In GCE Instances must be stopped to assign service account")
+	klog.Errorf("In GCE Instances must be stopped to assign service account")
+	return nil
 }
