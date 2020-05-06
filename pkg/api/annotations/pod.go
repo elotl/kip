@@ -53,6 +53,14 @@ const PodTaskExecutionRole = "pod.elotl.co/task-execution-role"
 // in the task assume this role.
 const PodTaskRole = "pod.elotl.co/task-role"
 
+// The PodHealthcheckHealthyTimeout annotation is used to customize the
+// healthcheck timeout for pods. If a pod doesn't have a healthy
+// response to healthcheck probes for greater than healthcheck-timeout
+// the pod will be terminated and restarted according to the pod's
+// restartPolicy.  A healthcheck-timeout equal to zero means the pod
+// will not be terminated due to failing healthchecks.
+const PodHealthcheckHealthyTimeout = "pod.elotl.co/healthcheck-healthy-timeout"
+
 // PodCloudRoute can be used to add one or more routes to the cloud subnet
 // route table.  The value must be one or more CIDRs separated by whitespace,
 // e.g. "10.20.30.40/24 192.168.1.0/28". Route to these CIDRs, using the

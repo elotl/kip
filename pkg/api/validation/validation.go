@@ -177,6 +177,11 @@ func ValidatePodAnnotations(annotations map[string]string, fldPath *field.Path) 
 					allErrs = append(allErrs, field.Invalid(fldPath.Child(k), v, "Could not parse annotation value as CIDR"))
 				}
 			}
+		case apiannotations.PodHealthcheckHealthyTimeout:
+			_, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child(k), v, "Could not parse annotation value as int or float"))
+			}
 		}
 	}
 	return allErrs
@@ -219,6 +224,7 @@ func ValidateObjectMeta(meta *api.ObjectMeta, requiresNamespace bool, nameFn Val
 		}
 	}
 	allErrs = append(allErrs, ValidateLabels(meta.Labels, fldPath.Child("labels"))...)
+	allErrs = append(allErrs, ValidateAnnotations(meta.Annotations, fldPath.Child("annotations"))...)
 	return allErrs
 }
 
@@ -274,6 +280,7 @@ func ValidatePod(pod *api.Pod) field.ErrorList {
 	allErrs := ValidateObjectMeta(&pod.ObjectMeta, true, ValidatePodName, fldPath)
 	allErrs = append(allErrs, ValidatePodAnnotations(pod.Annotations, field.NewPath("metadata.annotations"))...)
 	allErrs = append(allErrs, ValidatePodSpec(&pod.Spec, field.NewPath("spec"))...)
+	allErrs = append(allErrs, ValidatePodAnnotations(pod.Annotations, field.NewPath("metadata.annotations"))...)
 	return allErrs
 }
 
