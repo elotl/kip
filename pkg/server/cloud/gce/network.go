@@ -46,7 +46,8 @@ func (c *gceClient) ConnectWithPublicIPs() bool {
 }
 
 func (c *gceClient) getVPCRegionCIDRs(vpcName string) ([]string, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	resp, err := c.service.Networks.Get(c.projectID, vpcName).Context(ctx).Do()
 	if err != nil {
 		return nil, util.WrapError(err, "error querying VPC %s in GCP", vpcName)
@@ -132,7 +133,9 @@ func (c *gceClient) getRegionSubnets() ([]*compute.Subnetwork, error) {
 		}
 		return nil
 	}
-	if err := lister.Pages(context.Background(), f); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	if err := lister.Pages(ctx, f); err != nil {
 		return nil, err
 	}
 	return subnets, nil
@@ -169,7 +172,8 @@ func (c *gceClient) autodetectSubnet() (string, string, error) {
 }
 
 func (c *gceClient) getSubnetCIDR(subnetName string) (string, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	resp, err := c.service.Subnetworks.Get(c.projectID, c.region, subnetName).Context(ctx).Do()
 	if err != nil {
 		return "", util.WrapError(err, "Error looking up subnet %s", subnetName)
@@ -196,17 +200,17 @@ func (c *gceClient) GetAvailabilityZones() ([]string, error) {
 }
 
 func (c *gceClient) AddRoute(destinationCIDR, instanceID string) error {
-	klog.Warningln("AddRoute not implemented for GCE")
+	// TODO
 	return nil
 }
 
 func (c *gceClient) RemoveRoute(destinationCIDR, instanceID string) error {
-	klog.Warningln("RemoveRoute not implemented for GCE")
+	// TODO
 	return nil
 }
 
 func (c *gceClient) ModifySourceDestinationCheck(instanceID string, isEnabled bool) error {
-	klog.Warningln("ModifySourceDestinationCheck not implemented for GCE")
+	// TODO
 	return nil
 }
 
@@ -231,7 +235,8 @@ func (c *gceClient) GetVPCCIDRs() []string {
 }
 
 func (c *gceClient) IsAvailable() (bool, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	resp, err := c.service.Zones.Get(c.projectID, c.zone).Context(ctx).Do()
 	if err != nil {
 		return true, err

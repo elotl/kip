@@ -31,11 +31,6 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-// todo: is this too long?
-const (
-	KipAPISGSuffix = "CellsFWRule"
-)
-
 func (c *gceClient) SetBootSecurityGroupIDs(ids []string) {
 	c.bootSecurityGroupIDs = ids
 }
@@ -214,7 +209,8 @@ func (c *gceClient) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string
 }
 
 func (c *gceClient) FindSecurityGroup(sgName string) (*cloud.SecurityGroup, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	resp, err := c.service.Firewalls.Get(c.projectID, sgName).Context(ctx).Do()
 	if err != nil {
 		if isNotFoundError(err) {
@@ -246,8 +242,10 @@ func portsToAllowedRules(ports []cloud.InstancePort) []*compute.FirewallAllowed 
 }
 
 func (c *gceClient) UpdateSecurityGroup(cloudSG cloud.SecurityGroup, ports []cloud.InstancePort, sourceRanges []string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
 	rule := c.toFirewallRule(cloudSG.Name, ports, sourceRanges)
-	ctx := context.Background()
 	resp, err := c.service.Firewalls.Patch(c.projectID, cloudSG.Name, rule).Context(ctx).Do()
 	if err != nil {
 		return err
@@ -259,10 +257,10 @@ func (c *gceClient) UpdateSecurityGroup(cloudSG cloud.SecurityGroup, ports []clo
 	return nil
 }
 
-// Todo: see if we can call this multiple times
 func (c *gceClient) CreateSecurityGroup(sgName string, ports []cloud.InstancePort, sourceRanges []string) (*cloud.SecurityGroup, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	rule := c.toFirewallRule(sgName, ports, sourceRanges)
-	ctx := context.Background()
 	_, err := c.service.Firewalls.Insert(c.projectID, rule).Context(ctx).Do()
 	if err != nil {
 		return nil, err
@@ -287,7 +285,8 @@ func (c *gceClient) AttachSecurityGroups(node *api.Node, groups []string) error 
 		Items:       allTags,
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	_, err = c.service.Instances.SetTags(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
 	return err
 }

@@ -369,7 +369,9 @@ func (c *gceClient) ListInstances() ([]cloud.CloudInstance, error) {
 		}
 		return nil
 	}
-	if err := listCall.Pages(context.Background(), f); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	if err := listCall.Pages(ctx, f); err != nil {
 		// TODO add error checking for googleapi using helpers in util
 		return nil, err
 	}
@@ -395,7 +397,8 @@ func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error 
 		Labels:           mergedLabels,
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	_, err = c.service.Instances.SetLabels(c.projectID, c.zone, iid, &labelRequest).Context(ctx).Do()
 	if err != nil {
 		return util.WrapError(err, "Error attaching instance labels %s", err)
@@ -412,7 +415,8 @@ func (c *gceClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("image is a required boot image value. Please specify cells.bootImageSpec.image in provider.yaml")
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	resp, err := c.service.Images.Get(project, image).Context(ctx).Do()
 	if err != nil {
 		return "", util.WrapError(err, "Error looking up boot image %s/%s", project, image)
@@ -431,7 +435,8 @@ func (c *gceClient) AssignInstanceProfile(node *api.Node, instanceProfile string
 		Email:  instanceProfile,
 		Scopes: scopes,
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	resp, err := c.service.Instances.SetServiceAccount(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
 	if err != nil {
 		return util.WrapError(err, "Error attaching profile to instance %s", node.Status.InstanceID)

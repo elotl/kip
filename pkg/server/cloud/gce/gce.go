@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
 	"cloud.google.com/go/compute/metadata"
 	"github.com/elotl/kip/pkg/api"
@@ -29,11 +30,14 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-const controllerLabelKey = "kip-controller-id"
-const nameLabelKey = "name"
-const namespaceLabelKey = "kip-namespace"
-const nametagLabelKey = "kip-nametag"
-const podNameLabelKey = "kip-pod-name"
+const (
+	defaultTimeout     = 20 * time.Second
+	controllerLabelKey = "kip-controller-id"
+	nameLabelKey       = "name"
+	namespaceLabelKey  = "kip-namespace"
+	nametagLabelKey    = "kip-nametag"
+	podNameLabelKey    = "kip-pod-name"
+)
 
 func TODO() error {
 	msg := "TODO: Not implemented yet!"
@@ -135,7 +139,8 @@ func NewGCEClient(controllerID, nametag, projectID string, opts ...ClientOption)
 // Try to get credentials from environment variables or from
 // the environment the machine is running in
 func serviceFromEnvironment() (*compute.Service, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	service, err := compute.NewService(ctx)
 	return service, err
 }

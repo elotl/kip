@@ -63,7 +63,8 @@ func (w WithCredentialsFile) Apply(c *gceClient) error {
 	// 	}
 	// }
 	var err error
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	c.service, err = compute.NewService(ctx, option.WithCredentialsFile(string(w)))
 	return err
 }
@@ -101,7 +102,8 @@ func (w withCredentials) Apply(c *gceClient) error {
 		return err
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	c.service, err = compute.NewService(ctx, option.WithCredentialsJSON(b))
 	return err
 }
