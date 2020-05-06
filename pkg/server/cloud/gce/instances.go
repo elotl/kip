@@ -54,6 +54,48 @@ func convertLabelKeys(labels map[string]string) map[string]string {
 	return convertedLabels
 }
 
+func (c *gceClient) getZoneOperation(opName string) (*compute.Operation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	resp, err := c.service.ZoneOperations.Get(c.projectID, c.zone, opName).Context(ctx).Do()
+	if err != nil {
+		return nil, util.WrapError(err, "Error could not retrieve zone operation")
+	}
+	if resp == nil {
+		return nil, nilResponseError("ZoneOperations.Get")
+	}
+	return resp, nil
+}
+
+// In GCE operations will immediately succeed from a call, however that does not
+// mean they have completed execution errorless. Here we wait for an operation
+// to finish so we can check handle errors as we find necessary
+func (c *gceClient) waitOnZoneOperation(opName string) error {
+	for {
+		op, err := c.getZoneOperation(opName)
+		if err != nil {
+			return err
+		}
+		if op.Status != statusOperationDone {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		// check if the operation is not nil
+		// if not nil it will have a *compute.OperationError
+		if op.Error != nil {
+			klog.Errorf("Operation %s was not successful", opName)
+			for _, e := range op.Error.Errors {
+				klog.Errorf(
+					"Error running operation, status: %d error_code: %s message: %s",
+					op.HttpErrorStatusCode, e.Code, e.Message)
+			}
+			// TODO figure out how we should handle operation errors
+		}
+		break
+	}
+	return nil
+}
+
 func (c *gceClient) getInstanceSpec(instanceID string) (*compute.Instance, error) {
 	instance, err := c.service.Instances.Get(c.projectID, c.zone, instanceID).Do()
 	if err != nil {
@@ -85,8 +127,7 @@ func (c *gceClient) getInstanceLabels(nodeName string) map[string]string {
 }
 
 func (c *gceClient) getAttachedDiskSpec(isBoot bool, size int64, name, typeURL, imageURL string) []*compute.AttachedDisk {
-	var minimumDiskSize int64 = 10
-	if size < 10 {
+	if size < minimumDiskSize {
 		klog.V(2).Infof("GCE does not allow disk smaller than 10GiB. requested size: %dGiB, using default: 10GiB", size)
 		size = minimumDiskSize
 	}
@@ -230,7 +271,7 @@ func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 		}
 
 		klog.V(2).Infof("status: %s", status)
-		if status == "RUNNING" {
+		if status == statusInstanceRunning {
 			break
 		}
 		time.Sleep(10 * time.Second)

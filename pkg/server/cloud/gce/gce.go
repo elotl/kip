@@ -31,12 +31,15 @@ import (
 )
 
 const (
-	defaultTimeout     = 20 * time.Second
-	controllerLabelKey = "kip-controller-id"
-	nameLabelKey       = "name"
-	namespaceLabelKey  = "kip-namespace"
-	nametagLabelKey    = "kip-nametag"
-	podNameLabelKey    = "kip-pod-name"
+	defaultTimeout              = 20 * time.Second
+	controllerLabelKey          = "kip-controller-id"
+	nameLabelKey                = "name"
+	namespaceLabelKey           = "kip-namespace"
+	minimumDiskSize       int64 = 10
+	nametagLabelKey             = "kip-nametag"
+	podNameLabelKey             = "kip-pod-name"
+	statusOperationDone         = "DONE"
+	statusInstanceRunning       = "RUNNING"
 )
 
 func TODO() error {
