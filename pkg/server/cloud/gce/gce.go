@@ -185,6 +185,32 @@ func nilResponseError(call string) error {
 	return fmt.Errorf("Nil response from GCE API %s RPC", call)
 }
 
+func (c *gceClient) getGlobalOperation(opName string) (*compute.Operation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	resp, err := c.service.GlobalOperations.Get(c.projectID, opName).Context(ctx).Do()
+	if err != nil {
+		return nil, util.WrapError(err, "Error could not retrieve global operation")
+	}
+	if resp == nil {
+		return nil, nilResponseError("GlobalOperations.Get")
+	}
+	return resp, nil
+}
+
+func (c *gceClient) getRegionOperation(opName string) (*compute.Operation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	resp, err := c.service.RegionOperations.Get(c.projectID, c.region, opName).Context(ctx).Do()
+	if err != nil {
+		return nil, util.WrapError(err, "Error could not retrieve region operation")
+	}
+	if resp == nil {
+		return nil, nilResponseError("RegionOperations.Get")
+	}
+	return resp, nil
+}
+
 func (c *gceClient) getZoneOperation(opName string) (*compute.Operation, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
@@ -201,9 +227,9 @@ func (c *gceClient) getZoneOperation(opName string) (*compute.Operation, error) 
 // In GCE operations will immediately succeed from a call, however that does not
 // mean they have completed execution errorless. Here we wait for an operation
 // to finish so we can check handle errors as we find necessary
-func (c *gceClient) waitOnZoneOperation(opName string) error {
+func (c *gceClient) waitOnOperation(opName string, getOperation func(string) (*compute.Operation, error)) error {
 	for {
-		op, err := c.getZoneOperation(opName)
+		op, err := getOperation(opName)
 		if err != nil {
 			return err
 		}

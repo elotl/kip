@@ -253,7 +253,7 @@ func (c *gceClient) UpdateSecurityGroup(cloudSG cloud.SecurityGroup, ports []clo
 	if resp == nil {
 		return nilResponseError("Firewalls.Patch")
 	}
-	if err := c.waitOnZoneOperation(resp.Name); err != nil {
+	if err := c.waitOnOperation(resp.Name, c.getGlobalOperation); err != nil {
 		return err
 	}
 	return nil
@@ -267,7 +267,7 @@ func (c *gceClient) CreateSecurityGroup(sgName string, ports []cloud.InstancePor
 	if err != nil {
 		return nil, err
 	}
-	if err := c.waitOnZoneOperation(op.Name); err != nil {
+	if err := c.waitOnOperation(op.Name, c.getGlobalOperation); err != nil {
 		return nil, err
 	}
 	sg := cloud.NewSecurityGroup(sgName, sgName, ports, sourceRanges)
@@ -293,7 +293,7 @@ func (c *gceClient) AttachSecurityGroups(node *api.Node, groups []string) error 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	op, err := c.service.Instances.SetTags(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
-	if err := c.waitOnZoneOperation(op.Name); err != nil {
+	if err := c.waitOnOperation(op.Name, c.getGlobalOperation); err != nil {
 		return err
 	}
 	return err

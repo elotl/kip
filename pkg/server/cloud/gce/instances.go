@@ -193,7 +193,7 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
 	}
-	if err := c.waitOnZoneOperation(op.Name); err != nil {
+	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
 		return nil, err
 	}
 	startResult := &cloud.StartNodeResult{
@@ -216,7 +216,7 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
 	}
-	if err := c.waitOnZoneOperation(op.Name); err != nil {
+	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
 		return nil, err
 	}
 	startResult := &cloud.StartNodeResult{
@@ -334,7 +334,7 @@ func (c *gceClient) ResizeVolume(node *api.Node, size int64) (error, bool) {
 	if err != nil {
 		return util.WrapError(err, "Failed to resize volume"), false
 	}
-	if err := c.waitOnZoneOperation(op.Name); err != nil {
+	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
 		return err, false
 	}
 	return nil, true
@@ -413,7 +413,7 @@ func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error 
 	if err != nil {
 		return util.WrapError(err, "Error attaching instance labels %s", err)
 	}
-	if err := c.waitOnZoneOperation(op.Name); err != nil {
+	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
 		return err
 	}
 	return nil
