@@ -188,7 +188,7 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 	}
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		c.bootSecurityGroupIDs, c.subnetName)
-	op, err = c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
+	op, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
 	if err != nil {
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
@@ -211,7 +211,7 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 	}
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		c.bootSecurityGroupIDs, c.subnetName)
-	_, err = c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
+	op, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
 	if err != nil {
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
@@ -409,7 +409,7 @@ func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error 
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	op, err = c.service.Instances.SetLabels(c.projectID, c.zone, iid, &labelRequest).Context(ctx).Do()
+	op, err := c.service.Instances.SetLabels(c.projectID, c.zone, iid, &labelRequest).Context(ctx).Do()
 	if err != nil {
 		return util.WrapError(err, "Error attaching instance labels %s", err)
 	}

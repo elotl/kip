@@ -268,7 +268,7 @@ func (c *gceClient) CreateSecurityGroup(sgName string, ports []cloud.InstancePor
 		return nil, err
 	}
 	if err := c.waitOnZoneOperation(op.Name); err != nil {
-		return err
+		return nil, err
 	}
 	sg := cloud.NewSecurityGroup(sgName, sgName, ports, sourceRanges)
 	return &sg, nil
@@ -292,7 +292,7 @@ func (c *gceClient) AttachSecurityGroups(node *api.Node, groups []string) error 
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	op, err = c.service.Instances.SetTags(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
+	op, err := c.service.Instances.SetTags(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
 	if err := c.waitOnZoneOperation(op.Name); err != nil {
 		return err
 	}

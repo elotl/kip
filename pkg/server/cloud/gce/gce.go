@@ -28,6 +28,7 @@ import (
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
 	"google.golang.org/api/compute/v1"
+	"k8s.io/klog"
 )
 
 const (
