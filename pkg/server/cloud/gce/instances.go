@@ -97,7 +97,9 @@ func (c *gceClient) waitOnZoneOperation(opName string) error {
 }
 
 func (c *gceClient) getInstanceSpec(instanceID string) (*compute.Instance, error) {
-	instance, err := c.service.Instances.Get(c.projectID, c.zone, instanceID).Do()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	instance, err := c.service.Instances.Get(c.projectID, c.zone, instanceID).Context(ctx).Do()
 	if err != nil {
 		// TODO error handling for googleapi errors
 		klog.Errorf("error retrieving instance specification: %v", err)
@@ -228,10 +230,13 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 	}
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		c.bootSecurityGroupIDs, c.subnetName)
-	_, err = c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
+	op, err = c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
 	if err != nil {
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
+	}
+	if err := c.waitOnZoneOperation(op.Name); err != nil {
+		return nil, err
 	}
 	startResult := &cloud.StartNodeResult{
 		InstanceID:       spec.Name,
@@ -253,9 +258,11 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
 	}
-	cloudID := c.nametag
+	if err := c.waitOnZoneOperation(op.Name); err != nil {
+		return nil, err
+	}
 	startResult := &cloud.StartNodeResult{
-		InstanceID:       cloudID,
+		InstanceID:       spec.Name,
 		AvailabilityZone: c.zone,
 	}
 	return startResult, nil
@@ -363,11 +370,15 @@ func (c *gceClient) ResizeVolume(node *api.Node, size int64) (error, bool) {
 	// TODO proper way to retrieve diskname
 	diskName := c.nametag + "-boot-volume"
 	resizeRequest := compute.DisksResizeRequest{SizeGb: size}
-	_, err := c.service.Disks.Resize(c.projectID, c.zone, diskName, &resizeRequest).Do()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	op, err := c.service.Disks.Resize(c.projectID, c.zone, diskName, &resizeRequest).Context(ctx).Do()
 	if err != nil {
 		return util.WrapError(err, "Failed to resize volume"), false
 	}
-
+	if err := c.waitOnZoneOperation(op.Name); err != nil {
+		return err, false
+	}
 	return nil, true
 }
 
@@ -440,9 +451,12 @@ func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error 
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	_, err = c.service.Instances.SetLabels(c.projectID, c.zone, iid, &labelRequest).Context(ctx).Do()
+	op, err = c.service.Instances.SetLabels(c.projectID, c.zone, iid, &labelRequest).Context(ctx).Do()
 	if err != nil {
 		return util.WrapError(err, "Error attaching instance labels %s", err)
+	}
+	if err := c.waitOnZoneOperation(op.Name); err != nil {
+		return err
 	}
 	return nil
 }
