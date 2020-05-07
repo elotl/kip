@@ -7,18 +7,6 @@ spec:
   template:
     spec:
       containers:
-      - command:
-        - /virtual-kubelet
-        - --provider
-        - kip
-        - --provider-config
-        - /etc/virtual-kubelet/provider.yaml
-        - --network-agent-secret
-        - kube-system/vk-network-agent
-        - --disable-taint
-        - --klog.logtostderr
-        - --klog.v=2
-        image: elotl/virtual-kubelet:dev
         name: virtual-kubelet
         envFrom:
         - secretRef:
