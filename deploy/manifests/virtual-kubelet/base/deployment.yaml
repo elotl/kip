@@ -50,7 +50,7 @@ spec:
         - --disable-taint
         - --klog.logtostderr
         - --klog.v=2
-        image: elotl/virtual-kubelet:dev
+        image: elotl/virtual-kubelet:latest
         imagePullPolicy: Always
         name: virtual-kubelet
         env:
