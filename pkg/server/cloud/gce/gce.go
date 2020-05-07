@@ -28,15 +28,19 @@ import (
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
 	"google.golang.org/api/compute/v1"
+	"k8s.io/klog"
 )
 
 const (
-	defaultTimeout     = 20 * time.Second
-	controllerLabelKey = "kip-controller-id"
-	nameLabelKey       = "name"
-	namespaceLabelKey  = "kip-namespace"
-	nametagLabelKey    = "kip-nametag"
-	podNameLabelKey    = "kip-pod-name"
+	defaultTimeout              = 20 * time.Second
+	controllerLabelKey          = "kip-controller-id"
+	nameLabelKey                = "name"
+	namespaceLabelKey           = "kip-namespace"
+	minimumDiskSize       int64 = 10
+	nametagLabelKey             = "kip-nametag"
+	podNameLabelKey             = "kip-pod-name"
+	statusOperationDone         = "DONE"
+	statusInstanceRunning       = "RUNNING"
 )
 
 func TODO() error {
@@ -179,4 +183,72 @@ func (c *gceClient) GetRegistryAuth() (string, string, error) {
 
 func nilResponseError(call string) error {
 	return fmt.Errorf("Nil response from GCE API %s RPC", call)
+}
+
+func (c *gceClient) getGlobalOperation(opName string) (*compute.Operation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	resp, err := c.service.GlobalOperations.Get(c.projectID, opName).Context(ctx).Do()
+	if err != nil {
+		return nil, util.WrapError(err, "Error could not retrieve global operation")
+	}
+	if resp == nil {
+		return nil, nilResponseError("GlobalOperations.Get")
+	}
+	return resp, nil
+}
+
+func (c *gceClient) getRegionOperation(opName string) (*compute.Operation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	resp, err := c.service.RegionOperations.Get(c.projectID, c.region, opName).Context(ctx).Do()
+	if err != nil {
+		return nil, util.WrapError(err, "Error could not retrieve region operation")
+	}
+	if resp == nil {
+		return nil, nilResponseError("RegionOperations.Get")
+	}
+	return resp, nil
+}
+
+func (c *gceClient) getZoneOperation(opName string) (*compute.Operation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	resp, err := c.service.ZoneOperations.Get(c.projectID, c.zone, opName).Context(ctx).Do()
+	if err != nil {
+		return nil, util.WrapError(err, "Error could not retrieve zone operation")
+	}
+	if resp == nil {
+		return nil, nilResponseError("ZoneOperations.Get")
+	}
+	return resp, nil
+}
+
+// In GCE operations will immediately succeed from a call, however that does not
+// mean they have completed execution errorless. Here we wait for an operation
+// to finish so we can check handle errors as we find necessary
+func (c *gceClient) waitOnOperation(opName string, getOperation func(string) (*compute.Operation, error)) error {
+	for {
+		op, err := getOperation(opName)
+		if err != nil {
+			return err
+		}
+		if op.Status != statusOperationDone {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		// check if the operation is not nil
+		// if not nil it will have a *compute.OperationError
+		if op.Error != nil {
+			klog.Errorf("Operation %s was not successful", opName)
+			for _, e := range op.Error.Errors {
+				klog.Errorf(
+					"Error running operation, status: %d error_code: %s message: %s",
+					op.HttpErrorStatusCode, e.Code, e.Message)
+			}
+			// TODO figure out how we should handle operation errors
+		}
+		break
+	}
+	return nil
 }

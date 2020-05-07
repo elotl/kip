@@ -55,7 +55,9 @@ func convertLabelKeys(labels map[string]string) map[string]string {
 }
 
 func (c *gceClient) getInstanceSpec(instanceID string) (*compute.Instance, error) {
-	instance, err := c.service.Instances.Get(c.projectID, c.zone, instanceID).Do()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	instance, err := c.service.Instances.Get(c.projectID, c.zone, instanceID).Context(ctx).Do()
 	if err != nil {
 		// TODO error handling for googleapi errors
 		klog.Errorf("error retrieving instance specification: %v", err)
@@ -85,8 +87,7 @@ func (c *gceClient) getInstanceLabels(nodeName string) map[string]string {
 }
 
 func (c *gceClient) getAttachedDiskSpec(isBoot bool, size int64, name, typeURL, imageURL string) []*compute.AttachedDisk {
-	var minimumDiskSize int64 = 10
-	if size < 10 {
+	if size < minimumDiskSize {
 		klog.V(2).Infof("GCE does not allow disk smaller than 10GiB. requested size: %dGiB, using default: 10GiB", size)
 		size = minimumDiskSize
 	}
@@ -187,10 +188,13 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 	}
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		c.bootSecurityGroupIDs, c.subnetName)
-	_, err = c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
+	op, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
 	if err != nil {
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
+	}
+	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
+		return nil, err
 	}
 	startResult := &cloud.StartNodeResult{
 		InstanceID:       spec.Name,
@@ -207,14 +211,16 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 	}
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		c.bootSecurityGroupIDs, c.subnetName)
-	_, err = c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
+	op, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
 	if err != nil {
 		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
 	}
-	cloudID := c.nametag
+	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
+		return nil, err
+	}
 	startResult := &cloud.StartNodeResult{
-		InstanceID:       cloudID,
+		InstanceID:       spec.Name,
 		AvailabilityZone: c.zone,
 	}
 	return startResult, nil
@@ -230,7 +236,7 @@ func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 		}
 
 		klog.V(2).Infof("status: %s", status)
-		if status == "RUNNING" {
+		if status == statusInstanceRunning {
 			break
 		}
 		time.Sleep(10 * time.Second)
@@ -277,12 +283,15 @@ func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 }
 
 func (c *gceClient) StopInstance(instanceID string) error {
-	_, err := c.service.Instances.Delete(c.projectID, c.zone, instanceID).Do()
+	op, err := c.service.Instances.Delete(c.projectID, c.zone, instanceID).Do()
 	if err != nil {
 		klog.Errorf("Error terminating instance: %v", err)
 		// todo, check on status of instance, set status of instance
 		// based on that, prepare to come back and clean this
 		// inconsistency up
+		return err
+	}
+	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
 		return err
 	}
 	return nil
@@ -322,11 +331,15 @@ func (c *gceClient) ResizeVolume(node *api.Node, size int64) (error, bool) {
 	// TODO proper way to retrieve diskname
 	diskName := c.nametag + "-boot-volume"
 	resizeRequest := compute.DisksResizeRequest{SizeGb: size}
-	_, err := c.service.Disks.Resize(c.projectID, c.zone, diskName, &resizeRequest).Do()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	op, err := c.service.Disks.Resize(c.projectID, c.zone, diskName, &resizeRequest).Context(ctx).Do()
 	if err != nil {
 		return util.WrapError(err, "Failed to resize volume"), false
 	}
-
+	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
+		return err, false
+	}
 	return nil, true
 }
 
@@ -399,9 +412,12 @@ func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error 
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	_, err = c.service.Instances.SetLabels(c.projectID, c.zone, iid, &labelRequest).Context(ctx).Do()
+	op, err := c.service.Instances.SetLabels(c.projectID, c.zone, iid, &labelRequest).Context(ctx).Do()
 	if err != nil {
 		return util.WrapError(err, "Error attaching instance labels %s", err)
+	}
+	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
+		return err
 	}
 	return nil
 }
@@ -428,22 +444,6 @@ func (c *gceClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
 }
 
 func (c *gceClient) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
-	scopes := getServiceAccountScopes([]string{"compute"})
-	rb := &compute.InstancesSetServiceAccountRequest{
-		// InstanceProfile should be in format
-		// service-account-name@project-id.iam.gserviceaccount.com
-		Email:  instanceProfile,
-		Scopes: scopes,
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-	resp, err := c.service.Instances.SetServiceAccount(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
-	if err != nil {
-		return util.WrapError(err, "Error attaching profile to instance %s", node.Status.InstanceID)
-	}
-	if resp == nil {
-		return nilResponseError("Instances.SetServiceAccount")
-	}
-
+	klog.Errorf("In GCE Instances must be stopped to assign service account")
 	return nil
 }

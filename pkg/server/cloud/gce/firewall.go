@@ -253,7 +253,9 @@ func (c *gceClient) UpdateSecurityGroup(cloudSG cloud.SecurityGroup, ports []clo
 	if resp == nil {
 		return nilResponseError("Firewalls.Patch")
 	}
-
+	if err := c.waitOnOperation(resp.Name, c.getGlobalOperation); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -261,8 +263,11 @@ func (c *gceClient) CreateSecurityGroup(sgName string, ports []cloud.InstancePor
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	rule := c.toFirewallRule(sgName, ports, sourceRanges)
-	_, err := c.service.Firewalls.Insert(c.projectID, rule).Context(ctx).Do()
+	op, err := c.service.Firewalls.Insert(c.projectID, rule).Context(ctx).Do()
 	if err != nil {
+		return nil, err
+	}
+	if err := c.waitOnOperation(op.Name, c.getGlobalOperation); err != nil {
 		return nil, err
 	}
 	sg := cloud.NewSecurityGroup(sgName, sgName, ports, sourceRanges)
@@ -287,6 +292,12 @@ func (c *gceClient) AttachSecurityGroups(node *api.Node, groups []string) error 
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	_, err = c.service.Instances.SetTags(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
-	return err
+	op, err := c.service.Instances.SetTags(c.projectID, c.zone, node.Status.InstanceID, rb).Context(ctx).Do()
+	if err != nil {
+		return util.WrapError(err, "Error attaching instance tags %s", err)
+	}
+	if err := c.waitOnOperation(op.Name, c.getGlobalOperation); err != nil {
+		return err
+	}
+	return nil
 }
