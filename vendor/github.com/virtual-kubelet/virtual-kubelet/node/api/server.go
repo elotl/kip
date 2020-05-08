@@ -16,6 +16,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/virtual-kubelet/virtual-kubelet/log"
@@ -35,7 +36,12 @@ type ServeMux interface {
 type PodHandlerConfig struct {
 	RunInContainer   ContainerExecHandlerFunc
 	GetContainerLogs ContainerLogsHandlerFunc
-	GetPods          PodListerFunc
+	// GetPods is meant to enumerate the pods that the provider knows about
+	GetPods PodListerFunc
+	// GetPodsFromKubernetes is meant to enumerate the pods that the node is meant to be running
+	GetPodsFromKubernetes PodListerFunc
+	StreamIdleTimeout     time.Duration
+	StreamCreationTimeout time.Duration
 }
 
 // PodHandler creates an http handler for interacting with pods/containers.
@@ -47,8 +53,17 @@ func PodHandler(p PodHandlerConfig, debug bool) http.Handler {
 	if debug {
 		r.HandleFunc("/runningpods/", HandleRunningPods(p.GetPods)).Methods("GET")
 	}
+
+	r.HandleFunc("/pods", HandleRunningPods(p.GetPodsFromKubernetes)).Methods("GET")
 	r.HandleFunc("/containerLogs/{namespace}/{pod}/{container}", HandleContainerLogs(p.GetContainerLogs)).Methods("GET")
-	r.HandleFunc("/exec/{namespace}/{pod}/{container}", HandleContainerExec(p.RunInContainer)).Methods("POST")
+	r.HandleFunc(
+		"/exec/{namespace}/{pod}/{container}",
+		HandleContainerExec(
+			p.RunInContainer,
+			WithExecStreamCreationTimeout(p.StreamCreationTimeout),
+			WithExecStreamIdleTimeout(p.StreamIdleTimeout),
+		),
+	).Methods("POST", "GET")
 	r.NotFoundHandler = http.HandlerFunc(NotFound)
 	return r
 }
