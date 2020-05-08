@@ -36,9 +36,7 @@ func (p *InstanceProvider) GetContainerLogs(ctx context.Context, namespace, podN
 	defer span.End()
 	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
 	klog.V(5).Infof("GetContainerLogs %+v", opts)
-	// Pending PR: https://github.com/virtual-kubelet/virtual-kubelet/pull/806
-	// follow := opts.Follow
-	follow := false
+	follow := opts.Follow
 	podName = util.WithNamespace(namespace, podName)
 	node, err := p.GetNodeForRunningPod(podName, "")
 	if !follow || err != nil || node == nil || len(node.Status.Addresses) == 0 {
