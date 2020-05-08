@@ -83,6 +83,25 @@ resource "aws_route_table_association" "route-table-to-subnet" {
   route_table_id = aws_route_table.route-table.id
 }
 
+resource "aws_efs_file_system" "efs" {
+  count = var.efs-enable ? 1 : 0
+  performance_mode = var.efs-performance-mode
+  provisioned_throughput_in_mibps = var.efs-provisioned-throughput-in-mibps
+  throughput_mode = var.efs-throughput-mode
+  tags = {
+    "Name" = "${var.cluster-name}"
+  }
+}
+
+resource "aws_efs_mount_target" "efs" {
+  count = var.efs-enable ? 1 : 0
+  file_system_id = aws_efs_file_system.efs[0].id
+  subnet_id      = aws_subnet.subnet.id
+  security_groups = [
+    aws_security_group.kubernetes.id
+  ]
+}
+
 resource "aws_security_group" "kubernetes" {
   name        = "kubernetes"
   description = "Main kubernetes security group"
