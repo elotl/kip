@@ -537,7 +537,9 @@ func (p *InstanceProvider) Handle(ev events.Event) error {
 			klog.Warningf("removing hostports %q: %v", kipPod.Name, err)
 		}
 	}
-	p.podNotifier(pod)
+	if p.podNotifier != nil {
+		p.podNotifier(pod)
+	}
 	return nil
 }
 
