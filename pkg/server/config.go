@@ -489,7 +489,7 @@ func validateBootImageSpec(spec cloud.BootImageSpec, cloudClient cloud.CloudClie
 	if err != nil {
 		return util.WrapError(err, "could not get machine image for %v", spec)
 	}
-	if img == "" {
+	if img.ID == "" {
 		return fmt.Errorf("could not find machine image for %v", spec)
 	}
 	return nil

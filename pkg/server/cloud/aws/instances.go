@@ -78,11 +78,11 @@ func (e *AwsEC2) getNodeTags(node *api.Node) []*ec2.Tag {
 	return tags
 }
 
-func (e *AwsEC2) getBlockDeviceMapping(volSizeGiB int32) []*ec2.BlockDeviceMapping {
+func (e *AwsEC2) getBlockDeviceMapping(image cloud.Image, volSizeGiB int32) []*ec2.BlockDeviceMapping {
 	awsVolSize := aws.Int64(int64(volSizeGiB))
 	devices := []*ec2.BlockDeviceMapping{
 		&ec2.BlockDeviceMapping{
-			DeviceName: aws.String("xvda"),
+			DeviceName: aws.String(image.RootDevice),
 			Ebs: &ec2.EbsBlockDevice{
 				VolumeType:          aws.String("gp2"),
 				DeleteOnTermination: aws.Bool(true),
@@ -232,17 +232,17 @@ func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeI
 	return input
 }
 
-func (e *AwsEC2) GetImageID(spec cloud.BootImageSpec) (string, error) {
+func (e *AwsEC2) GetImageID(spec cloud.BootImageSpec) (cloud.Image, error) {
 	input := bootImageSpecToDescribeImagesInput(spec)
 	resp, err := e.client.DescribeImages(input)
 	if err != nil {
 		klog.Errorf("getting image list for spec %+v: %v", spec, err)
-		return "", err
+		return cloud.Image{}, err
 	}
 	if len(resp.Images) < 1 {
 		msg := fmt.Sprintf("no images found for spec %+v", spec)
 		klog.Errorf("%s", msg)
-		return "", fmt.Errorf("%s", msg)
+		return cloud.Image{}, fmt.Errorf("%s", msg)
 	}
 	images := make([]cloud.Image, len(resp.Images))
 	for i, img := range resp.Images {
@@ -258,15 +258,16 @@ func (e *AwsEC2) GetImageID(spec cloud.BootImageSpec) (string, error) {
 		}
 		images[i] = cloud.Image{
 			Name:         aws.StringValue(img.Name),
+			RootDevice:   aws.StringValue(img.RootDeviceName),
 			ID:           aws.StringValue(img.ImageId),
 			CreationTime: creationTime,
 		}
 	}
 	cloud.SortImagesByCreationTime(images)
-	return images[len(images)-1].ID, nil
+	return images[len(images)-1], nil
 }
 
-func (e *AwsEC2) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
+func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	tags := e.getNodeTags(node)
 	tagSpec := ec2.TagSpecification{
@@ -274,7 +275,7 @@ func (e *AwsEC2) StartNode(node *api.Node, metadata string) (*cloud.StartNodeRes
 		Tags:         tags,
 	}
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
-	devices := e.getBlockDeviceMapping(volSizeGiB)
+	devices := e.getBlockDeviceMapping(image, volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)
@@ -315,7 +316,7 @@ func (e *AwsEC2) StartNode(node *api.Node, metadata string) (*cloud.StartNodeRes
 
 // This isn't terribly different from Start node but there are
 // some minor differences.  We'll capture errors correctly here and there
-func (e *AwsEC2) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
+func (e *AwsEC2) StartSpotNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	tags := e.getNodeTags(node)
 	tagSpec := ec2.TagSpecification{
@@ -326,7 +327,7 @@ func (e *AwsEC2) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNod
 	//var subnet *cloud.SubnetAttributes
 	klog.V(2).Infof("Starting spot node in: %s", e.subnetID)
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
-	devices := e.getBlockDeviceMapping(volSizeGiB)
+	devices := e.getBlockDeviceMapping(image, volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)

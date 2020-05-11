@@ -150,7 +150,7 @@ func (az *AzureClient) createNIC(instanceID string, ipID string) (string, error)
 	return to.String(nic.ID), nil
 }
 
-func (az *AzureClient) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
+func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	instanceID := makeInstanceID(az.controllerID, node.Name)
 	err := az.createResourceGroup(instanceID)
@@ -205,7 +205,7 @@ func (az *AzureClient) StartNode(node *api.Node, metadata string) (*cloud.StartN
 
 				StorageProfile: &compute.StorageProfile{
 					ImageReference: &compute.ImageReference{
-						ID: to.StringPtr(node.Spec.BootImage),
+						ID: to.StringPtr(image.ID),
 					},
 					OsDisk: &compute.OSDisk{
 						OsType:       compute.Linux,
@@ -263,8 +263,8 @@ func (az *AzureClient) StartNode(node *api.Node, metadata string) (*cloud.StartN
 	return startResult, nil
 }
 
-func (az *AzureClient) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	return az.StartNode(node, metadata)
+func (az *AzureClient) StartSpotNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
+	return az.StartNode(node, image, metadata)
 }
 
 func (az *AzureClient) getNodeTags(node *api.Node) map[string]*string {
@@ -344,14 +344,14 @@ func matchSpec(properties map[string]string, spec cloud.BootImageSpec) bool {
 	return true
 }
 
-func (az *AzureClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
+func (az *AzureClient) GetImageID(spec cloud.BootImageSpec) (cloud.Image, error) {
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, azureDefaultTimeout)
 	defer cancel()
 	rgName := regionalResourceGroupName(az.region)
 	resultPage, err := az.images.ListByResourceGroup(timeoutCtx, rgName)
 	if err != nil {
-		return "", err
+		return cloud.Image{}, err
 	}
 	images := make(map[string]compute.Image)
 	imageNames := make([]string, 0)
@@ -379,20 +379,23 @@ func (az *AzureClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
 		defer cancel()
 		err := resultPage.NextWithContext(timeoutCtx)
 		if err != nil {
-			return "", err
+			return cloud.Image{}, err
 		}
 	}
 	if len(images) == 0 {
 		msg := fmt.Sprintf("no images found for spec %+v", spec)
 		klog.Errorf("%s", msg)
-		return "", fmt.Errorf("%s", msg)
+		return cloud.Image{}, fmt.Errorf("%s", msg)
 	}
 	// compute.Image has no creation timestamp, so we rely on naming convention
 	// here: the name has a timestamp in it, so we can get the latest one via
 	// lexicographical sorting.
 	sort.Strings(imageNames)
 	latestImage := imageNames[len(imageNames)-1]
-	return to.String(images[latestImage].ID), nil
+	return cloud.Image{
+		ID:   to.String(images[latestImage].ID),
+		Name: to.String(images[latestImage].Name),
+	}, nil
 }
 
 func (az *AzureClient) ListInstancesFilterID(ids []string) ([]cloud.CloudInstance, error) {
