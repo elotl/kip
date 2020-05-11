@@ -232,7 +232,7 @@ func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeI
 	return input
 }
 
-func (e *AwsEC2) GetImageID(spec cloud.BootImageSpec) (cloud.Image, error) {
+func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	input := bootImageSpecToDescribeImagesInput(spec)
 	resp, err := e.client.DescribeImages(input)
 	if err != nil {

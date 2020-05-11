@@ -54,7 +54,7 @@ type CloudClient interface {
 	ListInstances() ([]CloudInstance, error)
 	ResizeVolume(node *api.Node, size int64) (error, bool)
 	GetRegistryAuth() (string, string, error)
-	GetImageID(spec BootImageSpec) (Image, error)
+	GetImage(spec BootImageSpec) (Image, error)
 	SetSustainedCPU(*api.Node, bool) error
 	AddInstanceTags(string, map[string]string) error
 	ConnectWithPublicIPs() bool

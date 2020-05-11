@@ -152,7 +152,7 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 	}
 
 	// If we can't get the boot image, just use the old value for the image
-	newBootImage, err := c.imageSpecToID(c.BootImageSpec)
+	newBootImage, err := c.imageSpecToImage(c.BootImageSpec)
 	if err != nil {
 		if BootImage.ID == "" {
 			return nil, util.WrapError(err, "Could not get latest boot image")
@@ -710,7 +710,7 @@ func (c *NodeController) requestNode(nodeReq NodeRequest, podNodeMapping map[str
 	}
 }
 
-func (c *NodeController) imageSpecToID(spec cloud.BootImageSpec) (cloud.Image, error) {
+func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	var img cloud.Image
 	obj, exists := c.ImageIdCache.Get(spec.String())
 	if obj != nil {
@@ -718,7 +718,7 @@ func (c *NodeController) imageSpecToID(spec cloud.BootImageSpec) (cloud.Image, e
 	}
 	if !exists || img.ID == "" {
 		var err error
-		img, err = c.CloudClient.GetImageID(spec)
+		img, err = c.CloudClient.GetImage(spec)
 		if err != nil {
 			klog.Errorf("resolving image spec %v to image ID: %v",
 				spec, err)
@@ -726,7 +726,7 @@ func (c *NodeController) imageSpecToID(spec cloud.BootImageSpec) (cloud.Image, e
 		}
 		c.ImageIdCache.Add(spec.String(), img, 5*time.Minute,
 			func(obj interface{}) {
-				_, _ = c.imageSpecToID(spec)
+				_, _ = c.imageSpecToImage(spec)
 			})
 		klog.V(2).Infof("latest image for spec %v: %v", spec, img)
 	}

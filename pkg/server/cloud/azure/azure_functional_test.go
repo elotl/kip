@@ -96,7 +96,7 @@ func TestAzureCloud(t *testing.T) {
 
 	syncImage(controllerID, cloud.BootImageSpec{}, az)
 
-	image, err := az.GetImageID(cloud.BootImageSpec{})
+	image, err := az.GetImage(cloud.BootImageSpec{})
 	if err != nil {
 		assert.Fail(t, "Azure functional test failed, could not get Image ID: %v", err.Error())
 		return

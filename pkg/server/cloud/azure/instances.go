@@ -344,7 +344,7 @@ func matchSpec(properties map[string]string, spec cloud.BootImageSpec) bool {
 	return true
 }
 
-func (az *AzureClient) GetImageID(spec cloud.BootImageSpec) (cloud.Image, error) {
+func (az *AzureClient) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, azureDefaultTimeout)
 	defer cancel()

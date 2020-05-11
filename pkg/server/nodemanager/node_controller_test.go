@@ -335,7 +335,7 @@ func TestBufferingAndDispatchingTogether(t *testing.T) {
 		SpotStarter: StartReturnsOK,
 		Stopper:     ReturnNil,
 		Waiter:      ReturnAddresses,
-		ImageIDGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
+		ImageGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
 			return cloud.Image{}, nil
 		},
 	}
@@ -537,7 +537,7 @@ func TestRemovePodFromNode(t *testing.T) {
 	//todo
 }
 
-func TestImageSpecToID(t *testing.T) {
+func TestImageSpecToImage(t *testing.T) {
 	ctl, closer := MakeNodeController()
 	defer closer()
 	ctl.CloudClient = &cloud.MockCloudClient{
@@ -545,7 +545,7 @@ func TestImageSpecToID(t *testing.T) {
 		SpotStarter: StartReturnsOK,
 		Stopper:     ReturnNil,
 		Waiter:      ReturnAddresses,
-		ImageIDGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
+		ImageGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
 			return cloud.Image{
 				ID:         "my-image-id",
 				Name:       "my-image-name",
@@ -553,18 +553,18 @@ func TestImageSpecToID(t *testing.T) {
 			}, nil
 		},
 	}
-	img, err := ctl.imageSpecToID(defaultBootImageSpec)
+	img, err := ctl.imageSpecToImage(defaultBootImageSpec)
 	assert.Nil(t, err)
 	assert.Equal(t, defaultBootImageID, img.ID)
 	spec := cloud.BootImageSpec{
 		"name": "my-name-*",
 	}
-	img, err = ctl.imageSpecToID(spec)
+	img, err = ctl.imageSpecToImage(spec)
 	assert.Nil(t, err)
 	assert.Equal(t, "my-image-id", img.ID)
 }
 
-func TestImageSpecToIDFailure(t *testing.T) {
+func TestImageSpecToImageFailure(t *testing.T) {
 	t.Parallel()
 	ctl, closer := MakeNodeController()
 	defer closer()
@@ -573,14 +573,14 @@ func TestImageSpecToIDFailure(t *testing.T) {
 		SpotStarter: StartReturnsOK,
 		Stopper:     ReturnNil,
 		Waiter:      ReturnAddresses,
-		ImageIDGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
-			return cloud.Image{}, fmt.Errorf("Testing GetImageID() failure")
+		ImageGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
+			return cloud.Image{}, fmt.Errorf("Testing GetImage() failure")
 		},
 	}
 	spec := cloud.BootImageSpec{
 		"name": "my-name-*",
 	}
-	_, err := ctl.imageSpecToID(spec)
+	_, err := ctl.imageSpecToImage(spec)
 	assert.NotNil(t, err)
 }
 
@@ -625,7 +625,7 @@ func TestDoPoolsCalculation(t *testing.T) {
 		Stopper:      ReturnNil,
 		Waiter:       ReturnAddresses,
 		RouteRemover: StringStringReturnNil,
-		ImageIDGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
+		ImageGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
 			return cloud.Image{}, nil
 		},
 	}
