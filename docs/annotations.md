@@ -64,3 +64,13 @@ This annotation can be used to add one or more routes to the cloud subnet route 
 annotations:
   pod.elotl.co/cloud-route: "10.20.30.40/24 192.168.1.0/28"
 ```
+
+**pod.elotl.co/volume-size**
+
+PodVolumeSize is an annotation tells kip to resize the root partition of the pod's cell to the specified size in bytes. The size can be expressed as a plain integer or as a fixed-point integer using one of these suffixes: E, P, T, G, M, K. You can also use the power-of-two equivalents: Ei, Pi, Ti, Gi, Mi, Ki. Disks cannot be resized to be smaller than the defaultVolumeSize specified in provider.yaml. Cloud providers sell disks in GiB increments, the value will be rounded up to the nearest GiB
+
+```yaml
+annotations:
+  pod.elotl.co/volume-size: "12G"
+```
+

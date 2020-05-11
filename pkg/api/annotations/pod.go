@@ -23,9 +23,19 @@ const PodLaunchType = "pod.elotl.co/launch-type"
 
 // PodInstanceType is an annotation users can put on their
 // kubernetes pods to tell kip to use a specific instance type for
-// the node the pod will be launched onto.  This annotation will
+// the node the pod will be launched onto. This annotation will
 // override specified resource requests and limits.
 const PodInstanceType = "pod.elotl.co/instance-type"
+
+// PodVolumeSize is an annotation tells kip to resize the root
+// partition of the pod's cell to the specified size in bytes. The
+// size can be expressed as a plain integer or as a fixed-point
+// integer using one of these suffixes: E, P, T, G, M, K. You can also
+// use the power-of-two equivalents: Ei, Pi, Ti, Gi, Mi, Ki. Disks
+// cannot be resized to be smaller than the defaultVolumeSize
+// specified in provider.yaml. Cloud providers sell disks in GiB
+// increments, the value will be rounded up to the nearest GiB
+const PodVolumeSize = "pod.elotl.co/volume-size"
 
 // PodResourcesPrivateIPOnly is an annotation users can put on their
 // kubernetes pods to tell kip to run this pod on a node that only
@@ -62,7 +72,7 @@ const PodTaskRole = "pod.elotl.co/task-role"
 const PodHealthcheckHealthyTimeout = "pod.elotl.co/healthcheck-healthy-timeout"
 
 // PodCloudRoute can be used to add one or more routes to the cloud subnet
-// route table.  The value must be one or more CIDRs separated by whitespace,
+// route table. The value must be one or more CIDRs separated by whitespace,
 // e.g. "10.20.30.40/24 192.168.1.0/28". Route to these CIDRs, using the
 // instance as the next hop, will be added to the route table of the subnet.
 const PodCloudRoute = "pod.elotl.co/cloud-route"

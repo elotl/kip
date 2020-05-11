@@ -628,6 +628,10 @@ func addAnnotationsToMilpaPod(milpaPod *api.Pod) {
 			milpaPod.Spec.Resources.PrivateIPOnly = val
 		}
 	}
+	a = milpaPod.Annotations[annotations.PodVolumeSize]
+	if a != "" {
+		milpaPod.Spec.Resources.VolumeSize = a
+	}
 }
 
 func aggregateResources(containers []v1.Container) api.ResourceSpec {
