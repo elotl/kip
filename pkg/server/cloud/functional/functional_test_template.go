@@ -32,7 +32,7 @@ type TestState struct {
 	Node2       *api.Node
 }
 
-func SetupCloudFunctionalTest(t *testing.T, c cloud.CloudClient, imageID, instanceType string) (*TestState, error) {
+func SetupCloudFunctionalTest(t *testing.T, c cloud.CloudClient, imageID, rootDevice, instanceType string) (*TestState, error) {
 	fmt.Printf("Running cloud functional tests with %+v\n", c)
 
 	ts := &TestState{CloudClient: c}
@@ -53,7 +53,12 @@ func SetupCloudFunctionalTest(t *testing.T, c cloud.CloudClient, imageID, instan
 	ts.Node2.Spec.BootImage = imageID
 	ts.Node2.Spec.InstanceType = instanceType
 
-	err = ts.startNodes()
+	img := cloud.Image{
+		ID:         imageID,
+		RootDevice: rootDevice,
+	}
+
+	err = ts.startNodes(img)
 	if err != nil {
 		ts.Cleanup(t)
 		return nil, err
@@ -63,13 +68,13 @@ func SetupCloudFunctionalTest(t *testing.T, c cloud.CloudClient, imageID, instan
 
 // StartNode for individual nodes takes too long in azure, start the
 // nodes in parallel
-func (ts *TestState) startNodes() error {
+func (ts *TestState) startNodes(img cloud.Image) error {
 	startResults := make(chan error)
 	nodes := []*api.Node{ts.Node1, ts.Node2}
 	for _, node := range nodes {
 		go func(n *api.Node) {
 			fmt.Println("starting node", n.Name)
-			result, err := ts.CloudClient.StartNode(n, "")
+			result, err := ts.CloudClient.StartNode(n, img, "")
 			if err != nil {
 				startResults <- err
 				return
@@ -114,14 +119,18 @@ func SetupFirewallRules(t *testing.T, c cloud.CloudClient) error {
 	return err
 }
 
-func RunSpotInstanceTest(t *testing.T, c cloud.CloudClient, imageID string) {
+func RunSpotInstanceTest(t *testing.T, c cloud.CloudClient, imageID, rootDevice string) {
 	fmt.Printf("Booting spot instance\n")
 	spotNode := api.GetFakeNode()
 	// For the last 3 months there has always been an AZ in us-east-1
 	// that can boot an m3.medium spot instance.
 	spotNode.Spec.InstanceType = "t3.micro"
 	spotNode.Spec.BootImage = imageID
-	result, err := c.StartSpotNode(spotNode, "")
+	img := cloud.Image{
+		ID:         imageID,
+		RootDevice: rootDevice,
+	}
+	result, err := c.StartSpotNode(spotNode, img, "")
 	if err != nil {
 		msg := fmt.Sprintf("Failed to Start Spot Node, failing test %s", err)
 		assert.Fail(t, msg)
