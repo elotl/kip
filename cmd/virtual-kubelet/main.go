@@ -17,6 +17,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	"github.com/elotl/kip/pkg/klog"
@@ -103,6 +104,12 @@ func main() {
 	)
 
 	if err != nil {
+		log.G(ctx).Fatal(err)
+	}
+
+	cert := os.Getenv("APISERVER_CERT_LOCATION")
+	key := os.Getenv("APISERVER_KEY_LOCATION")
+	if err := ensureCert(o.NodeName, cert, key); err != nil {
 		log.G(ctx).Fatal(err)
 	}
 
