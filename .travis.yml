@@ -21,7 +21,6 @@ before_script:
 - git fetch --unshallow || true
 - pip install awscli --upgrade --user
 - pip install jq --upgrade --user
-- go get -u k8s.io/gengo/examples/deepcopy-gen
 - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl
   && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 - curl -Os https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
@@ -31,6 +30,7 @@ before_script:
   && sed -i 's#/.*/img-linux-amd64#img-linux-amd64#g' img-linux-amd64.sha256
   && shasum -a 256 -c img-linux-amd64.sha256 2>&1
   && sudo install -m 0755 img-linux-amd64 /usr/local/bin/img
+- go get k8s.io/gengo/examples/deepcopy-gen
 script:
 - set -e
 - make
