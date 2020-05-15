@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"runtime"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
@@ -41,21 +41,8 @@ const (
 	podNameLabelKey             = "kip-pod-name"
 	statusOperationDone         = "DONE"
 	statusInstanceRunning       = "RUNNING"
+	apiRetries                  = 10
 )
-
-func TODO() error {
-	msg := "TODO: Not implemented yet!"
-	pc, file, line, ok := runtime.Caller(1)
-	if ok {
-		fName := "unknown"
-		details := runtime.FuncForPC(pc)
-		if details != nil {
-			fName = details.Name()
-		}
-		msg = fmt.Sprintf("TODO: [%s.%d] %s not implemented yet", file, line, fName)
-	}
-	return fmt.Errorf(msg)
-}
 
 type gceClient struct {
 	service              *compute.Service
@@ -107,7 +94,6 @@ func NewGCEClient(controllerID, nametag, projectID string, opts ...ClientOption)
 		}
 	}
 
-	// Setup VPC Parameters
 	if client.vpcName == "" {
 		client.vpcName, err = client.detectCurrentVPC()
 		if err != nil {
@@ -119,7 +105,6 @@ func NewGCEClient(controllerID, nametag, projectID string, opts ...ClientOption)
 		return nil, err
 	}
 
-	// Setup subnet parameters
 	if client.subnetName == "" {
 		client.subnetName, client.subnetCIDR, err = client.autodetectSubnet()
 		if err != nil {
@@ -178,7 +163,7 @@ func (c *gceClient) CloudStatusKeeper() cloud.StatusKeeper {
 }
 
 func (c *gceClient) GetRegistryAuth() (string, string, error) {
-	return "", "", TODO()
+	return "", "", fmt.Errorf("Not implemented in gce")
 }
 
 func nilResponseError(call string) error {
@@ -224,29 +209,39 @@ func (c *gceClient) getZoneOperation(opName string) (*compute.Operation, error) 
 	return resp, nil
 }
 
+func waitBackoff(i int) time.Duration {
+	waitTimes := []time.Duration{1, 1, 2, 3, 5}
+	if i < len(waitTimes) {
+		return waitTimes[i] * time.Second
+	}
+	return waitTimes[len(waitTimes)-1] * time.Second
+}
+
 // In GCE operations will immediately succeed from a call, however that does not
 // mean they have completed execution errorless. Here we wait for an operation
 // to finish so we can check handle errors as we find necessary
 func (c *gceClient) waitOnOperation(opName string, getOperation func(string) (*compute.Operation, error)) error {
+	i := -1
 	for {
+		i += 1
 		op, err := getOperation(opName)
 		if err != nil {
 			return err
 		}
+
 		if op.Status != statusOperationDone {
-			time.Sleep(1 * time.Second)
+			time.Sleep(waitBackoff(i) * time.Second)
 			continue
 		}
 		// check if the operation is not nil
 		// if not nil it will have a *compute.OperationError
 		if op.Error != nil {
 			klog.Errorf("Operation %s was not successful", opName)
+			var errors []string
 			for _, e := range op.Error.Errors {
-				klog.Errorf(
-					"Error running operation, status: %d error_code: %s message: %s",
-					op.HttpErrorStatusCode, e.Code, e.Message)
+				errors = append(errors, e.Message)
 			}
-			// TODO figure out how we should handle operation errors
+			return fmt.Errorf("Operation failed with error(s): %s", strings.Join(errors, ", "))
 		}
 		break
 	}

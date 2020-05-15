@@ -58,7 +58,6 @@ func (c *gceClient) getInstanceSpec(instanceID string) (*compute.Instance, error
 	defer cancel()
 	instance, err := c.service.Instances.Get(c.projectID, c.zone, instanceID).Context(ctx).Do()
 	if err != nil {
-		// TODO error handling for googleapi errors
 		klog.Errorf("error retrieving instance specification: %v", err)
 		return nil, err
 	}
@@ -68,7 +67,6 @@ func (c *gceClient) getInstanceSpec(instanceID string) (*compute.Instance, error
 func (c *gceClient) getInstanceStatus(instanceID string) (string, error) {
 	instance, err := c.getInstanceSpec(instanceID)
 	if err != nil {
-		// TODO error handling for googleapi errors
 		klog.Errorf("error retrieving instance status: %v", err)
 		return "", err
 	}
@@ -189,12 +187,14 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 		c.bootSecurityGroupIDs, c.subnetName)
 	op, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
 	if err != nil {
-		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
 	}
 	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
 		return nil, err
 	}
+	// Todo: catch and convert errors to notify us of
+	// out of capacity errors or invalid machine types
+	// see pkg/server/cloud/aws/instances.StartNode()
 	startResult := &cloud.StartNodeResult{
 		InstanceID:       spec.Name,
 		AvailabilityZone: c.zone,
@@ -212,9 +212,11 @@ func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.Start
 		c.bootSecurityGroupIDs, c.subnetName)
 	op, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
 	if err != nil {
-		// TODO add error checking for googleapi using helpers in util
 		return nil, util.WrapError(err, "startup error")
 	}
+	// Todo: catch and convert errors to notify us of
+	// out of capacity errors or invalid machine types
+	// see pkg/server/cloud/aws/instances.StartNode()
 	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
 		return nil, err
 	}
@@ -230,7 +232,6 @@ func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 		status, err := c.getInstanceStatus(node.Status.InstanceID)
 		if err != nil {
 			klog.Errorf("Error waiting for instance to start: %v", err)
-			// TODO add error checking for googleapi using helpers in util
 			return nil, err
 		}
 
@@ -242,7 +243,6 @@ func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 	}
 	instance, err := c.getInstanceSpec(node.Status.InstanceID)
 	if err != nil {
-		// TODO add error checking for googleapi using helpers in util
 		return nil, err
 	}
 
@@ -299,7 +299,6 @@ func (c *gceClient) StopInstance(instanceID string) error {
 func (c *gceClient) getFirstVolume(instanceID string) *compute.AttachedDisk {
 	instance, err := c.getInstanceSpec(instanceID)
 	if err != nil {
-		// TODO error handling for googleapi errors
 		klog.Errorf("error retrieving instance volume: %v", err)
 		return nil
 	}
@@ -315,7 +314,7 @@ func (c *gceClient) getFirstVolume(instanceID string) *compute.AttachedDisk {
 func (c *gceClient) ResizeVolume(node *api.Node, size int64) (error, bool) {
 	vol := c.getFirstVolume(node.Status.InstanceID)
 	// in GCE zonal standard persistent disks cannot be smaller than 10GiB
-	if vol == nil || vol.InitializeParams.DiskSizeGb < 10 {
+	if vol == nil {
 		return fmt.Errorf("Error retrieving volume info for node %s: %v",
 			node.Name, vol), false
 	}
@@ -350,7 +349,6 @@ func (c *gceClient) SetSustainedCPU(node *api.Node, enabled bool) error {
 func (c *gceClient) ListInstancesFilterID(ids []string) ([]cloud.CloudInstance, error) {
 	instances, err := c.ListInstances()
 	if err != nil {
-		// TODO add error checking for googleapi using helpers in util
 		return nil, err
 	}
 	var filteredList []cloud.CloudInstance
@@ -384,7 +382,6 @@ func (c *gceClient) ListInstances() ([]cloud.CloudInstance, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	if err := listCall.Pages(ctx, f); err != nil {
-		// TODO add error checking for googleapi using helpers in util
 		return nil, err
 	}
 	return instances, nil

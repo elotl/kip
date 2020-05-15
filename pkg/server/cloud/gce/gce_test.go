@@ -3,6 +3,7 @@ package gce
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -15,13 +16,20 @@ func getGCE(t *testing.T, controllerID string) *gceClient {
 	return c
 }
 
-// func TestGCECloud(t *testing.T) {
-// 	fmt.Printf("Running Cloud Test\n")
-// 	controllerID := "bcoxtestcontroller"
-// 	cloudClient := getGCE(t, controllerID)
-// 	err := cloudClient.EnsureMilpaSecurityGroups(
-// 		[]string{},
-// 		[]string{},
-// 	)
-// 	assert.NoError(t, err)
-// }
+func TestWaitForBackoff(t *testing.T) {
+	tests := []struct {
+		i   int
+		exp time.Duration
+	}{
+		{i: 0, exp: 1},
+		{i: 1, exp: 1},
+		{i: 3, exp: 3},
+		{i: 4, exp: 5},
+		{i: 5, exp: 5},
+		{i: 6, exp: 5},
+	}
+	for _, tc := range tests {
+		res := waitBackoff(tc.i)
+		assert.Equal(t, tc.exp*time.Second, res)
+	}
+}

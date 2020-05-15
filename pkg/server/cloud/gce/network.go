@@ -26,7 +26,6 @@ import (
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
 	"google.golang.org/api/compute/v1"
-	"k8s.io/klog"
 )
 
 func zoneToRegion(zone string) (string, error) {
@@ -215,14 +214,14 @@ func (c *gceClient) ModifySourceDestinationCheck(instanceID string, isEnabled bo
 }
 
 func (c *gceClient) GetDNSInfo() ([]string, []string, error) {
-	// resolv.conf contents:
+	// instance resolv.conf contents:
 	//
 	// domain c.milpa-207719.internal
 	// search c.milpa-207719.internal. google.internal.
 	// nameserver 169.254.169.254
-
-	klog.Warningln("Need to improve GETDNSInfo()")
-
+	//
+	// This is fairly symplistic, might need to look into determining
+	// if the users environment has other settings
 	zoneLetter := c.zone[len(c.zone)-1]
 	s := fmt.Sprintf("%s.%s.internal.", string(zoneLetter), c.projectID)
 	searches := []string{s, "google.internal."}

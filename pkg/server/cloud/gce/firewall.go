@@ -29,6 +29,7 @@ import (
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
 	"google.golang.org/api/compute/v1"
+	"k8s.io/klog"
 )
 
 func (c *gceClient) SetBootSecurityGroupIDs(ids []string) {
@@ -59,7 +60,7 @@ func (c *gceClient) EnsureSecurityGroup(sgName string, ports []cloud.InstancePor
 	}
 	// We have seen eventual consistency errors here, retry it if we
 	// can't find the group
-	for i := 0; i < 10; i++ {
+	for i := 0; i < apiRetries; i++ {
 		sg, err = c.FindSecurityGroup(sgName)
 		if sg != nil || err != nil {
 			break
@@ -131,7 +132,7 @@ func allowedRulesToPorts(fwa []*compute.FirewallAllowed) []cloud.InstancePort {
 		}
 		proto := gceProtocolToKipProtocol(fw.IPProtocol)
 		if proto == "" {
-			// Todo: output a warning
+			klog.Warningln("Unknown protocol in firewall rule", fw.IPProtocol)
 			continue
 		}
 		for _, port := range fw.Ports {
