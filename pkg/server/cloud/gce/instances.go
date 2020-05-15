@@ -234,7 +234,7 @@ func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 			return nil, err
 		}
 
-		klog.V(2).Infof("status: %s", status)
+		klog.V(5).Infof("status: %s", status)
 		if status == statusInstanceRunning {
 			break
 		}
