@@ -68,6 +68,25 @@ resource "google_container_node_pool" "node-pool" {
   }
 }
 
+resource "google_filestore_instance" "filestore" {
+  count = var.filestore-enable ? 1 : 0
+
+  name = var.cluster-name
+  zone = var.zone
+  tier = var.filestore-tier
+
+  file_shares {
+    name        = var.filestore-fileshare-name
+    capacity_gb = var.filestore-fileshare-capacity-gb
+  }
+
+  networks {
+    network = "default"
+    modes   = ["MODE_IPV4"]
+    reserved_ip_range = var.filestore-reserved-ip-range
+  }
+}
+
 locals {
   kubeconfig = "${path.module}/kubeconfig"
 }
