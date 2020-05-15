@@ -30,7 +30,7 @@ before_script:
   && sed -i 's#/.*/img-linux-amd64#img-linux-amd64#g' img-linux-amd64.sha256
   && shasum -a 256 -c img-linux-amd64.sha256 2>&1
   && sudo install -m 0755 img-linux-amd64 /usr/local/bin/img
-- go get k8s.io/gengo/examples/deepcopy-gen
+- go get -u k8s.io/gengo/examples/deepcopy-gen
 script:
 - set -e
 - make
