@@ -146,6 +146,8 @@ resource "null_resource" "client_permissions" {
 }
 
 resource "null_resource" "deploy" {
+  count = length(var.kustomize-dir) > 0 ? 1 : 0
+
   provisioner "local-exec" {
     environment = {
       KUBECONFIG = "${path.module}/kubeconfig"
