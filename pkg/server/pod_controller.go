@@ -778,6 +778,7 @@ func (c *PodController) terminateUnboundPod(pod *api.Pod) {
 }
 
 func (c *PodController) terminateBoundPod(pod *api.Pod) {
+	c.savePodLogs(pod)
 	c.podRegistry.TerminatePod(pod, api.PodTerminated, "Terminating bound pod")
 
 	go func() {

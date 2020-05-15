@@ -50,7 +50,6 @@ func convertLabelKeys(labels map[string]string) map[string]string {
 		v = replaceReservedLabelChars(v)
 		convertedLabels[k] = v
 	}
-	fmt.Println("Labels should be", convertedLabels)
 	return convertedLabels
 }
 
