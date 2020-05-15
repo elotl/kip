@@ -20,7 +20,7 @@ before_script:
 - git fetch --unshallow || true
 - pip install awscli --upgrade --user
 - pip install jq --upgrade --user
-- go get -u k8s.io/gengo/examples/deepcopy-gen
+- GO111MODULE=on go get -u k8s.io/gengo/examples/deepcopy-gen
 - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl
   && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 - curl -Os https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
