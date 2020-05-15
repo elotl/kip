@@ -42,16 +42,18 @@ var (
 
 func getInternalIP() string {
 	internalIP := os.Getenv("VKUBELET_POD_IP")
-	if internalIP == "" {
-		internalIP := habitat.GetMyIP()
-		if internalIP == "" {
-			ips := habitat.GetIPAddresses()
-			if len(ips) > 0 {
-				internalIP = ips[0]
-			}
-		}
+	if internalIP != "" {
+		return internalIP
 	}
-	return internalIP
+	internalIP = habitat.GetMyIP()
+	if internalIP != "" {
+		return internalIP
+	}
+	ips := habitat.GetIPAddresses()
+	if len(ips) > 0 {
+		return ips[0]
+	}
+	return ""
 }
 
 func main() {
