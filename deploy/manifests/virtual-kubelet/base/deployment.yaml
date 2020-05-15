@@ -58,9 +58,9 @@ spec:
         - name: KUBELET_PORT
           value: "10666"
         - name: APISERVER_CERT_LOCATION
-          value: /var/lib/kubelet/pki/kubelet-client-current.pem
+          value: /var/lib/kubelet/pki/kubelet.crt
         - name: APISERVER_KEY_LOCATION
-          value: /var/lib/kubelet/pki/kubelet-client-current.pem
+          value: /var/lib/kubelet/pki/kubelet.key
         - name: NODE_NAME
           valueFrom:
             fieldRef:
