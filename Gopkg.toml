@@ -43,7 +43,7 @@
 
 [[constraint]]
   name = "github.com/virtual-kubelet/virtual-kubelet"
-  version = "1.2.1"
+  revision = "8fc8b69d8f532e4a613ddd147ac283b7f26d0344"
 
 [[constraint]]
   name = "go.opencensus.io"

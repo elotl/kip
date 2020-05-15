@@ -538,7 +538,9 @@ func (p *InstanceProvider) Handle(ev events.Event) error {
 			klog.Warningf("removing hostports %q: %v", kipPod.Name, err)
 		}
 	}
-	p.podNotifier(pod)
+	if p.podNotifier != nil {
+		p.podNotifier(pod)
+	}
 	return nil
 }
 
@@ -615,7 +617,6 @@ func (p *InstanceProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 		klog.Errorf("CreatePod %q: %v", pod.Name, err)
 		return err
 	}
-	p.podNotifier(pod)
 	return nil
 }
 
@@ -639,7 +640,6 @@ func (p *InstanceProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 		klog.Errorf("UpdatePod %q: %v", pod.Name, err)
 		return err
 	}
-	p.podNotifier(pod)
 	return nil
 }
 
@@ -663,7 +663,6 @@ func (p *InstanceProvider) DeletePod(ctx context.Context, pod *v1.Pod) (err erro
 		klog.Errorf("DeletePod %q: %v", pod.Name, err)
 		return err
 	}
-	p.podNotifier(pod)
 	return nil
 }
 

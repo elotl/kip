@@ -906,7 +906,7 @@
   revision = "c0381df9dbcd89a25594f53d49478f9cd97657ce"
 
 [[projects]]
-  digest = "1:ee29cb0ae9cc471817ddfdf0173e8706a8ec227f140c33e30634503917915ced"
+  digest = "1:0040952be0fb9f9105196a492c940071c8700c3d41c62e82a8d2f65e29d3e35a"
   name = "github.com/virtual-kubelet/virtual-kubelet"
   packages = [
     "errdefs",
@@ -918,8 +918,7 @@
     "trace/opencensus",
   ]
   pruneopts = "UT"
-  revision = "e6e1dbed870de9c9716ac8309eeec11b9ea67ebd"
-  version = "v1.2.1"
+  revision = "8fc8b69d8f532e4a613ddd147ac283b7f26d0344"
 
 [[projects]]
   digest = "1:36775a135c00ff94c2ab9d4de842ae9bf95f45d2159ade2b033f3ecbafa69423"
