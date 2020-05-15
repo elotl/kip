@@ -6,6 +6,7 @@ The Terraform config here can be used to provision a simple test cluster with Ki
 
 You need:
 * a GCP account configured and the necessary services enabled
+* kubectl >= 1.14
 * Terraform >= 0.12
 
 Create an overlay for deploying Kip:
