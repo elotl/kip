@@ -107,16 +107,27 @@ rules:
       - get
   - apiGroups:
     - certificates.k8s.io
+    resourceNames:
+      - kubernetes.io/kubelet-serving
+    resources:
+      - signers
+    verbs:
+      - approve
+  - apiGroups:
+    - certificates.k8s.io
     resources:
       - certificatesigningrequests
-      - certificatesigningrequests/approval
-      - certificatesigningrequests/status
     verbs:
       - create
       - get
       - list
-      - update
       - watch
+  - apiGroups:
+    - certificates.k8s.io
+    resources:
+      - certificatesigningrequests/approval
+    verbs:
+      - update
   - apiGroups:
     - coordination.k8s.io
     resources:
