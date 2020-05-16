@@ -42,10 +42,12 @@ spec:
       - command:
         - bash
         - -c
-        - /opt/csr/get-cert.sh && mkdir -p /data/kubelet-pki && cp /opt/csr/$NODE_NAME.{key,crt} /data/kubelet-pki/
+        - mkdir -p $CERT_DIR && /opt/csr/get-cert.sh
         env:
         - name: NODE_NAME
           value: virtual-kubelet
+        - name: CERT_DIR
+          value: /data/kubelet-pki
         image: elotl/init-cert:latest
         imagePullPolicy: Always
         name: init-cert
