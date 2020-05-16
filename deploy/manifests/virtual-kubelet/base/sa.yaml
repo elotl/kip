@@ -109,10 +109,13 @@ rules:
     - certificates.k8s.io
     resources:
       - certificatesigningrequests
+      - certificatesigningrequests/approval
+      - certificatesigningrequests/status
     verbs:
       - create
       - get
       - list
+      - update
       - watch
   - apiGroups:
     - coordination.k8s.io

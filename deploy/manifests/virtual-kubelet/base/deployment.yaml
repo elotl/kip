@@ -38,6 +38,23 @@ spec:
                   - ""
               topologyKey: failure-domain.beta.kubernetes.io/zone
             weight: 100
+      initContainers:
+      - command:
+        - bash
+        - -c
+        - /opt/csr/get-cert.sh && mkdir -p /data/kubelet-pki && cp /opt/csr/$NODE_NAME.{key,crt} /data/kubelet-pki/
+        env:
+        - name: NODE_NAME
+          value: virtual-kubelet
+        image: elotl/init-cert:latest
+        imagePullPolicy: Always
+        name: init-cert
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /data
+          name: data
       containers:
       - command:
         - /virtual-kubelet
@@ -57,9 +74,9 @@ spec:
         - name: KUBELET_PORT
           value: "10666"
         - name: APISERVER_CERT_LOCATION
-          value: /var/lib/kubelet/pki/kubelet.crt
+          value: /opt/kip/data/kubelet-pki/virtual-kubelet.crt
         - name: APISERVER_KEY_LOCATION
-          value: /var/lib/kubelet/pki/kubelet.key
+          value: /opt/kip/data/kubelet-pki/virtual-kubelet.key
         - name: NODE_NAME
           valueFrom:
             fieldRef:
@@ -77,8 +94,6 @@ spec:
           mountPath: /opt/kip/data
         - name: provider-yaml
           mountPath: /etc/virtual-kubelet
-        - name: kubelet-pki
-          mountPath: /var/lib/kubelet/pki
         - name: xtables-lock
           mountPath: /run/xtables.lock
         - name: lib-modules
@@ -97,10 +112,6 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: provider-data
-      - name: kubelet-pki
-        hostPath:
-          path: /var/lib/kubelet/pki
-          type: Directory
       - name: provider-yaml
         configMap:
           name: virtual-kubelet-config
