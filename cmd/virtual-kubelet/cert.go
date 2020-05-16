@@ -29,6 +29,7 @@ func ensureCert(hostName, certFile, keyFile string, ips []net.IP) error {
 	ok, err := certutil.CanReadCertAndKey(certFile, keyFile)
 	if ok {
 		klog.V(2).Infof("found server cert %q and key %q", certFile, keyFile)
+		return nil
 	}
 	if err != nil {
 		klog.Warningf(
