@@ -47,7 +47,7 @@ var (
 	HealthyTimeout      time.Duration = 90 * time.Second
 	HealthcheckPause    time.Duration = 5 * time.Second
 	SpotRequestPause    time.Duration = 60 * time.Second
-	BootImage           string        = ""
+	BootImage           cloud.Image   = cloud.Image{}
 	MaxBootPerIteration int           = 10
 	itzoDir             string        = "/tmp/itzo"
 )
@@ -152,25 +152,25 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 	}
 
 	// If we can't get the boot image, just use the old value for the image
-	newBootImage, err := c.imageSpecToID(c.BootImageSpec)
+	newBootImage, err := c.imageSpecToImage(c.BootImageSpec)
 	if err != nil {
-		if BootImage == "" {
+		if BootImage.ID == "" {
 			return nil, util.WrapError(err, "Could not get latest boot image")
 		} else {
-			klog.Warningf("Could not get latest boot image: %s, using stored value for boot image: %s", err, BootImage)
+			klog.Warningf("Could not get latest boot image: %s, using stored value for boot image: %v", err, BootImage)
 			newBootImage = BootImage
 		}
 	}
 	BootImage = newBootImage
 
-	if BootImage == "" {
+	if BootImage.ID == "" {
 		return nil, fmt.Errorf("can not create create new nodes: empty value for machine image.  Please ensure boot image spec maps to a machine image: %v", c.BootImageSpec)
 	}
 	startNodes, stopNodes, podNodeMap := c.NodeScaler.Compute(nodes.Items, pods.Items)
 	if podNodeMap == nil {
 		return nil, fmt.Errorf("Error computing new node pools, this is likely a problem with the DB. Not updating pod-node bindings")
 	}
-	c.startNodes(startNodes)
+	c.startNodes(startNodes, BootImage)
 	for _, node := range stopNodes {
 		err := c.stopSingleNode(node)
 		if err != nil {
@@ -225,7 +225,7 @@ func (c *NodeController) getCloudInitContents() (string, error) {
 	return metadata, nil
 }
 
-func (c *NodeController) startNodes(nodes []*api.Node) {
+func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
 	if len(nodes) <= 0 {
 		return
 	}
@@ -252,7 +252,7 @@ func (c *NodeController) startNodes(nodes []*api.Node) {
 			klog.Errorf("Error creating node in registry: %v", err)
 			continue
 		}
-		go c.startSingleNode(newNode, metadata)
+		go c.startSingleNode(newNode, image, metadata)
 	}
 }
 
@@ -274,15 +274,15 @@ func (c *NodeController) handleStartNodeError(node *api.Node, err error, isSpot 
 	}
 }
 
-func (c *NodeController) startSingleNode(node *api.Node, cloudInitData string) error {
+func (c *NodeController) startSingleNode(node *api.Node, image cloud.Image, cloudInitData string) error {
 	var (
 		startResult *cloud.StartNodeResult
 		err         error
 	)
 	if node.Spec.Spot {
-		startResult, err = c.CloudClient.StartSpotNode(node, cloudInitData)
+		startResult, err = c.CloudClient.StartSpotNode(node, image, cloudInitData)
 	} else {
-		startResult, err = c.CloudClient.StartNode(node, cloudInitData)
+		startResult, err = c.CloudClient.StartNode(node, image, cloudInitData)
 	}
 	if err != nil {
 		c.handleStartNodeError(node, err, false)
@@ -710,25 +710,25 @@ func (c *NodeController) requestNode(nodeReq NodeRequest, podNodeMapping map[str
 	}
 }
 
-func (c *NodeController) imageSpecToID(spec cloud.BootImageSpec) (string, error) {
-	img := ""
+func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (cloud.Image, error) {
+	var img cloud.Image
 	obj, exists := c.ImageIdCache.Get(spec.String())
 	if obj != nil {
-		img = obj.(string)
+		img = obj.(cloud.Image)
 	}
-	if !exists || img == "" {
+	if !exists || img.ID == "" {
 		var err error
-		img, err = c.CloudClient.GetImageID(spec)
+		img, err = c.CloudClient.GetImage(spec)
 		if err != nil {
 			klog.Errorf("resolving image spec %v to image ID: %v",
 				spec, err)
-			return "", err
+			return img, err
 		}
 		c.ImageIdCache.Add(spec.String(), img, 5*time.Minute,
 			func(obj interface{}) {
-				_, _ = c.imageSpecToID(spec)
+				_, _ = c.imageSpecToImage(spec)
 			})
-		klog.V(2).Infof("latest image for spec %v: '%s'", spec, img)
+		klog.V(2).Infof("latest image for spec %v: %v", spec, img)
 	}
 	return img, nil
 }

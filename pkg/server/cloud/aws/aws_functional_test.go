@@ -33,6 +33,7 @@ const (
 	vpcID            = "vpc-841834e2"
 	defaultSubnetID  = "subnet-12a8a13f"
 	imageAmi         = "ami-e2dea19d"
+	rootDevice       = "xvda" // Update if imageAmi is changed.
 	instanceType     = "t2.nano"
 )
 
@@ -78,7 +79,7 @@ func TestAWSCloud(t *testing.T) {
 	subnetID := defaultSubnetID
 	c, err := NewEC2Client(controllerID, controllerID, vpcID, subnetID, "")
 	assert.Nil(t, err)
-	ts, err := functional.SetupCloudFunctionalTest(t, c, imageAmi, instanceType)
+	ts, err := functional.SetupCloudFunctionalTest(t, c, imageAmi, rootDevice, instanceType)
 	if err != nil {
 		assert.FailNow(t, "Failed to setup functional test: %s", err.Error())
 	}
@@ -87,6 +88,6 @@ func TestAWSCloud(t *testing.T) {
 		functional.ContainerAuthTest(t, ts.CloudClient)
 	})
 	t.Run("BootSpotInstanceTest", func(t *testing.T) {
-		functional.RunSpotInstanceTest(t, ts.CloudClient, imageAmi)
+		functional.RunSpotInstanceTest(t, ts.CloudClient, imageAmi, rootDevice)
 	})
 }

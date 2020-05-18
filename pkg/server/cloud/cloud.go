@@ -42,8 +42,8 @@ const PodNameTagKey = "KipPodName"
 type CloudClient interface {
 	SetBootSecurityGroupIDs([]string)
 	GetBootSecurityGroupIDs() []string
-	StartNode(*api.Node, string) (*StartNodeResult, error)
-	StartSpotNode(*api.Node, string) (*StartNodeResult, error)
+	StartNode(*api.Node, Image, string) (*StartNodeResult, error)
+	StartSpotNode(*api.Node, Image, string) (*StartNodeResult, error)
 	// This should always be called from a goroutine as it can take a while
 	StopInstance(instanceID string) error
 	WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
@@ -54,7 +54,7 @@ type CloudClient interface {
 	ListInstances() ([]CloudInstance, error)
 	ResizeVolume(node *api.Node, size int64) (error, bool)
 	GetRegistryAuth() (string, string, error)
-	GetImageID(spec BootImageSpec) (string, error)
+	GetImage(spec BootImageSpec) (Image, error)
 	SetSustainedCPU(*api.Node, bool) error
 	AddInstanceTags(string, map[string]string) error
 	ConnectWithPublicIPs() bool
@@ -115,6 +115,7 @@ type SubnetAttributes struct {
 type Image struct {
 	ID           string
 	Name         string
+	RootDevice   string
 	CreationTime *time.Time
 }
 

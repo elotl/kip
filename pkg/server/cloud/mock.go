@@ -33,14 +33,14 @@ type MockCloudClient struct {
 	VPCCIDRs     []string
 	Subnets      []SubnetAttributes
 
-	Starter             func(node *api.Node, metadata string) (*StartNodeResult, error)
-	SpotStarter         func(node *api.Node, metadata string) (*StartNodeResult, error)
+	Starter             func(node *api.Node, image Image, metadata string) (*StartNodeResult, error)
+	SpotStarter         func(node *api.Node, image Image, metadata string) (*StartNodeResult, error)
 	Stopper             func(instanceID string) error
 	Waiter              func(node *api.Node) ([]api.NetworkAddress, error)
 	Lister              func() ([]CloudInstance, error)
 	Resizer             func(node *api.Node, size int64) (error, bool)
 	ContainerAuthorizer func() (string, string, error)
-	ImageIDGetter       func(BootImageSpec) (string, error)
+	ImageGetter         func(BootImageSpec) (Image, error)
 
 	InstanceListerFilter func([]string) ([]CloudInstance, error)
 	InstanceLister       func() ([]CloudInstance, error)
@@ -73,12 +73,12 @@ func (m *MockCloudClient) GetBootSecurityGroupIDs() []string {
 	return nil
 }
 
-func (m *MockCloudClient) StartNode(node *api.Node, metadata string) (*StartNodeResult, error) {
-	return m.Starter(node, metadata)
+func (m *MockCloudClient) StartNode(node *api.Node, image Image, metadata string) (*StartNodeResult, error) {
+	return m.Starter(node, image, metadata)
 }
 
-func (m *MockCloudClient) StartSpotNode(node *api.Node, metadata string) (*StartNodeResult, error) {
-	return m.SpotStarter(node, metadata)
+func (m *MockCloudClient) StartSpotNode(node *api.Node, image Image, metadata string) (*StartNodeResult, error) {
+	return m.SpotStarter(node, image, metadata)
 }
 
 func (m *MockCloudClient) StopInstance(instanceID string) error {
@@ -97,8 +97,8 @@ func (m *MockCloudClient) GetRegistryAuth() (string, string, error) {
 	return m.ContainerAuthorizer()
 }
 
-func (m *MockCloudClient) GetImageID(spec BootImageSpec) (string, error) {
-	return m.ImageIDGetter(spec)
+func (m *MockCloudClient) GetImage(spec BootImageSpec) (Image, error) {
+	return m.ImageGetter(spec)
 }
 
 func (m *MockCloudClient) SetSustainedCPU(n *api.Node, enabled bool) error {
@@ -336,7 +336,7 @@ func NewMockClient() *MockCloudClient {
 		return status
 	}
 
-	net.Starter = func(node *api.Node, metadata string) (*StartNodeResult, error) {
+	net.Starter = func(node *api.Node, image Image, metadata string) (*StartNodeResult, error) {
 		inst := CloudInstance{
 			ID:       node.Status.InstanceID,
 			NodeName: node.Name,

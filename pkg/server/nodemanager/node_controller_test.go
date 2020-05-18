@@ -59,12 +59,12 @@ func FakeLister() ([]cloud.CloudInstance, error) {
 	return nil, nil
 }
 
-func StartReturnsOK(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
+func StartReturnsOK(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
 	result := &cloud.StartNodeResult{"instID", "us-east-1a"}
 	return result, nil
 }
 
-func StartFails(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
+func StartFails(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
 	return nil, fmt.Errorf("Testing, purposefully returning error")
 }
 
@@ -94,8 +94,11 @@ func MakeNodeController() (*NodeController, func()) {
 		Waiter:       ReturnAddresses,
 		RouteRemover: StringStringReturnNil,
 	}
+	defaultBootImage := cloud.Image{
+		ID: defaultBootImageID,
+	}
 	imageIdCache := timeoutmap.New(false, make(chan struct{}))
-	imageIdCache.Add(defaultBootImageSpec.String(), defaultBootImageID, 5*time.Minute, timeoutmap.Noop)
+	imageIdCache.Add(defaultBootImageSpec.String(), defaultBootImage, 5*time.Minute, timeoutmap.Noop)
 	fakeCertFactory, _ := certs.NewFake()
 	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
 	ciFile, _ := cloudinitfile.New("")
@@ -188,7 +191,7 @@ func StartAFewNodes(t *testing.T, numNodes int, spotNode bool) {
 		}
 		startNodes = append(startNodes, node)
 	}
-	ctl.startNodes(startNodes)
+	ctl.startNodes(startNodes, cloud.Image{})
 	// starting happens in a goroutine so we'll sleep here
 	time.Sleep(1 * time.Second)
 	nodes, err := ctl.NodeRegistry.ListNodes(registry.MatchAllNodes)
@@ -218,7 +221,7 @@ func TestStartNodeHealthcheckFails(t *testing.T) {
 	ctl.NodeClientFactory.(*nodeclient.MockItzoClientFactory).Health = func() error {
 		return fmt.Errorf("fail")
 	}
-	ctl.startNodes([]*api.Node{api.GetFakeNode()})
+	ctl.startNodes([]*api.Node{api.GetFakeNode()}, cloud.Image{})
 	time.Sleep(1 * time.Second)
 	nodes, err := ctl.NodeRegistry.ListAllNodes(registry.MatchAllNodes)
 	assert.Nil(t, err)
@@ -235,7 +238,7 @@ func TestStartNodeFails(t *testing.T) {
 	ctl.CloudClient = &cloud.MockCloudClient{
 		Starter: StartFails,
 	}
-	ctl.startNodes([]*api.Node{api.GetFakeNode()})
+	ctl.startNodes([]*api.Node{api.GetFakeNode()}, cloud.Image{})
 	time.Sleep(1 * time.Second)
 	nodes, err := ctl.NodeRegistry.ListAllNodes(registry.MatchAllNodes)
 	assert.Nil(t, err)
@@ -332,8 +335,8 @@ func TestBufferingAndDispatchingTogether(t *testing.T) {
 		SpotStarter: StartReturnsOK,
 		Stopper:     ReturnNil,
 		Waiter:      ReturnAddresses,
-		ImageIDGetter: func(spec cloud.BootImageSpec) (string, error) {
-			return "", nil
+		ImageGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
+			return cloud.Image{}, nil
 		},
 	}
 	pod := api.GetFakePod()
@@ -534,7 +537,7 @@ func TestRemovePodFromNode(t *testing.T) {
 	//todo
 }
 
-func TestImageSpecToID(t *testing.T) {
+func TestImageSpecToImage(t *testing.T) {
 	ctl, closer := MakeNodeController()
 	defer closer()
 	ctl.CloudClient = &cloud.MockCloudClient{
@@ -542,22 +545,26 @@ func TestImageSpecToID(t *testing.T) {
 		SpotStarter: StartReturnsOK,
 		Stopper:     ReturnNil,
 		Waiter:      ReturnAddresses,
-		ImageIDGetter: func(spec cloud.BootImageSpec) (string, error) {
-			return "my-image-id", nil
+		ImageGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
+			return cloud.Image{
+				ID:         "my-image-id",
+				Name:       "my-image-name",
+				RootDevice: "/dev/rootdev0",
+			}, nil
 		},
 	}
-	img, err := ctl.imageSpecToID(defaultBootImageSpec)
+	img, err := ctl.imageSpecToImage(defaultBootImageSpec)
 	assert.Nil(t, err)
-	assert.Equal(t, defaultBootImageID, img)
+	assert.Equal(t, defaultBootImageID, img.ID)
 	spec := cloud.BootImageSpec{
 		"name": "my-name-*",
 	}
-	img, err = ctl.imageSpecToID(spec)
+	img, err = ctl.imageSpecToImage(spec)
 	assert.Nil(t, err)
-	assert.Equal(t, "my-image-id", img)
+	assert.Equal(t, "my-image-id", img.ID)
 }
 
-func TestImageSpecToIDFailure(t *testing.T) {
+func TestImageSpecToImageFailure(t *testing.T) {
 	t.Parallel()
 	ctl, closer := MakeNodeController()
 	defer closer()
@@ -566,14 +573,14 @@ func TestImageSpecToIDFailure(t *testing.T) {
 		SpotStarter: StartReturnsOK,
 		Stopper:     ReturnNil,
 		Waiter:      ReturnAddresses,
-		ImageIDGetter: func(spec cloud.BootImageSpec) (string, error) {
-			return "", fmt.Errorf("Testing GetImageID() failure")
+		ImageGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
+			return cloud.Image{}, fmt.Errorf("Testing GetImage() failure")
 		},
 	}
 	spec := cloud.BootImageSpec{
 		"name": "my-name-*",
 	}
-	_, err := ctl.imageSpecToID(spec)
+	_, err := ctl.imageSpecToImage(spec)
 	assert.NotNil(t, err)
 }
 
@@ -618,8 +625,8 @@ func TestDoPoolsCalculation(t *testing.T) {
 		Stopper:      ReturnNil,
 		Waiter:       ReturnAddresses,
 		RouteRemover: StringStringReturnNil,
-		ImageIDGetter: func(spec cloud.BootImageSpec) (string, error) {
-			return "", nil
+		ImageGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
+			return cloud.Image{}, nil
 		},
 	}
 	// we create a new pod that needs a node and a node that
