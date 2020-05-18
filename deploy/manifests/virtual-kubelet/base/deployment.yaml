@@ -49,8 +49,8 @@ spec:
         - kube-system/vk-network-agent
         - --disable-taint
         - --klog.logtostderr
-        - --klog.v=5
-        image: elotl/virtual-kubelet:dev
+        - --klog.v=2
+        image: elotl/virtual-kubelet:latest
         imagePullPolicy: Always
         name: virtual-kubelet
         env:

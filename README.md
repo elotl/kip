@@ -117,8 +117,6 @@ If you deployed Kip in an existing cluster, make sure that you first remove all 
     - Lifecycle handlers
     - TerminationGracePeriodSeconds
     - ActiveDeadlineSeconds
-    - Subdomain
-    - HostAliases
     - VolumeDevices
     - TerminationMessagePolicy FallbackToLogsOnError is not implemented
     - The following PodSecurityContext fields
