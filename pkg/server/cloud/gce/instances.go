@@ -141,6 +141,21 @@ func (c *gceClient) createInstanceSpec(node *api.Node, metadata string) (*comput
 		return nil, util.WrapError(err, "Could not decode metadata string")
 	}
 	mds := string(md)
+	// disableIPAliases disables IP alias issues from the google network daemon
+	disableIPAliases := `#!/bin/bash
+    readonly inst_cfg_file="/etc/default/instance_configs.cfg.template"
+
+    if [[ ! -f "$inst_cfg_file" ]]; then
+        touch "$inst_cfg_file"
+    fi
+
+cat << EOF >> "$inst_cfg_file"
+[IpForwarding]
+ip_aliases = false
+EOF
+
+    $(/usr/bin/google_instance_setup)
+    `
 	name := makeInstanceID(c.controllerID, node.Name)
 	diskType := c.getDiskTypeURL()
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
@@ -162,6 +177,10 @@ func (c *gceClient) createInstanceSpec(node *api.Node, metadata string) (*comput
 				{
 					Key:   "user-data",
 					Value: &mds,
+				},
+				{
+					Key:   "startup-script",
+					Value: &disableIPAliases,
 				},
 			},
 		},
