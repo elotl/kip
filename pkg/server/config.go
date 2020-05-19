@@ -539,11 +539,11 @@ func validateServerConfigFile(cf *ServerConfigFile) field.ErrorList {
 }
 
 func validateBootImageSpec(spec cloud.BootImageSpec, cloudClient cloud.CloudClient) error {
-	img, err := cloudClient.GetImageID(spec)
+	img, err := cloudClient.GetImage(spec)
 	if err != nil {
 		return util.WrapError(err, "could not get machine image for %v", spec)
 	}
-	if img == "" {
+	if img.ID == "" {
 		return fmt.Errorf("could not find machine image for %v", spec)
 	}
 	return nil
