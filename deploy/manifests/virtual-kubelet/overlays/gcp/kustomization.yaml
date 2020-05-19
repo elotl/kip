@@ -1,0 +1,8 @@
+bases:
+- ../../base
+configMapGenerator:
+- name: virtual-kubelet-config
+  namespace: kube-system
+  behavior: merge
+  files:
+  - provider.yaml

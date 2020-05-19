@@ -28,6 +28,7 @@ import (
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/server/cloud/aws"
 	"github.com/elotl/kip/pkg/server/cloud/azure"
+	"github.com/elotl/kip/pkg/server/cloud/gce"
 	"github.com/elotl/kip/pkg/server/nodemanager"
 	"github.com/elotl/kip/pkg/util"
 	vutil "github.com/elotl/kip/pkg/util/validation"
@@ -97,7 +98,17 @@ type AzureConfig struct {
 }
 
 type GCEConfig struct {
-	// Someday!
+	ProjectID       string          `json:"projectID"`
+	CredentialsFile string          `json:"credentialsFile,omitempty"`
+	Credentials     *GCECredentials `json:"credentials,omitempty"`
+	Zone            string          `json:"zone,omitempty"`
+	VPCName         string          `json:"vpcName,omitempty"`
+	SubnetName      string          `json:"subnetName,omitempty"`
+}
+
+type GCECredentials struct {
+	ClientEmail string `json:"clientEmail"`
+	PrivateKey  string `json:"privateKey"`
 }
 
 type EtcdConfig struct {
@@ -246,8 +257,18 @@ func setupAzureEnvVars(c *AzureConfig) error {
 func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) (cloud.CloudClient, error) {
 	// see which cloud is non-null, take first
 	cc := cf.Cloud
-	if cc.AWS != nil && cc.Azure != nil {
-		return nil, fmt.Errorf("Multiple clouds configured in provider.yaml")
+	numClouds := 0
+	if cc.AWS != nil {
+		numClouds++
+	}
+	if cc.Azure != nil {
+		numClouds++
+	}
+	if cc.GCE != nil {
+		numClouds++
+	}
+	if numClouds > 1 {
+		return nil, fmt.Errorf("Multiple clouds configured in cloud section of provider.yaml")
 	}
 	if cc.AWS != nil {
 		errs := validateAWSConfig(cc.AWS)
@@ -297,6 +318,27 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 		)
 		if err != nil {
 			return nil, util.WrapError(err, "Error creating Azure cloud client")
+		}
+		return client, nil
+	} else if cc.GCE != nil {
+		errs := validateGCEConfig(cc.GCE)
+		if len(errs) > 0 {
+			err := fmt.Errorf("Invalid GCE Cloud Config: %v", errs.ToAggregate())
+			return nil, err
+		}
+		options := make([]gce.ClientOption, 0, 4)
+		options = append(options, gce.WithZone(cc.GCE.Zone))
+		options = append(options, gce.WithVPCName(cc.GCE.VPCName))
+		options = append(options, gce.WithSubnetName(cc.GCE.SubnetName))
+		if cc.GCE.CredentialsFile != "" {
+			options = append(options, gce.WithCredentialsFile(cc.GCE.CredentialsFile))
+		}
+		if cc.GCE.Credentials != nil {
+			options = append(options, gce.WithCredentials(cc.GCE.Credentials.ClientEmail, cc.GCE.Credentials.PrivateKey))
+		}
+		client, err := gce.NewGCEClient(controllerID, nametag, cc.GCE.ProjectID, options...)
+		if err != nil {
+			return nil, util.WrapError(err, "Error creating GCE cloud client")
 		}
 		return client, nil
 	} else {
@@ -423,6 +465,18 @@ func validateAzureConfig(cf *AzureConfig) field.ErrorList {
 		allErrs = append(allErrs, field.Required(fldPath.Child("clientSecret"), "clientSecret must be set in provider.yaml or pulled from the environment"))
 	}
 
+	return allErrs
+}
+
+func validateGCEConfig(cf *GCEConfig) field.ErrorList {
+	allErrs := field.ErrorList{}
+	fldPath := field.NewPath("cloud.gce")
+	if cf.CredentialsFile != "" && cf.Credentials != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath, "Multiple credential sources specified", "please specify ONE of credentialsFile or credentials structure"))
+	}
+	if cf.CredentialsFile != "" {
+		allErrs = append(allErrs, validation.ValidateFileExists(cf.CredentialsFile, fldPath.Child("credentialsFile"))...)
+	}
 	return allErrs
 }
 

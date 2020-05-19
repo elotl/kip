@@ -32,7 +32,9 @@ $(TOP_DIR)pkg/clientapi/clientapi.pb.go: $(TOP_DIR)pkg/clientapi/clientapi.proto
 	protoc -I=$(TOP_DIR) --go_out=plugins=grpc:. $(TOP_DIR)pkg/clientapi/clientapi.proto
 
 $(TOP_DIR)pkg/api/deepcopy_generated.go: $(TOP_DIR)pkg/api/types.go
-	deepcopy-gen --input-dirs=github.com/elotl/kip/pkg/api
+	deepcopy-gen \
+		--input-dirs=github.com/elotl/kip/pkg/api \
+		--go-header-file $(TOP_DIR)scripts/boilerplate.go.txt
 
 # kipctl is compiled staticly so it'll run on pods
 kipctl: $(PKG_SRC) $(VENDOR_SRC) $(KIPCTL_SRC)

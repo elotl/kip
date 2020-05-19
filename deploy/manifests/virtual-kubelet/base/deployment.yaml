@@ -57,9 +57,9 @@ spec:
         - name: KUBELET_PORT
           value: "10666"
         - name: APISERVER_CERT_LOCATION
-          value: /etc/kubelet-pki/kubelet.crt
+          value: /var/lib/kubelet/pki/kubelet.crt
         - name: APISERVER_KEY_LOCATION
-          value: /etc/kubelet-pki/kubelet.key
+          value: /var/lib/kubelet/pki/kubelet.key
         - name: NODE_NAME
           valueFrom:
             fieldRef:
@@ -78,7 +78,7 @@ spec:
         - name: provider-yaml
           mountPath: /etc/virtual-kubelet
         - name: kubelet-pki
-          mountPath: /etc/kubelet-pki
+          mountPath: /var/lib/kubelet/pki
         - name: xtables-lock
           mountPath: /run/xtables.lock
         - name: lib-modules

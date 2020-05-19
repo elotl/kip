@@ -71,11 +71,11 @@ type CloudClient interface {
 }
 
 type CloudAttributes struct {
-	DiskProductName           api.StorageType
-	FixedSizeVolume           bool
-	MaxInstanceSecurityGroups int
-	Provider                  string
-	Region                    string
+	DiskProductName api.StorageType
+	FixedSizeVolume bool
+	Provider        string
+	Region          string
+	Zone            string
 }
 
 type StartNodeResult struct {

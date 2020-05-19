@@ -209,11 +209,10 @@ func (c *AwsEC2) GetVPCCIDRs() []string {
 
 func (m *AwsEC2) GetAttributes() cloud.CloudAttributes {
 	return cloud.CloudAttributes{
-		DiskProductName:           api.StorageGP2,
-		MaxInstanceSecurityGroups: 5,
-		FixedSizeVolume:           false,
-		Provider:                  cloud.ProviderAWS,
-		Region:                    m.region,
+		DiskProductName: api.StorageGP2,
+		FixedSizeVolume: false,
+		Provider:        cloud.ProviderAWS,
+		Region:          m.region,
 	}
 }
 

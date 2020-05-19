@@ -28,7 +28,7 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd "${SCRIPT_ROOT}"; ls -d -1 ./vendor/k8s.io/code-
 # dropped.
 
 "${CODEGEN_PKG}"/generate-groups.sh "deepcopy,client,informer,lister" \
-  github.com/elotl/cloud-instance-provider/pkg/k8sclient github.com/elotl/cloud-instance-provider/pkg/apis \
+  github.com/elotl/kip/pkg/k8sclient github.com/elotl/kip/pkg/apis \
   kip:v1beta1 \
   --go-header-file "${SCRIPT_ROOT}"/scripts/boilerplate.go.txt
   # --output-base "$(dirname "${BASH_SOURCE[0]}")/../../../../.."

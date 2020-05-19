@@ -17,6 +17,8 @@ package main
 
 import (
 	"context"
+	"net"
+	"os"
 	"strings"
 
 	"github.com/elotl/kip/pkg/klog"
@@ -37,6 +39,22 @@ var (
 	buildTime    = "N/A"
 	k8sVersion   = "v1.17.0" // This should follow the version of k8s.io/kubernetes we are importing
 )
+
+func getInternalIP() string {
+	internalIP := os.Getenv("VKUBELET_POD_IP")
+	if internalIP != "" {
+		return internalIP
+	}
+	internalIP = habitat.GetMyIP()
+	if internalIP != "" {
+		return internalIP
+	}
+	ips := habitat.GetIPAddresses()
+	if len(ips) > 0 {
+		return ips[0]
+	}
+	return ""
+}
 
 func main() {
 	ctx := cli.ContextWithCancelOnSignal(context.Background())
@@ -60,22 +78,23 @@ func main() {
 	o.Version = strings.Join([]string{k8sVersion, "vk", buildVersion}, "-")
 	o.PodSyncWorkers = 10
 
+	internalIP := getInternalIP()
+	if internalIP == "" {
+		log.G(ctx).Fatal("unable to determine internal IP address")
+	}
+
+	cert := os.Getenv("APISERVER_CERT_LOCATION")
+	key := os.Getenv("APISERVER_KEY_LOCATION")
+	ips := []net.IP{net.ParseIP(internalIP)}
+	if err := ensureCert(o.NodeName, cert, key, ips); err != nil {
+		log.G(ctx).Fatal(err)
+	}
+
 	node, err := cli.New(ctx,
 		cli.WithBaseOpts(o),
 		cli.WithCLIVersion(buildVersion, buildTime),
 		cli.WithProvider("kip",
 			func(cfg provider.InitConfig) (provider.Provider, error) {
-				internalIP := cfg.InternalIP
-				if internalIP == "" {
-					internalIP = habitat.GetMyIP()
-					if internalIP == "" {
-						ips := habitat.GetIPAddresses()
-						if len(ips) > 0 {
-							internalIP = ips[0]
-						}
-					}
-				}
-				log.G(ctx).Infof("node internal IP address: %q", internalIP)
 				serverURL := k8s.GetServerURL(o.KubeConfigPath)
 				if serverURL == "" {
 					log.G(ctx).Fatal("can't determine API server URL, " +
