@@ -215,7 +215,8 @@ func (c *gceClient) FindSecurityGroup(sgName string) (*cloud.SecurityGroup, erro
 	resp, err := c.service.Firewalls.Get(c.projectID, sgName).Context(ctx).Do()
 	if err != nil {
 		if isNotFoundError(err) {
-			return nil, nil
+			return nil, fmt.Errorf(
+				"Security group %s could not be found for project %s", sgName, c.projectID)
 		}
 		return nil, err
 	}
