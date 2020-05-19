@@ -237,13 +237,24 @@ func (c *gceClient) StartSpotNode(node *api.Node, image cloud.Image, metadata st
 }
 
 func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
+	start := time.Now()
+	eventualConsistencyTimeout := 30 * time.Second
 	for {
 		status, err := c.getInstanceStatus(node.Status.InstanceID)
 		if err != nil {
+			// We likely called this right after calling StartNode
+			// Allow for eventual consistency hickups
+			if isNotFoundError(err) &&
+				time.Since(start) < eventualConsistencyTimeout {
+				time.Sleep(5 * time.Second)
+				continue
+			}
 			klog.Errorf("Error waiting for instance to start: %v", err)
 			return nil, err
 		}
-
+		if time.Since(start) > waitForRunningTimeout {
+			return nil, fmt.Errorf("WaitForRunning timeout for instance %s after %s", node.Status.InstanceID, waitForRunningTimeout.String())
+		}
 		klog.V(5).Infof("status: %s", status)
 		if status == statusInstanceRunning {
 			break

@@ -1,7 +1,6 @@
 package gce
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -9,9 +8,11 @@ import (
 )
 
 func getGCE(t *testing.T, controllerID string) *gceClient {
-	err := os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "/home/bcox/google/milpa-207719-fb309bd448d5.json")
-	assert.NoError(t, err)
-	c, err := NewGCEClient(controllerID, "bcoxtest", "milpa-207719", WithVPCName("default"), WithZone("us-central1-a"), WithSubnetName("default"))
+	// to use this, set the env var GOOGLE_APPLICATION_CREDENTIALS
+	// to the path to your credentials file
+	// e.g.
+	// export GOOGLE_APPLICATION_CREDENTIALS = "/home/myuser/google/gce-project-fb308cd448d5.json"
+	c, err := NewGCEClient(controllerID, "manualTestCase", "milpa-207719", WithVPCName("default"), WithZone("us-central1-a"), WithSubnetName("default"))
 	assert.NoError(t, err)
 	return c
 }

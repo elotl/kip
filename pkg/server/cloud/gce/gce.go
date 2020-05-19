@@ -33,6 +33,7 @@ import (
 
 const (
 	defaultTimeout              = 20 * time.Second
+	waitForRunningTimeout       = 3 * time.Minute
 	controllerLabelKey          = "kip-controller-id"
 	nameLabelKey                = "name"
 	namespaceLabelKey           = "kip-namespace"
