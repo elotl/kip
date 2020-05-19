@@ -429,7 +429,7 @@ func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error 
 	return nil
 }
 
-func (c *gceClient) GetImageID(spec cloud.BootImageSpec) (string, error) {
+func (c *gceClient) GetImage(spec cloud.BootImageSpec) (string, error) {
 	project, ok := spec["project"]
 	if !ok {
 		return "", fmt.Errorf("project is a required boot image value. Please specify cells.bootImageSpec.project in provider.yaml")
