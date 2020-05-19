@@ -135,7 +135,7 @@ func (c *gceClient) getInstanceNetworkSpec(privateIPOnly bool) []*compute.Networ
 	return networkSpec
 }
 
-func (c *gceClient) createInstanceSpec(node *api.Node, metadata string) (*compute.Instance, error) {
+func (c *gceClient) createInstanceSpec(node *api.Node, image cloud.Image, metadata string) (*compute.Instance, error) {
 	md, err := base64.StdEncoding.DecodeString(metadata)
 	if err != nil {
 		return nil, util.WrapError(err, "Could not decode metadata string")
@@ -159,7 +159,7 @@ EOF
 	name := makeInstanceID(c.controllerID, node.Name)
 	diskType := c.getDiskTypeURL()
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
-	disks := c.getAttachedDiskSpec(true, int64(volSizeGiB), name, diskType, node.Spec.BootImage)
+	disks := c.getAttachedDiskSpec(true, int64(volSizeGiB), name, diskType, image.Name)
 	labels := c.getInstanceLabels(node.Name)
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	instanceType := c.getInstanceTypeURL(node.Spec.InstanceType)
@@ -198,9 +198,9 @@ EOF
 
 // this function handles the starting of both regular and spot type instances
 // it is called in the exported StartNode and StartSpotNode functions
-func (c *gceClient) startNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
+func (c *gceClient) startNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
-	spec, err := c.createInstanceSpec(node, metadata)
+	spec, err := c.createInstanceSpec(node, image, metadata)
 	if err != nil {
 		return nil, err
 	}
@@ -225,15 +225,15 @@ func (c *gceClient) startNode(node *api.Node, metadata string) (*cloud.StartNode
 	return startResult, nil
 }
 
-func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	return c.startNode(node, metadata)
+func (c *gceClient) StartNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
+	return c.startNode(node, image, metadata)
 }
 
 // In we dictate whether the node is a spot based on the node passed in
 // this is decided in createInstanceSpec which is called in the unexported
 // startNode function. StartSpotNode is necessary to fullfil the interface.
-func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	return c.startNode(node, metadata)
+func (c *gceClient) StartSpotNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
+	return c.startNode(node, image, metadata)
 }
 
 func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
@@ -429,25 +429,42 @@ func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error 
 	return nil
 }
 
-func (c *gceClient) GetImage(spec cloud.BootImageSpec) (string, error) {
+func (c *gceClient) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	project, ok := spec["project"]
 	if !ok {
-		return "", fmt.Errorf("project is a required boot image value. Please specify cells.bootImageSpec.project in provider.yaml")
+		return cloud.Image{}, fmt.Errorf(
+			"project is a required boot image value. Please specify cells.bootImageSpec.project in provider.yaml")
 	}
 	image, ok := spec["image"]
 	if !ok {
-		return "", fmt.Errorf("image is a required boot image value. Please specify cells.bootImageSpec.image in provider.yaml")
+		return cloud.Image{}, fmt.Errorf(
+			"image is a required boot image value. Please specify cells.bootImageSpec.image in provider.yaml")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	resp, err := c.service.Images.Get(project, image).Context(ctx).Do()
 	if err != nil {
-		return "", util.WrapError(err, "Error looking up boot image %s/%s", project, image)
+		return cloud.Image{}, util.WrapError(err, "Error looking up boot image %s/%s", project, image)
 	}
 	if resp == nil {
-		return "", nilResponseError("Images.Get")
+		return cloud.Image{}, nilResponseError("Images.Get")
 	}
-	return resp.SelfLink, nil
+	var creationTime *time.Time
+	if resp.CreationTimestamp != "" {
+		ts, err := time.Parse(time.RFC3339, resp.CreationTimestamp)
+		if err != nil {
+			klog.Warningf(
+				"invalid image creation date %s", resp.CreationTimestamp)
+		} else {
+			creationTime = &ts
+		}
+	}
+	return cloud.Image{
+		ID:           resp.Name,
+		Name:         resp.SelfLink,
+		RootDevice:   "",
+		CreationTime: creationTime,
+	}, nil
 }
 
 func (c *gceClient) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
