@@ -196,7 +196,9 @@ EOF
 	return spec, nil
 }
 
-func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
+// this function handles the starting of both regular and spot type instances
+// it is called in the exported StartNode and StartSpotNode functions
+func (c *gceClient) startNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	spec, err := c.createInstanceSpec(node, metadata)
 	if err != nil {
@@ -208,12 +210,12 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 	if err != nil {
 		return nil, util.WrapError(err, "startup error")
 	}
-	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
-		return nil, err
-	}
 	// Todo: catch and convert errors to notify us of
 	// out of capacity errors or invalid machine types
 	// see pkg/server/cloud/aws/instances.StartNode()
+	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
+		return nil, err
+	}
 	startResult := &cloud.StartNodeResult{
 		InstanceID:       spec.Name,
 		AvailabilityZone: c.zone,
@@ -221,29 +223,15 @@ func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNode
 	return startResult, nil
 }
 
+func (c *gceClient) StartNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
+	return c.startNode(node, metadata)
+}
+
+// In we dictate whether the node is a spot based on the node passed in
+// this is decided in createInstanceSpec which is called in the unexported
+// startNode function. StartSpotNode is necessary to fullfil the interface.
 func (c *gceClient) StartSpotNode(node *api.Node, metadata string) (*cloud.StartNodeResult, error) {
-	klog.V(2).Infof("Starting instance for node: %v", node)
-	spec, err := c.createInstanceSpec(node, metadata)
-	if err != nil {
-		return nil, err
-	}
-	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
-		c.bootSecurityGroupIDs, c.subnetName)
-	op, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
-	if err != nil {
-		return nil, util.WrapError(err, "startup error")
-	}
-	// Todo: catch and convert errors to notify us of
-	// out of capacity errors or invalid machine types
-	// see pkg/server/cloud/aws/instances.StartNode()
-	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
-		return nil, err
-	}
-	startResult := &cloud.StartNodeResult{
-		InstanceID:       spec.Name,
-		AvailabilityZone: c.zone,
-	}
-	return startResult, nil
+	return c.startNode(node, metadata)
 }
 
 func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
