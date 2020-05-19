@@ -91,7 +91,7 @@ func gceProtocolToKipProtocol(proto string) api.Protocol {
 		return api.ProtocolUDP
 	case "sctp":
 		return api.ProtocolSCTP
-	case "ICMP":
+	case "icmp":
 		return api.ProtocolICMP
 	}
 	return api.Protocol("")
