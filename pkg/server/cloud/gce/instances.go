@@ -206,7 +206,9 @@ func (c *gceClient) startNode(node *api.Node, metadata string) (*cloud.StartNode
 	}
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		c.bootSecurityGroupIDs, c.subnetName)
-	op, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Do()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	op, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Context(ctx).Do()
 	if err != nil {
 		return nil, util.WrapError(err, "startup error")
 	}
@@ -246,7 +248,7 @@ func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 		if status == statusInstanceRunning {
 			break
 		}
-		time.Sleep(10 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 	instance, err := c.getInstanceSpec(node.Status.InstanceID)
 	if err != nil {
@@ -289,7 +291,9 @@ func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 }
 
 func (c *gceClient) StopInstance(instanceID string) error {
-	op, err := c.service.Instances.Delete(c.projectID, c.zone, instanceID).Do()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	op, err := c.service.Instances.Delete(c.projectID, c.zone, instanceID).Context(ctx).Do()
 	if err != nil {
 		klog.Errorf("Error terminating instance: %v", err)
 		// todo, check on status of instance, set status of instance
