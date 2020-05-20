@@ -102,7 +102,7 @@ google-cloud-core==1.0.0
 google-cloud-storage==1.16.0
 google-resumable-media==0.3.2
 googleapis-common-protos==1.5.10
-httplib2==0.12.3
+httplib2==0.18.0
 idna==2.8
 ipaddress==1.0.22
 isodate==0.6.0
