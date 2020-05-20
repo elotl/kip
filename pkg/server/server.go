@@ -211,24 +211,29 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 
 	klog.V(2).Infof("ControllerID: %s", controllerID)
 
+	klog.V(5).Infof("creating cert factory")
 	certFactory, err := certs.New(etcdClient)
 	if err != nil {
 		return nil, fmt.Errorf("error setting up certificate factory: %v", err)
 	}
 
+	klog.V(5).Infof("configuring cloud client")
 	cloudClient, err := ConfigureCloud(serverConfigFile, controllerID, nametag)
 	if err != nil {
 		return nil, fmt.Errorf("error configuring cloud client: %v", err)
 	}
+	klog.V(5).Infof("ensuring cloud region is unchanged")
 	cloudRegion := cloudClient.GetAttributes().Region
 	err = ensureRegionUnchanged(etcdClient, cloudRegion)
 	if err != nil {
 		return nil, fmt.Errorf("error ensuring Kip region is unchanged: %v", err)
 	}
+	klog.V(5).Infof("creating internal client certificate")
 	clientCert, err := certFactory.CreateClientCert()
 	if err != nil {
 		return nil, fmt.Errorf("error creating node client certificate: %v", err)
 	}
+	klog.V(5).Infof("starting cloud status keeper")
 	cloudStatus := cloudClient.CloudStatusKeeper()
 	cloudStatus.Start()
 	statefulValidator := validation.NewStatefulValidator(
@@ -236,6 +241,8 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		cloudClient.GetAttributes().Provider,
 		cloudClient.GetVPCCIDRs(),
 	)
+
+	klog.V(5).Infof("setting up instance selector")
 	err = instanceselector.Setup(
 		cloudClient.GetAttributes().Provider,
 		cloudClient.GetAttributes().Region,
@@ -244,17 +251,19 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 	if err != nil {
 		return nil, fmt.Errorf("error setting up instance selector %s", err)
 	}
+
 	// Ugly: need to do validation of this field after we have setup
 	// the instanceselector
+	klog.V(5).Infof("validating default instance type")
 	errs = validation.ValidateInstanceType(serverConfigFile.Cells.DefaultInstanceType, field.NewPath("nodes.defaultInstanceType"))
 	if len(errs) > 0 {
 		return nil, fmt.Errorf("error validating provider.yaml: %v", errs.ToAggregate())
 	}
 
-	klog.V(2).Infof("setting up events")
+	klog.V(5).Infof("setting up events")
 	eventSystem := events.NewEventSystem(systemQuit, systemWG)
 
-	klog.V(2).Infof("setting up registry")
+	klog.V(5).Infof("setting up registry")
 	podRegistry := registry.NewPodRegistry(
 		etcdClient, api.VersioningCodec{}, eventSystem, statefulValidator)
 	nodeRegistry := registry.NewNodeRegistry(
@@ -272,22 +281,27 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		"Metric": metricsRegistry,
 	}
 
+	klog.V(5).Infof("creating DNS configurer")
 	dnsConfigurer, err := createDNSConfigurer(
 		nodeName, clusterDNS, clusterDomain, cloudClient, rm)
 	if err != nil {
 		return nil, util.WrapError(err, "creating DNS configurer")
 	}
 
+	klog.V(5).Infof("creating network agent kubeconfig")
 	networkAgentKubeconfig, err := createNetworkAgentKubeconfig(
 		nodeName, networkAgentSecret, serverURL, rm)
 	if err != nil {
 		return nil, util.WrapError(err, "creating network-agent kubeconfig")
 	}
 
+	klog.V(5).Infof("determining connectivity to cells")
 	connectWithPublicIPs := cloudClient.ConnectWithPublicIPs()
 	itzoClientFactory := nodeclient.NewItzoFactory(
 		&certFactory.Root, *clientCert, connectWithPublicIPs)
 	nodeDispenser := nodemanager.NewNodeDispenser()
+
+	klog.V(5).Infof("setting up health checks")
 	var healthChecker *healthcheck.HealthCheckController
 	if serverConfigFile.Cells.HealthCheck.CloudAPI != nil {
 		healthChecker = healthcheck.NewCloudAPIHealthChecker(
@@ -305,6 +319,8 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 			time.Duration(serverConfigFile.Cells.HealthCheck.Status.HealthyTimeout)*time.Second,
 		)
 	}
+
+	klog.V(5).Infof("creating pod controller")
 	podController := &PodController{
 		podRegistry:            podRegistry,
 		logRegistry:            logRegistry,
@@ -323,12 +339,18 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		statusInterval:         time.Duration(serverConfigFile.Cells.StatusInterval) * time.Second,
 		healthChecker:          healthChecker,
 	}
+
+	klog.V(5).Infof("creating image ID cache")
 	imageIdCache := timeoutmap.New(false, nil)
+
+	klog.V(5).Infof("checking cloud-init file")
 	cloudInitFile, err := cloudinitfile.New(serverConfigFile.Cells.CloudInitFile)
 	if err != nil {
 		return nil, fmt.Errorf("error in user supplied cloud-init file: %v", err)
 	}
 	fixedSizeVolume := cloudClient.GetAttributes().FixedSizeVolume
+
+	klog.V(5).Infof("creating node controller")
 	nodeController := &nodemanager.NodeController{
 		Config: nodemanager.NodeControllerConfig{
 			PoolInterval:      7 * time.Second,
@@ -357,6 +379,8 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		CloudStatus:        cloudStatus,
 		BootImageSpec:      serverConfigFile.Cells.BootImageSpec,
 	}
+
+	klog.V(5).Infof("creating garbage controller")
 	garbageController := &GarbageController{
 		config: GarbageControllerConfig{
 			CleanInstancesInterval:  60 * time.Second,
@@ -367,10 +391,14 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		cloudClient:  cloudClient,
 		controllerID: controllerID,
 	}
+
+	klog.V(5).Infof("creating metrics controller")
 	metricsController := &MetricsController{
 		metricsRegistry: metricsRegistry,
 		podLister:       podRegistry,
 	}
+
+	klog.V(5).Infof("configuring k8s client")
 	k8sKipClient, k8sRestConfig, err := ConfigureK8sKipClient()
 	if err != nil {
 		klog.Errorln("Error configuring kubernetes kip client", err)
@@ -378,6 +406,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		os.Exit(2)
 	}
 
+	klog.V(5).Infof("creating cell controller")
 	cellController, err := NewCellController(
 		controllerID,
 		nodeName,
@@ -392,6 +421,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		os.Exit(1)
 	}
 
+	klog.V(5).Infof("creating node status controller")
 	kubeletCapacity := v1.ResourceList{
 		"cpu":    serverConfigFile.Kubelet.CPU,
 		"memory": serverConfigFile.Kubelet.Memory,
@@ -414,6 +444,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 	}
 
 	if azClient, ok := cloudClient.(*azure.AzureClient); ok {
+		klog.V(5).Infof("creating azure image controller")
 		azureImageController := azure.NewImageController(
 			controllerID, serverConfigFile.Cells.BootImageSpec, azClient)
 		controllers["ImageController"] = azureImageController
@@ -433,34 +464,41 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		startTime:         time.Now(),
 		portManager:       portManager,
 	}
+
+	klog.V(5).Infof("registering internal event handlers")
 	eventSystem.RegisterHandler(events.PodRunning, s)
 	eventSystem.RegisterHandler(events.PodTerminated, s)
 	eventSystem.RegisterHandler(events.PodUpdated, s)
 	eventSystem.RegisterHandler(events.PodEjected, s)
 
+	klog.V(5).Infof("starting controller manager")
 	go controllerManager.Start()
 	go controllerManager.WaitForShutdown(systemQuit, systemWG)
 
 	controllerManager.StartControllers()
 
 	if ctrl, ok := controllers["ImageController"]; ok {
+		klog.V(5).Infof("starting azure image controller")
 		azureImageController := ctrl.(*azure.ImageController)
 		klog.V(2).Infof("downloading Milpa node image to local Azure subscription (this could take a few minutes)")
 		azureImageController.WaitForAvailable()
 	}
 
 	if debugServer {
+		klog.V(5).Infof("starting debug server")
 		if err := s.setupDebugServer(); err != nil {
 			return nil, err
 		}
 	}
 
+	klog.V(5).Infof("validating boot image spec")
 	err = validateBootImageSpec(
 		serverConfigFile.Cells.BootImageSpec, cloudClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate boot image spec")
 	}
 
+	klog.V(5).Infof("done creating instance provider")
 	return s, err
 }
 
