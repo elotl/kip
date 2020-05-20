@@ -17,4 +17,4 @@ RUN chmod +x /usr/local/bin/token2kubeconfig
 RUN mkdir -p /opt/csr
 COPY csr /opt/csr
 
-CMD /opt/csr/create.sh
+CMD /opt/csr/get-cert.sh
