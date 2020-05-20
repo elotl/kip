@@ -231,7 +231,7 @@ func (c *gceClient) waitOnOperation(opName string, getOperation func(string) (*c
 		}
 
 		if op.Status != statusOperationDone {
-			time.Sleep(waitBackoff(i) * time.Second)
+			time.Sleep(waitBackoff(i))
 			continue
 		}
 		// check if the operation is not nil
