@@ -18,6 +18,7 @@ env:
   - secure: enUIOI5sIXXdxms1iadphnAZF5SUFl4SaTqMpXYKnRDgS8B9bjO5LsiZTqJqQ84v9MbndcJ44cpWvs9pvTgIHhO5O7mxD/TPWqqAOLAzbIAWaaa/mu+jx9WEUoDh1mAf//5IZrI/FJmUm6HNxu0pxepdogMGfWx5ngbqqM41Eu726xY7Yq9GESipK+bNgMNyPL/K+J62EVfDmKsQRVAZLMN6GEw4zU8kGoVhIrzBm8Tp67kE9q3seOqlx4BwG0gG1PtVT3HRBO7OVy5e+6iKEVCQfrZYocKT+MpRFe7moS/YMO8M/Mt1MmcOAjGU6T57ZJDIBvnGhov+LMjEsNBNozL1iombVew+R1HWRQsVEKU298WPf+yEbl2KQfVkk+7n8vCmgPG2S4W5fmE1Dq/0Ep2ocIFI1HmJSkImCm8o7znL7URzLLx6FloQ8W2Pn9ux4Jac0EbRcQfw/rJkce7n7QkprR/1/gM/C8lYUXKPHgDWjBdklSc4i388EGOmXOMDJh2jRYhpUy6QcJePyXJVxnItPJixmK0DsFU40ryffsANuAoSa8Gsg/2qLJXBfZqHL0l3AfTuZBJSXVc6Qi/DMQdcnSD/cPd1+Wo9kQoMyB6DTET7vCQ+ShUKVNFQZKC/tCuZv2oBE7Ity4UhNpVFBHngCCV5rco78U0CopRRHHs=
 before_script:
 - git fetch --unshallow || true
+- git fetch --tags
 - pip install awscli --upgrade --user
 - pip install jq --upgrade --user
 - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl
