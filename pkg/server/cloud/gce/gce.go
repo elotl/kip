@@ -221,7 +221,7 @@ func waitBackoff(i int) time.Duration {
 // In GCE operations will immediately succeed from a call, however that does not
 // mean they have completed execution errorless. Here we wait for an operation
 // to finish so we can check handle errors as we find necessary
-func (c *gceClient) waitOnOperation(opName string, getOperation func(string) (*compute.Operation, error)) error {
+func waitOnOperation(opName string, getOperation func(string) (*compute.Operation, error)) error {
 	i := -1
 	for {
 		i += 1

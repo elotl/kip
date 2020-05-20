@@ -254,7 +254,7 @@ func (c *gceClient) UpdateSecurityGroup(cloudSG cloud.SecurityGroup, ports []clo
 	if resp == nil {
 		return nilResponseError("Firewalls.Patch")
 	}
-	if err := c.waitOnOperation(resp.Name, c.getGlobalOperation); err != nil {
+	if err := waitOnOperation(resp.Name, c.getGlobalOperation); err != nil {
 		return err
 	}
 	return nil
@@ -268,7 +268,7 @@ func (c *gceClient) CreateSecurityGroup(sgName string, ports []cloud.InstancePor
 	if err != nil {
 		return nil, err
 	}
-	if err := c.waitOnOperation(op.Name, c.getGlobalOperation); err != nil {
+	if err := waitOnOperation(op.Name, c.getGlobalOperation); err != nil {
 		return nil, err
 	}
 	sg := cloud.NewSecurityGroup(sgName, sgName, ports, sourceRanges)
@@ -297,7 +297,7 @@ func (c *gceClient) AttachSecurityGroups(node *api.Node, groups []string) error 
 	if err != nil {
 		return util.WrapError(err, "Error attaching instance tags %s", err)
 	}
-	if err := c.waitOnOperation(op.Name, c.getGlobalOperation); err != nil {
+	if err := waitOnOperation(op.Name, c.getGlobalOperation); err != nil {
 		return err
 	}
 	return nil

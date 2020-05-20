@@ -215,7 +215,7 @@ func (c *gceClient) startNode(node *api.Node, image cloud.Image, metadata string
 	// Todo: catch and convert errors to notify us of
 	// out of capacity errors or invalid machine types
 	// see pkg/server/cloud/aws/instances.StartNode()
-	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
+	if err := waitOnOperation(op.Name, c.getZoneOperation); err != nil {
 		return nil, err
 	}
 	startResult := &cloud.StartNodeResult{
@@ -312,7 +312,7 @@ func (c *gceClient) StopInstance(instanceID string) error {
 		// inconsistency up
 		return err
 	}
-	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
+	if err := waitOnOperation(op.Name, c.getZoneOperation); err != nil {
 		return err
 	}
 	return nil
@@ -357,7 +357,7 @@ func (c *gceClient) ResizeVolume(node *api.Node, size int64) (error, bool) {
 	if err != nil {
 		return util.WrapError(err, "Failed to resize volume"), false
 	}
-	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
+	if err := waitOnOperation(op.Name, c.getZoneOperation); err != nil {
 		return err, false
 	}
 	return nil, true
@@ -434,7 +434,7 @@ func (c *gceClient) AddInstanceTags(iid string, labels map[string]string) error 
 	if err != nil {
 		return util.WrapError(err, "Error attaching instance labels %s", err)
 	}
-	if err := c.waitOnOperation(op.Name, c.getZoneOperation); err != nil {
+	if err := waitOnOperation(op.Name, c.getZoneOperation); err != nil {
 		return err
 	}
 	return nil
