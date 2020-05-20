@@ -1,5 +1,5 @@
 provider "google" {
-  project = "excellent-ion-277200"
+  project = var.project
   region  = var.region
   zone    = var.zone
 }

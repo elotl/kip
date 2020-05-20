@@ -3,6 +3,10 @@ variable "cluster-name" {
   description = "A name for the cluster and its associated resources."
 }
 
+variable "project" {
+  description = "The GCP project where resources will be created."
+}
+
 variable "region" {
   default     = "us-west1"
   description = "The region to create resources in."
