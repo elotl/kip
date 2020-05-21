@@ -358,6 +358,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 			ReaperInterval:    10 * time.Second,
 			ItzoVersion:       serverConfigFile.Cells.Itzo.Version,
 			ItzoURL:           serverConfigFile.Cells.Itzo.URL,
+			CellConfig:        serverConfigFile.Cells.CellConfig,
 		},
 		NodeRegistry:  nodeRegistry,
 		LogRegistry:   logRegistry,

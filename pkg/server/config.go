@@ -140,6 +140,7 @@ type CellsConfig struct {
 	Nametag             string                        `json:"nametag"`
 	StatusInterval      int                           `json:"statusInterval"`
 	HealthCheck         HealthCheckConfig             `json:"healthcheck"`
+	CellConfig          map[string]string             `json:"cellConfig"`
 }
 
 type HealthCheckConfig struct {
