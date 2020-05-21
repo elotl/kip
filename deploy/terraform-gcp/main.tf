@@ -121,6 +121,10 @@ resource "null_resource" "kubeconfig" {
     EOF
   }
 
+  triggers = {
+    cluster_instance_ids = google_container_cluster.cluster.id
+  }
+
   depends_on = [
     google_container_cluster.cluster
   ]
@@ -137,6 +141,10 @@ resource "null_resource" "client_permissions" {
       KUBECONFIG = "${path.module}/kubeconfig"
     }
     command = "kubectl apply -f cluster-admin.yaml --username=client --password=${local.password}"
+  }
+
+  triggers = {
+    cluster_instance_ids = google_container_cluster.cluster.id
   }
 
   depends_on = [
@@ -159,6 +167,10 @@ resource "null_resource" "deploy" {
     ]
     # This needs kubectl >= 1.14.
     command = "kubectl apply -k ${var.kustomize-dir}"
+  }
+
+  triggers = {
+    cluster_instance_ids = google_container_cluster.cluster.id
   }
 
   depends_on = [
