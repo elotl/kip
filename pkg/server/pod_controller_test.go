@@ -495,3 +495,91 @@ func TestSetPodDispatchingParams(t *testing.T) {
 		api.GetPodIP(node.Status.Addresses),
 		api.GetPrivateIP(pod.Status.Addresses))
 }
+
+func TestParseDockerConfigCreds(t *testing.T) {
+	tests := []struct {
+		config   []byte
+		server   string
+		username string
+		password string
+		err      bool
+	}{
+		{
+			config: []byte(`{
+    "auths": {
+        "docker.io": {
+            "username": "myuser",
+            "password": "mypass",
+            "email": "doesnt@matter.com",
+            "auth": "ignored"
+        }
+    },
+    "experimental": "enabled"
+}`),
+			server:   "docker.io",
+			username: "myuser",
+			password: "mypass",
+			err:      false,
+		},
+		{
+			config: []byte(`{
+    "auths": {
+        "https://index.docker.io/v1/": {
+            "auth": "bXl1c2VyOm15cGFzcw=="
+        }
+    }
+}`),
+			server:   "index.docker.io",
+			username: "myuser",
+			password: "mypass",
+			err:      false,
+		},
+		{
+			config: []byte(`{
+    "auths": {
+        "https://index.docker.io/v1/": {
+            "auth": "this*@aint--base_64"
+        }
+    }
+}`),
+			err: true,
+		},
+		{
+			config: []byte(`{
+    "auths": {
+        "https://index.docker.io/v1/": {
+            "auth": "this*@aint--base_64"
+        }
+    }
+}`),
+			err: true,
+		},
+		{
+			config: []byte(`{
+    "auths": {
+        "https://index.docker.io/v1/": {
+            "auth": "bXl1c2Vy"
+        }
+    }
+}`),
+			// error is that the auth doesn't have a ':' in it, no password
+			err: true,
+		},
+	}
+	for _, tc := range tests {
+		creds, err := parseDockerConfigCreds(tc.config)
+		if tc.err {
+			assert.Error(t, err)
+			continue
+		}
+		assert.NoError(t, err)
+		regCreds, ok := creds[tc.server]
+		assert.True(t, ok)
+		if !ok {
+			continue
+		}
+		assert.Equal(t, tc.server, regCreds.Server)
+		assert.Equal(t, tc.username, regCreds.Username)
+		assert.Equal(t, tc.password, regCreds.Password)
+	}
+}
