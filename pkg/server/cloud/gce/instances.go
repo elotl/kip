@@ -45,6 +45,7 @@ func convertLabelKeys(labels map[string]string) map[string]string {
 			k = "kip-pod-name"
 		default:
 			k = strings.ToLower(k)
+			k = replaceReservedLabelChars(k)
 		}
 		v = strings.ToLower(v)
 		v = replaceReservedLabelChars(v)
