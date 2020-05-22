@@ -262,12 +262,7 @@ func parseDockerConfigServer(serverURL string) (string, error) {
 }
 
 const (
-	dockerServerKey       = "server"
-	dockerUsernameKey     = "username"
-	dockerPasswordKey     = "password"
-	dockerAuthsKey        = "auths"
-	dockerConcatedAuthKey = "auth"
-	dockerConfigJSONKey   = ".dockerconfigjson"
+	dockerConfigJSONKey = ".dockerconfigjson"
 )
 
 func parseDockerConfigCreds(dockerJSON []byte) (map[string]api.RegistryCredentials, error) {
@@ -285,8 +280,15 @@ func parseDockerConfigCreds(dockerJSON []byte) (map[string]api.RegistryCredentia
 	//         }
 	//     }
 	// }
+
+	// see: https://github.com/docker/cli/blob/master/cli/config/types/authconfig.go
+	type authConfig struct {
+		Username string `json:"username,omitempty"`
+		Password string `json:"password,omitempty"`
+		Auth     string `json:"auth,omitempty"`
+	}
 	type dockerConfig struct {
-		Auths map[string]map[string]string `json:"auths"`
+		Auths map[string]authConfig `json:"auths"`
 	}
 
 	var dockerCfg dockerConfig
@@ -301,22 +303,20 @@ func parseDockerConfigCreds(dockerJSON []byte) (map[string]api.RegistryCredentia
 		if err != nil {
 			return nil, util.WrapError(err, "could not parse docker config json server: %s", serverURL)
 		}
-		username := serverCfg[dockerUsernameKey]
-		password := serverCfg[dockerPasswordKey]
+		username := serverCfg.Username
+		password := serverCfg.Password
 		// Some servers just have an auth section, try to parse that
-		if username == "" && password == "" {
-			if auth, ok := serverCfg[dockerConcatedAuthKey]; ok {
-				byteData, err := base64.StdEncoding.DecodeString(auth)
-				if err != nil {
-					return nil, util.WrapError(err, "docker config json file format error, could not decode auth for %s", serverURL)
-				}
-				parts := strings.SplitN(string(byteData), ":", 2)
-				if len(parts) < 2 {
-					return nil, util.WrapError(err, "docker config json file format error, could not find username and password in auth for server %s", serverURL)
-				}
-				username = parts[0]
-				password = parts[1]
+		if username == "" && password == "" && len(serverCfg.Auth) > 0 {
+			byteData, err := base64.StdEncoding.DecodeString(serverCfg.Auth)
+			if err != nil {
+				return nil, util.WrapError(err, "docker config json file format error, could not decode auth for %s", serverURL)
 			}
+			parts := strings.SplitN(string(byteData), ":", 2)
+			if len(parts) < 2 {
+				return nil, util.WrapError(err, "docker config json file format error, could not find username and password in auth for server %s", serverURL)
+			}
+			username = parts[0]
+			password = parts[1]
 		}
 		creds[server] = api.RegistryCredentials{
 			Server:   server,
@@ -345,13 +345,13 @@ func (c *PodController) loadRegistryCredentials(pod *api.Pod) (map[string]api.Re
 		} else {
 			// This is the old server, username, password format
 			// I'm unsure if this can even be used in k8s?
-			server := s.Data[dockerServerKey]
-			username, exists := s.Data[dockerUsernameKey]
+			server := s.Data["server"]
+			username, exists := s.Data["username"]
 			if !exists {
 				return nil, fmt.Errorf(
 					"could not find registry username in secret %s", secretName)
 			}
-			password, exists := s.Data[dockerPasswordKey]
+			password, exists := s.Data["password"]
 			if !exists {
 				return nil, fmt.Errorf(
 					"could not find registry password in secret %s", secretName)

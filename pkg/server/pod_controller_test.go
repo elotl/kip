@@ -548,16 +548,6 @@ func TestParseDockerConfigCreds(t *testing.T) {
 			config: []byte(`{
     "auths": {
         "https://index.docker.io/v1/": {
-            "auth": "this*@aint--base_64"
-        }
-    }
-}`),
-			err: true,
-		},
-		{
-			config: []byte(`{
-    "auths": {
-        "https://index.docker.io/v1/": {
             "auth": "bXl1c2Vy"
         }
     }
