@@ -181,4 +181,11 @@ cells:
   #     healthyTimeout: 180
   #     # interval between checks must be >= 10, default is 60
   #     interval: 60
+
+  # CellConfig can be used to send a map of key/value pairs to cells. It is
+  # used to configure the image cache right now.
+  # cellConfig:
+  #   imageCacheEndpoint: 10.20.0.2:/data
+  #   imageCacheMountDir: /var/cache/images
+  #   imageCacheMountOpts: -o ro
 ```
