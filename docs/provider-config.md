@@ -140,6 +140,13 @@ cells:
   # extraSecurityGroups:
   #   - sg-246810
 
+  # By default, cells will be assigned a publicIP address if the
+  # subnet is configured to allow access to the public internet
+  # without NAT.  Set privateIPOnly to true to force all cells
+  # to only have a private IP address.
+
+  # privateIPOnly: false
+
   # itzo configures the version of the itzo agent to use and where
   # itzo will be downloaded from.  You should only customize this if
   # you have built your own itzo agent or you would like to pin your

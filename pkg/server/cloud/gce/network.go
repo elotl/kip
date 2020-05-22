@@ -40,6 +40,8 @@ func (c *gceClient) ConnectWithPublicIPs() bool {
 	if !c.usePublicIPs {
 		return false
 	} else {
+		// Todo: need to fix this to ensure we are inside the
+		// same network
 		return !metadata.OnGCE()
 	}
 }

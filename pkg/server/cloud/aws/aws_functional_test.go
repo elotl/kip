@@ -41,7 +41,12 @@ func getEC2(t *testing.T, controllerID string) *AwsEC2 {
 	if !util.AWSEnvVarsSet() {
 		t.Fatal("Neet to setup AWS env vars for tests")
 	}
-	e, err := NewEC2Client(controllerID, controllerID, vpcID, defaultSubnetID, "")
+	e, err := NewEC2Client(EC2ClientConfig{
+		ControllerID: controllerID,
+		Nametag:      controllerID,
+		VPCID:        vpcID,
+		SubnetID:     defaultSubnetID,
+	})
 	if err != nil {
 		msg := "Error getting EC2 Client: " + err.Error()
 		assert.FailNow(t, msg)
@@ -73,11 +78,12 @@ func TestAWSCloud(t *testing.T) {
 		t.Fatal("Neet to setup AWS env vars for tests")
 	}
 	controllerID := api.SimpleNameGenerator.GenerateName(testControllerID)
-	//subnetID := maybeSetSubnet()
-	// While we're running 2 builds in different vpcs, just use the default
-	// subnet
-	subnetID := defaultSubnetID
-	c, err := NewEC2Client(controllerID, controllerID, vpcID, subnetID, "")
+	c, err := NewEC2Client(EC2ClientConfig{
+		ControllerID: controllerID,
+		Nametag:      controllerID,
+		VPCID:        vpcID,
+		SubnetID:     defaultSubnetID,
+	})
 	assert.Nil(t, err)
 	ts, err := functional.SetupCloudFunctionalTest(t, c, imageAmi, rootDevice, instanceType)
 	if err != nil {

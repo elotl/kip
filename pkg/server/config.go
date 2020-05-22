@@ -140,6 +140,7 @@ type CellsConfig struct {
 	Nametag             string                        `json:"nametag"`
 	StatusInterval      int                           `json:"statusInterval"`
 	HealthCheck         HealthCheckConfig             `json:"healthcheck"`
+	PrivateIPOnly       *bool                         `json:"privateIPOnly"`
 }
 
 type HealthCheckConfig struct {
@@ -282,17 +283,22 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 			return nil, util.WrapError(err, "Could not configure AWS cloud client authorization")
 		}
 
+		privateIPOnly := false
+		if cf.Cells.PrivateIPOnly != nil && *cf.Cells.PrivateIPOnly {
+			privateIPOnly = true
+		}
 		// Gross: if vpc is "default", the NewEC2Client will
 		// attempt to figure out the VPCID and the actual ID
 		// will be available from there
 
-		client, err := aws.NewEC2Client(
-			controllerID,
-			nametag,
-			cc.AWS.VPCID,
-			cc.AWS.SubnetID,
-			cc.AWS.EcsClusterName,
-		)
+		client, err := aws.NewEC2Client(aws.EC2ClientConfig{
+			ControllerID:   controllerID,
+			Nametag:        nametag,
+			VPCID:          cc.AWS.VPCID,
+			SubnetID:       cc.AWS.SubnetID,
+			ECSClusterName: cc.AWS.EcsClusterName,
+			PrivateIPOnly:  privateIPOnly,
+		})
 
 		if err != nil {
 			return nil, util.WrapError(err, "Error creating AWS cloud client")
