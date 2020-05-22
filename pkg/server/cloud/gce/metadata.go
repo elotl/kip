@@ -17,6 +17,7 @@ limitations under the License.
 package gce
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -53,4 +54,29 @@ func getMetadataLines(c *metadata.Client, suffix string) ([]string, error) {
 		s[i] = strings.TrimSpace(s[i])
 	}
 	return s, nil
+}
+
+func extractZoneFromResponse(zone string) (string, error) {
+	if len(zone) == 0 {
+		return "", fmt.Errorf("Got empty zone response from metadata service")
+	}
+	if zone[len(zone)-1] == '/' {
+		zone = zone[:len(zone)-1]
+	}
+	return zone[strings.LastIndex(zone, "/")+1:], nil
+}
+
+// Querying the zone from some images adds a trailing slash to the
+// zone response.  e.g.
+// projects/832569367454/zones/us-west1-a/
+// vs
+// projects/832569367454/zones/us-west1-a
+// The latter breaks the metadata library that we use so lets handle
+// it here.
+func getZoneFromMetadata(c *metadata.Client) (string, error) {
+	s, err := getMetadataTrimmed(c, "instance/zone")
+	if err != nil {
+		return "", err
+	}
+	return extractZoneFromResponse(s)
 }
