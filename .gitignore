@@ -28,6 +28,7 @@ kubeconfig
 *.tfstate.backup
 *.tfvars
 deploy/terraform/.terraform/
+deploy/terraform-gcp/.terraform/
 deploy/manifests/virtual-kubelet/overlays/local-*
 deploy/terraform-vpn/kustomization/aws-vpn-client.env
 deploy/terraform-vpn/kustomization/*.yaml
