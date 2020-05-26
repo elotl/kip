@@ -69,6 +69,7 @@ spec:
         - --disable-taint
         - --klog.logtostderr
         - --klog.v=2
+        - --metrics-addr=:10255
         image: elotl/virtual-kubelet:latest
         imagePullPolicy: Always
         name: virtual-kubelet
@@ -103,10 +104,29 @@ spec:
           readOnly: true
         securityContext:
           privileged: true
+      - command:
+        - /bin/sh
+        - -c
+        - exec kube-proxy --oom-score-adj=-998 --bind-address=127.0.0.1 --v=2
+        image: k8s.gcr.io/kube-proxy:v1.18.3
+        imagePullPolicy: IfNotPresent
+        name: kube-proxy
+        resources:
+          requests:
+            cpu: 100m
+        securityContext:
+          privileged: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /run/xtables.lock
+          name: xtables-lock
+        - mountPath: /lib/modules
+          name: lib-modules
+          readOnly: true
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       serviceAccountName: virtual-kubelet
-      hostNetwork: true
       tolerations:
       - key: "node-role.kubernetes.io/master"
         effect: "NoSchedule"
@@ -123,7 +143,7 @@ spec:
             mode: 0600
       - name: xtables-lock
         hostPath:
-          path: /run/xtables.lock
+          path: /run/virtual-kubelet-xtables.lock
           type: FileOrCreate
       - name: lib-modules
         hostPath:
