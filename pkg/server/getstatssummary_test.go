@@ -36,23 +36,45 @@ func TestGetContainerStats(t *testing.T) {
 	testCases := []struct {
 		start          metav1.Time
 		timestamp      metav1.Time
-		podMetrics     *api.Metrics
+		sampleTimeDiff time.Duration
+		podMetrics     []*api.Metrics
 		units          []api.Unit
 		podUsage       usageMetrics
 		containerStats []stats.ContainerStats
 	}{
 		{
 			// Two units.
-			start:     metav1.NewTime(time.Now().Add(-5 * time.Minute)),
-			timestamp: metav1.NewTime(time.Now()),
-			podMetrics: &api.Metrics{
-				ResourceUsage: api.ResourceMetrics{
-					"unit1.cpuUsage":         123,
-					"unit1.memoryUsage":      789,
-					"unit1.memoryWorkingSet": 456,
-					"unit2.cpuUsage":         111,
-					"unit2.memoryUsage":      222,
-					"unit2.memoryWorkingSet": 333,
+			start:          metav1.NewTime(time.Now().Add(-5 * time.Minute)),
+			timestamp:      metav1.NewTime(time.Now()),
+			sampleTimeDiff: 10000 * time.Nanosecond,
+			podMetrics: []*api.Metrics{
+				{
+					ResourceUsage: api.ResourceMetrics{
+						"unit1.cpuUsage":         120,
+						"unit1.memoryUsage":      789,
+						"unit1.memoryWorkingSet": 456,
+						"unit1.memoryAvailable":  1<<62 + 1,
+						"unit1.memoryRSS":        88,
+						"unit2.cpuUsage":         100,
+						"unit2.memoryUsage":      222,
+						"unit2.memoryWorkingSet": 333,
+						"unit2.memoryAvailable":  999,
+						"unit2.memoryRSS":        88,
+					},
+				},
+				{
+					ResourceUsage: api.ResourceMetrics{
+						"unit1.cpuUsage":         123,
+						"unit1.memoryUsage":      789,
+						"unit1.memoryWorkingSet": 456,
+						"unit1.memoryAvailable":  888,
+						"unit1.memoryRSS":        88,
+						"unit2.cpuUsage":         111,
+						"unit2.memoryUsage":      222,
+						"unit2.memoryWorkingSet": 333,
+						"unit2.memoryAvailable":  999,
+						"unit2.memoryRSS":        88,
+					},
 				},
 			},
 			units: []api.Unit{
@@ -64,75 +86,61 @@ func TestGetContainerStats(t *testing.T) {
 				},
 			},
 			podUsage: usageMetrics{
-				UsageNanoCores:  123 + 111,
-				UsageBytes:      789 + 222,
-				WorkingSetBytes: 456 + 333,
+				UsageCoreNanoSeconds: 123 + 111,
+				UsageNanoCores:       1400000,
+				AvailableBytes:       888 + 999,
+				UsageBytes:           789 + 222,
+				WorkingSetBytes:      456 + 333,
+				RSSBytes:             88 + 88,
 			},
 			containerStats: []stats.ContainerStats{
 				{
 					Name: "unit1",
 					CPU: &stats.CPUStats{
-						UsageNanoCores: makeUint64Ptr(123),
+						UsageCoreNanoSeconds: makeUint64Ptr(123),
+						UsageNanoCores:       makeUint64Ptr(300000),
 					},
 					Memory: &stats.MemoryStats{
 						UsageBytes:      makeUint64Ptr(789),
 						WorkingSetBytes: makeUint64Ptr(456),
+						RSSBytes:        makeUint64Ptr(88),
+						AvailableBytes:  makeUint64Ptr(888),
 					},
 				},
 				{
 					Name: "unit2",
 					CPU: &stats.CPUStats{
-						UsageNanoCores: makeUint64Ptr(111),
+						UsageCoreNanoSeconds: makeUint64Ptr(111),
+						UsageNanoCores:       makeUint64Ptr(1100000),
 					},
 					Memory: &stats.MemoryStats{
 						UsageBytes:      makeUint64Ptr(222),
 						WorkingSetBytes: makeUint64Ptr(333),
+						RSSBytes:        makeUint64Ptr(88),
+						AvailableBytes:  makeUint64Ptr(999),
 					},
 				},
 			},
 		},
 		{
-			// One unit, not WorkingSetBytes metric.
-			start:     metav1.NewTime(time.Now().Add(-1 * time.Minute)),
-			timestamp: metav1.NewTime(time.Now()),
-			podMetrics: &api.Metrics{
-				ResourceUsage: api.ResourceMetrics{
-					"unit1.cpuUsage":    12345,
-					"unit1.memoryUsage": 67890,
-				},
-			},
-			units: []api.Unit{
+			// Two units, only one has reported metrics.
+			start:          metav1.NewTime(time.Now().Add(-2 * time.Minute)),
+			timestamp:      metav1.NewTime(time.Now()),
+			sampleTimeDiff: 5000 * time.Nanosecond,
+			podMetrics: []*api.Metrics{
 				{
-					Name: "unit1",
-				},
-			},
-			podUsage: usageMetrics{
-				UsageNanoCores:  12345,
-				UsageBytes:      67890,
-				WorkingSetBytes: 67890,
-			},
-			containerStats: []stats.ContainerStats{
-				{
-					Name: "unit1",
-					CPU: &stats.CPUStats{
-						UsageNanoCores: makeUint64Ptr(12345),
-					},
-					Memory: &stats.MemoryStats{
-						UsageBytes:      makeUint64Ptr(67890),
-						WorkingSetBytes: makeUint64Ptr(67890),
+					ResourceUsage: api.ResourceMetrics{
+						"unit1.cpuUsage":         12345,
+						"unit1.memoryUsage":      67890,
+						"unit1.memoryWorkingSet": 66666,
 					},
 				},
-			},
-		},
-		{
-			// Two units, only one has reported metrics
-			start:     metav1.NewTime(time.Now().Add(-2 * time.Minute)),
-			timestamp: metav1.NewTime(time.Now()),
-			podMetrics: &api.Metrics{
-				ResourceUsage: api.ResourceMetrics{
-					"unit1.cpuUsage":         12345,
-					"unit1.memoryUsage":      67890,
-					"unit1.memoryWorkingSet": 66666,
+				{
+					ResourceUsage: api.ResourceMetrics{
+						"unit1.cpuUsage":         12345,
+						"unit1.memoryUsage":      67890,
+						"unit1.memoryWorkingSet": 66666,
+					},
 				},
 			},
 			units: []api.Unit{
@@ -144,15 +152,15 @@ func TestGetContainerStats(t *testing.T) {
 				},
 			},
 			podUsage: usageMetrics{
-				UsageNanoCores:  12345,
-				UsageBytes:      67890,
-				WorkingSetBytes: 66666,
+				UsageCoreNanoSeconds: 12345,
+				UsageBytes:           67890,
+				WorkingSetBytes:      66666,
 			},
 			containerStats: []stats.ContainerStats{
 				{
 					Name: "unit1",
 					CPU: &stats.CPUStats{
-						UsageNanoCores: makeUint64Ptr(12345),
+						UsageCoreNanoSeconds: makeUint64Ptr(12345),
 					},
 					Memory: &stats.MemoryStats{
 						UsageBytes:      makeUint64Ptr(67890),
@@ -160,27 +168,160 @@ func TestGetContainerStats(t *testing.T) {
 					},
 				},
 				{
-					Name: "unit2",
+					Name:   "unit2",
+					CPU:    &stats.CPUStats{},
+					Memory: &stats.MemoryStats{},
+				},
+			},
+		},
+		{
+			// One unit, spurious CPU sample (timestamp decreased).
+			start:          metav1.NewTime(time.Now().Add(-2 * time.Minute)),
+			timestamp:      metav1.NewTime(time.Now()),
+			sampleTimeDiff: -1 * time.Nanosecond,
+			podMetrics: []*api.Metrics{
+				{
+					ResourceUsage: api.ResourceMetrics{
+						"unit1.cpuUsage":         12345,
+						"unit1.memoryUsage":      22222,
+						"unit1.memoryWorkingSet": 11111,
+					},
+				},
+				{
+					ResourceUsage: api.ResourceMetrics{
+						"unit1.cpuUsage":         12346,
+						"unit1.memoryUsage":      22222,
+						"unit1.memoryWorkingSet": 11111,
+					},
+				},
+			},
+			units: []api.Unit{
+				{
+					Name: "unit1",
+				},
+			},
+			podUsage: usageMetrics{
+				UsageCoreNanoSeconds: 12346,
+				UsageBytes:           22222,
+				WorkingSetBytes:      11111,
+			},
+			containerStats: []stats.ContainerStats{
+				{
+					Name: "unit1",
 					CPU: &stats.CPUStats{
-						UsageNanoCores: makeUint64Ptr(0),
+						UsageCoreNanoSeconds: makeUint64Ptr(12346),
 					},
 					Memory: &stats.MemoryStats{
-						UsageBytes:      makeUint64Ptr(0),
-						WorkingSetBytes: makeUint64Ptr(0),
+						UsageBytes:      makeUint64Ptr(22222),
+						WorkingSetBytes: makeUint64Ptr(11111),
 					},
+				},
+			},
+		},
+		{
+			// Pod disk metrics.
+			start:          metav1.NewTime(time.Now().Add(-2 * time.Minute)),
+			timestamp:      metav1.NewTime(time.Now()),
+			sampleTimeDiff: -1 * time.Nanosecond,
+			podMetrics: []*api.Metrics{
+				{
+					ResourceUsage: api.ResourceMetrics{
+						"fsAvailable":  11111,
+						"fsUsed":       22222,
+						"fsCapacity":   33333,
+						"fsInodes":     99999,
+						"fsInodesFree": 44444,
+						"fsInodesUsed": 55555,
+					},
+				},
+				{
+					ResourceUsage: api.ResourceMetrics{
+						"fsAvailable":  11111,
+						"fsUsed":       22222,
+						"fsCapacity":   33333,
+						"fsInodes":     99999,
+						"fsInodesFree": 44444,
+						"fsInodesUsed": 55555,
+					},
+				},
+			},
+			units: []api.Unit{
+				{
+					Name: "unit1",
+				},
+			},
+			podUsage: usageMetrics{
+				FSAvailableBytes: 11111,
+				FSUsedBytes:      22222,
+				FSCapacityBytes:  33333,
+				FSInodes:         99999,
+				FSInodesFree:     44444,
+				FSInodesUsed:     55555,
+			},
+			containerStats: []stats.ContainerStats{
+				{
+					Name:   "unit1",
+					CPU:    &stats.CPUStats{},
+					Memory: &stats.MemoryStats{},
+				},
+			},
+		},
+		{
+			// Pod network metrics.
+			start:          metav1.NewTime(time.Now().Add(-2 * time.Minute)),
+			timestamp:      metav1.NewTime(time.Now()),
+			sampleTimeDiff: -1 * time.Nanosecond,
+			podMetrics: []*api.Metrics{
+				{
+					ResourceUsage: api.ResourceMetrics{
+						"netRx":       11111,
+						"netRxErrors": 1,
+						"netTx":       33333,
+						"netTxErrors": 3,
+					},
+				},
+				{
+					ResourceUsage: api.ResourceMetrics{
+						"netRx":       11111,
+						"netRxErrors": 1,
+						"netTx":       33333,
+						"netTxErrors": 3,
+					},
+				},
+			},
+			units: []api.Unit{
+				{
+					Name: "unit1",
+				},
+			},
+			podUsage: usageMetrics{
+				NetRxBytes:  11111,
+				NetRxErrors: 1,
+				NetTxBytes:  33333,
+				NetTxErrors: 3,
+			},
+			containerStats: []stats.ContainerStats{
+				{
+					Name:   "unit1",
+					CPU:    &stats.CPUStats{},
+					Memory: &stats.MemoryStats{},
 				},
 			},
 		},
 	}
 	for _, tc := range testCases {
-		tc.podMetrics.Timestamp = api.Time{Time: tc.timestamp.Time}
+		tc.podMetrics[1].Timestamp = api.Time{
+			Time: tc.timestamp.Time,
+		}
+		tc.podMetrics[0].Timestamp = api.Time{
+			Time: tc.timestamp.Add(-tc.sampleTimeDiff),
+		}
 		for i, _ := range tc.containerStats {
 			tc.containerStats[i].StartTime = tc.start
 			tc.containerStats[i].CPU.Time = tc.timestamp
 			tc.containerStats[i].Memory.Time = tc.timestamp
 		}
-		podUsage, containerStats := getContainerStats(
-			tc.start, tc.podMetrics, tc.units)
+		podUsage, containerStats := getStats(tc.start, tc.podMetrics, tc.units)
 		assert.Equal(t, tc.podUsage, podUsage)
 		assert.Equal(t, tc.containerStats, containerStats)
 		for _, cstat := range tc.containerStats {
