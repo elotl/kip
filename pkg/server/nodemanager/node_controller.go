@@ -64,6 +64,7 @@ type NodeControllerConfig struct {
 	ReaperInterval    time.Duration
 	ItzoVersion       string
 	ItzoURL           string
+	CellConfig        map[string]string
 }
 
 type NodeController struct {
@@ -208,6 +209,9 @@ func (c *NodeController) getInstanceCloudInit() error {
 		string(keyBytes), path.Join(itzoDir, "server.key"), "0600")
 	c.CloudInitFile.AddItzoVersion(c.Config.ItzoVersion)
 	c.CloudInitFile.AddItzoURL(c.Config.ItzoURL)
+	if len(c.Config.CellConfig) > 0 {
+		c.CloudInitFile.AddCellConfig(c.Config.CellConfig)
+	}
 	return nil
 }
 
