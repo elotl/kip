@@ -514,6 +514,13 @@ func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 	milpapod.Labels = pod.Labels
 	milpapod.Annotations = pod.Annotations
 	milpapod.Spec.RestartPolicy = api.RestartPolicy(string(pod.Spec.RestartPolicy))
+	if len(pod.Spec.ImagePullSecrets) > 0 {
+		milpapod.Spec.ImagePullSecrets = make([]string, len(pod.Spec.ImagePullSecrets))
+		for i := range pod.Spec.ImagePullSecrets {
+			milpapod.Spec.ImagePullSecrets[i] = pod.Spec.ImagePullSecrets[i].Name
+		}
+	}
+
 	podsc := pod.Spec.SecurityContext
 	if podsc != nil {
 		mpsc := &api.PodSecurityContext{
@@ -686,6 +693,13 @@ func milpaToK8sPod(nodeName, internalIP string, milpaPod *api.Pod) (*v1.Pod, err
 	pod.Spec.NodeName = nodeName
 	pod.Spec.Volumes = []v1.Volume{}
 	pod.Spec.RestartPolicy = v1.RestartPolicy(string(milpaPod.Spec.RestartPolicy))
+	if len(milpaPod.Spec.ImagePullSecrets) > 0 {
+		pod.Spec.ImagePullSecrets = make([]v1.LocalObjectReference, len(milpaPod.Spec.ImagePullSecrets))
+		for i := range milpaPod.Spec.ImagePullSecrets {
+			pod.Spec.ImagePullSecrets[i].Name = milpaPod.Spec.ImagePullSecrets[i]
+		}
+	}
+
 	mpsc := milpaPod.Spec.SecurityContext
 	if mpsc != nil {
 		if pod.Spec.SecurityContext == nil {

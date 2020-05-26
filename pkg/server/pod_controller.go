@@ -17,9 +17,11 @@ limitations under the License.
 package server
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -247,6 +249,84 @@ func (c *PodController) markFailedPod(pod *api.Pod, startFailure bool, msg strin
 	}()
 }
 
+func parseDockerConfigServer(serverURL string) (string, error) {
+	if !strings.HasPrefix(serverURL, "https://") &&
+		!strings.HasPrefix(serverURL, "http://") {
+		serverURL = "https://" + serverURL
+	}
+	parsed, err := url.Parse(serverURL)
+	if err != nil {
+		return "", err
+	}
+	return parsed.Host, nil
+}
+
+const (
+	dockerConfigJSONKey = ".dockerconfigjson"
+)
+
+func parseDockerConfigCreds(dockerJSON []byte) (map[string]api.RegistryCredentials, error) {
+	// dockerJSON looks like
+	// {
+	//     "auths": {
+	//         "https://index.docker.io/v1/": {
+	//             "username": "myuser",
+	//             "password": "mypass",
+	//             "email": "doesnt@matter.com",
+	//             "auth": "base64(username:password)"
+	//         }
+	//         "689494258501.dkr.ecr.us-east-1.amazonaws.com": {
+	//              "auth": "base64(username:password)"
+	//         }
+	//     }
+	// }
+
+	// see: https://github.com/docker/cli/blob/master/cli/config/types/authconfig.go
+	type authConfig struct {
+		Username string `json:"username,omitempty"`
+		Password string `json:"password,omitempty"`
+		Auth     string `json:"auth,omitempty"`
+	}
+	type dockerConfig struct {
+		Auths map[string]authConfig `json:"auths"`
+	}
+
+	var dockerCfg dockerConfig
+	err := json.Unmarshal(dockerJSON, &dockerCfg)
+	if err != nil {
+		return nil, util.WrapError(err, "Could not unmarshal dockerconfigjson")
+	}
+	creds := map[string]api.RegistryCredentials{}
+
+	for serverURL, serverCfg := range dockerCfg.Auths {
+		server, err := parseDockerConfigServer(serverURL)
+		if err != nil {
+			return nil, util.WrapError(err, "could not parse docker config json server: %s", serverURL)
+		}
+		username := serverCfg.Username
+		password := serverCfg.Password
+		// Some servers just have an auth section, try to parse that
+		if username == "" && password == "" && len(serverCfg.Auth) > 0 {
+			byteData, err := base64.StdEncoding.DecodeString(serverCfg.Auth)
+			if err != nil {
+				return nil, util.WrapError(err, "docker config json file format error, could not decode auth for %s", serverURL)
+			}
+			parts := strings.SplitN(string(byteData), ":", 2)
+			if len(parts) < 2 {
+				return nil, util.WrapError(err, "docker config json file format error, could not find username and password in auth for server %s", serverURL)
+			}
+			username = parts[0]
+			password = parts[1]
+		}
+		creds[server] = api.RegistryCredentials{
+			Server:   server,
+			Username: string(username),
+			Password: string(password),
+		}
+	}
+	return creds, nil
+}
+
 func (c *PodController) loadRegistryCredentials(pod *api.Pod) (map[string]api.RegistryCredentials, error) {
 	allCreds := make(map[string]api.RegistryCredentials)
 	for _, secretName := range pod.Spec.ImagePullSecrets {
@@ -254,29 +334,34 @@ func (c *PodController) loadRegistryCredentials(pod *api.Pod) (map[string]api.Re
 		if err != nil {
 			return nil, util.WrapError(err, "could not get secret %s from api server", secretName)
 		}
-		server := s.Data["server"]
-		username, exists := s.Data["username"]
-		if !exists {
-			return nil, fmt.Errorf(
-				"could not find registry username in secret %s", secretName)
-		}
-		password, exists := s.Data["password"]
-		if !exists {
-			return nil, fmt.Errorf(
-				"could not find registry password in secret %s", secretName)
-		}
-		creds := api.RegistryCredentials{
-			Server:   string(server),
-			Username: string(username),
-			Password: string(password),
-		}
-		allCreds[string(server)] = creds
-		if creds.Username == "" {
-			klog.Warningf("Found empty username for image secret %s", secretName)
-		}
-		if creds.Password == "" {
-			// Reviewer: do you think its bad to leak this info?
-			klog.Warningf("Found empty password for secret %s", secretName)
+		if dockerJSON, ok := s.Data[dockerConfigJSONKey]; ok {
+			dockerCreds, err := parseDockerConfigCreds(dockerJSON)
+			if err != nil {
+				return nil, err
+			}
+			for k, v := range dockerCreds {
+				allCreds[k] = v
+			}
+		} else {
+			// This is the old server, username, password format
+			// I'm unsure if this can even be used in k8s?
+			server := s.Data["server"]
+			username, exists := s.Data["username"]
+			if !exists {
+				return nil, fmt.Errorf(
+					"could not find registry username in secret %s", secretName)
+			}
+			password, exists := s.Data["password"]
+			if !exists {
+				return nil, fmt.Errorf(
+					"could not find registry password in secret %s", secretName)
+			}
+			creds := api.RegistryCredentials{
+				Server:   string(server),
+				Username: string(username),
+				Password: string(password),
+			}
+			allCreds[string(server)] = creds
 		}
 	}
 
