@@ -271,6 +271,10 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 	if numClouds > 1 {
 		return nil, fmt.Errorf("Multiple clouds configured in cloud section of provider.yaml")
 	}
+	privateIPOnly := false
+	if cf.Cells.PrivateIPOnly != nil && *cf.Cells.PrivateIPOnly {
+		privateIPOnly = true
+	}
 	if cc.AWS != nil {
 		errs := validateAWSConfig(cc.AWS)
 		if len(errs) > 0 {
@@ -283,10 +287,6 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 			return nil, util.WrapError(err, "Could not configure AWS cloud client authorization")
 		}
 
-		privateIPOnly := false
-		if cf.Cells.PrivateIPOnly != nil && *cf.Cells.PrivateIPOnly {
-			privateIPOnly = true
-		}
 		// Gross: if vpc is "default", the NewEC2Client will
 		// attempt to figure out the VPCID and the actual ID
 		// will be available from there
@@ -336,6 +336,7 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 		options = append(options, gce.WithZone(cc.GCE.Zone))
 		options = append(options, gce.WithVPCName(cc.GCE.VPCName))
 		options = append(options, gce.WithSubnetName(cc.GCE.SubnetName))
+		options = append(options, gce.WithPrivateIPOnly(privateIPOnly))
 		if cc.GCE.CredentialsFile != "" {
 			options = append(options, gce.WithCredentialsFile(cc.GCE.CredentialsFile))
 		}
