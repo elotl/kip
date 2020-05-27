@@ -224,8 +224,9 @@ func (c *gceClient) GetDNSInfo() ([]string, []string, error) {
 	//
 	// This is fairly symplistic, might need to look into determining
 	// if the users environment has other settings
-	zoneLetter := c.zone[len(c.zone)-1]
-	s := fmt.Sprintf("%s.%s.internal.", string(zoneLetter), c.projectID)
+	// Note that the c. is not the zone letter. It does not change from
+	// zone to zone.
+	s := fmt.Sprintf("c.%s.internal.", c.projectID)
 	searches := []string{s, "google.internal."}
 	nameservers := []string{"169.254.169.254"}
 	return nameservers, searches, nil
