@@ -18,7 +18,7 @@ export KUBECONFIG=$(mktemp)
 
 cleanup() {
     kubectl get pods -A || true
-    kubectl get nodes
+    kubectl get nodes || true
     kubectl -n kube-system describe pod -l app=virtual-kubelet || true
     kubectl logs -n kube-system -l app=virtual-kubelet -c init-cert --tail=-1 || true
     kubectl logs -n kube-system -l app=virtual-kubelet -c virtual-kubelet --tail=-1 || true
