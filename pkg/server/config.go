@@ -140,6 +140,7 @@ type CellsConfig struct {
 	Nametag             string                        `json:"nametag"`
 	StatusInterval      int                           `json:"statusInterval"`
 	HealthCheck         HealthCheckConfig             `json:"healthcheck"`
+	PrivateIPOnly       *bool                         `json:"privateIPOnly"`
 	CellConfig          map[string]string             `json:"cellConfig"`
 }
 
@@ -271,6 +272,10 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 	if numClouds > 1 {
 		return nil, fmt.Errorf("Multiple clouds configured in cloud section of provider.yaml")
 	}
+	privateIPOnly := false
+	if cf.Cells.PrivateIPOnly != nil && *cf.Cells.PrivateIPOnly {
+		privateIPOnly = true
+	}
 	if cc.AWS != nil {
 		errs := validateAWSConfig(cc.AWS)
 		if len(errs) > 0 {
@@ -287,13 +292,14 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 		// attempt to figure out the VPCID and the actual ID
 		// will be available from there
 
-		client, err := aws.NewEC2Client(
-			controllerID,
-			nametag,
-			cc.AWS.VPCID,
-			cc.AWS.SubnetID,
-			cc.AWS.EcsClusterName,
-		)
+		client, err := aws.NewEC2Client(aws.EC2ClientConfig{
+			ControllerID:   controllerID,
+			Nametag:        nametag,
+			VPCID:          cc.AWS.VPCID,
+			SubnetID:       cc.AWS.SubnetID,
+			ECSClusterName: cc.AWS.EcsClusterName,
+			PrivateIPOnly:  privateIPOnly,
+		})
 
 		if err != nil {
 			return nil, util.WrapError(err, "Error creating AWS cloud client")
@@ -331,6 +337,7 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 		options = append(options, gce.WithZone(cc.GCE.Zone))
 		options = append(options, gce.WithVPCName(cc.GCE.VPCName))
 		options = append(options, gce.WithSubnetName(cc.GCE.SubnetName))
+		options = append(options, gce.WithPrivateIPOnly(privateIPOnly))
 		if cc.GCE.CredentialsFile != "" {
 			options = append(options, gce.WithCredentialsFile(cc.GCE.CredentialsFile))
 		}

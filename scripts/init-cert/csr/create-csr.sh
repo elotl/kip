@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -xeuo pipefail
 
-export NODE_NAME=${NODE_NAME:-virtual-kubelet}
 export CSR_NAME=${CSR_NAME:-$NODE_NAME-$(date +%s)}
-export INTERNAL_IP=$(ip route get 8.8.8.8 | grep src | head -n1 | awk '{print $7}')
 
 rm -f $NODE_NAME.key $NODE_NAME.csr $NODE_NAME.crt
 
