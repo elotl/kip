@@ -140,11 +140,8 @@ type CellsConfig struct {
 	Nametag             string                        `json:"nametag"`
 	StatusInterval      int                           `json:"statusInterval"`
 	HealthCheck         HealthCheckConfig             `json:"healthcheck"`
-<<<<<<< HEAD
 	PrivateIPOnly       *bool                         `json:"privateIPOnly"`
-=======
 	CellConfig          map[string]string             `json:"cellConfig"`
->>>>>>> master
 }
 
 type HealthCheckConfig struct {
