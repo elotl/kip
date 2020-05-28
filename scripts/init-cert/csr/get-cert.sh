@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -xeuo pipefail
 
-echo "generating certificate for \"$NODE_NAME\" in directory \"$CERT_DIR\""
 export NODE_NAME=$NODE_NAME
+export INTERNAL_IP=$(ip route get 8.8.8.8 | grep src | head -n1 | awk '{print $7}')
+
+echo "generating certificate for DNS \"$NODE_NAME\" IP \"$INTERNAL_IP\" " \
+    "in directory \"$CERT_DIR\""
 
 [[ -d "$CERT_DIR" ]]
 
 if [[ -f "$CERT_DIR/$NODE_NAME.key" ]] && [[ -f "$CERT_DIR/$NODE_NAME.crt" ]]; then
     echo "checking existing cert"
-    openssl x509 -in "$CERT_DIR/$NODE_NAME.crt" && \
-        echo "found valid certificate" && exit 0 || \
+    openssl x509 -noout -ext subjectAltName -in "$CERT_DIR/$NODE_NAME.crt" | \
+        grep -i "\<$INTERNAL_IP\>" && \
+        echo "found valid certificate for $INTERNAL_IP" && exit 0 || \
         echo "invalid certificate \"$CERT_DIR/$NODE_NAME.crt\", recreating it"
 fi
 
