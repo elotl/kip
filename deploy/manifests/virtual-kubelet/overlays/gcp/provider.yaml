@@ -1,13 +1,9 @@
 apiVersion: v1
 cloud:
   gce:
-    projectID: FILL_IN
     credentials:
       clientEmail: FILL_IN
       privateKey: FILL_IN
-    zone: us-west1-a
-    vpcName: "default"
-    subnetName: "default"
 etcd:
   internal:
     dataDir: /opt/kip/data
