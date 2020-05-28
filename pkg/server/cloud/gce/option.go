@@ -52,6 +52,14 @@ func (w WithSubnetName) Apply(c *gceClient) error {
 	return nil
 }
 
+type WithPrivateIPOnly bool
+
+func (w WithPrivateIPOnly) Apply(c *gceClient) error {
+	privateIPOnly := bool(w)
+	c.usePublicIPs = !privateIPOnly
+	return nil
+}
+
 type WithCredentialsFile string
 
 func (w WithCredentialsFile) Apply(c *gceClient) error {

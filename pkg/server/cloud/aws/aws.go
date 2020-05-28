@@ -125,9 +125,24 @@ func CheckConnection() error {
 	return err
 }
 
+type EC2ClientConfig struct {
+	ControllerID   string
+	Nametag        string
+	VPCID          string
+	SubnetID       string
+	ECSClusterName string
+	PrivateIPOnly  bool
+}
+
 // Parsing our server.json configuration should have put all confg
 // into environment variables, load necessary config from there.
-func NewEC2Client(controllerID, nametag, vpcID, subnetID, ecsClusterName string) (*AwsEC2, error) {
+func NewEC2Client(config EC2ClientConfig) (*AwsEC2, error) {
+	if config.ControllerID == "" {
+		return nil, fmt.Errorf("ControllerID is a required parameter")
+	}
+	if config.Nametag == "" {
+		return nil, fmt.Errorf("Nametag is a required parameter")
+	}
 	ec2Client, err := getEC2Client()
 	if err != nil {
 		return nil, util.WrapError(err, "Error creating EC2 client")
@@ -137,7 +152,7 @@ func NewEC2Client(controllerID, nametag, vpcID, subnetID, ecsClusterName string)
 		return nil, util.WrapError(err, "Error creating ELB client")
 	}
 	var ecsClient *ecs.ECS
-	if ecsClusterName != "" {
+	if config.ECSClusterName != "" {
 		ecsClient, err = getECSClient()
 		if err != nil {
 			return nil, util.WrapError(err, "Error creating ECS client")
@@ -147,15 +162,15 @@ func NewEC2Client(controllerID, nametag, vpcID, subnetID, ecsClusterName string)
 		client:         ec2Client,
 		elb:            elbClient,
 		ecs:            ecsClient,
-		ecsClusterName: ecsClusterName,
-		controllerID:   controllerID,
-		nametag:        nametag,
+		ecsClusterName: config.ECSClusterName,
+		controllerID:   config.ControllerID,
+		nametag:        config.Nametag,
 	}
-	client.vpcID, client.vpcCIDR, err = client.assertVPCExists(vpcID)
+	client.vpcID, client.vpcCIDR, err = client.assertVPCExists(config.VPCID)
 	if err != nil {
 		return nil, err
 	}
-	client.subnetID = subnetID
+	client.subnetID = config.SubnetID
 	if client.subnetID == "" {
 		client.subnetID, err = detectCurrentSubnet()
 		if err != nil {
@@ -174,7 +189,7 @@ func NewEC2Client(controllerID, nametag, vpcID, subnetID, ecsClusterName string)
 		return nil, util.WrapError(err, "Error getting subnet attributes")
 	}
 	client.availabilityZone = subnetAttrs.AZ
-	client.usePublicIPs = true
+	client.usePublicIPs = !config.PrivateIPOnly
 	if subnetAttrs.AddressAffinity == cloud.PrivateAddress {
 		klog.V(2).Infoln("cells will run in a private subnet (no route to internet gateway)")
 		client.usePublicIPs = false
