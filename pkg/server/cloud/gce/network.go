@@ -110,7 +110,7 @@ func (c *gceClient) autodetectRegionAndZone() (string, string, error) {
 	}
 
 	md := newMetadataClient()
-	zone, err := md.Zone()
+	zone, err := getZoneFromMetadata(md)
 	if err != nil {
 		return "", "", util.WrapError(err, "error getting zone from GCE metadata service")
 	}

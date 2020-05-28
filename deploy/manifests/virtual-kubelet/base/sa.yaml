@@ -105,6 +105,8 @@ rules:
       - endpoints
     verbs:
       - get
+      - list
+      - watch
   - apiGroups:
     - certificates.k8s.io
     resourceNames:

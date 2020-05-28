@@ -29,10 +29,29 @@ import (
 	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 )
 
+const (
+	nanosecondsPerSecond = float64(time.Second / time.Nanosecond)
+)
+
 type usageMetrics struct {
-	UsageNanoCores  uint64
-	UsageBytes      uint64
-	WorkingSetBytes uint64
+	UsageNanoCores       uint64
+	UsageCoreNanoSeconds uint64
+	AvailableBytes       uint64
+	UsageBytes           uint64
+	WorkingSetBytes      uint64
+	RSSBytes             uint64
+	PageFaults           uint64
+	MajorPageFaults      uint64
+	NetRxBytes           uint64
+	NetRxErrors          uint64
+	NetTxBytes           uint64
+	NetTxErrors          uint64
+	FSAvailableBytes     uint64
+	FSCapacityBytes      uint64
+	FSUsedBytes          uint64
+	FSInodesFree         uint64
+	FSInodes             uint64
+	FSInodesUsed         uint64
 }
 
 func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary, error) {
@@ -71,97 +90,264 @@ func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary,
 	for _, pod := range pods.Items {
 		podMetricsList := metricsRegistry.GetPodMetrics(pod.Name)
 		podMetricsItems := podMetricsList.Items
-		if len(podMetricsItems) < 1 {
-			klog.V(2).Infof("no metrics found for pod %s", pod.Name)
+		if len(podMetricsItems) < 2 {
+			klog.V(2).Infof("not enough metrics yet for pod %s", pod.Name)
 			continue
 		}
 		// First metrics sample from the pod.
 		firstSample := podMetricsItems[0]
 		startTime := metav1.NewTime(firstSample.Timestamp.Time)
-		// Last sample from the pod, with the latest metrics.
-		lastSample := podMetricsItems[len(podMetricsItems)-1]
+		// Last two samples from the pod, with the latest metrics.
+		currentSample := podMetricsItems[len(podMetricsItems)-1]
+		previousSample := podMetricsItems[len(podMetricsItems)-2]
+		// Extract pod and container metrics.
+		ps := getStats(
+			startTime,
+			[]*api.Metrics{
+				previousSample,
+				currentSample,
+			},
+			pod.Spec.Units,
+		)
 		namespace, name := util.SplitNamespaceAndName(pod.Name)
-		timestamp := metav1.NewTime(lastSample.Timestamp.Time)
-		pss := stats.PodStats{
-			PodRef: stats.PodReference{
-				Name:      name,
-				Namespace: namespace,
-				UID:       pod.UID,
-			},
-			StartTime: startTime,
-			CPU: &stats.CPUStats{
-				Time: timestamp,
-			},
-			Memory: &stats.MemoryStats{
-				Time: timestamp,
-			},
+		ps.PodRef = stats.PodReference{
+			Name:      name,
+			Namespace: namespace,
+			UID:       pod.UID,
 		}
-		var podUsage usageMetrics
-		podUsage, pss.Containers = getContainerStats(startTime, lastSample, pod.Spec.Units)
-		pss.CPU.UsageNanoCores = &podUsage.UsageNanoCores
-		pss.Memory.UsageBytes = &podUsage.UsageBytes
-		pss.Memory.WorkingSetBytes = &podUsage.WorkingSetBytes
-		res.Pods = append(res.Pods, pss)
+		res.Pods = append(res.Pods, ps)
 	}
 	klog.V(5).Infof("GetStatsSummary() %+v", res)
 	return res, nil
 }
 
-func getContainerStats(startTime metav1.Time, podMetrics *api.Metrics, units []api.Unit) (usageMetrics, []stats.ContainerStats) {
-	timestamp := metav1.NewTime(podMetrics.Timestamp.Time)
-	unitUsageMap := make(map[string]*usageMetrics)
-	for k, v := range podMetrics.ResourceUsage {
+func float64ToUint64Ptr(f float64, exists bool) *uint64 {
+	if !exists {
+		return nil
+	}
+	v := uint64(f)
+	return &v
+}
+
+func getStats(startTime metav1.Time, podMetrics []*api.Metrics, units []api.Unit) stats.PodStats {
+	timestamp := metav1.NewTime(podMetrics[1].Timestamp.Time)
+	prevTimestamp := metav1.NewTime(podMetrics[0].Timestamp.Time)
+	nanoseconds := timestamp.UnixNano() - prevTimestamp.UnixNano()
+	ps := stats.PodStats{
+		StartTime: startTime,
+	}
+	statsMap := make(map[string]stats.ContainerStats)
+	for k, v := range podMetrics[1].ResourceUsage {
+		value := uint64(v)
+		// Some metrics are calculated as a diff between the previous and
+		// current values.
+		prev, prevExists := podMetrics[0].ResourceUsage[k]
+		prevValue := float64ToUint64Ptr(prev, prevExists)
+		// First update per-pod metrics.
+		updatePodNetworkStats(&ps, timestamp, k, value)
+		updatePodVolumeStats(&ps, timestamp, k, value)
+		// Update per-container metrics.
 		parts := strings.Split(k, ".")
 		if len(parts) != 2 {
 			continue
 		}
 		unitName := parts[0]
 		metric := parts[1]
-		usage, ok := unitUsageMap[unitName]
+		cstats, ok := statsMap[unitName]
 		if !ok {
-			usage = &usageMetrics{}
-			unitUsageMap[unitName] = usage
-		}
-		if metric == "cpuUsage" {
-			usage.UsageNanoCores = uint64(v)
-		}
-		if metric == "memoryUsage" {
-			usage.UsageBytes = uint64(v)
-			if usage.WorkingSetBytes == 0 {
-				// Old itzo versions don't support this metric.
-				usage.WorkingSetBytes = usage.UsageBytes
+			cstats = stats.ContainerStats{
+				Name:      unitName,
+				StartTime: startTime,
 			}
 		}
-		if metric == "memoryWorkingSet" {
-			usage.WorkingSetBytes = uint64(v)
-		}
+		updateContainerCPUStats(&cstats, timestamp, metric, value, prevValue, nanoseconds)
+		updateContainerMemoryStats(&cstats, timestamp, metric, value)
+		statsMap[unitName] = cstats
 	}
-	podUsage := usageMetrics{}
-	containerStats := make([]stats.ContainerStats, len(units))
+	ps.Containers = make([]stats.ContainerStats, len(units))
 	for i, unit := range units {
-		usage, ok := unitUsageMap[unit.Name]
+		cstats, ok := statsMap[unit.Name]
 		if !ok {
-			usage = &usageMetrics{}
+			klog.Warningf("container %s is missing from stats map", unit.Name)
+			continue
 		}
-		containerStats[i] = stats.ContainerStats{
-			Name:      unit.Name,
-			StartTime: startTime,
-			CPU: &stats.CPUStats{
-				Time:           timestamp,
-				UsageNanoCores: &usage.UsageNanoCores,
-			},
-			Memory: &stats.MemoryStats{
-				Time:            timestamp,
-				UsageBytes:      &usage.UsageBytes,
-				WorkingSetBytes: &usage.WorkingSetBytes,
+		ps.Containers[i] = cstats
+		updatePodCPUStats(&ps, &cstats, timestamp)
+		updatePodMemoryStats(&ps, &cstats, timestamp)
+	}
+	return ps
+}
+
+func ensurePodCPUStats(ps *stats.PodStats, timestamp metav1.Time) {
+	if ps.CPU == nil {
+		ps.CPU = &stats.CPUStats{
+			Time: timestamp,
+		}
+	}
+}
+
+func ensurePodMemoryStats(ps *stats.PodStats, timestamp metav1.Time) {
+	if ps.Memory == nil {
+		ps.Memory = &stats.MemoryStats{
+			Time: timestamp,
+		}
+	}
+}
+
+func ensurePodNetworkStats(ps *stats.PodStats, timestamp metav1.Time) {
+	if ps.Network == nil {
+		ps.Network = &stats.NetworkStats{
+			Time: timestamp,
+			InterfaceStats: stats.InterfaceStats{
+				Name: "eth0",
 			},
 		}
-		podUsage.UsageNanoCores += usage.UsageNanoCores
-		podUsage.UsageBytes += usage.UsageBytes
-		podUsage.WorkingSetBytes += usage.WorkingSetBytes
+		ps.Network.Interfaces = []stats.InterfaceStats{
+			{},
+		}
 	}
-	if podUsage.WorkingSetBytes == 0 {
-		podUsage.WorkingSetBytes = podUsage.UsageBytes
+}
+
+func ensurePodVolumeStats(ps *stats.PodStats, timestamp metav1.Time) {
+	if len(ps.VolumeStats) == 0 {
+		ps.VolumeStats = []stats.VolumeStats{
+			{
+				Name: "/",
+				FsStats: stats.FsStats{
+					Time: timestamp,
+				},
+			},
+		}
 	}
-	return podUsage, containerStats
+}
+
+func ensureContainerCPUStats(cstats *stats.ContainerStats, timestamp metav1.Time) {
+	if cstats.CPU == nil {
+		cstats.CPU = &stats.CPUStats{
+			Time: timestamp,
+		}
+	}
+}
+
+func ensureContainerMemoryStats(cstats *stats.ContainerStats, timestamp metav1.Time) {
+	if cstats.Memory == nil {
+		cstats.Memory = &stats.MemoryStats{
+			Time: timestamp,
+		}
+	}
+}
+
+func addToUint64Ptr(orig, add *uint64) *uint64 {
+	if add == nil {
+		return orig
+	}
+	v := *add
+	if orig == nil {
+		return &v
+	}
+	v += *orig
+	return &v
+}
+
+func updatePodCPUStats(ps *stats.PodStats, cstats *stats.ContainerStats, timestamp metav1.Time) {
+	if cstats.CPU == nil {
+		return
+	}
+	ensurePodCPUStats(ps, timestamp)
+	ps.CPU.UsageNanoCores = addToUint64Ptr(ps.CPU.UsageNanoCores, cstats.CPU.UsageNanoCores)
+	ps.CPU.UsageCoreNanoSeconds = addToUint64Ptr(ps.CPU.UsageCoreNanoSeconds, cstats.CPU.UsageCoreNanoSeconds)
+}
+
+func updatePodMemoryStats(ps *stats.PodStats, cstats *stats.ContainerStats, timestamp metav1.Time) {
+	if cstats.Memory == nil {
+		return
+	}
+	ensurePodMemoryStats(ps, timestamp)
+	ps.Memory.UsageBytes = addToUint64Ptr(ps.Memory.UsageBytes, cstats.Memory.UsageBytes)
+	ps.Memory.WorkingSetBytes = addToUint64Ptr(ps.Memory.WorkingSetBytes, cstats.Memory.WorkingSetBytes)
+	ps.Memory.AvailableBytes = addToUint64Ptr(ps.Memory.AvailableBytes, cstats.Memory.AvailableBytes)
+	ps.Memory.RSSBytes = addToUint64Ptr(ps.Memory.RSSBytes, cstats.Memory.RSSBytes)
+	ps.Memory.PageFaults = addToUint64Ptr(ps.Memory.PageFaults, cstats.Memory.PageFaults)
+	ps.Memory.MajorPageFaults = addToUint64Ptr(ps.Memory.MajorPageFaults, cstats.Memory.MajorPageFaults)
+}
+
+func updatePodNetworkStats(ps *stats.PodStats, timestamp metav1.Time, k string, v uint64) {
+	switch k {
+	case "netRx":
+		ensurePodNetworkStats(ps, timestamp)
+		ps.Network.InterfaceStats.RxBytes = &v
+		ps.Network.Interfaces[0] = ps.Network.InterfaceStats
+	case "netRxErrors":
+		ensurePodNetworkStats(ps, timestamp)
+		ps.Network.InterfaceStats.RxErrors = &v
+		ps.Network.Interfaces[0] = ps.Network.InterfaceStats
+	case "netTx":
+		ensurePodNetworkStats(ps, timestamp)
+		ps.Network.InterfaceStats.TxBytes = &v
+		ps.Network.Interfaces[0] = ps.Network.InterfaceStats
+	case "netTxErrors":
+		ensurePodNetworkStats(ps, timestamp)
+		ps.Network.InterfaceStats.TxErrors = &v
+		ps.Network.Interfaces[0] = ps.Network.InterfaceStats
+	}
+}
+
+func updatePodVolumeStats(ps *stats.PodStats, timestamp metav1.Time, k string, v uint64) {
+	switch k {
+	case "fsAvailable":
+		ensurePodVolumeStats(ps, timestamp)
+		ps.VolumeStats[0].AvailableBytes = &v
+	case "fsCapacity":
+		ensurePodVolumeStats(ps, timestamp)
+		ps.VolumeStats[0].CapacityBytes = &v
+	case "fsUsed":
+		ensurePodVolumeStats(ps, timestamp)
+		ps.VolumeStats[0].UsedBytes = &v
+	case "fsInodesFree":
+		ensurePodVolumeStats(ps, timestamp)
+		ps.VolumeStats[0].InodesFree = &v
+	case "fsInodes":
+		ensurePodVolumeStats(ps, timestamp)
+		ps.VolumeStats[0].Inodes = &v
+	case "fsInodesUsed":
+		ensurePodVolumeStats(ps, timestamp)
+		ps.VolumeStats[0].InodesUsed = &v
+	}
+}
+
+func updateContainerCPUStats(cstats *stats.ContainerStats, timestamp metav1.Time, k string, value uint64, prevValue *uint64, nanoseconds int64) {
+	switch k {
+	case "cpuUsage":
+		ensureContainerCPUStats(cstats, timestamp)
+		cstats.CPU.UsageCoreNanoSeconds = &value
+		if prevValue != nil && nanoseconds > 0 && value >= *prevValue {
+			diff := float64(value - *prevValue)
+			cores := uint64(diff / float64(nanoseconds) * nanosecondsPerSecond)
+			cstats.CPU.UsageNanoCores = &cores
+		}
+		klog.V(5).Infof("container %s cpustats %+v", cstats.Name, *cstats.CPU)
+	}
+}
+
+func updateContainerMemoryStats(cstats *stats.ContainerStats, timestamp metav1.Time, k string, value uint64) {
+	switch k {
+	case "memoryUsage":
+		ensureContainerMemoryStats(cstats, timestamp)
+		cstats.Memory.UsageBytes = &value
+	case "memoryWorkingSet":
+		ensureContainerMemoryStats(cstats, timestamp)
+		cstats.Memory.WorkingSetBytes = &value
+	case "memoryAvailable":
+		ensureContainerMemoryStats(cstats, timestamp)
+		cstats.Memory.AvailableBytes = &value
+	case "memoryRSS":
+		ensureContainerMemoryStats(cstats, timestamp)
+		cstats.Memory.RSSBytes = &value
+	case "memoryPageFaults":
+		ensureContainerMemoryStats(cstats, timestamp)
+		cstats.Memory.PageFaults = &value
+	case "memoryMajorPageFaults":
+		ensureContainerMemoryStats(cstats, timestamp)
+		cstats.Memory.MajorPageFaults = &value
+	}
 }

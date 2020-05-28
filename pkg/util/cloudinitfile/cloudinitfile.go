@@ -37,6 +37,7 @@ var (
 	itzoDir          = "/tmp/itzo"
 	ItzoVersionPath  = itzoDir + "/itzo_version"
 	ItzoURLPath      = itzoDir + "/itzo_url"
+	CellConfigPath   = itzoDir + "/cell_config.yaml"
 	cloudInitHeader  = []byte("#cloud-config\n")
 	maxCloudInitSize = 16000
 	semverRegex      = regexp.MustCompile("^" + semverRegexFmt + "$")
@@ -104,6 +105,17 @@ func (f *File) AddItzoURL(url string) {
 		return
 	}
 	f.AddKipFile(url, ItzoURLPath, "0444")
+}
+
+func (f *File) AddCellConfig(cfg map[string]string) {
+	if len(cfg) == 0 {
+		return
+	}
+	buf, err := yaml.Marshal(cfg)
+	if err != nil {
+		return
+	}
+	f.AddKipFile(string(buf), CellConfigPath, "0444")
 }
 
 func (f *File) Contents() ([]byte, error) {
