@@ -365,7 +365,7 @@ resource "aws_instance" "k8s-node" {
       private_key = local.create_ssh_key ? tls_private_key.ssh-key.0.private_key_pem : null
     }
     inline = [
-      "timeout 300 bash -c 'echo Waiting for cluster to come up; while true; do kubectl get svc kubernetes 2>/dev/null && exit 0; sleep 1; done'",
+      "timeout 600 bash -x -c 'echo Waiting for cluster to come up; while true; do kubectl cluster-info && kubectl get svc kubernetes && exit 0; sleep 5; done'",
     ]
   }
 

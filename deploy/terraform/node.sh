@@ -5,7 +5,7 @@ cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
 deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 apt-get update
-apt-get install -y kubelet="${k8s_version}*" kubeadm="${k8s_version}*" kubectl="${k8s_version}*" kubernetes-cni docker.io
+apt-get install -y kubelet="${k8s_version}*" kubeadm="${k8s_version}*" kubectl="${k8s_version}*" kubernetes-cni docker.io iproute2
 
 # Ensure Docker does not block forwarded packets.
 iptables -P FORWARD ACCEPT
@@ -15,18 +15,20 @@ modprobe br_netfilter
 systemctl enable docker.service || true
 systemctl restart docker.service || true
 
-# Wait for FQDN.
-name=""
-while ! echo "$name" | grep '\.'; do
+name="$(hostname).ec2.internal"
+while [[ -z "$name" ]]; do
+    echo "waiting for IP address"
     sleep 1
-    name="$(hostname -f)"
 done
 
 ip=""
 while [[ -z "$ip" ]]; do
+    echo "waiting for IP address"
     sleep 1
-    ip="$(host $name | head -n1 | awk '{print $4}' | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b')"
+    ip="$(ip route get 8.8.8.8 | grep '\<src\>' | head -1 | awk '{print $7}')"
 done
+
+echo "hostname: $name IP address: $ip"
 
 if [ -z ${k8s_version} ]; then
     k8s_version=$(curl -fL https://storage.googleapis.com/kubernetes-release/release/stable.txt)
