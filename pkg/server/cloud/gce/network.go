@@ -39,11 +39,16 @@ func zoneToRegion(zone string) (string, error) {
 func (c *gceClient) ConnectWithPublicIPs() bool {
 	if !c.usePublicIPs {
 		return false
-	} else {
-		// Todo: need to fix this to ensure we are inside the
-		// same network
-		return !metadata.OnGCE()
+	} else if metadata.OnGCE() {
+		mdVPC, err := c.detectCurrentVPC()
+		if err != nil {
+			return true
+		}
+		if mdVPC == c.vpcName {
+			return false
+		}
 	}
+	return true
 }
 
 func (c *gceClient) getVPCRegionCIDRs(vpcName string) ([]string, error) {
