@@ -137,26 +137,11 @@ func (c *gceClient) getInstanceNetworkSpec(privateIPOnly bool) []*compute.Networ
 }
 
 func (c *gceClient) createInstanceSpec(node *api.Node, image cloud.Image, metadata string) (*compute.Instance, error) {
-	md, err := base64.StdEncoding.DecodeString(metadata)
+	decodedUserData, err := base64.StdEncoding.DecodeString(metadata)
 	if err != nil {
 		return nil, util.WrapError(err, "Could not decode metadata string")
 	}
-	mds := string(md)
-	// disableIPAliases disables IP alias issues from the google network daemon
-	disableIPAliases := `#!/bin/bash
-    readonly inst_cfg_file="/etc/default/instance_configs.cfg.template"
 
-    if [[ ! -f "$inst_cfg_file" ]]; then
-        touch "$inst_cfg_file"
-    fi
-
-cat << EOF >> "$inst_cfg_file"
-[IpForwarding]
-ip_aliases = false
-EOF
-
-    $(/usr/bin/google_instance_setup)
-    `
 	name := makeInstanceID(c.controllerID, node.Name)
 	diskType := c.getDiskTypeURL()
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
@@ -174,16 +159,7 @@ EOF
 			Items: c.bootSecurityGroupIDs,
 		},
 		Metadata: &compute.Metadata{
-			Items: []*compute.MetadataItems{
-				{
-					Key:   "user-data",
-					Value: &mds,
-				},
-				{
-					Key:   "startup-script",
-					Value: &disableIPAliases,
-				},
-			},
+			Items: c.createInstanceMetadata(string(decodedUserData)),
 		},
 	}
 	if node.Spec.Spot {
@@ -195,6 +171,42 @@ EOF
 		}
 	}
 	return spec, nil
+}
+
+func (c *gceClient) createInstanceMetadata(decodedUserData string) []*compute.MetadataItems {
+	// disableIPAliases disables IP alias issues from the google network daemon
+	disableIPAliases := `#!/bin/bash
+    readonly inst_cfg_file="/etc/default/instance_configs.cfg.template"
+
+    if [[ ! -f "$inst_cfg_file" ]]; then
+        touch "$inst_cfg_file"
+    fi
+
+cat << EOF >> "$inst_cfg_file"
+[IpForwarding]
+ip_aliases = false
+EOF
+
+    $(/usr/bin/google_instance_setup)
+    `
+	items := []*compute.MetadataItems{
+		{
+			Key:   "user-data",
+			Value: &decodedUserData,
+		},
+		{
+			Key:   "startup-script",
+			Value: &disableIPAliases,
+		},
+	}
+	for k, v := range c.gkeMetadata {
+		val := v
+		items = append(items, &compute.MetadataItems{
+			Key:   k,
+			Value: &val,
+		})
+	}
+	return items
 }
 
 // this function handles the starting of both regular and spot type instances

@@ -94,9 +94,11 @@ func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary,
 			klog.V(2).Infof("not enough metrics yet for pod %s", pod.Name)
 			continue
 		}
-		// First metrics sample from the pod.
-		firstSample := podMetricsItems[0]
-		startTime := metav1.NewTime(firstSample.Timestamp.Time)
+		// The docs say PodStats.StartTime is:
+		//	 The time at which data collection for the pod-scoped (e.g.
+		//	 network) stats was (re)started.
+		// That is, when the pod or container was started.
+		startTime := metav1.NewTime(pod.CreationTimestamp.Time)
 		// Last two samples from the pod, with the latest metrics.
 		currentSample := podMetricsItems[len(podMetricsItems)-1]
 		previousSample := podMetricsItems[len(podMetricsItems)-2]
