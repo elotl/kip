@@ -31,7 +31,7 @@ import (
 func zoneToRegion(zone string) (string, error) {
 	parts := strings.Split(zone, "-")
 	if len(parts) != 3 {
-		return "", fmt.Errorf("unknown zone format, expecting geo-region-zone format")
+		return "", fmt.Errorf("unknown zone format, expecting geo-region-zone format got %q", zone)
 	}
 	return fmt.Sprintf("%s-%s", parts[0], parts[1]), nil
 }
