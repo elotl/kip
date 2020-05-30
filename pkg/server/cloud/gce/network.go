@@ -66,9 +66,14 @@ func (c *gceClient) getVPCRegionCIDRs(vpcName string) ([]string, error) {
 	if err != nil {
 		return nil, util.WrapError(err, "Error listing network subnets in region")
 	}
-	vpcCIDRs := make([]string, len(subnets))
-	for i := range subnets {
-		vpcCIDRs[i] = subnets[i].IpCidrRange
+	vpcCIDRs := make([]string, 0, len(subnets))
+	for _, subnet := range subnets {
+		vpcCIDRs = append(vpcCIDRs, subnet.IpCidrRange)
+		for _, secondary := range subnet.SecondaryIpRanges {
+			if secondary != nil {
+				vpcCIDRs = append(vpcCIDRs, secondary.IpCidrRange)
+			}
+		}
 	}
 	if len(vpcCIDRs) == 0 {
 		return nil, fmt.Errorf("Could not list any subnets in %s - %s", vpcName, c.region)
