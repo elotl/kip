@@ -19,13 +19,13 @@ variable "zone" {
 }
 
 variable "pod-cidr" {
-  default     = "10.20.0.0/16"
-  description = "The CIDR in the cluster used for pod IP addresses."
+  default     = ""
+  description = "The CIDR in the cluster used for pod IP addresses. By default, a CIDR will be allocated automatically."
 }
 
 variable "service-cidr" {
-  default     = "10.96.0.0/16"
-  description = "The CIDR in the cluster used for service IP addresses."
+  default     = ""
+  description = "The CIDR in the cluster used for service IP addresses. By default, a CIDR will be allocated automatically."
 }
 
 variable "kustomize-dir" {
