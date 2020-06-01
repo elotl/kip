@@ -31,7 +31,7 @@ import (
 func zoneToRegion(zone string) (string, error) {
 	parts := strings.Split(zone, "-")
 	if len(parts) != 3 {
-		return "", fmt.Errorf("unknown zone format, expecting geo-region-zone format")
+		return "", fmt.Errorf("unknown zone format, expecting geo-region-zone format got %q", zone)
 	}
 	return fmt.Sprintf("%s-%s", parts[0], parts[1]), nil
 }
@@ -71,9 +71,14 @@ func (c *gceClient) getVPCRegionCIDRs(vpcName string) ([]string, error) {
 	if err != nil {
 		return nil, util.WrapError(err, "Error listing network subnets in region")
 	}
-	vpcCIDRs := make([]string, len(subnets))
-	for i := range subnets {
-		vpcCIDRs[i] = subnets[i].IpCidrRange
+	vpcCIDRs := make([]string, 0, len(subnets))
+	for _, subnet := range subnets {
+		vpcCIDRs = append(vpcCIDRs, subnet.IpCidrRange)
+		for _, secondary := range subnet.SecondaryIpRanges {
+			if secondary != nil {
+				vpcCIDRs = append(vpcCIDRs, secondary.IpCidrRange)
+			}
+		}
 	}
 	if len(vpcCIDRs) == 0 {
 		return nil, fmt.Errorf("Could not list any subnets in %s - %s", vpcName, c.region)

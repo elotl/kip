@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
+	"k8s.io/klog"
 )
 
 const (
@@ -79,4 +80,32 @@ func getZoneFromMetadata(c *metadata.Client) (string, error) {
 		return "", err
 	}
 	return extractZoneFromResponse(s)
+}
+
+func getGKEMetadata() map[string]string {
+	if !metadata.OnGCE() {
+		return nil
+	}
+	keys := []string{
+		"cluster-location",
+		"cluster-name",
+		"cluster-uid",
+	}
+	c := newMetadataClient()
+	gkeMD := make(map[string]string)
+	for _, k := range keys {
+		url := "instance/attributes/" + k
+		val, err := getMetadataTrimmed(c, url)
+		if err != nil {
+			// Pretty sure we can continue in this case. The cluster
+			// will still function, if super important, daemonSets
+			// might not run on our virtual node but we are running
+			// them mostly for apprarances sake.  They should be
+			// patched to not run on our kip nodes.
+			klog.Warningln("unable to retrieve gke metadata key", k)
+			continue
+		}
+		gkeMD[k] = val
+	}
+	return gkeMD
 }

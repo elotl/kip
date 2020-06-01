@@ -32,6 +32,9 @@ type ClientOption interface {
 type WithZone string
 
 func (w WithZone) Apply(c *gceClient) error {
+	if len(w) == 0 {
+		return nil
+	}
 	c.zone = string(w)
 	var err error
 	c.region, err = zoneToRegion(c.zone)
