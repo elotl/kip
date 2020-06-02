@@ -295,11 +295,24 @@ func ValidateResourceParses(resourceStr string, fldPath *field.Path) field.Error
 	return allErrs
 }
 
+func ValidateGPUSpec(gpuStr string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if gpuStr != "" {
+		parts := strings.Fields(gpuStr)
+		quantity := parts[0]
+		if _, err := resource.ParseQuantity(quantity); err != nil {
+			msg := fmt.Sprintf("Invalid quantity format specified: %v", err)
+			allErrs = append(allErrs, field.Invalid(fldPath, quantity, msg))
+		}
+	}
+	return allErrs
+}
+
 func validateResourceSpec(rs *api.ResourceSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, ValidateResourceParses(rs.Memory, fldPath.Child("Memory"))...)
 	allErrs = append(allErrs, ValidateResourceParses(rs.CPU, fldPath.Child("CPU"))...)
-	allErrs = append(allErrs, ValidateResourceParses(rs.GPU, fldPath.Child("GPU"))...)
+	allErrs = append(allErrs, ValidateGPUSpec(rs.GPU, fldPath.Child("GPU"))...)
 	allErrs = append(allErrs, ValidateResourceParses(rs.VolumeSize, fldPath.Child("VolumeSize"))...)
 
 	return allErrs

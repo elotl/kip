@@ -810,6 +810,7 @@ func TestAggregateResources(t *testing.T) {
 	testCases := []struct {
 		requirements []v1.ResourceRequirements
 		resources    api.ResourceSpec
+		nodeSelector map[string]string
 	}{
 		{
 			requirements: []v1.ResourceRequirements{},
@@ -889,13 +890,55 @@ func TestAggregateResources(t *testing.T) {
 				GPU:    "1",
 			},
 		},
+		{
+			requirements: []v1.ResourceRequirements{
+				{
+					Limits: v1.ResourceList{
+						ResourceLimitsGPU: resource.MustParse("2"),
+					},
+					Requests: v1.ResourceList{
+						v1.ResourceCPU:    resource.MustParse("2000m"),
+						v1.ResourceMemory: resource.MustParse("2Gi"),
+					},
+				},
+			},
+			nodeSelector: map[string]string{
+				"node.elotl.co/gpu-nvidia-tesla-v100": "",
+			},
+			resources: api.ResourceSpec{
+				CPU:    "2.00",
+				Memory: "2.00Gi",
+				GPU:    "2 nvidia-tesla-v100",
+			},
+		},
+		{
+			requirements: []v1.ResourceRequirements{
+				{
+					Limits: v1.ResourceList{
+						ResourceLimitsGPU: resource.MustParse("4"),
+					},
+					Requests: v1.ResourceList{
+						v1.ResourceCPU:    resource.MustParse("2000m"),
+						v1.ResourceMemory: resource.MustParse("2Gi"),
+					},
+				},
+			},
+			nodeSelector: map[string]string{
+				"cloud.google.com/gke-accelerator": "nvidia-tesla-k80",
+			},
+			resources: api.ResourceSpec{
+				CPU:    "2.00",
+				Memory: "2.00Gi",
+				GPU:    "4 nvidia-tesla-k80",
+			},
+		},
 	}
 	for _, tc := range testCases {
 		containers := make([]v1.Container, len(tc.requirements))
 		for i, req := range tc.requirements {
 			containers[i].Resources = req
 		}
-		resources := aggregateResources(containers)
+		resources := aggregateResources(containers, tc.nodeSelector)
 		assert.Equal(t, tc.resources, resources)
 	}
 }

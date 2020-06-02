@@ -146,6 +146,7 @@ func TestValidateResourceParses(t *testing.T) {
 		{CPU: "1", GPU: "1", Memory: "512Mi"},
 		{VolumeSize: "200Gi", Memory: "", CPU: "500m"},
 		{CPU: "1.5", GPU: "1", Memory: "512Mi"},
+		{CPU: "2.0", GPU: "8 nvidia-tesla-k80", Memory: "4Gi"},
 	}
 	for _, spec := range successCases {
 		if errs := validateResourceSpec(&spec, field.NewPath("field")); len(errs) != 0 {
