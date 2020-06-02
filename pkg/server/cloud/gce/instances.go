@@ -161,6 +161,15 @@ func (c *gceClient) createInstanceSpec(node *api.Node, image cloud.Image, metada
 		Metadata: &compute.Metadata{
 			Items: c.createInstanceMetadata(string(decodedUserData)),
 		},
+		ServiceAccounts: []*compute.ServiceAccount{
+			{
+				Email: c.clientEmail,
+				Scopes: []string{
+					"https://www.googleapis.com/auth/logging.write",
+					"https://www.googleapis.com/auth/monitoring.write",
+				},
+			},
+		},
 	}
 	if node.Spec.Spot {
 		ar := false

@@ -113,6 +113,8 @@ func (w withCredentials) Apply(c *gceClient) error {
 		return err
 	}
 
+	c.clientEmail = w.clientEmail
+
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	c.service, err = compute.NewService(ctx, option.WithCredentialsJSON(b))
