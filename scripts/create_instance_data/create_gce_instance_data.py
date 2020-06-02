@@ -328,7 +328,7 @@ if __name__ == '__main__':
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--project_id', help='Google Cloud project ID.',
-                        default='milpa-207719')
+                        default='elotl-kip')
     args = parser.parse_args()
     instance_data = get_instance_data(args.project_id)
     jsonfp = dumpjson(instance_data)
