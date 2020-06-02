@@ -37,7 +37,7 @@ cleanup() {
 update_vk() {
     local version="$(git describe)"
     local patch="{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"image\":\"elotl/virtual-kubelet:$version\",\"name\":\"virtual-kubelet\"}]}}}}"
-    kubectl patch -n kube-system deployment virtual-kubelet -p "$patch"
+    kubectl patch -n kube-system statefulset virtual-kubelet -p "$patch"
 }
 
 run_smoke_test() {

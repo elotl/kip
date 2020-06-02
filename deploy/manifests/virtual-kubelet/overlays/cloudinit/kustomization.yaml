@@ -1,7 +1,7 @@
 bases:
 - ../../base
 patchesStrategicMerge:
-- deployment.yaml
+- statefulset.yaml
 configMapGenerator:
 - name: virtual-kubelet-config
   namespace: kube-system
