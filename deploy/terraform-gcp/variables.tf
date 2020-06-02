@@ -4,6 +4,7 @@ variable "cluster-name" {
 }
 
 variable "project" {
+  type        = string
   description = "The GCP project where resources will be created."
 }
 
