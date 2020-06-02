@@ -47,6 +47,7 @@ const (
 
 type gceClient struct {
 	service              *compute.Service
+	clientEmail          string
 	controllerID         string
 	nametag              string
 	projectID            string
