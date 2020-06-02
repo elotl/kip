@@ -34,6 +34,7 @@ import (
 	vutil "github.com/elotl/kip/pkg/util/validation"
 	"github.com/elotl/kip/pkg/util/validation/field"
 	"github.com/elotl/kip/pkg/util/yaml"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/klog"
 )
@@ -63,10 +64,10 @@ type ServerConfigFile struct {
 	Kubelet      KubeletConfig    `json:"kubelet"`
 }
 
+// Kubelet stores kubelet-specific configuration such as capacity and labels.
 type KubeletConfig struct {
-	CPU    resource.Quantity `json:"cpu"`
-	Memory resource.Quantity `json:"memory"`
-	Pods   resource.Quantity `json:"pods"`
+	Capacity v1.ResourceList   `json:"capacity"`
+	Labels   map[string]string `json:"labels"`
 }
 
 type MultiCloudConfig struct {
@@ -185,9 +186,12 @@ func serverConfigFileWithDefaults() *ServerConfigFile {
 			StatusInterval:    defaultStatusInterval,
 		},
 		Kubelet: KubeletConfig{
-			CPU:    defaultCPUCapacity,
-			Memory: defaultMemoryCapacity,
-			Pods:   defaultPodCapacity,
+			Capacity: v1.ResourceList{
+				"cpu":    defaultCPUCapacity,
+				"memory": defaultMemoryCapacity,
+				"pods":   defaultPodCapacity,
+			},
+			Labels: map[string]string{},
 		},
 	}
 	return &sc

@@ -423,16 +423,12 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 	}
 
 	klog.V(5).Infof("creating node status controller")
-	kubeletCapacity := v1.ResourceList{
-		"cpu":    serverConfigFile.Kubelet.CPU,
-		"memory": serverConfigFile.Kubelet.Memory,
-		"pods":   serverConfigFile.Kubelet.Pods,
-	}
 	nodeStatusController := nodestatus.NewNodeStatusController(
 		cloudClient,
 		internalIP,
 		daemonEndpointPort,
-		kubeletCapacity,
+		serverConfigFile.Kubelet.Capacity,
+		serverConfigFile.Kubelet.Labels,
 	)
 
 	controllers := map[string]Controller{
