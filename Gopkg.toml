@@ -74,12 +74,8 @@
   version = "v0.4.0"
 
 [[constraint]]
-  name = "github.com/elotl/cloud-init"
+  name = "github.com/elotl/node-cli"
   branch = "master"
-
-[[constraint]]
-  name = "github.com/virtual-kubelet/node-cli"
-  revision = "c0381df9dbcd89a25594f53d49478f9cd97657ce"
 
 #[[constraint]]
 #  name = "github.com/gogo/protobuf"

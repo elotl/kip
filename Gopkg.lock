@@ -284,13 +284,6 @@
   version = "v4"
 
 [[projects]]
-  digest = "1:81c8b18c8ce19767ef396e15eab516435d238eef6dda2f7aa1e96c562c4feee6"
-  name = "github.com/coreos/yaml"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "6b16a5714269b2f70720a45406b1babd947a17ef"
-
-[[projects]]
   digest = "1:e29335d5a78621ed7a539ed75e10785c3705bb67d916e48b03b1cdf9b727508d"
   name = "github.com/creack/pty"
   packages = ["."]
@@ -374,6 +367,23 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:7afa3f0b4c812fdd24c8571bd825ee6d1134393954e40d85aab4345addde416d"
+  name = "github.com/elotl/node-cli"
+  packages = [
+    ".",
+    "internal/commands/providers",
+    "internal/commands/root",
+    "internal/commands/version",
+    "manager",
+    "opencensus",
+    "opts",
+    "provider",
+  ]
+  pruneopts = "UT"
+  revision = "1cc325932f0948de496ccde9f017a03f195eabb7"
+
+[[projects]]
+  branch = "master"
   digest = "1:610857fe1e924226874abae37a0987027e6e0cfbbaa1a2fd8b77feb1d793c620"
   name = "github.com/elotl/wsstream"
   packages = ["."]
@@ -438,6 +448,14 @@
   pruneopts = "UT"
   revision = "6a1eb9830f1c6b090dcd01cee6c3983604a2306f"
   version = "v0.19.7"
+
+[[projects]]
+  digest = "1:d7f1bd887dc650737a421b872ca883059580e9f8314d601f88025df4f4802dce"
+  name = "github.com/go-yaml/yaml"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "0b1645d91e851e735d3e23330303ce81f70adbe3"
+  version = "v2.3.0"
 
 [[projects]]
   digest = "1:cb6758edd8bf662d8a8cc4d17d08b98c541b4c74fc87baa11d2f2b18ffb09da2"
@@ -888,22 +906,6 @@
   pruneopts = "UT"
   revision = "40ae6a40a970ef4cdbffa7b24b280e316db8accc"
   version = "v1.5.1"
-
-[[projects]]
-  digest = "1:c0b015461fdbecef5b399c2aab5d0fb3f3212ea63b394a1a2b17923393eec564"
-  name = "github.com/virtual-kubelet/node-cli"
-  packages = [
-    ".",
-    "internal/commands/providers",
-    "internal/commands/root",
-    "internal/commands/version",
-    "manager",
-    "opencensus",
-    "opts",
-    "provider",
-  ]
-  pruneopts = "UT"
-  revision = "c0381df9dbcd89a25594f53d49478f9cd97657ce"
 
 [[projects]]
   digest = "1:0040952be0fb9f9105196a492c940071c8700c3d41c62e82a8d2f65e29d3e35a"
@@ -1835,7 +1837,6 @@
     "github.com/coreos/etcd/embed",
     "github.com/coreos/etcd/etcdserver/api/v3client",
     "github.com/coreos/etcd/pkg/transport",
-    "github.com/coreos/yaml",
     "github.com/davecgh/go-spew/spew",
     "github.com/dghubble/sling",
     "github.com/docker/libkv",
@@ -1843,10 +1844,17 @@
     "github.com/docker/libkv/store/boltdb",
     "github.com/docker/libkv/store/mock",
     "github.com/elotl/cloud-init/config",
+    "github.com/elotl/node-cli",
+    "github.com/elotl/node-cli/manager",
+    "github.com/elotl/node-cli/opencensus",
+    "github.com/elotl/node-cli/opts",
+    "github.com/elotl/node-cli/provider",
     "github.com/elotl/wsstream",
     "github.com/ghodss/yaml",
+    "github.com/go-yaml/yaml",
     "github.com/golang/protobuf/proto",
     "github.com/gorilla/websocket",
+    "github.com/hashicorp/golang-lru/simplelru",
     "github.com/json-iterator/go",
     "github.com/justnoise/genny/generic",
     "github.com/kr/pty",
@@ -1859,11 +1867,6 @@
     "github.com/spf13/pflag",
     "github.com/stretchr/testify/assert",
     "github.com/uber-go/atomic",
-    "github.com/virtual-kubelet/node-cli",
-    "github.com/virtual-kubelet/node-cli/manager",
-    "github.com/virtual-kubelet/node-cli/opencensus",
-    "github.com/virtual-kubelet/node-cli/opts",
-    "github.com/virtual-kubelet/node-cli/provider",
     "github.com/virtual-kubelet/virtual-kubelet/errdefs",
     "github.com/virtual-kubelet/virtual-kubelet/log",
     "github.com/virtual-kubelet/virtual-kubelet/node/api",
@@ -1907,7 +1910,9 @@
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/clientcmd/api",
     "k8s.io/client-go/tools/record",
+    "k8s.io/client-go/util/cert",
     "k8s.io/client-go/util/flowcontrol",
+    "k8s.io/client-go/util/keyutil",
     "k8s.io/client-go/util/workqueue",
     "k8s.io/code-generator",
     "k8s.io/cri-api/pkg/apis/runtime/v1alpha2",

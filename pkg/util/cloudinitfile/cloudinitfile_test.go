@@ -22,8 +22,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/coreos/yaml"
 	cc "github.com/elotl/cloud-init/config"
+	"github.com/go-yaml/yaml"
 	"github.com/stretchr/testify/assert"
 )
 
