@@ -21,13 +21,13 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/elotl/node-cli/internal/commands/providers"
+	"github.com/elotl/node-cli/internal/commands/root"
+	"github.com/elotl/node-cli/internal/commands/version"
+	"github.com/elotl/node-cli/opts"
+	"github.com/elotl/node-cli/provider"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/virtual-kubelet/node-cli/internal/commands/providers"
-	"github.com/virtual-kubelet/node-cli/internal/commands/root"
-	"github.com/virtual-kubelet/node-cli/internal/commands/version"
-	"github.com/virtual-kubelet/node-cli/opts"
-	"github.com/virtual-kubelet/node-cli/provider"
 )
 
 // Option sets an option on the command.

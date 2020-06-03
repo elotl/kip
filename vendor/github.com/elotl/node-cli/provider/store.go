@@ -3,7 +3,7 @@ package provider
 import (
 	"sync"
 
-	"github.com/virtual-kubelet/node-cli/manager"
+	"github.com/elotl/node-cli/manager"
 )
 
 // Store is used for registering/fetching providers
