@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: virtual-kubelet
+  name: kip
   namespace: kube-system
 spec:
   template:
@@ -9,7 +9,7 @@ spec:
       volumes:
       - name: provider-yaml
         configMap:
-          name: virtual-kubelet-config
+          name: kip-config
           items:
           - key: cloudinit.yaml
             path: cloudinit.yaml

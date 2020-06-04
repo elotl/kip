@@ -9,16 +9,15 @@ etcd:
     dataDir: /opt/kip/data
 cells:
   bootImageSpec:
-    owners: "099720109477"
-    filters: name=ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*
-  cloudInitFile: /etc/virtual-kubelet/cloudinit.yaml
+    owners: 689494258501
+    filters: name=elotl-kip-*
   defaultInstanceType: "t3.nano"
   defaultVolumeSize: "20G"
-  nametag: virtual-kubelet
+  nametag: kip
   itzo:
     url: https://itzo-kip-download.s3.amazonaws.com
     version: latest
 kubelet:
-  cpu: "100"
+  cpu: "20"
   memory: "512Gi"
   pods: "200"

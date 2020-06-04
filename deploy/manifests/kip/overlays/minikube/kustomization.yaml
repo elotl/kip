@@ -5,13 +5,13 @@
 #     bases:
 #     - ../minikube
 #     configMapGenerator:
-#     - name: virtual-kubelet-config
+#     - name: kip-config
 #       namespace: kube-system
 #       behavior: merge
 #       files:
 #       - provider.yaml
 #     secretGenerator:
-#     - name: virtual-kubelet-secrets
+#     - name: kip-secrets
 #       namespace: kube-system
 #       literals:
 #       - AWS_ACCESS_KEY_ID=...
@@ -31,7 +31,7 @@ bases:
 patchesStrategicMerge:
 - statefulset.yaml
 configMapGenerator:
-- name: virtual-kubelet-config
+- name: kip-config
   namespace: kube-system
   behavior: merge
   files:

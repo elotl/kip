@@ -8,7 +8,7 @@ RUN apt-get update -y && \
 
 COPY kipctl /kipctl
 RUN chmod 755 /kipctl
-COPY virtual-kubelet /virtual-kubelet
-RUN chmod 755 /virtual-kubelet
+COPY kip /kip
+RUN chmod 755 /kip
 
-ENTRYPOINT ["/virtual-kubelet"]
+ENTRYPOINT ["/kip"]

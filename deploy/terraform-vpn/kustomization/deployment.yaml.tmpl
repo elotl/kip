@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: virtual-kubelet
+  name: kip
   namespace: kube-system
 spec:
   template:
     spec:
       containers:
       - command:
-        - /virtual-kubelet
+        - /kip
         - --provider
         - kip
         - --provider-config
-        - /etc/virtual-kubelet/provider.yaml
+        - /etc/kip/provider.yaml
         - --network-agent-secret
         - kube-system/vk-network-agent
         - --disable-taint
         - --cluster-dns=${local_dns}
         - --klog.logtostderr
         - --klog.v=2
-        name: virtual-kubelet
+        name: kip

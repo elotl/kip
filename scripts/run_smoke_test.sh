@@ -19,9 +19,9 @@ export KUBECONFIG=$(mktemp)
 cleanup() {
     kubectl get pods -A || true
     kubectl get nodes || true
-    kubectl -n kube-system describe pod -l app=virtual-kubelet || true
-    kubectl logs -n kube-system -l app=virtual-kubelet -c init-cert --tail=-1 || true
-    kubectl logs -n kube-system -l app=virtual-kubelet -c virtual-kubelet --tail=-1 || true
+    kubectl -n kube-system describe pod -l app=kip || true
+    kubectl logs -n kube-system -l app=kip -c init-cert --tail=-1 || true
+    kubectl logs -n kube-system -l app=kip -c kip --tail=-1 || true
     kubectl delete pod nginx > /dev/null 2>&1 || true
     kubectl delete svc nginx > /dev/null 2>&1 || true
     kubectl delete pod test > /dev/null 2>&1 || true
@@ -36,8 +36,8 @@ cleanup() {
 
 update_vk() {
     local version="$(git describe)"
-    local patch="{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"image\":\"elotl/virtual-kubelet:$version\",\"name\":\"virtual-kubelet\"}]}}}}"
-    kubectl patch -n kube-system statefulset virtual-kubelet -p "$patch"
+    local patch="{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"image\":\"elotl/kip:$version\",\"name\":\"kip\"}]}}}}"
+    kubectl patch -n kube-system statefulset kip -p "$patch"
 }
 
 run_smoke_test() {

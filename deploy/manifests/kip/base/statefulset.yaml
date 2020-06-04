@@ -1,35 +1,35 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: virtual-kubelet
+  name: kip
   labels:
-    app: virtual-kubelet
+    app: kip
 spec:
   ports:
   - port: 80
-    name: virtual-kubelet
+    name: kip
   clusterIP: None
   selector:
-    app: virtual-kubelet
+    app: kip
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: virtual-kubelet
+  name: kip
   namespace: kube-system
   labels:
-    app: virtual-kubelet
+    app: kip
 spec:
-  serviceName: virtual-kubelet
+  serviceName: kip
   replicas: 1
   selector:
     matchLabels:
-      app: virtual-kubelet
+      app: kip
   template:
     metadata:
       labels:
-        app: virtual-kubelet
-        virtual-kubelet: ""
+        app: kip
+        kip: ""
     spec:
       affinity:
         nodeAffinity:
@@ -39,13 +39,13 @@ spec:
               - key: type
                 operator: NotIn
                 values:
-                - virtual-kubelet
+                - kip
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - podAffinityTerm:
               labelSelector:
                 matchExpressions:
-                - key: virtual-kubelet
+                - key: kip
                   operator: In
                   values:
                   - ""
@@ -58,7 +58,7 @@ spec:
         - mkdir -p $CERT_DIR && /opt/csr/get-cert.sh
         env:
         - name: NODE_NAME
-          value: virtual-kubelet
+          value: kip
         - name: CERT_DIR
           value: /data/kubelet-pki
         image: elotl/init-cert:latest
@@ -72,27 +72,27 @@ spec:
           name: data
       containers:
       - command:
-        - /virtual-kubelet
+        - /kip
         - --provider
         - kip
         - --provider-config
-        - /etc/virtual-kubelet/provider.yaml
+        - /etc/kip/provider.yaml
         - --network-agent-secret
         - kube-system/vk-network-agent
         - --disable-taint
         - --klog.logtostderr
         - --klog.v=2
         - --metrics-addr=:10255
-        image: elotl/virtual-kubelet:latest
+        image: bcox9000/kip:latest
         imagePullPolicy: Always
-        name: virtual-kubelet
+        name: kip
         env:
         - name: KUBELET_PORT
           value: "10666"
         - name: APISERVER_CERT_LOCATION
-          value: /opt/kip/data/kubelet-pki/virtual-kubelet.crt
+          value: /opt/kip/data/kubelet-pki/kip.crt
         - name: APISERVER_KEY_LOCATION
-          value: /opt/kip/data/kubelet-pki/virtual-kubelet.key
+          value: /opt/kip/data/kubelet-pki/kip.key
         - name: NODE_NAME
           valueFrom:
             fieldRef:
@@ -109,7 +109,7 @@ spec:
         - name: data
           mountPath: /opt/kip/data
         - name: provider-yaml
-          mountPath: /etc/virtual-kubelet
+          mountPath: /etc/kip
         - name: xtables-lock
           mountPath: /run/xtables.lock
         - name: lib-modules
@@ -139,7 +139,7 @@ spec:
           readOnly: true
       dnsPolicy: ClusterFirst
       restartPolicy: Always
-      serviceAccountName: virtual-kubelet
+      serviceAccountName: kip
       tolerations:
       - key: "node-role.kubernetes.io/master"
         effect: "NoSchedule"
@@ -149,14 +149,14 @@ spec:
           claimName: provider-data
       - name: provider-yaml
         configMap:
-          name: virtual-kubelet-config
+          name: kip-config
           items:
           - key: provider.yaml
             path: provider.yaml
             mode: 0600
       - name: xtables-lock
         hostPath:
-          path: /run/virtual-kubelet-xtables.lock
+          path: /run/kip-xtables.lock
           type: FileOrCreate
       - name: lib-modules
         hostPath:
@@ -166,7 +166,7 @@ spec:
     - metadata:
         name: data
       spec:
-        accessModes: 
+        accessModes:
           - ReadWriteOnce
         resources:
           requests:

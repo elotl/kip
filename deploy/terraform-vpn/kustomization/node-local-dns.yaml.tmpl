@@ -62,7 +62,7 @@ data:
         }
         reload
         loop
-        bind ${local_dns} 
+        bind ${local_dns}
         forward . ${kube_dns} {
                 force_tcp
         }
@@ -74,7 +74,7 @@ data:
         cache 30
         reload
         loop
-        bind ${local_dns} 
+        bind ${local_dns}
         forward . ${kube_dns} {
                 force_tcp
         }
@@ -85,7 +85,7 @@ data:
         cache 30
         reload
         loop
-        bind ${local_dns} 
+        bind ${local_dns}
         forward . ${kube_dns} {
                 force_tcp
         }
@@ -96,7 +96,7 @@ data:
         cache 30
         reload
         loop
-        bind ${local_dns} 
+        bind ${local_dns}
         forward . 8.8.8.8 8.8.4.4 1.1.1.1
         prometheus :9253
         }
@@ -134,7 +134,7 @@ spec:
               - key: "kubernetes.io/hostname"
                 operator: In
                 values:
-                - virtual-kubelet
+                - kip
       priorityClassName: system-node-critical
       serviceAccountName: node-local-dns
       hostNetwork: true
