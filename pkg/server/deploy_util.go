@@ -29,7 +29,7 @@ import (
 	"github.com/elotl/kip/pkg/nodeclient"
 	"github.com/elotl/kip/pkg/util"
 	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
-	"github.com/virtual-kubelet/node-cli/manager"
+	"github.com/elotl/node-cli/manager"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

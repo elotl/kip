@@ -37,7 +37,7 @@ import (
 	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/kip/pkg/util/stats"
 	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
-	"github.com/virtual-kubelet/node-cli/manager"
+	"github.com/elotl/node-cli/manager"
 	"k8s.io/apimachinery/pkg/api/resource"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog"

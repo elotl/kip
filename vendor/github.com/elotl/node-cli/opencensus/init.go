@@ -21,8 +21,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/elotl/node-cli/opts"
 	"github.com/pkg/errors"
-	"github.com/virtual-kubelet/node-cli/opts"
 	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
 	"github.com/virtual-kubelet/virtual-kubelet/log"
 	"go.opencensus.io/trace"

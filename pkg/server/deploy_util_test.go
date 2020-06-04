@@ -34,7 +34,7 @@ import (
 	"github.com/elotl/kip/pkg/util/k8s/eventrecorder"
 	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	"github.com/stretchr/testify/assert"
-	"github.com/virtual-kubelet/node-cli/manager"
+	"github.com/elotl/node-cli/manager"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1listers "k8s.io/client-go/listers/core/v1"

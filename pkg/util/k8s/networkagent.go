@@ -22,7 +22,7 @@ import (
 
 	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/kip/pkg/util/kubeconfig"
-	"github.com/virtual-kubelet/node-cli/manager"
+	"github.com/elotl/node-cli/manager"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"

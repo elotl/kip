@@ -11,7 +11,7 @@ import (
 	"github.com/elotl/kip/pkg/util/k8s"
 	"github.com/elotl/kip/pkg/util/k8s/eventrecorder"
 	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
-	"github.com/virtual-kubelet/node-cli/manager"
+	"github.com/elotl/node-cli/manager"
 	v1 "k8s.io/api/core/v1"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog"

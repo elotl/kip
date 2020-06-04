@@ -18,8 +18,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/virtual-kubelet/node-cli/opts"
-	"github.com/virtual-kubelet/node-cli/provider"
+	"github.com/elotl/node-cli/opts"
+	"github.com/elotl/node-cli/provider"
 	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
