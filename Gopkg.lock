@@ -366,6 +366,23 @@
   revision = "f43bfb59685e6dc94268cb02c7c675ff71ff2f5a"
 
 [[projects]]
+  digest = "1:7afa3f0b4c812fdd24c8571bd825ee6d1134393954e40d85aab4345addde416d"
+  name = "github.com/elotl/node-cli"
+  packages = [
+    ".",
+    "internal/commands/providers",
+    "internal/commands/root",
+    "internal/commands/version",
+    "manager",
+    "opencensus",
+    "opts",
+    "provider",
+  ]
+  pruneopts = "UT"
+  revision = "1cc325932f0948de496ccde9f017a03f195eabb7"
+  version = "v0.1.3-elotl1"
+
+[[projects]]
   branch = "master"
   digest = "1:7afa3f0b4c812fdd24c8571bd825ee6d1134393954e40d85aab4345addde416d"
   name = "github.com/elotl/node-cli"
