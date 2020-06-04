@@ -1,4 +1,4 @@
-DKR=img
+DKR=docker
 GIT_VERSION=$(shell git describe --dirty)
 CURRENT_TIME=$(shell date +%Y%m%d%H%M%S)
 IMAGE_TAG=$(GIT_VERSION)

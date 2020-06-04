@@ -3,6 +3,8 @@ go:
 - '1.13'
 sudo: required
 dist: xenial
+services:
+- docker
 env:
   global:
   - AWS_REGION=us-east-1
@@ -35,7 +37,7 @@ script:
 - set -e
 - make
 - "./scripts/run_tests.sh"
-- make img login-img push-img
+- make img login-img push-img DKR=docker
 - "./scripts/run_smoke_test.sh"
 notifications:
   slack:
