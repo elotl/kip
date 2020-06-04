@@ -1,6 +1,6 @@
 # Kip, the Kubernetes Cloud Instance Provider
 
-Kip is a [Virtual Kubelet](https://github.com/virtual-kubelet/virtual-kubelet) provider that allows a Kubernetes cluster to transparently launch pods onto their own cloud instances.  Kip's virtual-kubelet pod is run on a cluster and will create a virtual Kubernetes node in the cluster.  When a pod is scheduled onto the Virtual Kubelet, Kip starts a right-sized cloud instance for the pod’s workload and dispatches the pod onto the instance.  When the pod is finished running, the cloud instance is terminated. We call these cloud instances “cells”.
+Kip is a [Virtual Kubelet](https://github.com/virtual-kubelet/virtual-kubelet) provider that allows a Kubernetes cluster to transparently launch pods onto their own cloud instances.  The kip pod is run on a cluster and will create a virtual Kubernetes node in the cluster.  When a pod is scheduled onto the Virtual Kubelet, Kip starts a right-sized cloud instance for the pod’s workload and dispatches the pod onto the instance.  When the pod is finished running, the cloud instance is terminated. We call these cloud instances “cells”.
 
 When workloads run on Kip, your cluster size naturally scales with the cluster workload, pods are strongly isolated from each other and the user is freed from managing worker nodes and strategically packing pods onto nodes.  This results in lower cloud costs, improved security and simpler operational overhead.
 
@@ -42,7 +42,7 @@ terraform apply -var-file myenv.tfvars
 
 ### Installation Option 2: Using an Existing Cluster
 
-To deploy Kip into an existing cluster, you'll need to setup cloud credentials that allow the Kip provider to manipulate cloud instances, security groups and other cloud resources.  Once credentials are setup, apply [deploy/virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) to create the necessary kubernetes resources to support and run the provider.
+To deploy Kip into an existing cluster, you'll need to setup cloud credentials that allow the Kip provider to manipulate cloud instances, security groups and other cloud resources.  Once credentials are setup, apply [deploy/kip.yaml](deploy/kip.yaml) to create the necessary kubernetes resources to support and run the provider.
 
 **Step 1: Credentials**
 
@@ -50,19 +50,19 @@ In AWS, Kip can either use API keys supplied in the Kip provider configuration f
 
 **Credentials Option 1 - Configuring AWS API keys:**
 
-Open [deploy/virtual-kubelet.yaml](deploy/virtual-kubelet.yaml) in an editor, find the virtual-kubelet-config ConfigMap and fill in the values for `accessKeyID` and `secretAccessKey` under `data.provider.yaml.cloud.aws`.
+Open [deploy/kip.yaml](deploy/kip.yaml) in an editor, find the kip-config ConfigMap and fill in the values for `accessKeyID` and `secretAccessKey` under `data.provider.yaml.cloud.aws`.
 
 **Credentials Option 2 - Instance Profile Credentials:**
 
 In AWS, Kip can use credentials supplied by the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) attached to the node the pod is dispatched to.  To use an instance profile, create an IAM policy with the [minimum Kip permissions](docs/kip-iam-permissions.md) then apply the instance profile to the node that will run the Kip provider pod.  The Kip pod must run on the cloud instance that the instance profile is attached to.
 
-**Step 2: Apply virtual-kubelet.yaml**
+**Step 2: Apply kip.yaml**
 
-The resources in [deploy/manifests/virtual-kubelet](deploy/manifests/virtual-kubelet) create ServiceAccounts, Roles and a virtual-kubelet Deployment to run the provider. [Kip is not stateless](docs/state.md), the manifest will also create a PersistentVolumeClaim to store the provider data.
+The resources in [deploy/manifests/kip](deploy/manifests/kip) create ServiceAccounts, Roles and a kip Deployment to run the provider. [Kip is not stateless](docs/state.md), the manifest will also create a PersistentVolumeClaim to store the provider data.
 
-    kubectl apply -k deploy/manifests/virtual-kubelet/base
+    kubectl apply -k deploy/manifests/kip/base
 
-After applying, you should see a new virtual-kubelet pod in the kube-system namespace and a new node named virtual-kubelet in the cluster.
+After applying, you should see a new kip pod in the kube-system namespace and a new node named virtual-kubelet in the cluster.
 
 ## Running Pods on Virtual Kubelet
 
@@ -81,9 +81,9 @@ If you used the provided terraform config for creating your cluster, you can rem
 
     terraform destroy -var-file <env.tfvars>.
 
-If you deployed Kip in an existing cluster, make sure that you first remove all the pods and deployments that have been created by Kip. Then remove the virtual-kubelet deployment via:
+If you deployed Kip in an existing cluster, make sure that you first remove all the pods and deployments that have been created by Kip. Then remove the kip deployment via:
 
-    kubectl delete -n kube-system deployment virtual-kubelet
+    kubectl delete -n kube-system deployment kip
 
 ## Current Status
 

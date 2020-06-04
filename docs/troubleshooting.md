@@ -6,10 +6,10 @@ The output of `kubectl describe` is helpful to see why a pod is stuck in Pending
 
 ### Virtual Kubelet Logs
 
-The a good place to look for more answers is the output of the virtual-kubelet provider pod.
+The a good place to look for more answers is the output of the kip pod.
 
 ```bash
-./kubectl -nkube-system logs virtual-kubelet -f
+./kubectl -nkube-system logs kip kip -f
 ```
 
 ### Logging into Cells via SSH
@@ -20,9 +20,9 @@ As an extreme measure, it might be necessary to enable ssh access to a Cell in o
 
 ```yaml
 
-# snippet of /etc/virtual-kubelet/provider.yml
+# snippet of /etc/kip/provider.yml
 cells:
-  cloudInitFile: /etc/virtual-kubelet/cloudinit.yaml
+  cloudInitFile: /etc/kip/cloudinit.yaml
 ```
 
 2. Create provider.yaml and cloud-init.yaml in a ConfigMap:
@@ -31,7 +31,7 @@ cells:
 kubectl create configmap kip-config --from-file=./provider.yaml --from-file=./cloudinit.yaml
 ```
 
-3. Add cloudinit.yaml as an item in the kip-config ConfigMap volume for virtual-kubelet:
+3. Add cloudinit.yaml as an item in the kip-config ConfigMap volume for kip:
 
 ```yaml
 spec:
@@ -60,7 +60,7 @@ $ curl www.myhost.com:80
 
 ### Viewing Kip's Internal State
 
-If you're doing development on the kip provider, it's helpful to see the state of resources inside the virtual-kubelet process.  The virtual-kubelet image packages an executable `kipctl` alongside the virtual-kubelet executable to communicate with the virtual-kubelet provider.  To enable kipctl to talk to virtual-kubelet, add the `--debug-server` flag to the virtual-kubelet's command line arguments and restart the virtual-kubelet pod.  After execing into the pod you can inspect the internal state of virtual-kubelet.
+If you're doing development on the kip provider, it's helpful to see the state of resources inside the kip process.  The kip image packages an executable `kipctl` alongside the kip executable to communicate with kip.  To enable kipctl to talk to kip, add the `--debug-server` flag to the kip's command line arguments and restart the kip pod.  After execing into the pod you can inspect the internal state of kip.
 
 ```bash
 ./kipctl get pods

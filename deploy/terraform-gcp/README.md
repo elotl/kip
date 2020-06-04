@@ -39,5 +39,5 @@ If you decide to enable the taint on the virtual node (via removing the `--disab
       nodeSelector:
         type: kip
       tolerations:
-      - key: kip.io/provider
+      - key: virtual-kubelet.io/provider
         operator: Exists
