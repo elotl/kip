@@ -85,7 +85,7 @@ curl -fL https://raw.githubusercontent.com/elotl/milpa-deploy/master/deploy/stor
 curl -fL https://raw.githubusercontent.com/elotl/milpa-deploy/master/deploy/cni/aws-k8s-cni.yaml | kubectl apply -f -
 
 # Don't run kube-proxy on kip.
-kubectl patch -p '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"kubernetes.io/hostname","operator":"NotIn","values":["kip"]}]}]}}}}}}}' -n kube-system ds kube-proxy
+kubectl patch -p '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"type","operator":"NotIn","values":["virtual-kubelet"]}]}]}}}}}}}' -n kube-system ds kube-proxy
 
 # Deploy VK.
 echo "${kip_manifest}" | base64 --decode > /tmp/kip.yaml
