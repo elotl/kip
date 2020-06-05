@@ -58,7 +58,9 @@ spec:
         - mkdir -p $CERT_DIR && /opt/csr/get-cert.sh
         env:
         - name: NODE_NAME
-          value: kip
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         - name: CERT_DIR
           value: /data/kubelet-pki
         image: elotl/init-cert:latest
@@ -83,6 +85,7 @@ spec:
         - --klog.logtostderr
         - --klog.v=2
         - --metrics-addr=:10255
+        - --nodename=$(VKUBELET_NODE_NAME)
         image: elotl/kip:latest
         imagePullPolicy: Always
         name: kip
@@ -98,6 +101,10 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: spec.nodeName
+        - name: VKUBELET_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         resources:
           limits:
             cpu: "2"
