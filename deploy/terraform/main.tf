@@ -303,7 +303,7 @@ data "template_file" "node-userdata" {
     k8s_version               = var.k8s-version
     pod_cidr                  = var.pod-cidr
     service_cidr              = var.service-cidr
-    virtual_kubelet_manifest  = base64encode(data.external.manifest.result.output)
+    kip_manifest  = base64encode(data.external.manifest.result.output)
   }
 }
 

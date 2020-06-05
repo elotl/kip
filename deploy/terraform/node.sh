@@ -88,5 +88,5 @@ curl -fL https://raw.githubusercontent.com/elotl/milpa-deploy/master/deploy/cni/
 kubectl patch -p '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"kubernetes.io/hostname","operator":"NotIn","values":["kip"]}]}]}}}}}}}' -n kube-system ds kube-proxy
 
 # Deploy VK.
-echo "${virtual_kubelet_manifest}" | base64 --decode > /tmp/kip.yaml
+echo "${kip_manifest}" | base64 --decode > /tmp/kip.yaml
 kubectl apply -f /tmp/kip.yaml
