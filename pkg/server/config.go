@@ -66,8 +66,13 @@ type ServerConfigFile struct {
 
 // Kubelet stores kubelet-specific configuration such as capacity and labels.
 type KubeletConfig struct {
-	Capacity v1.ResourceList   `json:"capacity"`
-	Labels   map[string]string `json:"labels"`
+	// Deprecated: CPU, Memory and Pods are copied into Capacity, and are only
+	// present for backward compatibility.
+	CPU      *resource.Quantity `json:"cpu"`
+	Memory   *resource.Quantity `json:"memory"`
+	Pods     *resource.Quantity `json:"pods"`
+	Capacity v1.ResourceList    `json:"capacity"`
+	Labels   map[string]string  `json:"labels"`
 }
 
 type MultiCloudConfig struct {
@@ -377,7 +382,22 @@ func ParseConfig(path string) (*ServerConfigFile, error) {
 	}
 
 	setConfigDefaults(configFile)
+
+	updateCapacityFromDeprecatedFields(configFile)
+
 	return configFile, nil
+}
+
+func updateCapacityFromDeprecatedFields(config *ServerConfigFile) {
+	if config.Kubelet.CPU != nil {
+		config.Kubelet.Capacity[v1.ResourceCPU] = *config.Kubelet.CPU
+	}
+	if config.Kubelet.Memory != nil {
+		config.Kubelet.Capacity[v1.ResourceMemory] = *config.Kubelet.Memory
+	}
+	if config.Kubelet.Pods != nil {
+		config.Kubelet.Capacity[v1.ResourcePods] = *config.Kubelet.Pods
+	}
 }
 
 // Sets default values for parameters that can only be set once the

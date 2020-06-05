@@ -17,9 +17,13 @@ limitations under the License.
 package server
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/elotl/kip/pkg/server/cloud"
+	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func TestValidateAws(t *testing.T) {
@@ -100,5 +104,90 @@ func TestConfigValidation(t *testing.T) {
 			t.Errorf("Expected %d errors from test %d, got %d: %v",
 				test.errors, i+1, len(errs), errs)
 		}
+	}
+}
+
+func mustParseQuantity(str string) *resource.Quantity {
+	q := resource.MustParse(str)
+	return &q
+}
+
+//func updateCapacityFromDeprecatedFields(config *ServerConfigFile)
+func TestUpdateCapacityFromDeprecatedFields(t *testing.T) {
+	testCases := []struct {
+		CPU      *resource.Quantity
+		Memory   *resource.Quantity
+		Pods     *resource.Quantity
+		Capacity v1.ResourceList
+		Result   v1.ResourceList
+	}{
+		{
+			CPU:      mustParseQuantity("100m"),
+			Memory:   mustParseQuantity("1Gi"),
+			Pods:     mustParseQuantity("100"),
+			Capacity: v1.ResourceList{},
+			Result: v1.ResourceList{
+				v1.ResourceCPU:    resource.MustParse("100m"),
+				v1.ResourceMemory: resource.MustParse("1Gi"),
+				v1.ResourcePods:   resource.MustParse("100"),
+			},
+		},
+		{
+			Capacity: v1.ResourceList{},
+			Result:   v1.ResourceList{},
+		},
+		{
+			CPU: mustParseQuantity("100m"),
+			Capacity: v1.ResourceList{
+				v1.ResourceCPU:    resource.MustParse("200m"),
+				v1.ResourceMemory: resource.MustParse("1Gi"),
+				v1.ResourcePods:   resource.MustParse("100"),
+			},
+			Result: v1.ResourceList{
+				v1.ResourceCPU:    resource.MustParse("100m"),
+				v1.ResourceMemory: resource.MustParse("1Gi"),
+				v1.ResourcePods:   resource.MustParse("100"),
+			},
+		},
+		{
+			CPU:      mustParseQuantity("100m"),
+			Capacity: v1.ResourceList{},
+			Result: v1.ResourceList{
+				v1.ResourceCPU: resource.MustParse("100m"),
+			},
+		},
+		{
+			Memory: mustParseQuantity("10Mi"),
+			Capacity: v1.ResourceList{
+				v1.ResourceMemory: resource.MustParse("1Gi"),
+			},
+			Result: v1.ResourceList{
+				v1.ResourceMemory: resource.MustParse("10Mi"),
+			},
+		},
+		{
+			CPU: mustParseQuantity("1.5"),
+			Capacity: v1.ResourceList{
+				v1.ResourceMemory: resource.MustParse("1Gi"),
+			},
+			Result: v1.ResourceList{
+				v1.ResourceCPU:    resource.MustParse("1.5"),
+				v1.ResourceMemory: resource.MustParse("1Gi"),
+			},
+		},
+	}
+	for i, tc := range testCases {
+		config := ServerConfigFile{
+			Kubelet: KubeletConfig{
+				CPU:      tc.CPU,
+				Memory:   tc.Memory,
+				Pods:     tc.Pods,
+				Capacity: tc.Capacity,
+			},
+		}
+		updateCapacityFromDeprecatedFields(&config)
+		msg := fmt.Sprintf(
+			"test case %d failed: input %+v result %+v", i+1, tc, config.Kubelet.Capacity)
+		assert.Equal(t, tc.Result, config.Kubelet.Capacity, msg)
 	}
 }
