@@ -3,40 +3,43 @@ go:
 - '1.13'
 sudo: required
 dist: xenial
+services:
+- docker
 env:
   global:
   - AWS_REGION=us-east-1
   - AWS_DEFAULT_REGION=us-east-1
-  - AWS_ACCESS_KEY_ID=AKIA2BCIPONCZZBWXJNR
-  - IAM_ACCESS_KEY_ID=AKIA2BCIPONCQ7KY4PEP
-  - REGISTRY_USER=elotlbuild
   - TERRAFORM_VERSION=0.12.21
   - KUBECTL_VERSION=1.18.0
-  - IMG_VERSION=0.5.7
+  - GOOGLE_APPLICATION_CREDENTIALS=.account.json
   - secure: eQV5LiSp5XP7pL4gFYR98uL8aMdmeI5J5h3oOsRZ8fEBVFB0XBX0QDmK6zpaxAx2GoHfFC6ioUdNQjiVmnatwRHnnmxlplD8w99LXcvYkdfS6mtbyhdd2gZNv3gypIFqzyG73zqqhosNSUou1H8GSMWaQSk+P1Y6W7jHKsPEtrV5fepwu6tSpIK+DZbN2mrbyKdKMgWkdAPd/ni++bLDrvwlsoC8MOyWLerDnjRdC/Enzp4OgP9XR/JcqaNyXGLhMRLrN/PwWUk6mayjiVdGk9MLM+YuzCaVaqmtlHZMQHQQzP8r8KO4wZt+ApfNkVlwj44+ya7YoMkSguS5U4AmC0I3NntwhA4L8tpezk/FhSF0FwmP2MDKbWajYWtptThoXRQ5yU/UTJD/hWPofZPm9halZs7yqtoYNLXQWGfS06zROMyLoDOI7uw8b3VSSxQwVjcy8zjmJ/X5I/Dpl/QXsFGaU3u3u/Q0gE4V7ve/9fhbcittq1pRamcVvvZE/jUiXxWEiVEQ39W2dF/Fsp71nvm9Q7vTkgFKPtZV+lwFykTf9gg8vdbRTJ2qlYz668mQ0B+XUhueR+gxaDV+pIFKHRM+/B32fakTwBkXFHGtonodSL8TCeOydpmWLzJ4KexHAjL9AaUoqj4XKfQtAmtNppPmHpScONfhEZ65V+EnXiE=
   - secure: rwyN3nyJ0+ghzNDC5TmpTZNHFvxdapiyFGTSNgpgsdzBXrBVYtPAc1ygAMYYauS8GyrTTg55wbrZUTrSspWirecwVprtLg3Lby/VacXz/qCtZ5wBsYhWJTkbgX0q/H9j3JqGTPUjJORRe5krRHmCrW2nhy+FrE731IcKgItspCGyXoGbh/O3z5yIZIU9NWKX/BqgzjUf7cYdkm25dphQOUkNJOBzeG7Nv7DumzC0V524F4s2GK4Eqp4P/SAENDjdmnwMw+SC1peikAo1XHmWgz72EvVKncF7b6PVs80rnAOEwNg1Hs8B90VWiZpW+qPWBhJuNjoXOTdNxjaAs0y5S/9BLBNcqvIp6Kj1/QtMuCbk63pVYa9OiUv+2XLlJJ4om0BcqE/CghQvhKtOuNN9gxSHjXP7RP1yqyBMVY3jsXQHU9IZcpbaF2ZmRB587gHCUcDXZbz+wLvBLnw0UjKxCdcJrop9zg7ylwo4r5h2ojfhfXt1lYqH2Lvpz8n98uHYVOvgdShxQsDmw1W37ggNB4jMVxcv7atUBI8jzYMNOg80Qjp2ghuGjYon9KQTMis8ykBg6qOFLwS62cWe6GbZ6LQmjhLg/ZOOieD512p/Re/s47e5cakuHqC//VY8rqDPiEsXCHc0lhZ1HWy5akqes/gYkvoGsNWGUcT5sKdIedg=
   - secure: enUIOI5sIXXdxms1iadphnAZF5SUFl4SaTqMpXYKnRDgS8B9bjO5LsiZTqJqQ84v9MbndcJ44cpWvs9pvTgIHhO5O7mxD/TPWqqAOLAzbIAWaaa/mu+jx9WEUoDh1mAf//5IZrI/FJmUm6HNxu0pxepdogMGfWx5ngbqqM41Eu726xY7Yq9GESipK+bNgMNyPL/K+J62EVfDmKsQRVAZLMN6GEw4zU8kGoVhIrzBm8Tp67kE9q3seOqlx4BwG0gG1PtVT3HRBO7OVy5e+6iKEVCQfrZYocKT+MpRFe7moS/YMO8M/Mt1MmcOAjGU6T57ZJDIBvnGhov+LMjEsNBNozL1iombVew+R1HWRQsVEKU298WPf+yEbl2KQfVkk+7n8vCmgPG2S4W5fmE1Dq/0Ep2ocIFI1HmJSkImCm8o7znL7URzLLx6FloQ8W2Pn9ux4Jac0EbRcQfw/rJkce7n7QkprR/1/gM/C8lYUXKPHgDWjBdklSc4i388EGOmXOMDJh2jRYhpUy6QcJePyXJVxnItPJixmK0DsFU40ryffsANuAoSa8Gsg/2qLJXBfZqHL0l3AfTuZBJSXVc6Qi/DMQdcnSD/cPd1+Wo9kQoMyB6DTET7vCQ+ShUKVNFQZKC/tCuZv2oBE7Ity4UhNpVFBHngCCV5rco78U0CopRRHHs=
+  - secure: PO7usTDuSEjYvFiYyVmvnTLD3/2ghtP4/Z2Ic8uS8U41AhEdX3ej8Wtah89Lh2uGesPEuNVOB2mNXbA8TZ8811SOoJGkPkvhfh8IyFGn1CaIaBIykBJEs1VL9QH+uYthkWXMY+FGA1pQDvwvgSK9iKtyqnETf3eowJudmTw3rVIEDrwho1dyJTiwwzNkeSxKMa8SFi+/F+oAdTALOX8q3CgWTw9g/74xM9hs7CmQ5BcV+bH847lgGyjiU9CNtL97CcL3R2SOk7qgPLIYtwdr2Iwp/cUEtf2aiVyse0XvxvvXgmh4euVHMmLltxcoqPYF9IThvh0Bfu2cEi9aV79aanc6O06ID4Kc27Ki4Z5tCb0IlwmkNjOH9h/wIM28PERlZvtRfhOJilQoJ6fW6OvEmtbbrEfTZsd4YePOqyIKsOnEBdlNZ3IGRV9wFSNLk6PVdHxl4xS/bI7xJOsmhREAd/cxj2/t8SmT4a+9VmOhQGZVm18YPF2KvAIxgc7Ekmr6/B0JLEKrIn0NLPtDkKsZDVuiJLPLfghRBouf1saE8Us9ZobFF2WeEc7QNmNVgSPh9x2NS02OsMfoevpoNxm/4W2gt89v+GHSCuv7VVffLPRh6nJ8tW80tehSVM4vqUkEEABrS+CjLCoiV9LIk46qYyutl9JbqpG+tbCaOK2KC68=
+  - secure: egj/Rb4zahX/e7j27l6wHltIfhSja5XMPunbEwFDjfv1lqM+pSswJXuVBlXjRewsbNMYP3KGosBTisUyJU43mjishwYPACS/MkYE393873SVyKRdsG0jguP/xKYIpMMxdbsi55CX6QBfLDAA452hJYmXKcreiVmVKHUp9XjStuuLVmZM6O0h2ktgvxb1rc72mgqEHIL4IWsM9ZLWmnv288g8kaAlMSNhpC4BYA7mIawPbLmZmHrNUCcXbmYqLc1D2wYDfkTZKCStW0t/TM7qaqR2e4JnEwJNQ0snj2tQtifIhw68jw9Da5VkLedv0k6V0obkOh7mIr/xruhHHB/2zVyQUN43TnIELZ9LTnzbKTNUp1DS+NKXXkcUdB5oo7FdiQ13dcHynKHIAg/hmL54hMhy0tgAw/clV9C0hI4SgFrLUrmbWiISXWFzH1qZkDkUqdLeBgFsC28Ktx6pmVa7uYc1MMO6nQLaJMg2/cJljrw5D2CxhEg0yoeva4Ks+vV/ybPAtlQi7x1atyaG7RZi15zlojbGseiSdWtTKvFTtgF4qKDNx0sYupTKevB7a0jtK+WAtE6IrSTnQJ6MZGXpAV+Va1e1F4T/UxCNh9DMfOnRqKIv0VxHHk1pzqlJoYLsw+nIK3BrwwyE5kVUE26EM3enaFDKrfTktKbTGja8Iuc=
+  - secure: mHx9H0TyxjrzLsCmLBpAT2DZ+JO/wmea0IEQ1FBbHBZ3LdN8iEi+QIVOINGvfxkFawC+aSt/j4AeCP0pLG7wxCVGPu0CXzEX5zGcjMSUjKzsvV9/aD7trE4//R4iFeaYAZJ2nhXn5rTJqYfbHYSt49Lkk1/sLtNSX/zd+eJfOKGdUWT22CF8G6HID1RwOPLrATAI0+PFHPRN8UfUhytakL/Crp1bALLLi+G8mR0ywvCJ9IYAg5qmsBQ2MK7nIEOfgjQfRjTOLZjvoJY6gaEz2mu7VcEPtGd7dHJds2iwUIhapJL9dzTg0D4PCn8sO2RPob1jbSnWd7hYM8Ar2WIrE6L1sdGfJ746uMjo607y0Xg1thxgdl9r/+lKpOIoXpreF/8jKst5c2zWMy0DeJoR8xY2yb9Fs2cP2qUhhk5KCrfGLVohHuas0Oh3Y7loEsdVWZYDCS1/+R7aKq89G/wRyF/Ycx0HUeGA+Qv/sI1r/BoY1dTzlD5NCJaASM4F8uSQceXbXiJYc8R3tNiBWVPU+eeCDo9QHsxgqvPGNipJH6q0wlFxYVm5en02waI3T8ZKvhEgd/Qd/XYSNU2pyJwuWol4wNCGkoVMTCSL/9CWTjVMplXL6F/+WJE6C01KRk9HIT4IlPj6eKuju/w9NFzsrYndjh+stfF7rH23Ca4kLGU=
+before_install:
+- openssl aes-256-cbc -K $encrypted_0de739900c81_key -iv $encrypted_0de739900c81_iv -in .account.json.enc -out .account.json -d
 before_script:
 - git fetch --unshallow || true
 - git fetch --tags
-- pip install awscli --upgrade --user
-- pip install jq --upgrade --user
+- echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt
+  cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+- curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring
+  /usr/share/keyrings/cloud.google.gpg add -
+- sudo apt-get update -y && sudo apt-get install -y google-cloud-sdk awscli jq
 - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl
   && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 - curl -Os https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
   && sudo unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin/
-- curl -LOs https://github.com/genuinetools/img/releases/download/v${IMG_VERSION}/img-linux-amd64
-  && curl -LOs https://github.com/genuinetools/img/releases/download/v${IMG_VERSION}/img-linux-amd64.sha256
-  && sed -i 's#/.*/img-linux-amd64#img-linux-amd64#g' img-linux-amd64.sha256
-  && shasum -a 256 -c img-linux-amd64.sha256 2>&1
-  && sudo install -m 0755 img-linux-amd64 /usr/local/bin/img
 - GO111MODULE=on go get -u k8s.io/gengo/examples/deepcopy-gen
 script:
 - set -e
 - make
 - "./scripts/run_tests.sh"
-- make img login-img push-img
+- make img login-img push-img DKR=docker
 - "./scripts/run_smoke_test.sh"
+- "./scripts/push_to_gcr_ecr.sh"
 notifications:
   slack:
     secure: d4Y/cOEzbFc7RHwizwVsdaTCURsQ/Rmm2kyGgw3WboO7ijU0PRNTioktRxB5byJAhCI79bDJbLxwNRempIdSlzG4sL7UHK4Nyxb0t5XxBLDzqD1nJPL652r5oQ8W+ru9tMKtO4xWc2ELl3spe4Lb1pyXHCSpvkd++IgZBKbpOdaCs4XNWm94sVXVRPiJOs+0tlX+gYjnGkje91MaVYJM/XMWNxOut2t6BZ1raYm+mYJUSfC7CFJPAha8+1x8S7CEbJE8Xa63gV37HUDsZbZfYdpljm3/nd6cdJzDYf51Cvdwh/DUqcBvw2AUm8AMlMUF7hGkSTS0gTRkO7nkURkm6eGJesHp0aEGg24TFIFaCtcI4rPq49GDPKOmAJUHtWev1oPw2SCIXw4cDkulKoYzqj+amXSfXDVN3Uza3zVGY445Wd5VLkiEoCvvE06Hp4gjnDfvszTh9Kj/CK7x8e4BtPyuq0oxn64/SyoSb9CfZL0VqNar4hlms44CYMdnLGzf6Sicc7+Og1aC3cd5/GlVRTtNsaf6qHVtQbhW9lar2fjpO2B2KxiOLmAvwp6aSN+Zmwif/xGfwqAJnQllB3d/ewiTjK34RJiKDg6BSUecC2Dp8jSzv9qpXYWvjSHM2kgltXgs21q7Pm7L6ISdhn6ek23ASe0N85qyyrNglF79mWA=
