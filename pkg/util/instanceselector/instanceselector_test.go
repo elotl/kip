@@ -59,6 +59,26 @@ func TestAWSGPUInstance(t *testing.T) {
 	assert.Equal(t, "p2.xlarge", inst)
 }
 
+func TestGCEDefaultGPUInstance(t *testing.T) {
+	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro")
+	assert.NoError(t, err)
+	ps := api.PodSpec{}
+	ps.Resources.GPU = "1"
+	inst, _, err := ResourcesToInstanceType(&ps)
+	assert.NoError(t, err)
+	assert.Equal(t, "n1-standard-1", inst)
+}
+
+func TestGCESpecificGPUInstance(t *testing.T) {
+	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro")
+	assert.NoError(t, err)
+	ps := api.PodSpec{}
+	ps.Resources.GPU = "1 nvidia-tesla-p100"
+	inst, _, err := ResourcesToInstanceType(&ps)
+	assert.NoError(t, err)
+	assert.Equal(t, "n1-standard-1", inst)
+}
+
 func TestHasInstanceType(t *testing.T) {
 	_ = Setup("aws", "us-east-1", "", "t2.nano")
 	ps := api.PodSpec{}
@@ -158,6 +178,68 @@ func TestAWSResourcesToInstanceType(t *testing.T) {
 		{
 			Resources:    api.ResourceSpec{Memory: "1Gi", CPU: "1.0", SustainedCPU: &f},
 			instanceType: "c5.large",
+			sustainedCPU: false,
+		},
+	}
+	for _, tc := range testCases {
+		it, sus := selector.getInstanceFromResources(tc.Resources)
+		assert.Equal(t, tc.instanceType, it)
+		assert.Equal(t, tc.sustainedCPU, sus)
+	}
+}
+
+func TestGCEResourcesToInstanceType(t *testing.T) {
+	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro")
+	assert.NoError(t, err)
+	f := false
+	testCases := []struct {
+		Resources    api.ResourceSpec
+		instanceType string
+		sustainedCPU bool
+	}{
+		{
+			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "0.5"},
+			instanceType: "g1-small",
+			sustainedCPU: false,
+		},
+		{
+			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "1.0"},
+			instanceType: "e2-micro",
+			sustainedCPU: false,
+		},
+		{
+			Resources:    api.ResourceSpec{Memory: "2.0Gi", CPU: "1.0"},
+			instanceType: "n1-standard-1",
+			sustainedCPU: false,
+		},
+		{
+			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "1.0"},
+			instanceType: "e2-medium",
+			sustainedCPU: false,
+		},
+		{
+			Resources:    api.ResourceSpec{Memory: "1.5Gi", CPU: "1.5"},
+			instanceType: "e2-highcpu-2",
+			sustainedCPU: false,
+		},
+		{
+			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "1.0", GPU: "1"},
+			instanceType: "n1-standard-2",
+			sustainedCPU: false,
+		},
+		{
+			Resources:    api.ResourceSpec{Memory: "180.0Gi", CPU: "48.0"},
+			instanceType: "n2-standard-48",
+			sustainedCPU: false,
+		},
+		{
+			Resources:    api.ResourceSpec{Memory: "15.0Gi", CPU: "32.0"},
+			instanceType: "n1-highcpu-32",
+			sustainedCPU: false,
+		},
+		{
+			Resources:    api.ResourceSpec{Memory: "1Gi", CPU: "1.0", SustainedCPU: &f},
+			instanceType: "e2-micro",
 			sustainedCPU: false,
 		},
 	}

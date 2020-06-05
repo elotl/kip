@@ -29,7 +29,7 @@ def compute_machine_price(pricing, family, cpus, memory):
     return cpus * cpu_price + memory * ram_price
 
 
-def make_instance_data(machine, pricing):
+def make_instance_data(machine, pricing, gpus):
     name = machine['name']
     family = name.split('-')[0]
     burstable = machine['isSharedCpu']
@@ -39,6 +39,10 @@ def make_instance_data(machine, pricing):
         baseline = custom_baselines[name]
     memory = gce_to_kip_memory(machine['memoryMb'])
     price = compute_machine_price(pricing, family, cpus, memory)
+    maxGPUs = 0
+    for n in gpus.values():
+        if n > maxGPUs:
+            maxGPUs = n
     return {
         "baseline": baseline,
         "generation": "current",
@@ -46,9 +50,24 @@ def make_instance_data(machine, pricing):
         "memory": memory,
         "instanceType": name,
         "burstable": burstable,
-        "gpu": 0,
+        "gpu": maxGPUs,
+        "supportedGPUTypes": gpus,
         "cpu": cpus,
     }
+
+
+def get_available_gpus(zone, machine, gpus):
+    '''
+    The number of GPUs that can be attached to instance depends on the instance
+    type and the zone.
+    '''
+    name = machine['name']
+    family = name.split('-')[0]
+    if family != "n1":
+        return {}
+    if zone not in gpus:
+        return {}
+    return gpus[zone]
 
 
 def cleanup_single_region_prices(region_prices):
@@ -186,7 +205,7 @@ def get_all_regions(client, project):
 def list_all_machine_types(client, project, zones):
     machines_by_zone = {}
     for zone in zones:
-        print('getting machines in zone', zone)
+        print('getting machines in zone %s' % zone)
         request = client.machineTypes().list(project=project, zone=zone)
         machine_types = []
         while request is not None:
@@ -230,6 +249,26 @@ def get_all_zones(client, project):
     return zones
 
 
+def get_supported_gpus(client, project, zones):
+    gpus = {}
+    for zone in zones:
+        print('getting supported gpus in zone %s' % zone)
+        gpus[zone] = {}
+        request = client.acceleratorTypes().list(project=project, zone=zone)
+        while request is not None:
+            response = request.execute()
+            if not 'items' in response:
+                request = client.acceleratorTypes().list_next(
+                    previous_request=request, previous_response=response)
+                continue
+            for gpu in response['items']:
+                gpuType = gpu['name']
+                gpus[zone][gpuType] = gpu['maximumCardsPerInstance']
+                request = client.acceleratorTypes().list_next(
+                    previous_request=request, previous_response=response)
+    return gpus
+
+
 def get_service(client, display_name):
     request = client.services().list()
     while request is not None:
@@ -268,6 +307,7 @@ def get_instance_data(project):
     skus = get_compute_skus()
     client = googleapiclient.discovery.build('compute', 'v1')
     zones = get_all_zones(client, project)
+    supportedGPUTypes = get_supported_gpus(client, project, zones)
     regions = set([zone_to_region(z) for z in zones])
     machines = list_all_machine_types(client, project, zones)
     pricing_by_region = create_pricing_map(regions, skus)
@@ -277,7 +317,8 @@ def get_instance_data(project):
         zone_data = []
         pricing = pricing_by_region[region]
         for machine in machines:
-            zone_data.append(make_instance_data(machine, pricing))
+            gpus = get_available_gpus(zone, machine, supportedGPUTypes)
+            zone_data.append(make_instance_data(machine, pricing, gpus))
         instance_data[zone] = zone_data
     return instance_data
 
@@ -287,7 +328,7 @@ if __name__ == '__main__':
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--project_id', help='Google Cloud project ID.',
-                        default='milpa-207719')
+                        default='elotl-kip')
     args = parser.parse_args()
     instance_data = get_instance_data(args.project_id)
     jsonfp = dumpjson(instance_data)
