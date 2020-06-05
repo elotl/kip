@@ -23,7 +23,7 @@ module "vpn_gateway" {
   vpn_connection_static_routes_destinations = var.local_cidrs
 
   vpn_gateway_id      = module.vpc.vgw_id
-  customer_gateway_id = module.vpc.cgw_ids[0]
+  customer_gateway_id = length(module.vpc.cgw_ids) > 0 ? module.vpc.cgw_ids[0] : ""
 
   vpc_id                       = module.vpc.vpc_id
   vpc_subnet_route_table_ids   = module.vpc.public_route_table_ids
