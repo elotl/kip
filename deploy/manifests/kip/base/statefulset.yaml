@@ -83,7 +83,7 @@ spec:
         - --klog.logtostderr
         - --klog.v=2
         - --metrics-addr=:10255
-        image: bcox9000/kip:latest
+        image: elotl/kip:latest
         imagePullPolicy: Always
         name: kip
         env:
