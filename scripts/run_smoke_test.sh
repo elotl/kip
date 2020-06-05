@@ -19,6 +19,7 @@ export KUBECONFIG=$(mktemp)
 cleanup() {
     kubectl get pods -A || true
     kubectl get nodes || true
+    kubectl -n kube-system describe statefulset kip || true
     kubectl -n kube-system describe pod -l app=kip || true
     kubectl logs -n kube-system -l app=kip -c init-cert --tail=-1 || true
     kubectl logs -n kube-system -l app=kip -c kip --tail=-1 || true
@@ -41,11 +42,7 @@ update_vk() {
     echo "patching"
     kubectl patch -n kube-system statefulset kip -p "$patch"
     kubectl -n kube-system get statefulset kip -oyaml
-    sleep 20
-    echo "try 1"
-    kubectl -n kube-system get pod kip-0 -oyaml
-    sleep 20
-    echo "try 2"
+    sleep 10
     kubectl -n kube-system get pod kip-0 -oyaml
 }
 
