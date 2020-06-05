@@ -9,28 +9,29 @@ When workloads run on Kip, your cluster size naturally scales with the cluster w
 * [Installation](#installation)
     + [Option 1: Create a Minimal Cluster](#installation-option-1-create-a-minimal-k8s-cluster)
     + [Option 2: Using an Existing Cluster](#installation-option-2-using-an-existing-cluster)
-* [Running Pods on Virtual Kubelet](#running-pods-on-virtual-kubelet)
+* [Running Pods on Kip](#running-pods-on-kip)
 * [Uninstall](#uninstall)
 * [Current Status](#current-status)
 * [FAQ](#faq)
 * [How it Works](#how-it-works)
 
 ## Installation
-There are two ways to get Kip up and running in AWS.
 
-* Option 1: Use the provided terraform scripts to create a new VPC and a new kubernetes cluster with a single Kip node.
+There are two ways to get Kip up and running.
+
+* Option 1: Use the provided terraform scripts to create a new Kubernetes cluster with a single Kip node on AWS or GKE.
 * Option 2: Add Kip to an existing kubernetes cluster.
 
 ### Installation Option 1: Create a Minimal K8s Cluster
 
 Prequisites:
-- An AWS account
+- An AWS or GCP account
 - [Terraform](https://www.terraform.io/downloads.html) (tested with terraform 0.12)
-- [aws-cli](https://aws.amazon.com/cli/)
+- [aws-cli](https://aws.amazon.com/cli/) if using AWS
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - jq
 
-In [deploy/terraform](deploy/terraform), you will find a terraform config that creates a simple one master, one worker cluster and starts a Kip deployment.
+In [deploy/terraform](deploy/terraform), you will find a terraform config that creates a simple one master, one worker cluster and starts Kip on AWS.
 
 ``` bash
 cd deploy/terraform
@@ -38,39 +39,83 @@ terraform init
 cp env.tfvars.example myenv.tfvars
 vi myenv.tfvars  # customize variables as necessary
 terraform apply -var-file myenv.tfvars
+
+On GCE, the config under `deploy/terraform-gcp` works the same way.
 ```
 
 ### Installation Option 2: Using an Existing Cluster
 
-To deploy Kip into an existing cluster, you'll need to setup cloud credentials that allow the Kip provider to manipulate cloud instances, security groups and other cloud resources.  Once credentials are setup, apply [deploy/kip.yaml](deploy/kip.yaml) to create the necessary kubernetes resources to support and run the provider.
+To deploy Kip into an existing cluster, you'll need to setup cloud credentials that allow the Kip provider to manipulate cloud instances, security groups and other cloud resources.
 
 **Step 1: Credentials**
 
-In AWS, Kip can either use API keys supplied in the Kip provider configuration file (`provider.yaml`) or use the instance profile of the machine the Kip virtual-kubelet pod is running on.
+In AWS, Kip can either use API keys supplied in the Kip provider configuration file (`provider.yaml`) or use the instance profile of the machine the Kip pod is running on.
 
-**Credentials Option 1 - Configuring AWS API keys:**
+On GCE, a service account key is used for authentication.
 
-Open [deploy/kip.yaml](deploy/kip.yaml) in an editor, find the kip-config ConfigMap and fill in the values for `accessKeyID` and `secretAccessKey` under `data.provider.yaml.cloud.aws`.
+**AWS Credentials Option 1 - Configuring AWS API keys:**
 
-**Credentials Option 2 - Instance Profile Credentials:**
+You can configure the AWS access key Kip will use in your provider configuration, via changing `accessKeyID` and `secretAccessKey` under the `cloud.aws` section. See below on how to create a kustomize overlay with your custom provider configuration.
+
+**AWS Credentials Option 2 - Instance Profile Credentials:**
 
 In AWS, Kip can use credentials supplied by the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) attached to the node the pod is dispatched to.  To use an instance profile, create an IAM policy with the [minimum Kip permissions](docs/kip-iam-permissions.md) then apply the instance profile to the node that will run the Kip provider pod.  The Kip pod must run on the cloud instance that the instance profile is attached to.
 
-**Step 2: Apply kip.yaml**
+**GCE Credentials - Service Account private key:**
 
-The resources in [deploy/manifests/kip](deploy/manifests/kip) create ServiceAccounts, Roles and a kip Deployment to run the provider. [Kip is not stateless](docs/state.md), the manifest will also create a PersistentVolumeClaim to store the provider data.
+Add your email and key to `cloud.gce.credentials`. Example:
 
-    kubectl apply -k deploy/manifests/kip/base
+    cloud:
+      gce:
+        projectID: "my-project"
+        credentials:
+          clientEmail: my-account@my-project.iam.gserviceaccount.com
+          privateKey: "-----BEGIN PRIVATE KEY-----\n[base64-encoded private key]-----END PRIVATE KEY-----\n"
+        zone: us-central1-c
+        vpcName: "default"
+        subnetName: "default"
 
-After applying, you should see a new kip pod in the kube-system namespace and a new node named virtual-kubelet in the cluster.
+**Step 2: Apply the manifests**
 
-## Running Pods on Virtual Kubelet
+The resources in [deploy/manifests/kip](deploy/manifests/kip) create ServiceAccounts, Roles and a StatefulSet to run the provider. [Kip is not stateless](docs/state.md), the manifest will also create a PersistentVolumeClaim to store the provider data.
 
-To assign pods to run on the virtual kubelet node, add the following node selector and toleration to the pod spec in manifests.
+Once credentials are set up, apply [deploy/manifests/kip/base](deploy/manifests/kip/base) to create the necessary kubernetes resources to support and run the provider:
+
+    $ kubectl apply -k deploy/manifests/kip/base
+
+For rendering the manifests, [kustomize](https://kustomize.io/) is used. You can create your own overlays on top of the base template. For example, to override provider.yaml, Kip's configuration file:
+
+    $ mkdir -p deploy/manifests/kip/overlay/local-config
+    $ cp deploy/manifests/kip/base/provider.yaml deploy/manifests/kip/overlay/local-config/provider.yaml
+    # Edit your provider configuration file.
+    $ vi deploy/manifests/kip/overlay/local-config/provider.yaml
+    $ cat > deploy/manifests/kip/overlay/local-config/kustomization.yaml <<EOF
+    > apiVersion: kustomize.config.k8s.io/v1beta1
+    > kind: Kustomization
+    > bases:
+    > - ../../base
+    > configMapGenerator:
+    > - behavior: merge
+    >   files:
+    >   - provider.yaml
+    >   name: kip-config
+    >   namespace: kube-system
+    EOF
+    $ kubectl apply -k deploy/manifests/kip/overlays/local-config
+
+After applying, you should see a new kip pod in the kube-system namespace and a new node named "kip-0" in the cluster.
+
+## Running Pods on Kip
+
+To assign pods to run on the virtual kubelet node, add the following node selector to the pod spec in manifests.
 
     spec:
       nodeSelector:
         type: virtual-kubelet
+
+If you enabled taints on your virtual node (they are disabled by default in the example manifests; remove `--disable-taint` from the command line flags to enable), add the necessary tolerations too:
+
+    spec:
       tolerations:
       - key: virtual-kubelet.io/provider
         operator: Exists
@@ -81,9 +126,9 @@ If you used the provided terraform config for creating your cluster, you can rem
 
     terraform destroy -var-file <env.tfvars>.
 
-If you deployed Kip in an existing cluster, make sure that you first remove all the pods and deployments that have been created by Kip. Then remove the kip deployment via:
+If you deployed Kip in an existing cluster, make sure that you first remove all the pods and deployments that have been created by Kip. Then remove the kip statefulset via:
 
-    kubectl delete -n kube-system deployment kip
+    kubectl delete -n kube-system statefulset kip
 
 ## Current Status
 
@@ -148,7 +193,7 @@ We are actively working on adding missing features. One of the main objectives o
 ##
 **Q.** Are DaemonSets supported?
 
-**A.** Yes, though they might not work the way intended. The pod will start on a separate cloud instance, and not on the node.  It's possible to patch a DaemonSet so it does not get dispatched to the virtual-kubelet.
+**A.** Yes, though they might not work the way intended. The pod will start on a separate cloud instance, and not on the node.  It's possible to patch a DaemonSet so it does not get dispatched to the Kip virtual node.
 
 ##
 **Q.** Are you a [kubernetes conformant](https://github.com/cncf/k8s-conformance) runtime?
@@ -156,7 +201,7 @@ We are actively working on adding missing features. One of the main objectives o
 **A.** We are not 100% conformant at this time but we are working towards getting as close as possible to conformance.  Currently Kip passes 70-80% of conformance tests but are hoping to get those values above 90% soon.
 
 ##
-**Q.** What cloud providers does Kip support
+**Q.** What cloud providers does Kip support?
 
 **A.** Kip is currently GA on AWS and pre-alpha on Azure.
 
