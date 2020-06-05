@@ -90,8 +90,6 @@ spec:
         imagePullPolicy: Always
         name: kip
         env:
-        - name: KUBELET_PORT
-          value: "10666"
         - name: APISERVER_CERT_LOCATION
           value: /opt/kip/data/kubelet-pki/kip.crt
         - name: APISERVER_KEY_LOCATION
