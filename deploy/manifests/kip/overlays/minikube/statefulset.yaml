@@ -7,7 +7,7 @@ spec:
   template:
     spec:
       containers:
-        name: kip
+      - name: kip
         envFrom:
         - secretRef:
             name: kip-secrets
