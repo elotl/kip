@@ -36,8 +36,10 @@ cleanup() {
 
 update_vk() {
     local version="$(git describe)"
+    kubectl -n kube-system get statefulset kip -oyaml
     local patch="{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"image\":\"elotl/kip:$version\",\"name\":\"kip\"}]}}}}"
     kubectl patch -n kube-system statefulset kip -p "$patch"
+    kubectl -n kube-system get statefulset kip -oyaml
 }
 
 run_smoke_test() {
