@@ -113,11 +113,11 @@ resource "local_file" "provider-yaml" {
   file_permission   = "0600"
 }
 
-resource "local_file" "deployment-yaml" {
-  content = templatefile("${path.module}/kustomization/deployment.yaml.tmpl", {
+resource "local_file" "command-extra-args-yaml" {
+  content = templatefile("${path.module}/kustomization/command-extra-args.yaml.tmpl", {
     local_dns=var.local_dns,
   })
-  filename          = "${path.module}/kustomization/deployment.yaml"
+  filename          = "${path.module}/kustomization/command-extra-args.yaml"
   file_permission   = "0644"
 }
 
@@ -149,7 +149,7 @@ resource "null_resource" "deploy" {
     node-local-dns-yaml=local_file.node-local-dns-yaml.content
     aws-vpn-client-env=local_file.aws-vpn-client-env.sensitive_content,
     kustomization-yaml=local_file.kustomization-yaml.sensitive_content,
-    deployment-yaml=local_file.deployment-yaml.content,
+    command-extra-args-yaml=local_file.command-extra-args-yaml.content,
     provider-yaml=local_file.provider-yaml.sensitive_content,
   }
 
@@ -158,7 +158,7 @@ resource "null_resource" "deploy" {
     local_file.node-local-dns-yaml,
     local_file.aws-vpn-client-env,
     local_file.kustomization-yaml,
-    local_file.deployment-yaml,
+    local_file.command-extra-args-yaml,
     local_file.provider-yaml,
   ]
 }

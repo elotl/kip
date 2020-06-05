@@ -131,10 +131,10 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
-              - key: "kubernetes.io/hostname"
+              - key: "type"
                 operator: In
                 values:
-                - kip
+                - virtual-kubelet
       priorityClassName: system-node-critical
       serviceAccountName: node-local-dns
       hostNetwork: true
