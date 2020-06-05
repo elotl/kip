@@ -39,16 +39,16 @@ spec:
               - key: type
                 operator: NotIn
                 values:
-                - kip
+                - virtual-kubelet
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - podAffinityTerm:
               labelSelector:
                 matchExpressions:
-                - key: kip
+                - key: app
                   operator: In
                   values:
-                  - ""
+                  - kip
               topologyKey: failure-domain.beta.kubernetes.io/zone
             weight: 100
       initContainers:
