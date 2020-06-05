@@ -68,6 +68,7 @@ func placementMatches(pod *api.Pod, node *api.Node) bool {
 func (s *BindingNodeScaler) podMatchesNode(pod *api.Pod, node *api.Node) bool {
 	return node.Spec.InstanceType == pod.Spec.InstanceType &&
 		node.Spec.Resources.PrivateIPOnly == pod.Spec.Resources.PrivateIPOnly &&
+		node.Spec.Resources.GPU == pod.Spec.Resources.GPU &&
 		s.spotMatches(pod, node) &&
 		placementMatches(pod, node) &&
 		s.diskMatches(pod, node)

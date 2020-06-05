@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,6 +30,10 @@ import (
 	"k8s.io/klog"
 
 	"google.golang.org/api/compute/v1"
+)
+
+const (
+	DefaultGPUType = "nvidia-tesla-t4"
 )
 
 func convertLabelKeys(labels map[string]string) map[string]string {
@@ -136,6 +141,32 @@ func (c *gceClient) getInstanceNetworkSpec(privateIPOnly bool) []*compute.Networ
 	return networkSpec
 }
 
+func (c *gceClient) getAccelerators(resources api.ResourceSpec) []*compute.AcceleratorConfig {
+	gpus := resources.GPU
+	if gpus == "" {
+		return nil
+	}
+	// The GPU string in resources can be a number, or a number of a specific
+	// GPU type.
+	gpuType := DefaultGPUType
+	parts := strings.Fields(gpus)
+	gpuCount, err := strconv.ParseInt(parts[0], 10, 32)
+	if err != nil {
+		klog.Warningf("invalid GPU resource spec %+v", resources)
+		return nil
+	}
+	if len(parts) > 1 {
+		gpuType = strings.Join(parts[1:], " ")
+	}
+	klog.V(2).Infof("requesting accelerators: %d %s", gpuCount, gpuType)
+	return []*compute.AcceleratorConfig{
+		{
+			AcceleratorCount: gpuCount,
+			AcceleratorType:  c.getAcceleratorTypeURL(gpuType),
+		},
+	}
+}
+
 func (c *gceClient) createInstanceSpec(node *api.Node, image cloud.Image, metadata string) (*compute.Instance, error) {
 	decodedUserData, err := base64.StdEncoding.DecodeString(metadata)
 	if err != nil {
@@ -149,12 +180,21 @@ func (c *gceClient) createInstanceSpec(node *api.Node, image cloud.Image, metada
 	labels := c.getInstanceLabels(node.Name)
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	instanceType := c.getInstanceTypeURL(node.Spec.InstanceType)
+	accelerators := c.getAccelerators(node.Spec.Resources)
+	onHostMaintenance := "MIGRATE"
+	if len(accelerators) > 0 {
+		onHostMaintenance = "TERMINATE"
+	}
 	spec := &compute.Instance{
+		GuestAccelerators: accelerators,
 		Disks:             disks,
 		Labels:            labels,
 		MachineType:       instanceType,
 		Name:              name,
 		NetworkInterfaces: networkInterfaces,
+		Scheduling: &compute.Scheduling{
+			OnHostMaintenance: onHostMaintenance,
+		},
 		Tags: &compute.Tags{
 			Items: c.bootSecurityGroupIDs,
 		},

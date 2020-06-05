@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/util"
@@ -33,13 +34,14 @@ const t2UnlimitedPrice float32 = 0.05
 
 // have the data in there
 type InstanceData struct {
-	InstanceType string  `json:"instanceType"`
-	Price        float32 `json:"price"`
-	GPU          int     `json:"gpu"`
-	Memory       float32 `json:"memory"`
-	CPU          float32 `json:"cpu"`
-	Burstable    bool    `json:"burstable"`
-	Baseline     float32 `json:"baseline"`
+	InstanceType      string         `json:"instanceType"`
+	Price             float32        `json:"price"`
+	GPU               int            `json:"gpu"`
+	SupportedGPUTypes map[string]int `json:"supportedGPUTypes"`
+	Memory            float32        `json:"memory"`
+	CPU               float32        `json:"cpu"`
+	Burstable         bool           `json:"burstable"`
+	Baseline          float32        `json:"baseline"`
 }
 
 type instanceSelector struct {
@@ -138,11 +140,17 @@ func (instSel *instanceSelector) parseMemorySpec(memSpec string) (float32, error
 	return instSel.memorySpecParser(memQuantity), nil
 }
 
-func parseGPUSpec(gpuSpec string) (int, error) {
+func parseGPUSpec(gpuSpec string) (int, string, error) {
 	if gpuSpec == "" {
-		return 0, nil
+		return 0, "", nil
 	}
-	return strconv.Atoi(gpuSpec)
+	parts := strings.Fields(gpuSpec)
+	count, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, "", err
+	}
+	typ := strings.ToLower(strings.Join(parts[1:], " "))
+	return count, typ, nil
 }
 
 func parseCPUSpec(cpuSpec string) (float32, error) {
@@ -206,7 +214,7 @@ func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec) (
 	if err != nil {
 		klog.Errorf("Error parsing CPU spec: %s", err)
 	}
-	gpuRequirements, err := parseGPUSpec(rs.GPU)
+	gpuCountRequirements, gpuTypeRequirements, err := parseGPUSpec(rs.GPU)
 	if err != nil {
 		klog.Errorf("Error parsing GPU spec: %s", err)
 	}
@@ -222,7 +230,11 @@ func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec) (
 
 	// GPU
 	matches = filterInstanceData(matches, func(inst InstanceData) bool {
-		return inst.GPU >= gpuRequirements
+		if gpuTypeRequirements == "" {
+			return inst.GPU >= gpuCountRequirements
+		}
+		available := inst.SupportedGPUTypes[gpuTypeRequirements]
+		return available >= gpuCountRequirements
 	})
 
 	// CPU

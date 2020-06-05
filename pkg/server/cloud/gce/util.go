@@ -119,6 +119,13 @@ func (c *gceClient) getInstanceTypeURL(instanceType string) string {
 	)
 }
 
+func (c *gceClient) getAcceleratorTypeURL(acceleratorType string) string {
+	return gceComputeAPIEndpoint + strings.Join(
+		[]string{"projects", c.projectID, "zones", c.zone, "acceleratorTypes", acceleratorType},
+		"/",
+	)
+}
+
 func getServiceAccountScopes(scopes []string) []string {
 	scopeLen := len(scopes)
 	if scopeLen == 1 {

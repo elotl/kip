@@ -22,6 +22,7 @@ type NodeStatusController struct {
 	internalIP             string
 	daemonEndpointPort     int32
 	kubeletCapacity        corev1.ResourceList
+	kubeletLabels          map[string]string
 	cidrs                  []string
 	node                   *corev1.Node
 	cloudClient            cloud.CloudClient
@@ -34,7 +35,8 @@ func NewNodeStatusController(
 	cli cloud.CloudClient,
 	internalIP string,
 	daemonEndpointPort int32,
-	kubeletCapacity corev1.ResourceList,
+	capacity corev1.ResourceList,
+	labels map[string]string,
 ) *NodeStatusController {
 	return &NodeStatusController{
 		nodeReady:              false,
@@ -44,7 +46,8 @@ func NewNodeStatusController(
 		cloudClient:            cli,
 		internalIP:             internalIP,
 		daemonEndpointPort:     daemonEndpointPort,
-		kubeletCapacity:        kubeletCapacity,
+		kubeletCapacity:        capacity,
+		kubeletLabels:          labels,
 		ping:                   make(chan interface{}),
 	}
 }
@@ -129,6 +132,7 @@ func (n *NodeStatusController) Dump() []byte {
 		InternalIP         string
 		DaemonEndpointPort int32
 		KubeletCapacity    corev1.ResourceList
+		KubeletLabels      map[string]string
 		CIDRs              []string
 		NodeStatus         corev1.NodeStatus
 	}{
@@ -137,6 +141,7 @@ func (n *NodeStatusController) Dump() []byte {
 		InternalIP:         n.internalIP,
 		DaemonEndpointPort: n.daemonEndpointPort,
 		KubeletCapacity:    n.kubeletCapacity,
+		KubeletLabels:      n.kubeletLabels,
 		CIDRs:              n.cidrs,
 		NodeStatus:         nodeStatus,
 		LoopTimerCount:     n.controlLoopTimer.Count,
@@ -173,6 +178,9 @@ func (n *NodeStatusController) UpdateNode(node *corev1.Node) {
 	if len(n.cidrs) < 1 {
 		n.cidrs = n.cloudClient.GetVPCCIDRs()
 		klog.V(5).Infof("setting pod CIDRs to %v", n.cidrs)
+	}
+	for k, v := range n.kubeletLabels {
+		node.Labels[k] = v
 	}
 	node.Status = n.GetNodeStatus()
 	// Save node metadata and spec.

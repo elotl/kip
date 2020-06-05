@@ -38,6 +38,13 @@ const (
 	etchostsVolumeName                   = "etchosts"
 )
 
+var (
+	GPUNodeSelectorPrefixes = []string{
+		"node.elotl.co/gpu-",
+		"cloud.google.com/gke-accelerator",
+	}
+)
+
 func getStatus(internalIP string, milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
 	// Todo: make the call if this should be the dispatch time of the
 	// pod in milpa.
@@ -603,7 +610,10 @@ func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 			},
 		},
 	})
-	milpapod.Spec.Resources = aggregateResources(pod.Spec.Containers)
+	milpapod.Spec.Resources = aggregateResources(
+		pod.Spec.Containers,
+		pod.Spec.NodeSelector,
+	)
 	milpapod.Spec.Hostname = pod.Spec.Hostname
 	milpapod.Spec.Subdomain = pod.Spec.Subdomain
 	if len(pod.Spec.HostAliases) > 0 {
@@ -641,7 +651,7 @@ func addAnnotationsToMilpaPod(milpaPod *api.Pod) {
 	}
 }
 
-func aggregateResources(containers []v1.Container) api.ResourceSpec {
+func aggregateResources(containers []v1.Container, nodeSelector map[string]string) api.ResourceSpec {
 	allCpu := int64(0)
 	allMemory := int64(0)
 	gpus := int64(0)
@@ -671,6 +681,27 @@ func aggregateResources(containers []v1.Container) api.ResourceSpec {
 	gpuStr := ""
 	if gpus > 0 {
 		gpuStr = fmt.Sprintf("%d", gpus)
+		for label, gpuType := range nodeSelector {
+			for _, prefix := range GPUNodeSelectorPrefixes {
+				// For GKE-style selectors, the label key is constant, and the
+				// value is the GPU type. To support multiple GPU types per
+				// virtual node, users can also use
+				// node.elotl.co/gpu-<gpu-type> style labels, where the GPU
+				// type is added to the label key instead of the label value.
+				if !strings.HasPrefix(label, prefix) {
+					continue
+				}
+				if gpuType == "" {
+					gpuType = label[len(prefix):]
+				}
+				gpuStr = gpuStr + " " + gpuType
+				return api.ResourceSpec{
+					CPU:    cpuStr,
+					Memory: memoryStr,
+					GPU:    gpuStr,
+				}
+			}
+		}
 	}
 	return api.ResourceSpec{
 		CPU:    cpuStr,
