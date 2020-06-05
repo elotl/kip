@@ -29,7 +29,6 @@ spec:
     metadata:
       labels:
         app: kip
-        kip: ""
     spec:
       affinity:
         nodeAffinity:
