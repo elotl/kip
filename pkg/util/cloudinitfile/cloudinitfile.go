@@ -24,9 +24,8 @@ import (
 	"io/ioutil"
 	"regexp"
 
-	"github.com/coreos/yaml"
-	cc "github.com/elotl/cloud-init/config"
 	"github.com/elotl/kip/pkg/util"
+	"github.com/go-yaml/yaml"
 )
 
 const semverRegexFmt string = `v?([0-9]+)(\.[0-9]+)(\.[0-9]+)?` +
@@ -44,12 +43,12 @@ var (
 )
 
 type File struct {
-	userData cc.CloudConfig
-	kipFiles map[string]cc.File
+	userData CloudConfig
+	kipFiles map[string]CloudInitFile
 }
 
 func New(path string) (*File, error) {
-	var userData cc.CloudConfig
+	var userData CloudConfig
 	if path != "" {
 		var err error
 		userData, err = loadUserCloudConfig(path)
@@ -59,17 +58,17 @@ func New(path string) (*File, error) {
 	}
 	f := &File{
 		userData: userData,
-		kipFiles: make(map[string]cc.File),
+		kipFiles: make(map[string]CloudInitFile),
 	}
 	return f, nil
 }
 
 func (f *File) ResetInstanceData() {
-	f.kipFiles = make(map[string]cc.File)
+	f.kipFiles = make(map[string]CloudInitFile)
 }
 
 func (f *File) AddKipFile(content, path, permissions string) {
-	f.kipFiles[path] = cc.File{
+	f.kipFiles[path] = CloudInitFile{
 		Content:            content,
 		Path:               path,
 		Owner:              "root",
@@ -77,7 +76,7 @@ func (f *File) AddKipFile(content, path, permissions string) {
 	}
 }
 
-func loadUserCloudConfig(path string) (ucc cc.CloudConfig, err error) {
+func loadUserCloudConfig(path string) (ucc CloudConfig, err error) {
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
 		return ucc, err
@@ -120,7 +119,7 @@ func (f *File) AddCellConfig(cfg map[string]string) {
 
 func (f *File) Contents() ([]byte, error) {
 	mergedConfig := f.userData
-	mergedFiles := make([]cc.File, 0, len(f.userData.WriteFiles)+len(f.kipFiles))
+	mergedFiles := make([]CloudInitFile, 0, len(f.userData.WriteFiles)+len(f.kipFiles))
 	mergedFiles = append(mergedFiles, f.userData.WriteFiles...)
 	for _, wf := range f.kipFiles {
 		mergedFiles = append(mergedFiles, wf)

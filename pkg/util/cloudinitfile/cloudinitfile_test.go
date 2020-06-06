@@ -22,8 +22,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/coreos/yaml"
-	cc "github.com/elotl/cloud-init/config"
+	"github.com/go-yaml/yaml"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,7 +57,7 @@ apiVersion: v1
 	assert.Error(t, err)
 }
 
-func loadCloudConfigFromString(s string) (ucc cc.CloudConfig, err error) {
+func loadCloudConfigFromString(s string) (ucc CloudConfig, err error) {
 	err = yaml.Unmarshal([]byte(s), &ucc)
 	return ucc, err
 }
@@ -74,7 +73,7 @@ func TestWriteContent(t *testing.T) {
 	assert.NoError(t, err)
 	cif := &File{
 		userData: ucc,
-		kipFiles: make(map[string]cc.File),
+		kipFiles: make(map[string]CloudInitFile),
 	}
 
 	content := "A programmer, a plan, whatever dude..."
