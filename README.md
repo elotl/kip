@@ -25,11 +25,10 @@ There are two ways to get Kip up and running.
 ### Installation Option 1: Create a Minimal K8s Cluster
 
 Prequisites:
-- An AWS or GCP account
+- An AWS or Google Cloud account
 - [Terraform](https://www.terraform.io/downloads.html) (tested with terraform 0.12)
-- [aws-cli](https://aws.amazon.com/cli/) if using AWS
-- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-- jq
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) >= 1.14
+- jq and [aws-cli](https://aws.amazon.com/cli/) if using AWS
 
 In [deploy/terraform-aws](deploy/terraform-aws), you will find a terraform config that creates a simple one master, one worker cluster and starts Kip on AWS.
 
@@ -41,7 +40,7 @@ vi myenv.tfvars  # customize variables as necessary
 terraform apply -var-file myenv.tfvars
 ```
 
-On GCE, the config under `deploy/terraform-gcp` works in a similar way, but uses a GKE base cluster on GCP.
+On Google Cloud, the config under `deploy/terraform-gcp` works in a similar way, but uses a GKE base cluster.
 
 ### Installation Option 2: Using an Existing Cluster
 
@@ -51,7 +50,7 @@ To deploy Kip into an existing cluster, you'll need to setup cloud credentials t
 
 In AWS, Kip can either use API keys supplied in the Kip provider configuration file (`provider.yaml`) or use the instance profile of the machine the Kip pod is running on.
 
-On GCE, a service account key is used for authentication.
+On Google Cloud, a service account key is used for authentication.
 
 **AWS Credentials Option 1 - Configuring AWS API keys:**
 
@@ -61,7 +60,7 @@ You can configure the AWS access key Kip will use in your provider configuration
 
 In AWS, Kip can use credentials supplied by the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) attached to the node the pod is dispatched to.  To use an instance profile, create an IAM policy with the [minimum Kip permissions](docs/kip-iam-permissions.md) then apply the instance profile to the node that will run the Kip provider pod.  The Kip pod must run on the cloud instance that the instance profile is attached to.
 
-**GCE Credentials - Service Account private key:**
+**GCP Credentials - Service Account private key:**
 
 Add your email and key to `cloud.gce.credentials`. Example:
 
