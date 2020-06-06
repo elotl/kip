@@ -89,10 +89,6 @@ spec:
         imagePullPolicy: Always
         name: kip
         env:
-        - name: APISERVER_CERT_LOCATION
-          value: /opt/kip/data/kubelet-pki/kip.crt
-        - name: APISERVER_KEY_LOCATION
-          value: /opt/kip/data/kubelet-pki/kip.key
         - name: NODE_NAME
           valueFrom:
             fieldRef:
@@ -102,6 +98,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
+        - name: APISERVER_CERT_LOCATION
+          value: /opt/kip/data/kubelet-pki/$(VKUBELET_NODE_NAME).crt
+        - name: APISERVER_KEY_LOCATION
+          value: /opt/kip/data/kubelet-pki/$(VKUBELET_NODE_NAME).key
         resources:
           limits:
             cpu: "2"
