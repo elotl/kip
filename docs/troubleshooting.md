@@ -9,7 +9,7 @@ The output of `kubectl describe` is helpful to see why a pod is stuck in Pending
 The a good place to look for more answers is the output of the kip pod.
 
 ```bash
-./kubectl -nkube-system logs kip -c kip -f
+./kubectl -nkube-system logs kip-0 -c kip -f
 ```
 
 ### Logging into Cells via SSH
