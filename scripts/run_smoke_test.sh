@@ -30,7 +30,7 @@ cleanup() {
     if [[ -n "$PORTFW_PID" ]]; then
         kill -9 $PORTFW_PID
     fi
-    cd $ROOT_DIR/deploy/terraform
+    cd $ROOT_DIR/deploy/terraform-aws
     terraform destroy -var cluster-name=${CLUSTER_NAME} -auto-approve
 }
 
@@ -62,7 +62,7 @@ fetch_kubeconfig() {
 trap cleanup EXIT
 
 # Create a test cluster.
-cd $ROOT_DIR/deploy/terraform
+cd $ROOT_DIR/deploy/terraform-aws
 terraform init
 terraform apply -var cluster-name=${CLUSTER_NAME} -auto-approve
 terraform show -json | jq -r '.values.root_module.resources | .[] | select(.address=="tls_private_key.ssh-key") | .values.private_key_pem' > $SSH_KEY_FILE

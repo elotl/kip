@@ -31,17 +31,17 @@ Prequisites:
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - jq
 
-In [deploy/terraform](deploy/terraform), you will find a terraform config that creates a simple one master, one worker cluster and starts Kip on AWS.
+In [deploy/terraform-aws](deploy/terraform-aws), you will find a terraform config that creates a simple one master, one worker cluster and starts Kip on AWS.
 
 ``` bash
-cd deploy/terraform
+cd deploy/terraform-aws
 terraform init
 cp env.tfvars.example myenv.tfvars
 vi myenv.tfvars  # customize variables as necessary
 terraform apply -var-file myenv.tfvars
-
-On GCE, the config under `deploy/terraform-gcp` works the same way.
 ```
+
+On GCE, the config under `deploy/terraform-gcp` works in a similar way, but uses a GKE base cluster on GCP.
 
 ### Installation Option 2: Using an Existing Cluster
 
