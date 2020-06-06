@@ -19,7 +19,9 @@
 # vendor/
 
 /virtual-kubelet
+/kip
 cmd/virtual-kubelet/virtual-kubelet
+cmd/kip/kip
 /milpactl
 /kipctl
 staticcheck.conf
@@ -30,5 +32,6 @@ kubeconfig
 deploy/terraform/.terraform/
 deploy/terraform-gcp/.terraform/
 deploy/manifests/virtual-kubelet/overlays/local-*
+deploy/manifests/kip/overlays/local-*
 deploy/terraform-vpn/kustomization/aws-vpn-client.env
 deploy/terraform-vpn/kustomization/*.yaml

@@ -1,7 +1,7 @@
 bases:
 - ../../base
 configMapGenerator:
-- name: virtual-kubelet-config
+- name: kip-config
   namespace: kube-system
   behavior: merge
   files:

@@ -1,12 +1,17 @@
 bases:
-- ../../manifests/virtual-kubelet/overlays/minikube/
+- ../../manifests/kip/overlays/minikube/
 resources:
 - vpn-deployment.yaml
 - node-local-dns.yaml
-patchesStrategicMerge:
-- deployment.yaml
+patchesJson6902:
+- target:
+    group: apps
+    version: v1
+    kind: StatefulSet
+    name: kip
+  path: command-extra-args.yaml
 configMapGenerator:
-- name: virtual-kubelet-config
+- name: kip-config
   namespace: kube-system
   behavior: merge
   files:
@@ -15,7 +20,7 @@ configMapGenerator:
   namespace: kube-system
   env: aws-vpn-client.env
 secretGenerator:
-- name: virtual-kubelet-secrets
+- name: kip-secrets
   namespace: kube-system
   literals:
   - AWS_ACCESS_KEY_ID=${aws_access_key_id}

@@ -12,10 +12,10 @@ Kip's cloud-init system provides the following initialization functions:
 
 ### Cloud-init Example
 
-In provider.yaml specify the location for the cloud-init file in the virtual-kubelet pod:
+In provider.yaml specify the location for the cloud-init file in the kip pod:
 ```yaml
 cells:
-  cloudInitFile: /etc/virtual-kubelet/cloudinit.yaml
+  cloudInitFile: /etc/kip/cloudinit.yaml
 ```
 
 cloudinit.yaml contents:

@@ -4,7 +4,7 @@ resources:
 - sa.yaml
 - network-agent-sa.yaml
 configMapGenerator:
-- name: virtual-kubelet-config
+- name: kip-config
   namespace: kube-system
   files:
   - provider.yaml

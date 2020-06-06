@@ -40,7 +40,7 @@ variable "node-ami" {
 }
 
 variable "kustomize-dir" {
-  default = "../manifests/virtual-kubelet/base"
+  default = "../manifests/kip/base"
 }
 
 variable "efs-enable" {

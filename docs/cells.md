@@ -13,7 +13,7 @@ We maintain images that are optimized for cells and come with our tools pre-inst
 Update your provider config:
 
     cells:
-      cloudInitFile: /etc/virtual-kubelet/cloudinit.yaml
+      cloudInitFile: /etc/kip/cloudinit.yaml
       bootImageSpec:
         owners: "099720109477"
         filters: name=ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*
@@ -32,4 +32,4 @@ Add a cloud-init section to the provider configmap, e.g. for ubuntu or debian:
 
 Finally, restart the provider:
 
-    $ kubectl delete pod -n kube-system -l app=virtual-kubelet
+    $ kubectl delete pod -n kube-system -l app=kip

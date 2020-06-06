@@ -75,7 +75,7 @@ Alternatively, you can use also an ISO we built that includes the missing kernel
 
 Don't forget to delete any pods you have created. You can check them:
 
-    $ kubectl get pods -A --field-selector spec.nodeName=virtual-kubelet
+    $ kubectl get pods -A --field-selector spec.nodeName=kip
     NAMESPACE     NAME                       READY   STATUS    RESTARTS   AGE
     default       debug-vk                   1/1     Running   0          3h16m
     kube-system   coredns-66bff467f8-vctcc   1/1     Running   0          3h50m

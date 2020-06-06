@@ -15,11 +15,11 @@ Templating makes it really easy to override certain parameters or configuration 
     $ mkdir -p overlays/local-dev
     $ cp base/provider.yaml overlays/local-dev/
     $ vi overlays/local-dev/provider.yaml
-    $ cat <<-EOF > overlays/local-dev/kustomization.yaml 
+    $ cat <<-EOF > overlays/local-dev/kustomization.yaml
     bases:
     - ../../base
     configMapGenerator:
-    - name: virtual-kubelet-config
+    - name: kip-config
       namespace: kube-system
       behavior: merge
       files:

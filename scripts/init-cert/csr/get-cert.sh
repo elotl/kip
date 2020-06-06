@@ -27,7 +27,7 @@ if [[ -z $KUBECONFIG ]]; then
     export KUBECONFIG=$(pwd)/kubeconfig
 fi
 
-export CSR_NAME="virtual-kubelet-$(date +%s)"
+export CSR_NAME="kip-$(date +%s)"
 
 ./create-csr.sh | kubectl apply -f -
 

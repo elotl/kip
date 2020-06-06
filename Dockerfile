@@ -1,10 +1,14 @@
-FROM alpine
+FROM debian:stable-slim
 
-RUN apk add --update bash ca-certificates iptables
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -y && \
+        apt-get upgrade -y && \
+        apt-get install -y ca-certificates iptables
 
 COPY kipctl /kipctl
 RUN chmod 755 /kipctl
-COPY virtual-kubelet /virtual-kubelet
-RUN chmod 755 /virtual-kubelet
+COPY kip /kip
+RUN chmod 755 /kip
 
-ENTRYPOINT ["/virtual-kubelet"]
+ENTRYPOINT ["/kip"]

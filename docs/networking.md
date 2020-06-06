@@ -2,7 +2,7 @@
 
 Kip allocates two IP addresses for each cell: one for management communication (between the provider and a small agent running on the instance), and one for the pod. Unless the pod has hostNetwork enabled, a new Linux network namespace is created for the pod with the second IP. Both IP addresses come from the VPC address space — fortunately, even the tiniest cloud instances are allowed to allocate at least two IP addresses. This design ensures that the pod can’t interfere with management communications.
 
-As for network interoperability between regular pods and virtual-kubelet pods, we recommend the native CNI plugin that integrates with the cloud provider VPC, i.e. the aws-vpc-cni plugin on AWS. That way both virtual-kubelet pods and regular pods will get their IP addresses from the VPC address space, and the VPC network will take care of routing.
+As for network interoperability between regular pods and kip pods, we recommend the native CNI plugin that integrates with the cloud provider VPC, i.e. the aws-vpc-cni plugin on AWS. That way both virtual-kubelet pods and regular pods will get their IP addresses from the VPC address space, and the VPC network will take care of routing.
 
 If you would like to use another CNI plugin for some reason, that will also work as long as the cloud controller is configured to create cloud routes with the PodCIDR allocated to nodes and the CNI plugin used in the cluster is able to use the PodCIDR (most CNI plugins can do this).
 Currently, Kip needs to run in host network mode. Since NodePorts are managed by the service proxy running on Kubernetes nodes, they also work seamlessly. Iptables rules for HostPort mappings are created and maintained by Kip.

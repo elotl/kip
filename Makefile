@@ -11,13 +11,13 @@ endif
 LD_VERSION_FLAGS=-X main.buildVersion=$(GIT_VERSION) -X main.buildTime=$(CURRENT_TIME) -X github.com/elotl/kip/pkg/util.VERSION=$(GIT_VERSION)
 LDFLAGS=-ldflags "$(LD_VERSION_FLAGS)"
 
-BINARIES=virtual-kubelet kipctl
+BINARIES=kip kipctl
 
-REGISTRY_REPO=elotl/virtual-kubelet
+REGISTRY_REPO=elotl/kip
 
 TOP_DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 PKG_SRC=$(shell find $(TOP_DIR)pkg -type f -name '*.go')
-CMD_SRC=$(shell find $(TOP_DIR)cmd/virtual-kubelet -type f -name '*.go')
+CMD_SRC=$(shell find $(TOP_DIR)cmd/kip -type f -name '*.go')
 VENDOR_SRC=$(shell find $(TOP_DIR)vendor -type f -name '*.go')
 KIPCTL_SRC=$(shell find $(TOP_DIR)cmd/kipctl -type f -name '*.go')
 GENERATED_SRC=$(TOP_DIR)pkg/clientapi/clientapi.pb.go \
@@ -25,8 +25,8 @@ GENERATED_SRC=$(TOP_DIR)pkg/clientapi/clientapi.pb.go \
 
 all: $(BINARIES)
 
-virtual-kubelet: $(PKG_SRC) $(VENDOR_SRC) $(CMD_SRC) $(GENERATED_SRC)
-	CGO_ENABLED=0 go build $(LDFLAGS) -o $(TOP_DIR)$@ $(TOP_DIR)cmd/virtual-kubelet
+kip: $(PKG_SRC) $(VENDOR_SRC) $(CMD_SRC) $(GENERATED_SRC)
+	CGO_ENABLED=0 go build $(LDFLAGS) -o $(TOP_DIR)$@ $(TOP_DIR)cmd/kip
 
 
 $(TOP_DIR)pkg/clientapi/clientapi.pb.go: $(TOP_DIR)pkg/clientapi/clientapi.proto

@@ -118,7 +118,7 @@ cells:
   # modifications to this file. Cells started afte a modification are
   # made will get the updated cloudInit file.
   #
-  # cloudInitFile: /etc/virtual-kubelet/cloudinit.yml
+  # cloudInitFile: /etc/kip/cloudinit.yml
 
   # standbyCells is used to speicfy pools of standby cells kip will
   # keep so pods created can be dispatched to cells quickly.

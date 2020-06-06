@@ -1,11 +1,8 @@
 bases:
 - ../../base
-patchesStrategicMerge:
-- statefulset.yaml
 configMapGenerator:
-- name: virtual-kubelet-config
+- name: kip-config
   namespace: kube-system
   behavior: merge
   files:
-  - cloudinit.yaml
   - provider.yaml
