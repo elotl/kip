@@ -33,7 +33,7 @@ You can now ssh into the instance using the username "ubuntu", and the ssh key y
     $ kubectl get nodes
     NAME                          STATUS   ROLES    AGE   VERSION
     ip-10-0-26-113.ec2.internal   Ready    master   67s   v1.17.3
-    kip               Ready    agent    13s   v1.14.0-vk-v0.0.1-125-g3b2cc98
+    kip-provider-0                Ready    agent    13s   v1.14.0-vk-v0.0.1-125-g3b2cc98
 
 If you haven't set an existing ssh key in your configuration, a new ssh key has been created. You can extract and use it via:
 

@@ -1,10 +1,24 @@
+namespace: kube-system
+namePrefix: kip-
 resources:
 - pvc.yaml
 - statefulset.yaml
 - sa.yaml
-- network-agent-sa.yaml
+- network-agent.yaml
 configMapGenerator:
-- name: kip-config
-  namespace: kube-system
+- name: config
   files:
   - provider.yaml
+vars:
+- name: NETWORK_AGENT_SERVICE_ACCOUNT
+  objref:
+    kind: ServiceAccount
+    name: network-agent
+    apiVersion: v1
+- name: KIP_NAMESPACE
+  objref:
+    kind: StatefulSet
+    name: provider
+    apiVersion: apps/v1
+  fieldRef:
+    fieldpath: metadata.namespace

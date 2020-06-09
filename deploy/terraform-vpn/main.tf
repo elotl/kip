@@ -135,8 +135,8 @@ resource "null_resource" "deploy" {
   count = var.deploy_to_kubernetes ? 1 : 0
 
   provisioner "local-exec" {
-    # This needs kubectl >= 1.14.
-    command = "kubectl apply -k ${path.module}/kustomization/"
+    # This needs kustomize and kubectl.
+    command = "kustomize build ${path.module}/kustomization/ | kubectl apply -f -"
     interpreter = [
       "bash",
       "-x",

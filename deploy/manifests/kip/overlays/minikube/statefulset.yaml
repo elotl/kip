@@ -1,8 +1,7 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: kip
-  namespace: kube-system
+  name: provider
 spec:
   template:
     spec:
@@ -10,4 +9,4 @@ spec:
       - name: kip
         envFrom:
         - secretRef:
-            name: kip-secrets
+            name: provider-secret

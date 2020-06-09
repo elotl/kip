@@ -26,9 +26,10 @@ There are two ways to get Kip up and running.
 
 Prequisites:
 - An AWS or Google Cloud account
-- [Terraform](https://www.terraform.io/downloads.html) (tested with terraform 0.12)
+- [Terraform](https://www.terraform.io/downloads.html) >= 0.12
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) >= 1.14
-- jq and [aws-cli](https://aws.amazon.com/cli/) if using AWS
+- [kustomize](https://github.com/kubernetes-sigs/kustomize) >= 3.0.0
+- [jq](https://github.com/stedolan/jq) and [aws-cli](https://aws.amazon.com/cli/) if using AWS
 
 In [deploy/terraform-aws](deploy/terraform-aws), you will find a terraform config that creates a simple one master, one worker cluster and starts Kip on AWS.
 
@@ -80,7 +81,7 @@ The resources in [deploy/manifests/kip](deploy/manifests/kip) create ServiceAcco
 
 Once credentials are set up, apply [deploy/manifests/kip/base](deploy/manifests/kip/base) to create the necessary kubernetes resources to support and run the provider:
 
-    $ kubectl apply -k deploy/manifests/kip/base
+    $ kustomize build deploy/manifests/kip/base | kubectl apply -f -
 
 For rendering the manifests, [kustomize](https://kustomize.io/) is used. You can create your own overlays on top of the base template. For example, to override provider.yaml, Kip's configuration file:
 
@@ -97,10 +98,9 @@ For rendering the manifests, [kustomize](https://kustomize.io/) is used. You can
     > - behavior: merge
     >   files:
     >   - provider.yaml
-    >   name: kip-config
-    >   namespace: kube-system
+    >   name: config
     EOF
-    $ kubectl apply -k deploy/manifests/kip/overlays/local-config
+    $ kustomize build deploy/manifests/kip/overlays/local-config | kubectl apply -f -
 
 After applying, you should see a new kip pod in the kube-system namespace and a new node named "kip-0" in the cluster.
 

@@ -8,6 +8,7 @@ For more information on Site-to-Site VPN, see [documentation from AWS](https://d
 
 For provisioning, you need:
 * terraform >= 0.12
+* kustomize >= 3.0.0
 * kubectl >= 1.14
 
 The VPN client uses IPsec, and needs a few kernel modules available on the worker node:

@@ -4,15 +4,14 @@
 #     $ cat <<EOF > overlays/local-minikube/kustomization.yaml
 #     bases:
 #     - ../minikube
+#     namespace: kube-system
 #     configMapGenerator:
 #     - name: kip-config
-#       namespace: kube-system
 #       behavior: merge
 #       files:
 #       - provider.yaml
 #     secretGenerator:
 #     - name: kip-secrets
-#       namespace: kube-system
 #       literals:
 #       - AWS_ACCESS_KEY_ID=...
 #       - AWS_SECRET_ACCESS_KEY=...
@@ -23,16 +22,13 @@
 # 3. Set your AWS access keys:
 #     $ vi overlays/local-minikube/kustomization.yaml
 # 4. Apply via:
-#     $ kubectl apply -k overlays/local-minikube
-#    or, if you have kustomize installed:
 #     $ kustomize build overlays/local-minikube | kubectl apply -f -
 bases:
 - ../../base
 patchesStrategicMerge:
 - statefulset.yaml
 configMapGenerator:
-- name: kip-config
-  namespace: kube-system
+- name: config
   behavior: merge
   files:
   - provider.yaml

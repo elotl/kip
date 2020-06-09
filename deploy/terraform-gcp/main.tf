@@ -165,8 +165,8 @@ resource "null_resource" "deploy" {
       "-x",
       "-c",
     ]
-    # This needs kubectl >= 1.14.
-    command = "kubectl apply -k ${var.kustomize-dir}"
+    # This needs kubectl and kustomize.
+    command = "kustomize build ${var.kustomize-dir} | kubectl apply -f -"
   }
 
   triggers = {
