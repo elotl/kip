@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"strconv"
 
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/api/validation"
@@ -267,6 +268,11 @@ func setupAzureEnvVars(c *AzureConfig) error {
 
 func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) (cloud.CloudClient, error) {
 	// see which cloud is non-null, take first
+	mockCloudAPI := os.Getenv("MOCK_CLOUD_API")
+	if val, err := strconv.ParseBool(mockCloudAPI); err == nil && val {
+		klog.Warningf("Running with a mocked cloud API client. This kip installation can not be changed to run a real k8s cluster")
+		return cloud.NewMockClient(), nil
+	}
 	cc := cf.Cloud
 	numClouds := 0
 	if cc.AWS != nil {
