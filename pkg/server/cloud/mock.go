@@ -18,6 +18,7 @@ package cloud
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/util"
@@ -175,6 +176,9 @@ func (m *MockCloudClient) GetAttributes() CloudAttributes {
 	return CloudAttributes{
 		DiskProductName: api.StorageGP2,
 		FixedSizeVolume: false,
+		Provider:        ProviderAWS,
+		Region:          "us-east-1",
+		Zone:            m.Subnets[0].AZ,
 	}
 }
 
@@ -309,6 +313,25 @@ func NewMockClient() *MockCloudClient {
 
 	net.RouteAdder = func(destinationCIDR, nextHop string) error {
 		return nil
+	}
+
+	net.AvailabilityChecker = func() (bool, error) {
+		return true, nil
+	}
+
+	net.ImageGetter = func(BootImageSpec) (Image, error) {
+		t := time.Now()
+		img := Image{
+			ID:           "1234",
+			Name:         "MockImage",
+			RootDevice:   "/dev/xvda",
+			CreationTime: &t,
+		}
+		return img, nil
+	}
+
+	net.DNSInfoGetter = func() ([]string, []string, error) {
+		return []string{"cloud.internal"}, []string{"1.1.1.1"}, nil
 	}
 
 	net.SubnetGetter = func() ([]SubnetAttributes, error) {

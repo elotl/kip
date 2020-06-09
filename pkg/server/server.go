@@ -164,7 +164,7 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 		return fmt.Errorf(
 			"error: region has changed from %s to %s. "+
 				"This is unsupported. "+
-				"Please delete all cluster resources and rename your cluster",
+				"To change regions, delete all existing kip resources and instances and delete the kip persistent volume",
 			savedRegion, region)
 	}
 	return nil
@@ -222,12 +222,14 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 	if err != nil {
 		return nil, fmt.Errorf("error configuring cloud client: %v", err)
 	}
+
 	klog.V(5).Infof("ensuring cloud region is unchanged")
 	cloudRegion := cloudClient.GetAttributes().Region
 	err = ensureRegionUnchanged(etcdClient, cloudRegion)
 	if err != nil {
 		return nil, fmt.Errorf("error ensuring Kip region is unchanged: %v", err)
 	}
+
 	klog.V(5).Infof("creating internal client certificate")
 	clientCert, err := certFactory.CreateClientCert()
 	if err != nil {
