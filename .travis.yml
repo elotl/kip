@@ -32,7 +32,7 @@ before_script:
   && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 - curl -Os https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
   && sudo unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin/
-- GO111MODULE=on go get -u k8s.io/gengo/examples/deepcopy-gen
+- GO111MODULE=on go get k8s.io/gengo/examples/deepcopy-gen
 script:
 - set -e
 - make
