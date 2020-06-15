@@ -36,8 +36,10 @@ cleanup() {
 
 update_vk() {
     local version="$(git describe)"
-    local patch="{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"image\":\"elotl/kip:$version\",\"name\":\"kip\"}]}}}}"
-    kubectl patch -n kube-system statefulset kip-provider -p "$patch"
+    local patch_init="{\"spec\":{\"template\":{\"spec\":{\"initContainers\":[{\"image\":\"elotl/init-cert:$version\",\"name\":\"init-cert\"}]}}}}"
+    local patch_kip="{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"image\":\"elotl/kip:$version\",\"name\":\"kip\"}]}}}}"
+    kubectl patch -n kube-system statefulset kip-provider -p "$patch_init"
+    kubectl patch -n kube-system statefulset kip-provider -p "$patch_kip"
 }
 
 run_smoke_test() {

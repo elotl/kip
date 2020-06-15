@@ -40,6 +40,7 @@ script:
 - make
 - "./scripts/run_tests.sh"
 - make img login-img push-img DKR=docker
+- "./scripts/init-cert/build.sh"
 - "./scripts/run_smoke_test.sh"
 - "./scripts/push_to_gcr_ecr.sh"
 notifications:
