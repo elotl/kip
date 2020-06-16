@@ -2,14 +2,25 @@
 
 set -euxo pipefail
 
+TAG=${TAG:-$(git describe --dirty)}
 DKR=${DKR:-docker}
-PUSH_IMAGES=${PUSH_IMAGES:-false}
+REPO=${REPO:-elotl/init-cert}
+PUSH_IMAGES=${PUSH_IMAGES:-true}
+UPDATE_LATEST=${UPDATE_LATEST:-false}
 
-major=1
-for minor in $(seq 12 18); do
-    tag="k8s-${major}.${minor}"
-    docker build -t elotl/init-cert:${tag} --build-arg K8S_VERSION_MAJOR=${major} --build-arg K8S_VERSION_MINOR=${minor} .
-    $PUSH_IMAGES && docker push elotl/init-cert:${tag} || true
-done
-docker tag elotl/init-cert:k8s-1.18 elotl/init-cert:latest
-$PUSH_IMAGES && docker push elotl/init-cert:latest || true
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd $SCRIPT_DIR
+
+LATEST_K8S_VERSION=$(curl -fsL https://storage.googleapis.com/kubernetes-release/release/stable.txt)
+LATEST_K8S_MINOR=$(echo $LATEST_K8S_VERSION | sed -r 's/^v([0-9]+)\.([0-9]+)\..*$/\2/')
+K8S_VERSIONS=$(seq -f '1.%g' -s ' ' 14 $LATEST_K8S_MINOR)
+
+docker build -t ${REPO}:${TAG} --build-arg K8S_VERSIONS="${K8S_VERSIONS}" .
+
+if $PUSH_IMAGES; then
+    docker push ${REPO}:${TAG}
+    if $UPDATE_LATEST; then
+        docker tag ${REPO}:${TAG} ${REPO}:latest
+        docker push ${REPO}:latest
+    fi
+fi

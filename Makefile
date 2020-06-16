@@ -2,11 +2,6 @@ DKR=docker
 GIT_VERSION=$(shell git describe --dirty)
 CURRENT_TIME=$(shell date +%Y%m%d%H%M%S)
 IMAGE_TAG=$(GIT_VERSION)
-ifneq ($(findstring -,$(GIT_VERSION)),)
-IMAGE_DEV_OR_LATEST=dev
-else
-IMAGE_DEV_OR_LATEST=latest
-endif
 
 LD_VERSION_FLAGS=-X main.buildVersion=$(GIT_VERSION) -X main.buildTime=$(CURRENT_TIME) -X github.com/elotl/kip/pkg/util.VERSION=$(GIT_VERSION)
 LDFLAGS=-ldflags "$(LD_VERSION_FLAGS)"
@@ -43,8 +38,7 @@ kipctl: $(PKG_SRC) $(VENDOR_SRC) $(KIPCTL_SRC)
 
 img: $(BINARIES)
 	@echo "Checking if IMAGE_TAG is set" && test -n "$(IMAGE_TAG)"
-	$(DKR) build -t $(REGISTRY_REPO):$(IMAGE_TAG) \
-		-t $(REGISTRY_REPO):$(IMAGE_DEV_OR_LATEST) .
+	$(DKR) build -t $(REGISTRY_REPO):$(IMAGE_TAG) .
 
 login-img:
 	@echo "Checking if REGISTRY_USER is set" && test -n "$(REGISTRY_USER)"
@@ -54,7 +48,6 @@ login-img:
 push-img: img
 	@echo "Checking if IMAGE_TAG is set" && test -n "$(IMAGE_TAG)"
 	$(DKR) push $(REGISTRY_REPO):$(IMAGE_TAG)
-	$(DKR) push $(REGISTRY_REPO):$(IMAGE_DEV_OR_LATEST)
 
 clean:
 	rm -f $(BINARIES)

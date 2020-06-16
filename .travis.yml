@@ -40,8 +40,10 @@ script:
 - make
 - "./scripts/run_tests.sh"
 - make img login-img push-img DKR=docker
+- "./scripts/init-cert/build.sh"
 - "./scripts/run_smoke_test.sh"
 - "./scripts/push_to_gcr_ecr.sh"
+- "./scripts/update_latest_tags.sh"
 notifications:
   slack:
     secure: d4Y/cOEzbFc7RHwizwVsdaTCURsQ/Rmm2kyGgw3WboO7ijU0PRNTioktRxB5byJAhCI79bDJbLxwNRempIdSlzG4sL7UHK4Nyxb0t5XxBLDzqD1nJPL652r5oQ8W+ru9tMKtO4xWc2ELl3spe4Lb1pyXHCSpvkd++IgZBKbpOdaCs4XNWm94sVXVRPiJOs+0tlX+gYjnGkje91MaVYJM/XMWNxOut2t6BZ1raYm+mYJUSfC7CFJPAha8+1x8S7CEbJE8Xa63gV37HUDsZbZfYdpljm3/nd6cdJzDYf51Cvdwh/DUqcBvw2AUm8AMlMUF7hGkSTS0gTRkO7nkURkm6eGJesHp0aEGg24TFIFaCtcI4rPq49GDPKOmAJUHtWev1oPw2SCIXw4cDkulKoYzqj+amXSfXDVN3Uza3zVGY445Wd5VLkiEoCvvE06Hp4gjnDfvszTh9Kj/CK7x8e4BtPyuq0oxn64/SyoSb9CfZL0VqNar4hlms44CYMdnLGzf6Sicc7+Og1aC3cd5/GlVRTtNsaf6qHVtQbhW9lar2fjpO2B2KxiOLmAvwp6aSN+Zmwif/xGfwqAJnQllB3d/ewiTjK34RJiKDg6BSUecC2Dp8jSzv9qpXYWvjSHM2kgltXgs21q7Pm7L6ISdhn6ek23ASe0N85qyyrNglF79mWA=
