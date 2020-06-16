@@ -4,9 +4,9 @@ Here you can find kustomize templates for deploying Kip.
 
 ## Deploy
 
-Use the base directory for a basic setup:
+You need [kustomize](https://github.com/kubernetes-sigs/kustomize) and [kubectl](https://github.com/kubernetes/kubectl). Use the base directory for a basic setup:
 
-    $ kubectl apply -k base/
+    $ kustomize build base/ | kubectl apply -f -
 
 ## Override Settings or Configuration
 
@@ -19,10 +19,9 @@ Templating makes it really easy to override certain parameters or configuration 
     bases:
     - ../../base
     configMapGenerator:
-    - name: kip-config
-      namespace: kube-system
+    - name: config
       behavior: merge
       files:
       - provider.yaml
     EOF
-    $ kubectl apply -k overlays/local-dev/
+    $ kustomize build overlays/local-dev/ | kubectl apply -f -

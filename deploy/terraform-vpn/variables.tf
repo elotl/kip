@@ -69,7 +69,7 @@ variable "tunnel2_psk" {
 variable "deploy_to_kubernetes" {
   type        = bool
   default     = true
-  description = "Whether the generated Kubernetes resources will be applied via kubectl. Disable if you only need the kustomization/ directory generated, and you plan to apply it separately. If enabled, it needs kubectl >= 1.14."
+  description = "Whether the generated Kubernetes resources will be applied via kustomize and kubectl. Disable if you only need the kustomization/ directory generated, and you plan to apply it separately. If enabled, it needs kustomize and kubectl to be installed."
 }
 
 variable "static_routes_only" {

@@ -3,8 +3,7 @@ bases:
 patchesStrategicMerge:
 - statefulset.yaml
 configMapGenerator:
-- name: kip-config
-  namespace: kube-system
+- name: config
   behavior: merge
   files:
   - cloudinit.yaml

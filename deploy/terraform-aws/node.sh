@@ -87,6 +87,6 @@ curl -fL https://raw.githubusercontent.com/elotl/milpa-deploy/master/deploy/cni/
 # Don't run kube-proxy on kip.
 kubectl patch -p '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"type","operator":"NotIn","values":["virtual-kubelet"]}]}]}}}}}}}' -n kube-system ds kube-proxy
 
-# Deploy VK.
+# Deploy main manifest.
 echo "${kip_manifest}" | base64 --decode > /tmp/kip.yaml
 kubectl apply -f /tmp/kip.yaml

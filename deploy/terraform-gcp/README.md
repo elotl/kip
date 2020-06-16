@@ -6,6 +6,7 @@ The Terraform config here can be used to provision a simple test cluster with Ki
 
 You need:
 * a GCP account configured and the necessary services enabled
+* kustomize >= 3.0.0
 * kubectl >= 1.14
 * Terraform >= 0.12
 
@@ -27,7 +28,7 @@ This will create a new GKE cluster and deploy Kip:
     $ kubectl get nodes
     NAME                                        STATUS   ROLES    AGE    VERSION
     gke-vk-node-pool-vk-9e5f3d39-44rg           Ready    <none>   171m   v1.14.10-gke.36
-    kip                             Ready    agent    108s
+    kip-provider-0                              Ready    agent    108s
 
 ## Run a Pod via Virtual Kubelet
 

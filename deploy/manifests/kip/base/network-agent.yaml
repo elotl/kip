@@ -1,14 +1,12 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: vk-network-agent
-  namespace: kube-system
+  name: network-agent
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: vk-network-agent
-  namespace: kube-system
+  name: network-agent
 rules:
   - apiGroups:
     - ""
@@ -42,21 +40,19 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: vk-network-agent
+  name: network-agent
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: vk-network-agent
+  name: network-agent
 subjects:
 - kind: ServiceAccount
-  name: vk-network-agent
-  namespace: kube-system
+  name: network-agent
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: vk-network-agent
-  namespace: kube-system
+  name: network-agent
   annotations:
-    kubernetes.io/service-account.name: vk-network-agent
+    kubernetes.io/service-account.name: $(NETWORK_AGENT_SERVICE_ACCOUNT)
 type: kubernetes.io/service-account-token

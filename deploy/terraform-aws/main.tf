@@ -292,7 +292,7 @@ locals {
 }
 
 data "external" "manifest" {
-  program = ["bash", "-c", "set -e; set -o pipefail; kubectl kustomize ${var.kustomize-dir} | jq -s -R '{\"output\": .}'"]
+  program = ["bash", "-c", "set -e; set -o pipefail; kustomize build ${var.kustomize-dir} | jq -s -R '{\"output\": .}'"]
 }
 
 data "template_file" "node-userdata" {
