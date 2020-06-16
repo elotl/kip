@@ -11,7 +11,11 @@ UPDATE_LATEST=${UPDATE_LATEST:-false}
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $SCRIPT_DIR
 
-docker build -t ${REPO}:${TAG} --build-arg K8S_VERSIONS="1.14 1.15 1.16 1.17 1.18" .
+LATEST_K8S_VERSION=$(curl -fsL https://storage.googleapis.com/kubernetes-release/release/stable.txt)
+LATEST_K8S_MINOR=$(echo $LATEST_K8S_VERSION | sed -r 's/^v([0-9]+)\.([0-9]+)\..*$/\2/')
+K8S_VERSIONS=$(seq -f '1.%g' -s ' ' 14 $LATEST_K8S_MINOR)
+
+docker build -t ${REPO}:${TAG} --build-arg K8S_VERSIONS="${K8S_VERSIONS}" .
 
 if $PUSH_IMAGES; then
     docker push ${REPO}:${TAG}
