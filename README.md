@@ -1,4 +1,5 @@
 ![KIP](KipOpenSource-logo.png "KIP")
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Felotl%2Fkip.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Felotl%2Fkip?ref=badge_shield)
 # Kip, the Kubernetes Cloud Instance Provider
 
 Kip is a [Virtual Kubelet](https://github.com/virtual-kubelet/virtual-kubelet) provider that allows a Kubernetes cluster to transparently launch pods onto their own cloud instances.  The kip pod is run on a cluster and will create a virtual Kubernetes node in the cluster.  When a pod is scheduled onto the Virtual Kubelet, Kip starts a right-sized cloud instance for the pod’s workload and dispatches the pod onto the instance.  When the pod is finished running, the cloud instance is terminated. We call these cloud instances “cells”.
@@ -226,3 +227,7 @@ We are actively working on adding missing features. One of the main objectives o
 * [Provider Configuration](docs/provider-config.md)
 * [IAM Permissions](docs/kip-iam-permissions.md)
 * [State](docs/state.md)
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Felotl%2Fkip.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Felotl%2Fkip?ref=badge_large)
