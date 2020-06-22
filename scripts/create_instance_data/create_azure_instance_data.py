@@ -207,7 +207,7 @@ def update_instance_data(args):
     if args.upload:
         upload('azure_instance_data.json', jsonfp)
     else:
-        write_go('azure', jsonfp)
+        write_go('azure', jsonfp, dumpjson({}))
 
 
 def update_network_data(args):

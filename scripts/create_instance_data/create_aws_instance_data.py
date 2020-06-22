@@ -182,7 +182,7 @@ def update_instance_data(args):
     if args.upload:
         upload('aws_instance_data.json', jsonfp)
     else:
-        write_go('aws', jsonfp)
+        write_go('aws', jsonfp, dumpjson({}))
 
 
 def update_network_data(args):
