@@ -64,6 +64,7 @@ func TestGCEDefaultGPUInstance(t *testing.T) {
 	assert.NoError(t, err)
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1"
+	ps.Resources.Memory = "3.75Gi"
 	inst, _, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
 	assert.Equal(t, "n1-standard-1", inst)
@@ -74,6 +75,7 @@ func TestGCESpecificGPUInstance(t *testing.T) {
 	assert.NoError(t, err)
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1 nvidia-tesla-p100"
+	ps.Resources.Memory = "3.75Gi"
 	inst, _, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
 	assert.Equal(t, "n1-standard-1", inst)
@@ -198,22 +200,22 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 		sustainedCPU bool
 	}{
 		{
-			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "0.5"},
+			Resources:    api.ResourceSpec{Memory: "1.7Gi", CPU: "0.5"},
 			instanceType: "g1-small",
 			sustainedCPU: false,
 		},
 		{
-			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "1.0"},
+			Resources:    api.ResourceSpec{Memory: "1.0Gi", CPU: "2.0"},
 			instanceType: "e2-micro",
 			sustainedCPU: false,
 		},
 		{
-			Resources:    api.ResourceSpec{Memory: "2.0Gi", CPU: "1.0"},
-			instanceType: "n1-standard-1",
+			Resources:    api.ResourceSpec{Memory: "3.75Gi", CPU: "1.0"},
+			instanceType: "e2-custom-1-3840",
 			sustainedCPU: false,
 		},
 		{
-			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "1.0"},
+			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "2.0"},
 			instanceType: "e2-medium",
 			sustainedCPU: false,
 		},
@@ -223,7 +225,7 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 			sustainedCPU: false,
 		},
 		{
-			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "1.0", GPU: "1"},
+			Resources:    api.ResourceSpec{Memory: "7.5Gi", CPU: "2.0", GPU: "1"},
 			instanceType: "n1-standard-2",
 			sustainedCPU: false,
 		},
@@ -234,19 +236,20 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "15.0Gi", CPU: "32.0"},
-			instanceType: "n1-highcpu-32",
+			instanceType: "n2-custom-32-16384",
 			sustainedCPU: false,
 		},
 		{
-			Resources:    api.ResourceSpec{Memory: "1Gi", CPU: "1.0", SustainedCPU: &f},
+			Resources:    api.ResourceSpec{Memory: "1.0Gi", CPU: "2.0", SustainedCPU: &f},
 			instanceType: "e2-micro",
 			sustainedCPU: false,
 		},
 	}
-	for _, tc := range testCases {
+	for i, tc := range testCases {
+		msg := fmt.Sprintf("test case #%d failed", i+1)
 		it, sus := selector.getInstanceFromResources(tc.Resources)
-		assert.Equal(t, tc.instanceType, it)
-		assert.Equal(t, tc.sustainedCPU, sus)
+		assert.Equal(t, tc.instanceType, it, msg)
+		assert.Equal(t, tc.sustainedCPU, sus, msg)
 	}
 }
 
