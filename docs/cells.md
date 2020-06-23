@@ -6,11 +6,13 @@ To boot cells, unless an instance-type annotation is present in the pod, kip wil
 
 Cells can be customized by specifying a [cloud-init](cloud-init.md) file that will be applied when the instance boots.
 
-### Bring your Own AMI
+### Bring your Own Image
 
-We maintain images that are optimized for cells and come with our tools pre-installed. However, if you need a custom-built AMI or you have a dependency only available for certain Linux distributions, you can use cloud-init to fetch itzo and start it at boot time.
+We maintain images that are optimized for cells and come with our tools pre-installed. However, if you need a custom-built image or you have a dependency only available for certain Linux distributions, you can either add our cell agent to your image builds, or use cloud-init to fetch it and start it at boot time.
 
-Update your provider config:
+You can check out our image build scripts and configuration files [here](https://github.com/elotl/kip-cell-image).
+
+If you want to use cloud-init to download our cell agent, first update your provider config:
 
     cells:
       cloudInitFile: /etc/kip/cloudinit.yaml
@@ -32,4 +34,4 @@ Add a cloud-init section to the provider configmap, e.g. for ubuntu or debian:
 
 Finally, restart the provider:
 
-    $ kubectl delete pod -n kube-system -l app=kip
+    $ kubectl delete pod -n kube-system -l app=kip-provider

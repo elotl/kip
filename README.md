@@ -214,9 +214,9 @@ We are actively working on adding missing features. One of the main objectives o
 * [Cloud-Init](https://github.com/elotl/cloud-init) a minimal cloud-init implementation
 
 ##
-**Q.** We have our custom built AMI. Can I use it for running cells?
+**Q.** We have our custom built image. Can I use it for running cells?
 
-**A.** Yes, take a look at [Bring your Own AMI](docs/cells.md#bring-your-own-ami).
+**A.** Yes, take a look at [Bring your Own Image](docs/cells.md#bring-your-own-image).
 
 ## How it Works
 * [Cells](docs/cells.md)
