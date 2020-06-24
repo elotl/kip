@@ -84,10 +84,10 @@ def make_instance_data(machine, pricing, gpus):
         baseline = custom_baselines[name]
     memory = gce_to_kip_memory(machine['memoryMb'])
     price = compute_machine_price(pricing, family, cpus, memory)
-    maxGPUs = 0
+    max_gpus = 0
     for n in gpus.values():
-        if n > maxGPUs:
-            maxGPUs = n
+        if n > max_gpus:
+            max_gpus = n
     return {
         "baseline": baseline,
         "generation": "current",
@@ -95,7 +95,7 @@ def make_instance_data(machine, pricing, gpus):
         "memory": memory,
         "instanceType": name,
         "burstable": burstable,
-        "gpu": maxGPUs,
+        "gpu": max_gpus,
         "supportedGPUTypes": gpus,
         "cpu": cpus,
     }
@@ -365,7 +365,7 @@ def get_instance_data(project):
     skus = get_compute_skus()
     client = googleapiclient.discovery.build('compute', 'v1')
     zones = get_all_zones(client, project)
-    supportedGPUTypes = get_supported_gpus(client, project, zones)
+    supported_gpus = get_supported_gpus(client, project, zones)
     regions = set([zone_to_region(z) for z in zones])
     machines = list_all_machine_types(client, project, zones)
     pricing_by_region = create_pricing_map(regions, skus)
@@ -377,14 +377,14 @@ def get_instance_data(project):
         pricing = pricing_by_region[region]
         families_available = set()
         for machine in machines:
-            gpus = get_available_gpus(zone, machine['name'], supportedGPUTypes)
+            gpus = get_available_gpus(zone, machine['name'], supported_gpus)
             zone_data.append(make_instance_data(machine, pricing, gpus))
             families_available.add(get_family(machine))
         zone_custom_vm_data = []
         for family in families_available:
             if family not in machine_families_for_custom_vm_sizes:
                 continue
-            gpus = get_available_gpus(zone, family, supportedGPUTypes)
+            gpus = get_available_gpus(zone, family, supported_gpus)
             data = make_custom_instance_data(zone, family, pricing, gpus)
             if data:
                 zone_custom_vm_data.append(data)
