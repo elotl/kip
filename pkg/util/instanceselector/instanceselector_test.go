@@ -190,6 +190,140 @@ func TestAWSResourcesToInstanceType(t *testing.T) {
 	}
 }
 
+//func cheapestCustomInstanceSizeForCPUAndMemory(cid CustomInstanceData, memoryRequirement, cpuRequirement float32) (float32, float32, float32)
+func TestCheapestCustomInstanceSizeForCPUAndMemory(t *testing.T) {
+	testCases := []struct {
+		Data   CustomInstanceData
+		Memory float32
+		CPU    float32
+		Result *CustomInstanceParameters
+	}{
+		{
+			// Simple case: we can find a matching instance size.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 3.0,
+			CPU:    6.0,
+			Result: &CustomInstanceParameters{
+				Price:  3*0.1 + 6*0.2,
+				CPUs:   6.0,
+				Memory: 3.0,
+			},
+		},
+		{
+			// Memory requirement too low for CPUs requested.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 2.0,
+			CPU:    6.0,
+			Result: &CustomInstanceParameters{
+				Price:  3*0.1 + 6*0.2,
+				CPUs:   6.0,
+				Memory: 3.0,
+			},
+		},
+		{
+			// Too many CPU cores requested.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 2.0,
+			CPU:    8.5,
+			Result: nil,
+		},
+		{
+			// Too much memory requested.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 32.5,
+			CPU:    4.0,
+			Result: nil,
+		},
+		{
+			// CPUs need to be increased to satisfy memory requirement.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 20.0,
+			CPU:    4.0,
+			Result: &CustomInstanceParameters{
+				Price:  6*0.2 + 20*0.1,
+				CPUs:   6.0,
+				Memory: 20.0,
+			},
+		},
+		{
+			// Memory rounded up.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 15.725,
+			CPU:    4.0,
+			Result: &CustomInstanceParameters{
+				Price:  4*0.2 + 15.75*0.1,
+				CPUs:   4.0,
+				Memory: 15.75,
+			},
+		},
+		{
+			// CPUs rounded up.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 8.0,
+			CPU:    3.5,
+			Result: &CustomInstanceParameters{
+				Price:  4*0.2 + 8*0.1,
+				CPUs:   4.0,
+				Memory: 8.0,
+			},
+		},
+	}
+	for i, tc := range testCases {
+		msg := fmt.Sprintf("test case %d failed", i+1)
+		result := cheapestCustomInstanceSizeForCPUAndMemory(tc.Data, tc.Memory, tc.CPU)
+		assert.Equal(t, tc.Result, result, msg)
+	}
+}
+
 func TestGCEResourcesToInstanceType(t *testing.T) {
 	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro")
 	assert.NoError(t, err)
