@@ -14,6 +14,26 @@ custom_baselines = {
     'g1-small': 0.5,  # 1.70GB ram
 }
 
+machine_families_for_custom_vm_sizes = [
+    'e2', 'n2', 'n2d', 'n1',
+]
+
+custom_vm_possible_cpu_numbers = {
+    'e2': [1] + [2*x for x in range(1,9)],
+    'n2': [2*x for x in range(1,41)],
+    'n2d': [2, 4, 8] + [16*x for x in range(1,7)],
+    'n1': [1] + [2*x for x in range(1,33)],
+}
+
+custom_vm_memory_per_cpu ={
+    'e2' : [0.5, 8],
+    'n2' : [0.5, 8],
+    'n2d' : [0.5, 8],
+    'n1' : [0.9, 6.5],
+}
+
+base_memory_unit = 0.25  # 0.25GB of RAM
+
 
 def gce_to_kip_memory(memory_mb):
     gb = memory_mb / 1024.0
@@ -29,9 +49,34 @@ def compute_machine_price(pricing, family, cpus, memory):
     return cpus * cpu_price + memory * ram_price
 
 
-def make_instance_data(machine, pricing, gpus):
+def make_custom_instance_data(zone, family, pricing, gpus):
+    if 'custom-'+family not in pricing:
+        print("%s custom-%s no pricing info" % (zone, family))
+        return None
+    family_prices = pricing['custom-'+family]
+    cpu_price = family_prices['cpu']
+    ram_price = family_prices['ram']
+    return {
+        "instanceFamily": family,
+        "baseMemoryUnit": base_memory_unit,
+        "pricePerCPU": cpu_price,
+        "pricePerGBOfMemory": ram_price,
+        "minimumMemoryPerCPU": custom_vm_memory_per_cpu[family][0],
+        "maximumMemoryPerCPU": custom_vm_memory_per_cpu[family][1],
+        "possibleNumberOfCPUs": custom_vm_possible_cpu_numbers[family],
+        "supportedGPUTypes": gpus,
+    }
+
+
+def get_family(machine):
     name = machine['name']
     family = name.split('-')[0]
+    return family
+
+
+def make_instance_data(machine, pricing, gpus):
+    name = machine['name']
+    family = get_family(machine)
     burstable = machine['isSharedCpu']
     cpus = machine['guestCpus']
     baseline = cpus
@@ -39,10 +84,10 @@ def make_instance_data(machine, pricing, gpus):
         baseline = custom_baselines[name]
     memory = gce_to_kip_memory(machine['memoryMb'])
     price = compute_machine_price(pricing, family, cpus, memory)
-    maxGPUs = 0
+    max_gpus = 0
     for n in gpus.values():
-        if n > maxGPUs:
-            maxGPUs = n
+        if n > max_gpus:
+            max_gpus = n
     return {
         "baseline": baseline,
         "generation": "current",
@@ -50,18 +95,17 @@ def make_instance_data(machine, pricing, gpus):
         "memory": memory,
         "instanceType": name,
         "burstable": burstable,
-        "gpu": maxGPUs,
+        "gpu": max_gpus,
         "supportedGPUTypes": gpus,
         "cpu": cpus,
     }
 
 
-def get_available_gpus(zone, machine, gpus):
+def get_available_gpus(zone, name, gpus):
     '''
     The number of GPUs that can be attached to instance depends on the instance
     type and the zone.
     '''
-    name = machine['name']
     family = name.split('-')[0]
     if family != "n1":
         return {}
@@ -72,12 +116,19 @@ def get_available_gpus(zone, machine, gpus):
 
 def cleanup_single_region_prices(region_prices):
     '''
-    for now, this just copies prices from the m1 instance type over to
-    the m2 instance type.
+    For now, this just copies prices from the m1 instance type over to the m2
+    instance type. Custom E2 prices are also missing from SKUs in all regions,
+    so we fill those in with standard E2 prices: custom E2 prices are ~5%
+    higher.
     '''
     if 'm1' in region_prices:
         m1_vals = region_prices['m1']
         region_prices['m2'] = m1_vals
+    if 'e2' in region_prices and 'custom-e2' not in region_prices:
+        region_prices['custom-e2'] = {}
+        e2_vals = region_prices['e2']
+        for res in e2_vals:
+            region_prices['custom-e2'][res] = round(1.04945 * e2_vals[res], 6)
     return region_prices
 
 
@@ -89,7 +140,7 @@ def cleanup_prices(prices):
     prices appear to be the closest.
     '''
     missing_west_prices = {}
-    for family in ('f1', 'g1', 'e2', 'n1'):
+    for family in ('f1', 'g1', 'e2', 'n1', 'custom-e2', 'custom-n1'):
         missing_west_prices[family] = prices['us-west2'][family]
     if not prices['us-west3']:
         prices['us-west3'] = missing_west_prices
@@ -107,8 +158,6 @@ def create_pricing_map(regions, skus):
                 continue
             desc = sku['description'].lower()
             group = sku['category']['resourceGroup'].lower()
-            if 'custom' in desc:
-                continue
             family = get_instance_family(desc, group)
             if family is None:
                 continue
@@ -135,22 +184,31 @@ def is_all_in_one_pricing(group):
 
 
 def get_instance_family(desc, group):
+    if 'extended' in desc or 'sole tenancy' in desc:
+        return None
+    prefix = ''
+    if 'custom' in desc:
+        prefix = 'custom-'
     if group == 'g1small':
-        return 'g1'
+        return prefix+'g1'
     elif group == 'f1micro':
-        return 'f1'
+        return prefix+'f1'
     if 'compute optimized' in desc:
-        return 'c2'
+        return prefix+'c2'
     elif 'e2' in desc:
-        return 'e2'
+        return prefix+'e2'
     elif 'memory' in desc and 'optimized' in desc:
-        return 'm1'
+        return prefix+'m1'
     elif 'n1 ' in desc:
-        return 'n1'
+        return prefix+'n1'
     elif 'n2 ' in desc:
-        return 'n2'
+        return prefix+'n2'
     elif 'n2d ' in desc:
-        return 'n2d'
+        return prefix+'n2d'
+    # For custom N1 instance SKUs, the description only says 'custom instance
+    # core' or 'custom instance ram', without the instance family name.
+    elif 'custom instance' in desc:
+        return prefix+'n1'
 
 
 def get_resource_type(desc, group):
@@ -307,20 +365,32 @@ def get_instance_data(project):
     skus = get_compute_skus()
     client = googleapiclient.discovery.build('compute', 'v1')
     zones = get_all_zones(client, project)
-    supportedGPUTypes = get_supported_gpus(client, project, zones)
+    supported_gpus = get_supported_gpus(client, project, zones)
     regions = set([zone_to_region(z) for z in zones])
     machines = list_all_machine_types(client, project, zones)
     pricing_by_region = create_pricing_map(regions, skus)
     instance_data = {}
+    custom_instance_data = {}
     for zone, machines in machines.iteritems():
         region = zone_to_region(zone)
         zone_data = []
         pricing = pricing_by_region[region]
+        families_available = set()
         for machine in machines:
-            gpus = get_available_gpus(zone, machine, supportedGPUTypes)
+            gpus = get_available_gpus(zone, machine['name'], supported_gpus)
             zone_data.append(make_instance_data(machine, pricing, gpus))
+            families_available.add(get_family(machine))
+        zone_custom_vm_data = []
+        for family in families_available:
+            if family not in machine_families_for_custom_vm_sizes:
+                continue
+            gpus = get_available_gpus(zone, family, supported_gpus)
+            data = make_custom_instance_data(zone, family, pricing, gpus)
+            if data:
+                zone_custom_vm_data.append(data)
         instance_data[zone] = zone_data
-    return instance_data
+        custom_instance_data[zone] = zone_custom_vm_data
+    return instance_data, custom_instance_data
 
 
 if __name__ == '__main__':
@@ -330,6 +400,5 @@ if __name__ == '__main__':
     parser.add_argument('--project_id', help='Google Cloud project ID.',
                         default='elotl-kip')
     args = parser.parse_args()
-    instance_data = get_instance_data(args.project_id)
-    jsonfp = dumpjson(instance_data)
-    write_go('gce', jsonfp)
+    instance_data, custom_instance_data = get_instance_data(args.project_id)
+    write_go('gce', dumpjson(instance_data), dumpjson(custom_instance_data))

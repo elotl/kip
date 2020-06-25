@@ -64,6 +64,7 @@ func TestGCEDefaultGPUInstance(t *testing.T) {
 	assert.NoError(t, err)
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1"
+	ps.Resources.Memory = "3.75Gi"
 	inst, _, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
 	assert.Equal(t, "n1-standard-1", inst)
@@ -74,6 +75,7 @@ func TestGCESpecificGPUInstance(t *testing.T) {
 	assert.NoError(t, err)
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1 nvidia-tesla-p100"
+	ps.Resources.Memory = "3.75Gi"
 	inst, _, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
 	assert.Equal(t, "n1-standard-1", inst)
@@ -188,6 +190,140 @@ func TestAWSResourcesToInstanceType(t *testing.T) {
 	}
 }
 
+//func cheapestCustomInstanceSizeForCPUAndMemory(cid CustomInstanceData, memoryRequirement, cpuRequirement float32) (float32, float32, float32)
+func TestCheapestCustomInstanceSizeForCPUAndMemory(t *testing.T) {
+	testCases := []struct {
+		Data   CustomInstanceData
+		Memory float32
+		CPU    float32
+		Result *CustomInstanceParameters
+	}{
+		{
+			// Simple case: we can find a matching instance size.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 3.0,
+			CPU:    6.0,
+			Result: &CustomInstanceParameters{
+				Price:  3*0.1 + 6*0.2,
+				CPUs:   6.0,
+				Memory: 3.0,
+			},
+		},
+		{
+			// Memory requirement too low for CPUs requested.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 2.0,
+			CPU:    6.0,
+			Result: &CustomInstanceParameters{
+				Price:  3*0.1 + 6*0.2,
+				CPUs:   6.0,
+				Memory: 3.0,
+			},
+		},
+		{
+			// Too many CPU cores requested.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 2.0,
+			CPU:    8.5,
+			Result: nil,
+		},
+		{
+			// Too much memory requested.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 32.5,
+			CPU:    4.0,
+			Result: nil,
+		},
+		{
+			// CPUs need to be increased to satisfy memory requirement.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 20.0,
+			CPU:    4.0,
+			Result: &CustomInstanceParameters{
+				Price:  6*0.2 + 20*0.1,
+				CPUs:   6.0,
+				Memory: 20.0,
+			},
+		},
+		{
+			// Memory rounded up.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 15.725,
+			CPU:    4.0,
+			Result: &CustomInstanceParameters{
+				Price:  4*0.2 + 15.75*0.1,
+				CPUs:   4.0,
+				Memory: 15.75,
+			},
+		},
+		{
+			// CPUs rounded up.
+			Data: CustomInstanceData{
+				BaseMemoryUnit:       0.25,
+				PossibleNumberOfCPUs: []float32{1.0, 2.0, 4.0, 6.0, 8.0},
+				MinimumMemoryPerCPU:  0.5,
+				MaximumMemoryPerCPU:  4.0,
+				PricePerCPU:          0.2,
+				PricePerGBOfMemory:   0.1,
+			},
+			Memory: 8.0,
+			CPU:    3.5,
+			Result: &CustomInstanceParameters{
+				Price:  4*0.2 + 8*0.1,
+				CPUs:   4.0,
+				Memory: 8.0,
+			},
+		},
+	}
+	for i, tc := range testCases {
+		msg := fmt.Sprintf("test case %d failed", i+1)
+		result := cheapestCustomInstanceSizeForCPUAndMemory(tc.Data, tc.Memory, tc.CPU)
+		assert.Equal(t, tc.Result, result, msg)
+	}
+}
+
 func TestGCEResourcesToInstanceType(t *testing.T) {
 	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro")
 	assert.NoError(t, err)
@@ -198,22 +334,22 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 		sustainedCPU bool
 	}{
 		{
-			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "0.5"},
+			Resources:    api.ResourceSpec{Memory: "1.7Gi", CPU: "0.5"},
 			instanceType: "g1-small",
 			sustainedCPU: false,
 		},
 		{
-			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "1.0"},
+			Resources:    api.ResourceSpec{Memory: "1.0Gi", CPU: "2.0"},
 			instanceType: "e2-micro",
 			sustainedCPU: false,
 		},
 		{
-			Resources:    api.ResourceSpec{Memory: "2.0Gi", CPU: "1.0"},
-			instanceType: "n1-standard-1",
+			Resources:    api.ResourceSpec{Memory: "3.75Gi", CPU: "1.0"},
+			instanceType: "e2-custom-1-3840",
 			sustainedCPU: false,
 		},
 		{
-			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "1.0"},
+			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "2.0"},
 			instanceType: "e2-medium",
 			sustainedCPU: false,
 		},
@@ -223,7 +359,7 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 			sustainedCPU: false,
 		},
 		{
-			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "1.0", GPU: "1"},
+			Resources:    api.ResourceSpec{Memory: "7.5Gi", CPU: "2.0", GPU: "1"},
 			instanceType: "n1-standard-2",
 			sustainedCPU: false,
 		},
@@ -234,19 +370,20 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "15.0Gi", CPU: "32.0"},
-			instanceType: "n1-highcpu-32",
+			instanceType: "n2-custom-32-16384",
 			sustainedCPU: false,
 		},
 		{
-			Resources:    api.ResourceSpec{Memory: "1Gi", CPU: "1.0", SustainedCPU: &f},
+			Resources:    api.ResourceSpec{Memory: "1.0Gi", CPU: "2.0", SustainedCPU: &f},
 			instanceType: "e2-micro",
 			sustainedCPU: false,
 		},
 	}
-	for _, tc := range testCases {
+	for i, tc := range testCases {
+		msg := fmt.Sprintf("test case #%d failed", i+1)
 		it, sus := selector.getInstanceFromResources(tc.Resources)
-		assert.Equal(t, tc.instanceType, it)
-		assert.Equal(t, tc.sustainedCPU, sus)
+		assert.Equal(t, tc.instanceType, it, msg)
+		assert.Equal(t, tc.sustainedCPU, sus, msg)
 	}
 }
 
