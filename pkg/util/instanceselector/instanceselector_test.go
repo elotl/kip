@@ -402,14 +402,6 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 		},
 	}
 	runInstanceTypeTests(t, testCases)
-=======
-	for i, tc := range testCases {
-		msg := fmt.Sprintf("test case #%d failed", i+1)
-		it, sus := selector.getInstanceFromResources(tc.Resources)
-		assert.Equal(t, tc.instanceType, it, msg)
-		assert.Equal(t, tc.sustainedCPU, sus, msg)
-	}
->>>>>>> master
 }
 
 func TestAzureResourcesToInstanceType(t *testing.T) {
