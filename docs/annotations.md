@@ -5,11 +5,18 @@ Kip supports a number of annotations to customize the cloud instance that pods a
 **pod.elotl.co/instance-type**
 
 
-Kip will attempt to run a pod on the cheapest cloud instance that satisfies the resouce requests and limits specified by the pod.  Use the `instance-type` annotation to specify a specific cloud instance type the pod will run on.  The annotation will override requested container limits.
+Kip will attempt to run a pod on the cheapest cloud instance that satisfies the resouce requests and limits specified by the pod.  Use the `instance-type` annotation to specify a specific cloud instance type the pod will run on.  The annotation will override requested container limits.  It's possible to include a wildcard '*' in the instance type name to specify a family of instances instead of a specific instance type.  The pod will run on the cheapest instance type that satisfies the pod's resource requests that matches the wildcard expression.
 
 ```yaml
 annotations:
   pod.elotl.co/instance-type: c5.large
+```
+
+```yaml
+# select the cheapest a c5 instance that satisfies the resource
+# requests/limits specified in the pod.
+annotations:
+  pod.elotl.co/instance-type: c5*
 ```
 
 **pod.elotl.co/launch-type**
@@ -73,4 +80,3 @@ PodVolumeSize is an annotation tells kip to resize the root partition of the pod
 annotations:
   pod.elotl.co/volume-size: "12G"
 ```
-
