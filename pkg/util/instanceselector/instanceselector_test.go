@@ -18,6 +18,7 @@ package instanceselector
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/elotl/kip/pkg/api"
@@ -122,19 +123,35 @@ func TestNoMatch(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+type instanceTypeSpec struct {
+	Resources        api.ResourceSpec
+	instanceTypeGlob string
+	instanceType     string
+	sustainedCPU     bool
+}
+
+func runInstanceTypeTests(t *testing.T, testCases []instanceTypeSpec) {
+	for _, tc := range testCases {
+		var (
+			re  *regexp.Regexp
+			err error
+		)
+		msg := fmt.Sprintf("Test instanceSpec: %#v, glob: %s", tc.Resources, tc.instanceTypeGlob)
+		if tc.instanceTypeGlob != "" {
+			re, err = globToRegexp(tc.instanceTypeGlob)
+			fmt.Println(tc.instanceTypeGlob)
+			assert.NoError(t, err, msg)
+		}
+		it, sus := selector.getInstanceFromResources(tc.Resources, re)
+		assert.Equal(t, tc.instanceType, it, msg)
+		assert.Equal(t, tc.sustainedCPU, sus, msg)
+	}
+}
+
 func TestAWSResourcesToInstanceType(t *testing.T) {
 	_ = Setup("aws", "us-east-1", "", "t2.nano")
 	f := false
-	testCases := []struct {
-		Resources    api.ResourceSpec
-		instanceType string
-		sustainedCPU bool
-	}{
-		// {
-		// 	Resources: api.ResourceSpec{},
-		// 	instanceType: "",
-		// 	sustainedCPU: ,
-		// },
+	testCases := []instanceTypeSpec{
 		{
 			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "0.5"},
 			instanceType: "t3.nano",
@@ -180,23 +197,27 @@ func TestAWSResourcesToInstanceType(t *testing.T) {
 			instanceType: "c5.large",
 			sustainedCPU: false,
 		},
+		{
+			Resources:        api.ResourceSpec{Memory: "0.5Gi", CPU: "0.5"},
+			instanceTypeGlob: "c5*",
+			instanceType:     "c5.large",
+			sustainedCPU:     false,
+		},
+		{
+			Resources:        api.ResourceSpec{Memory: "15Gi", CPU: "32.0"},
+			instanceTypeGlob: "m5.*",
+			instanceType:     "m5.12xlarge",
+			sustainedCPU:     false,
+		},
 	}
-	for _, tc := range testCases {
-		it, sus := selector.getInstanceFromResources(tc.Resources)
-		assert.Equal(t, tc.instanceType, it)
-		assert.Equal(t, tc.sustainedCPU, sus)
-	}
+	runInstanceTypeTests(t, testCases)
 }
 
 func TestGCEResourcesToInstanceType(t *testing.T) {
 	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro")
 	assert.NoError(t, err)
 	f := false
-	testCases := []struct {
-		Resources    api.ResourceSpec
-		instanceType string
-		sustainedCPU bool
-	}{
+	testCases := []instanceTypeSpec{
 		{
 			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "0.5"},
 			instanceType: "g1-small",
@@ -243,19 +264,12 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 			sustainedCPU: false,
 		},
 	}
-	for _, tc := range testCases {
-		it, sus := selector.getInstanceFromResources(tc.Resources)
-		assert.Equal(t, tc.instanceType, it)
-		assert.Equal(t, tc.sustainedCPU, sus)
-	}
+	runInstanceTypeTests(t, testCases)
 }
 
 func TestAzureResourcesToInstanceType(t *testing.T) {
 	_ = Setup("azure", "East US", "", "Standard_B1s")
-	testCases := []struct {
-		Resources    api.ResourceSpec
-		instanceType string
-	}{
+	testCases := []instanceTypeSpec{
 		{
 			Resources:    api.ResourceSpec{Memory: "3Gi", CPU: "1.0"},
 			instanceType: "Standard_DS1_v2",
@@ -265,12 +279,7 @@ func TestAzureResourcesToInstanceType(t *testing.T) {
 			instanceType: "Standard_B1ms",
 		},
 	}
-
-	for _, tc := range testCases {
-		it, sus := selector.getInstanceFromResources(tc.Resources)
-		assert.Equal(t, tc.instanceType, it)
-		assert.Equal(t, false, sus)
-	}
+	runInstanceTypeTests(t, testCases)
 }
 
 func TestNoSetup(t *testing.T) {
@@ -278,4 +287,46 @@ func TestNoSetup(t *testing.T) {
 	ps := api.PodSpec{}
 	_, _, err := ResourcesToInstanceType(&ps)
 	assert.NotNil(t, err)
+}
+
+func TestGlobToRegexp(t *testing.T) {
+	tests := []struct {
+		glob      string
+		regexpstr string
+		iserr     bool
+	}{
+		{
+			glob:      "",
+			regexpstr: "",
+			iserr:     false,
+		},
+		{
+			glob:      "foo",
+			regexpstr: "^foo$",
+			iserr:     false,
+		},
+		{
+			glob:      "n1-*",
+			regexpstr: "^n1-.*$",
+			iserr:     false,
+		},
+		{
+			glob:      "c5.*",
+			regexpstr: "^c5\\..*$",
+			iserr:     false,
+		},
+	}
+	for _, tc := range tests {
+		re, err := globToRegexp(tc.glob)
+		if tc.iserr {
+			assert.Error(t, err)
+			continue
+		}
+		assert.NoError(t, err)
+		if tc.regexpstr == "" {
+			assert.Nil(t, re)
+		} else {
+			assert.Equal(t, tc.regexpstr, re.String())
+		}
+	}
 }

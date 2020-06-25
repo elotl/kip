@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -199,13 +200,28 @@ func findCheapestInstance(matches []InstanceData) string {
 	return cheapestInstance
 }
 
-//The instance selector tries to find the minimum cost instance that
+func globToRegexp(globstr string) (*regexp.Regexp, error) {
+	if globstr == "" {
+		return nil, nil
+	}
+	// Need to escape regex special characters that aren't '*' and
+	// replace '*' with ".*"
+	globparts := strings.Split(globstr, "*")
+	for i := range globparts {
+		globparts[i] = regexp.QuoteMeta(globparts[i])
+	}
+	quotedString := strings.Join(globparts, ".*")
+	regexpstr := "^" + quotedString + "$"
+	return regexp.Compile(regexpstr)
+}
+
+// The instance selector tries to find the minimum cost instance that
 // satisfies all constraints in the resource spec.  This gets a bit
 // tricky to figure out the easiest way to satisfy constraints with
 // the t2.Unlimited option from AWS. For T2 instances, we try to
 // figure out what percentage of a CPU a user will likely use and
 // use that to compute t2.Unlimited cost.
-func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec) (string, bool) {
+func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, instanceRegex *regexp.Regexp) (string, bool) {
 	memoryRequirement, err := instSel.parseMemorySpec(rs.Memory)
 	if err != nil {
 		klog.Errorf("Error parsing memory spec: %s", err)
@@ -221,6 +237,14 @@ func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec) (
 
 	matches := filterInstanceData(instSel.data, func(inst InstanceData) bool {
 		return !IsUnsupportedInstance(inst.InstanceType)
+	})
+
+	// Match instance type wildcard e.g. `instance-type: c5*`
+	matches = filterInstanceData(matches, func(inst InstanceData) bool {
+		if instanceRegex == nil {
+			return true
+		}
+		return instanceRegex.MatchString(inst.InstanceType)
 	})
 
 	// Memory
@@ -296,11 +320,15 @@ func IsUnsupportedInstance(instanceType string) bool {
 		selector.unsupportedInstances.Has(instanceType)
 }
 
+func instanceTypeSpecified(instanceType string) bool {
+	return instanceType != "" && !strings.ContainsRune(instanceType, '*')
+}
+
 func ResourcesToInstanceType(ps *api.PodSpec) (string, *bool, error) {
 	if ps.Resources.ContainerInstance != nil && *ps.Resources.ContainerInstance {
 		return api.ContainerInstanceType, nil, nil
 	}
-	if ps.InstanceType != "" {
+	if instanceTypeSpecified(ps.InstanceType) {
 		var sustainedCPU *bool
 		if ps.Resources.SustainedCPU != nil {
 			sustainedCPU = ps.Resources.SustainedCPU
@@ -312,11 +340,16 @@ func ResourcesToInstanceType(ps *api.PodSpec) (string, *bool, error) {
 		klog.Errorf(msg)
 		return "", nil, fmt.Errorf(msg)
 	}
-	if noResourceSpecified(ps) {
+	if ps.InstanceType == "" && noResourceSpecified(ps) {
 		return selector.defaultInstanceType, nil, nil
 	}
 
-	instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources)
+	instanceTypeRegex, err := globToRegexp(ps.InstanceType)
+	if err != nil {
+		return "", nil, util.WrapError(err, "could not convert instance-type glob to valid regex")
+	}
+
+	instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources, instanceTypeRegex)
 	if instanceType == "" {
 		msg := "could not compute instance type from Spec.Resources. It's likely that the Pod.Spec.Resources specify an instance that doesnt exist in the cloud"
 		return "", nil, fmt.Errorf(msg)
