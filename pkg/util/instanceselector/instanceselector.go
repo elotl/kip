@@ -45,9 +45,23 @@ type InstanceData struct {
 	Baseline          float32        `json:"baseline"`
 }
 
+// CustomInstanceData holds instance type information for custom sized
+// instances.
+type CustomInstanceData struct {
+	InstanceFamily       string         `json:"instanceFamily"`
+	BaseMemoryUnit       float32        `json:"baseMemoryUnit"`
+	PricePerCPU          float32        `json:"pricePerCPU"`
+	PricePerGBOfMemory   float32        `json:"pricePerGBOfMemory"`
+	PossibleNumberOfCPUs []float32      `json:"possibleNumberOfCPUs"`
+	MinimumMemoryPerCPU  float32        `json:"minimumMemoryPerCPU"`
+	MaximumMemoryPerCPU  float32        `json:"maximumMemoryPerCPU"`
+	SupportedGPUTypes    map[string]int `json:"supportedGPUTypes"`
+}
+
 type instanceSelector struct {
 	defaultInstanceType  string
-	data                 []InstanceData
+	instanceData         []InstanceData
+	customInstanceData   []CustomInstanceData
 	unsupportedInstances sets.String
 	sustainedCPUSupport  bool
 	// AWS uses GiB while Google uses GB for memory.  We'll make the
@@ -62,13 +76,13 @@ var selector *instanceSelector
 func Setup(cloud, region, zone, defaultInstanceType string) error {
 	switch cloud {
 	case "aws":
-		d, err := getSelectorData(awsInstanceJson, region)
+		data, err := getSelectorData(awsInstanceJson, region)
 		if err != nil {
 			return err
 		}
 		selector = &instanceSelector{
 			defaultInstanceType:  defaultInstanceType,
-			data:                 d,
+			instanceData:         data,
 			unsupportedInstances: sets.NewString([]string{
 				// "c5",
 				// "i3",
@@ -82,13 +96,13 @@ func Setup(cloud, region, zone, defaultInstanceType string) error {
 			containerInstanceSelector: FargateInstanceSelector,
 		}
 	case "azure":
-		d, err := getSelectorData(azureInstanceJson, region)
+		data, err := getSelectorData(azureInstanceJson, region)
 		if err != nil {
 			return err
 		}
 		selector = &instanceSelector{
 			defaultInstanceType:  defaultInstanceType,
-			data:                 d,
+			instanceData:         data,
 			unsupportedInstances: sets.NewString(),
 			sustainedCPUSupport:  false,
 			memorySpecParser: func(q resource.Quantity) float32 {
@@ -97,13 +111,18 @@ func Setup(cloud, region, zone, defaultInstanceType string) error {
 			containerInstanceSelector: AzureContainenrInstanceSelector,
 		}
 	case "gce":
-		d, err := getSelectorData(gceInstanceJson, zone)
+		data, err := getSelectorData(gceInstanceJson, zone)
+		if err != nil {
+			return err
+		}
+		customData, err := getSelectorCustomData(gceCustomInstanceJson, zone)
 		if err != nil {
 			return err
 		}
 		selector = &instanceSelector{
 			defaultInstanceType:  defaultInstanceType,
-			data:                 d,
+			instanceData:         data,
+			customInstanceData:   customData,
 			unsupportedInstances: sets.NewString(),
 			sustainedCPUSupport:  false,
 			memorySpecParser: func(q resource.Quantity) float32 {
@@ -111,6 +130,7 @@ func Setup(cloud, region, zone, defaultInstanceType string) error {
 			},
 			containerInstanceSelector: GCEContainenrInstanceSelector,
 		}
+		klog.Infof("custom instances in %s: %+v", zone, customData)
 	default:
 		return fmt.Errorf("unknown cloud for instanceselector setup: %s", cloud)
 	}
@@ -126,6 +146,19 @@ func getSelectorData(data, regionOrZone string) ([]InstanceData, error) {
 	regionData, exists := d[regionOrZone]
 	if !exists {
 		return nil, fmt.Errorf("could not find instance data for cloud region/zone: %s", regionOrZone)
+	}
+	return regionData, nil
+}
+
+func getSelectorCustomData(data, regionOrZone string) ([]CustomInstanceData, error) {
+	d := make(map[string][]CustomInstanceData)
+	err := json.Unmarshal([]byte(data), &d)
+	if err != nil {
+		return nil, err
+	}
+	regionData, exists := d[regionOrZone]
+	if !exists {
+		return nil, fmt.Errorf("could not find custom instance data for cloud region/zone: %s", regionOrZone)
 	}
 	return regionData, nil
 }
@@ -215,6 +248,84 @@ func globToRegexp(globstr string) (*regexp.Regexp, error) {
 	return regexp.Compile(regexpstr)
 }
 
+type CustomInstanceParameters struct {
+	Price  float32
+	CPUs   float32
+	Memory float32
+}
+
+func cheapestCustomInstanceSizeForCPUAndMemory(cid CustomInstanceData, memoryRequirement, cpuRequirement float32) *CustomInstanceParameters {
+	customPrice := float32(math.MaxFloat32)
+	customCPUs := float32(math.MaxFloat32)
+	customMemory := float32(math.MaxFloat32)
+	memCeil := math.Ceil(float64(memoryRequirement / cid.BaseMemoryUnit))
+	baseMemSize := cid.BaseMemoryUnit * float32(memCeil)
+	for _, cpu := range cid.PossibleNumberOfCPUs {
+		if cpu >= cpuRequirement &&
+			cpu < customCPUs &&
+			baseMemSize <= cid.MaximumMemoryPerCPU*cpu {
+			memory := baseMemSize
+			if memory < cid.MinimumMemoryPerCPU*cpu {
+				memory = cid.MinimumMemoryPerCPU * cpu
+			}
+			price := memory*cid.PricePerGBOfMemory + cpu*cid.PricePerCPU
+			if price < customPrice {
+				customPrice = price
+				customCPUs = cpu
+				customMemory = memory
+			}
+		}
+	}
+	if customPrice == math.MaxFloat32 {
+		return nil
+	}
+	return &CustomInstanceParameters{
+		Price:  customPrice,
+		CPUs:   customCPUs,
+		Memory: customMemory,
+	}
+}
+
+func toInstanceData(data []CustomInstanceData, memoryRequirement, cpuRequirement float32) []InstanceData {
+	instanceData := make([]InstanceData, 0, len(data))
+	for _, cid := range data {
+		if cid.BaseMemoryUnit == 0.0 || len(cid.PossibleNumberOfCPUs) < 1 {
+			continue
+		}
+		customParams := cheapestCustomInstanceSizeForCPUAndMemory(cid, memoryRequirement, cpuRequirement)
+		if customParams == nil {
+			// This instance family doesn't satisfy CPU and/or memory
+			// requirements.
+			continue
+		}
+		maxGPUs := 0
+		for _, gpu := range cid.SupportedGPUTypes {
+			if gpu > maxGPUs {
+				maxGPUs = gpu
+			}
+		}
+		// This naming is GCE-specific. If we ever get another cloud provider
+		// with custom instances, we'll have to set up a callback similar to
+		// memorySpecParser.
+		instanceType := fmt.Sprintf(
+			"%s-custom-%d-%d", cid.InstanceFamily, int(customParams.CPUs), int(1024*customParams.Memory))
+		// On GCE, only non-burstable types are supported for custom instances.
+		burstable := false
+		baseline := customParams.CPUs
+		instanceData = append(instanceData, InstanceData{
+			InstanceType:      instanceType,
+			Price:             customParams.Price,
+			GPU:               maxGPUs,
+			SupportedGPUTypes: cid.SupportedGPUTypes,
+			Memory:            customParams.Memory,
+			CPU:               customParams.CPUs,
+			Burstable:         burstable,
+			Baseline:          baseline,
+		})
+	}
+	return instanceData
+}
+
 // The instance selector tries to find the minimum cost instance that
 // satisfies all constraints in the resource spec.  This gets a bit
 // tricky to figure out the easiest way to satisfy constraints with
@@ -235,7 +346,7 @@ func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, i
 		klog.Errorf("Error parsing GPU spec: %s", err)
 	}
 
-	matches := filterInstanceData(instSel.data, func(inst InstanceData) bool {
+	matches := filterInstanceData(instSel.instanceData, func(inst InstanceData) bool {
 		return !IsUnsupportedInstance(inst.InstanceType)
 	})
 
@@ -251,6 +362,8 @@ func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, i
 	matches = filterInstanceData(matches, func(inst InstanceData) bool {
 		return memoryRequirement == 0.0 || inst.Memory >= memoryRequirement
 	})
+
+	matches = append(matches, toInstanceData(instSel.customInstanceData, memoryRequirement, cpuRequirements)...)
 
 	// GPU
 	matches = filterInstanceData(matches, func(inst InstanceData) bool {
@@ -299,6 +412,7 @@ func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, i
 			}
 		}
 	}
+	klog.Infof("chose instance %+v", cheapestInstance)
 	return cheapestInstance, cheapestIsSustained
 }
 

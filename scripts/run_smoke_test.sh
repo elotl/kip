@@ -47,8 +47,8 @@ run_smoke_test() {
     local waitcmd="phase=\"\"; echo \"Waiting for test results from pod\"; until [[ \$phase = Succeeded ]]; do sleep 1; phase=\$(kubectl get pod test -ojsonpath=\"{.status.phase}\"); if [[ \$phase = Failed ]]; then echo \$phase; kubectl get pods -A; exit 1; fi; echo \$phase; done"
     kubectl run nginx --image=nginx --port=80
     kubectl expose pod nginx
-    kubectl run test --restart=Never --image=radial/busyboxplus:curl --command -- /bin/sh -c "$curlcmd"
-    timeout 180s bash -c "$waitcmd"
+    kubectl run test --restart=Never --image=elotl/debug --command -- /bin/sh -c "$curlcmd"
+    timeout 300s bash -c "$waitcmd"
 }
 
 fetch_kubeconfig() {

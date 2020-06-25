@@ -37,7 +37,7 @@ def upload(key, jsonfp):
     s3.put_object_acl(ACL='public-read', Bucket=bucket_name, Key=key)
 
 
-def write_go(cloudname, jsonfp):
+def write_go(cloudname, jsonfp, custom_jsonfp):
     '''cloudname should be one of aws, azure or gce'''
     print("Writing go files")
     kipdir = get_kipdir()
@@ -45,12 +45,20 @@ def write_go(cloudname, jsonfp):
         cloudname)
     outfile = os.path.join(kipdir, filepath)
     with open(outfile, "w") as fp:
+        headerpath = os.path.join(kipdir, "scripts/boilerplate.go.txt")
+        with open(headerpath) as headerfp:
+            header = headerfp.read()
+            fp.write(header)
         fp.write("""package instanceselector
 
 const {}InstanceJson = `
 """.format(cloudname))
         fp.write(jsonfp.getvalue())
-        fp.write("\n`")
+        fp.write("\n`\n\n")
+        fp.write("""const {}CustomInstanceJson = `
+""".format(cloudname))
+        fp.write(custom_jsonfp.getvalue())
+        fp.write("\n`\n")
 
 
 def dumpjson(data):
