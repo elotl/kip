@@ -20,12 +20,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/util"
+	"github.com/ryanuber/go-glob"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
@@ -233,21 +233,6 @@ func findCheapestInstance(matches []InstanceData) string {
 	return cheapestInstance
 }
 
-func globToRegexp(globstr string) (*regexp.Regexp, error) {
-	if globstr == "" {
-		return nil, nil
-	}
-	// Need to escape regex special characters that aren't '*' and
-	// replace '*' with ".*"
-	globparts := strings.Split(globstr, "*")
-	for i := range globparts {
-		globparts[i] = regexp.QuoteMeta(globparts[i])
-	}
-	quotedString := strings.Join(globparts, ".*")
-	regexpstr := "^" + quotedString + "$"
-	return regexp.Compile(regexpstr)
-}
-
 type CustomInstanceParameters struct {
 	Price  float32
 	CPUs   float32
@@ -332,7 +317,7 @@ func toInstanceData(data []CustomInstanceData, memoryRequirement, cpuRequirement
 // the t2.Unlimited option from AWS. For T2 instances, we try to
 // figure out what percentage of a CPU a user will likely use and
 // use that to compute t2.Unlimited cost.
-func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, instanceRegex *regexp.Regexp) (string, bool) {
+func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, instanceTypeGlob string) (string, bool) {
 	memoryRequirement, err := instSel.parseMemorySpec(rs.Memory)
 	if err != nil {
 		klog.Errorf("Error parsing memory spec: %s", err)
@@ -359,10 +344,10 @@ func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, i
 
 	// Match instance type wildcard e.g. `instance-type: c5*`
 	matches = filterInstanceData(matches, func(inst InstanceData) bool {
-		if instanceRegex == nil {
+		if instanceTypeGlob == "" {
 			return true
 		}
-		return instanceRegex.MatchString(inst.InstanceType)
+		return glob.Glob(instanceTypeGlob, inst.InstanceType)
 	})
 
 	// GPU
@@ -458,12 +443,7 @@ func ResourcesToInstanceType(ps *api.PodSpec) (string, *bool, error) {
 		return selector.defaultInstanceType, nil, nil
 	}
 
-	instanceTypeRegex, err := globToRegexp(ps.InstanceType)
-	if err != nil {
-		return "", nil, util.WrapError(err, "could not convert instance-type glob to valid regex")
-	}
-
-	instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources, instanceTypeRegex)
+	instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources, ps.InstanceType)
 	if instanceType == "" {
 		msg := "could not compute instance type from Spec.Resources. It's likely that the Pod.Spec.Resources specify an instance that doesnt exist in the cloud"
 		return "", nil, fmt.Errorf(msg)

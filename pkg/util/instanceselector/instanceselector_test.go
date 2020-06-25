@@ -18,7 +18,6 @@ package instanceselector
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/elotl/kip/pkg/api"
@@ -134,18 +133,9 @@ type instanceTypeSpec struct {
 
 func runInstanceTypeTests(t *testing.T, testCases []instanceTypeSpec) {
 	for i, tc := range testCases {
-		var (
-			re  *regexp.Regexp
-			err error
-		)
 		msg := fmt.Sprintf("Test %d: instanceSpec: %#v, glob: %s",
 			i, tc.Resources, tc.instanceTypeGlob)
-		if tc.instanceTypeGlob != "" {
-			re, err = globToRegexp(tc.instanceTypeGlob)
-			fmt.Println(tc.instanceTypeGlob)
-			assert.NoError(t, err, msg)
-		}
-		it, sus := selector.getInstanceFromResources(tc.Resources, re)
+		it, sus := selector.getInstanceFromResources(tc.Resources, tc.instanceTypeGlob)
 		assert.Equal(t, tc.instanceType, it, msg)
 		assert.Equal(t, tc.sustainedCPU, sus, msg)
 	}
@@ -435,46 +425,4 @@ func TestNoSetup(t *testing.T) {
 	ps := api.PodSpec{}
 	_, _, err := ResourcesToInstanceType(&ps)
 	assert.NotNil(t, err)
-}
-
-func TestGlobToRegexp(t *testing.T) {
-	tests := []struct {
-		glob      string
-		regexpstr string
-		iserr     bool
-	}{
-		{
-			glob:      "",
-			regexpstr: "",
-			iserr:     false,
-		},
-		{
-			glob:      "foo",
-			regexpstr: "^foo$",
-			iserr:     false,
-		},
-		{
-			glob:      "n1-*",
-			regexpstr: "^n1-.*$",
-			iserr:     false,
-		},
-		{
-			glob:      "c5.*",
-			regexpstr: "^c5\\..*$",
-			iserr:     false,
-		},
-	}
-	for _, tc := range tests {
-		re, err := globToRegexp(tc.glob)
-		if tc.iserr {
-			assert.Error(t, err)
-			continue
-		}
-		assert.NoError(t, err)
-		if tc.regexpstr == "" {
-			assert.Nil(t, re)
-		} else {
-			assert.Equal(t, tc.regexpstr, re.String())
-		}
-	}
 }

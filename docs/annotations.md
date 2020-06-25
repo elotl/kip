@@ -13,7 +13,7 @@ annotations:
 ```
 
 ```yaml
-# select the cheapest a c5 instance that satisfies the resource
+# select the cheapest c5 instance that satisfies the resource
 # requests/limits specified in the pod.
 annotations:
   pod.elotl.co/instance-type: c5*
