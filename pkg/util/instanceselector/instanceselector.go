@@ -350,6 +350,13 @@ func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, i
 		return !IsUnsupportedInstance(inst.InstanceType)
 	})
 
+	// Memory
+	matches = filterInstanceData(matches, func(inst InstanceData) bool {
+		return memoryRequirement == 0.0 || inst.Memory >= memoryRequirement
+	})
+
+	matches = append(matches, toInstanceData(instSel.customInstanceData, memoryRequirement, cpuRequirements)...)
+
 	// Match instance type wildcard e.g. `instance-type: c5*`
 	matches = filterInstanceData(matches, func(inst InstanceData) bool {
 		if instanceRegex == nil {
@@ -357,13 +364,6 @@ func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, i
 		}
 		return instanceRegex.MatchString(inst.InstanceType)
 	})
-
-	// Memory
-	matches = filterInstanceData(matches, func(inst InstanceData) bool {
-		return memoryRequirement == 0.0 || inst.Memory >= memoryRequirement
-	})
-
-	matches = append(matches, toInstanceData(instSel.customInstanceData, memoryRequirement, cpuRequirements)...)
 
 	// GPU
 	matches = filterInstanceData(matches, func(inst InstanceData) bool {
