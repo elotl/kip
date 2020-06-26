@@ -1,9 +1,13 @@
 apiVersion: v1
 cloud:
-  gce:
-    credentials:
-      clientEmail: FILL_IN
-      privateKey: FILL_IN
+  gce: {}
+    # if the k8s node where kip will run doesn't have
+    # https://www.googleapis.com/auth/compute scope then GCE
+    # credentials for kip can be supplied in cloud.gce.credentials:
+    #
+    # credentials:
+    #   clientEmail: FILL_IN
+    #   privateKey: FILL_IN
 etcd:
   internal:
     dataDir: /opt/kip/data

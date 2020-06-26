@@ -29,7 +29,7 @@ variable "service-cidr" {
 }
 
 variable "kustomize-dir" {
-  default     = "../manifests/kip/base"
+  default     = "../manifests/kip/overlays/gcp"
   description = "A kustomization directory that will be applied once the cluster is created. Leave it empty to disable."
 }
 
