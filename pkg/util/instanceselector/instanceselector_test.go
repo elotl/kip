@@ -124,19 +124,27 @@ func TestNoMatch(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+type instanceTypeSpec struct {
+	Resources        api.ResourceSpec
+	instanceTypeGlob string
+	instanceType     string
+	sustainedCPU     bool
+}
+
+func runInstanceTypeTests(t *testing.T, testCases []instanceTypeSpec) {
+	for i, tc := range testCases {
+		msg := fmt.Sprintf("Test %d: instanceSpec: %#v, glob: %s",
+			i, tc.Resources, tc.instanceTypeGlob)
+		it, sus := selector.getInstanceFromResources(tc.Resources, tc.instanceTypeGlob)
+		assert.Equal(t, tc.instanceType, it, msg)
+		assert.Equal(t, tc.sustainedCPU, sus, msg)
+	}
+}
+
 func TestAWSResourcesToInstanceType(t *testing.T) {
 	_ = Setup("aws", "us-east-1", "", "t2.nano")
 	f := false
-	testCases := []struct {
-		Resources    api.ResourceSpec
-		instanceType string
-		sustainedCPU bool
-	}{
-		// {
-		// 	Resources: api.ResourceSpec{},
-		// 	instanceType: "",
-		// 	sustainedCPU: ,
-		// },
+	testCases := []instanceTypeSpec{
 		{
 			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "0.5"},
 			instanceType: "t3.nano",
@@ -182,12 +190,20 @@ func TestAWSResourcesToInstanceType(t *testing.T) {
 			instanceType: "c5.large",
 			sustainedCPU: false,
 		},
+		{
+			Resources:        api.ResourceSpec{Memory: "0.5Gi", CPU: "0.5"},
+			instanceTypeGlob: "c5*",
+			instanceType:     "c5.large",
+			sustainedCPU:     false,
+		},
+		{
+			Resources:        api.ResourceSpec{Memory: "15Gi", CPU: "32.0"},
+			instanceTypeGlob: "m5.*",
+			instanceType:     "m5.12xlarge",
+			sustainedCPU:     false,
+		},
 	}
-	for _, tc := range testCases {
-		it, sus := selector.getInstanceFromResources(tc.Resources)
-		assert.Equal(t, tc.instanceType, it)
-		assert.Equal(t, tc.sustainedCPU, sus)
-	}
+	runInstanceTypeTests(t, testCases)
 }
 
 //func cheapestCustomInstanceSizeForCPUAndMemory(cid CustomInstanceData, memoryRequirement, cpuRequirement float32) (float32, float32, float32)
@@ -328,15 +344,17 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro")
 	assert.NoError(t, err)
 	f := false
-	testCases := []struct {
-		Resources    api.ResourceSpec
-		instanceType string
-		sustainedCPU bool
-	}{
+	testCases := []instanceTypeSpec{
 		{
 			Resources:    api.ResourceSpec{Memory: "1.7Gi", CPU: "0.5"},
 			instanceType: "g1-small",
 			sustainedCPU: false,
+		},
+		{
+			Resources:        api.ResourceSpec{Memory: "3.75Gi", CPU: "1.0"},
+			instanceTypeGlob: "n1-*",
+			instanceType:     "n1-standard-1",
+			sustainedCPU:     false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "1.0Gi", CPU: "2.0"},
@@ -379,35 +397,27 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 			sustainedCPU: false,
 		},
 	}
-	for i, tc := range testCases {
-		msg := fmt.Sprintf("test case #%d failed", i+1)
-		it, sus := selector.getInstanceFromResources(tc.Resources)
-		assert.Equal(t, tc.instanceType, it, msg)
-		assert.Equal(t, tc.sustainedCPU, sus, msg)
-	}
+	runInstanceTypeTests(t, testCases)
 }
 
 func TestAzureResourcesToInstanceType(t *testing.T) {
 	_ = Setup("azure", "East US", "", "Standard_B1s")
-	testCases := []struct {
-		Resources    api.ResourceSpec
-		instanceType string
-	}{
+	testCases := []instanceTypeSpec{
 		{
 			Resources:    api.ResourceSpec{Memory: "3Gi", CPU: "1.0"},
 			instanceType: "Standard_DS1_v2",
+		},
+		{
+			Resources:        api.ResourceSpec{Memory: "1Gi", CPU: "1.0"},
+			instanceTypeGlob: "Standard_F*",
+			instanceType:     "Standard_F1s",
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "1Gi", CPU: "0.2"},
 			instanceType: "Standard_B1ms",
 		},
 	}
-
-	for _, tc := range testCases {
-		it, sus := selector.getInstanceFromResources(tc.Resources)
-		assert.Equal(t, tc.instanceType, it)
-		assert.Equal(t, false, sus)
-	}
+	runInstanceTypeTests(t, testCases)
 }
 
 func TestNoSetup(t *testing.T) {
