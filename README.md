@@ -62,9 +62,9 @@ You can configure the AWS access key Kip will use in your provider configuration
 
 In AWS, Kip can use credentials supplied by the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) attached to the node the pod is dispatched to.  To use an instance profile, create an IAM policy with the [minimum Kip permissions](docs/kip-iam-permissions.md) then apply the instance profile to the node that will run the Kip provider pod.  The Kip pod must run on the cloud instance that the instance profile is attached to.
 
-**GCP Credentials Option 1 - Built-in instance service account:**
+**GCP Credentials Option 1 - instance service account:**
 
-In GCE, Kip can use the service account built into the instance.  Kip requires https://www.googleapis.com/auth/compute scope in order to launch instances.
+In GCE, Kip can use the service account attached to an instance.  Kip requires https://www.googleapis.com/auth/compute scope in order to launch instances.
 
 **GCP Credentials - Service Account private key:**
 
