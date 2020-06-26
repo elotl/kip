@@ -84,9 +84,15 @@ Alternatively, Kip can use service account credentials manually supplied in prov
 
 The resources in [deploy/manifests/kip](deploy/manifests/kip) create ServiceAccounts, Roles and a StatefulSet to run the provider. [Kip is not stateless](docs/state.md), the manifest will also create a PersistentVolumeClaim to store the provider data.
 
-Once credentials are set up, apply [deploy/manifests/kip/base](deploy/manifests/kip/base) to create the necessary kubernetes resources to support and run the provider:
+Once credentials are set up, apply [deploy/manifests/kip/base](deploy/manifests/kip/base) to create the necessary kubernetes resources to support and run the provider.
+
+In AWS:
 
     $ kustomize build deploy/manifests/kip/base | kubectl apply -f -
+
+In GCE:
+
+    $ kustomize build deploy/manifests/kip/overlays/gcp | kubectl apply -f -
 
 For rendering the manifests, [kustomize](https://kustomize.io/) is used. You can create your own overlays on top of the base template. For example, to override provider.yaml, Kip's configuration file:
 
