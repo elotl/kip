@@ -56,7 +56,7 @@ func (c *gceClient) getVPCRegionCIDRs(vpcName string) ([]string, error) {
 	defer cancel()
 	resp, err := c.service.Networks.Get(c.projectID, vpcName).Context(ctx).Do()
 	if err != nil {
-		return nil, util.WrapError(err, "error querying VPC %s in GCP", vpcName)
+		return nil, util.WrapError(err, "error querying VPC %s in GCE", vpcName)
 	}
 	if resp == nil {
 		return nil, nilResponseError("Networks.Get")
@@ -172,7 +172,7 @@ func (c *gceClient) autodetectSubnet() (string, string, error) {
 		subnetCIDR := subnets[i].IpCidrRange
 		_, ipnet, err := net.ParseCIDR(subnetCIDR)
 		if err != nil {
-			return "", "", util.WrapError(err, "Could not parse CIDR returned from GCP API: %s", subnetCIDR)
+			return "", "", util.WrapError(err, "Could not parse CIDR returned from GCE API: %s", subnetCIDR)
 		}
 		if ipnet.Contains(ip) {
 			return subnets[i].Name, subnets[i].IpCidrRange, nil

@@ -11,7 +11,7 @@ apiVersion: v1
 cloud:
 
   # Only one cloud provider can be enabled in kip. Currently
-  # only AWS is supported but we are working on support for
+  # AWS and GCE are supported. We are working on support for
   # Azure
 
   aws:
@@ -40,6 +40,32 @@ cloud:
     # blank, kip will detect its current subnet (via AWS metadata)
     # and will launch pods into that subnet.
     # subnetID: ''
+
+  # gce:
+
+    # The GCE project where kip will be running. Can be auto-detected
+    # using instance metadata
+    # projectID: "my-project"
+
+    # Kip can use the service account attached to the GCE instance it runs on.
+    # If the instance doesn't have the https://www.googleapis.com/auth/compute
+    # scope attached then credentials for kip to launch instances can be
+    # manually supplied via a clientEmail and service account private key
+    # credentials:
+      # clientEmail: my-account@my-project.iam.gserviceaccount.com
+      # privateKey: "-----BEGIN PRIVATE KEY-----\n[base64-encoded private key]-----END PRIVATE KEY-----\n"
+
+    # The zone where kip will run and launch instance into. Can be
+    # auto-detected using instance metadata.
+    # zone: us-central1-c
+
+    # The name of the virtual cloud network where kip will run. Can be
+    # auto-detected using instance metadata.
+    # vpcName: "default"
+
+    # The name of the subnet where kip will run and launch instance into.
+    # Can be auto-detected using instance metadata.
+    # subnetName: "default"
 
 # the etcd section controls how kip stores its state, either using
 # an external etcd cluster or using an embedded etcd database.

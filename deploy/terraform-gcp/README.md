@@ -10,17 +10,10 @@ You need:
 * kubectl >= 1.14
 * Terraform >= 0.12
 
-Create an overlay for deploying Kip:
-
-    cp -rf ../manifests/kip/overlays/gcp ../manifests/kip/overlays/local-my-gcp
-    # Fill in authentication details for your GCP project.
-    vi ../manifests/kip/overlays/local-my-gcp/provider.yaml
-
 You can then apply your config:
 
     cp env.tfvars.example myenv.tfvars
-    # Change kustomize-dir to ../manifests/kip/overlays/local-my-gcp
-    vi myenv.tfvars
+    vi myenv.tfvars # You can change settings for your cluster here.
     terraform apply -var-file myenv.tfvars
 
 This will create a new GKE cluster and deploy Kip:
