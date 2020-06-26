@@ -47,8 +47,8 @@ cloud:
     # using instance metadata
     # projectID: "my-project"
 
-    # Kip can use the oauth scopes attached to the GCE instance it runs on.
-    # if the instance doesn't have the https://www.googleapis.com/auth/compute
+    # Kip can use the service account attached to the GCE instance it runs on.
+    # If the instance doesn't have the https://www.googleapis.com/auth/compute
     # scope attached then credentials for kip to launch instances can be
     # manually supplied via a clientEmail and service account private key
     # credentials:

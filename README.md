@@ -46,13 +46,13 @@ On Google Cloud, the config under `deploy/terraform-gcp` works in a similar way,
 
 ### Installation Option 2: Using an Existing Cluster
 
-To deploy Kip into an existing cluster, you'll need to setup cloud credentials that allow the Kip provider to manipulate cloud instances, security groups and other cloud resources.
+To deploy Kip into an existing cluster, you'll need to setup cloud credentials that allow the Kip provider to manipulate cloud instances, networking and other cloud resources.
 
 **Step 1: Credentials**
 
 In AWS, Kip can either use API keys supplied in the Kip provider configuration file (`provider.yaml`) or use the instance profile of the machine the Kip pod is running on.
 
-On Google Cloud, a service account key is used for authentication.
+On Google Cloud, Kip can use the oauth scopes attached to the k8s node it runs on.  Alternatively the user can supply a service account key in provider.yaml.
 
 **AWS Credentials Option 1 - Configuring AWS API keys:**
 
@@ -62,9 +62,13 @@ You can configure the AWS access key Kip will use in your provider configuration
 
 In AWS, Kip can use credentials supplied by the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) attached to the node the pod is dispatched to.  To use an instance profile, create an IAM policy with the [minimum Kip permissions](docs/kip-iam-permissions.md) then apply the instance profile to the node that will run the Kip provider pod.  The Kip pod must run on the cloud instance that the instance profile is attached to.
 
+**GCP Credentials Option 1 - Built-in instance service account:**
+
+In GCE, Kip can use the service account built into the instance.  Kip requires https://www.googleapis.com/auth/compute scope in order to launch instances.
+
 **GCP Credentials - Service Account private key:**
 
-Add your email and key to `cloud.gce.credentials`. Example:
+Alternatively, Kip can use service account credentials manually supplied in provider.yaml.  Add your email and key to `cloud.gce.credentials`. Example:
 
     cloud:
       gce:
