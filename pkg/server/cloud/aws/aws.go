@@ -27,7 +27,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
@@ -45,7 +44,6 @@ var (
 
 type AwsEC2 struct {
 	client               *ec2.EC2
-	elb                  *elb.ELB
 	ecs                  *ecs.ECS
 	ecsClusterName       string
 	controllerID         string
@@ -60,35 +58,19 @@ type AwsEC2 struct {
 	cloudStatus          *cloud.LinkedAZSubnetStatus
 }
 
-func getEC2Client() (*ec2.EC2, error) {
+func getEC2Client(endpointURL string) (*ec2.EC2, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, util.WrapError(err, "Error creating EC2 client session")
 	}
 
-	config := aws.NewConfig()
-	config = config.WithHTTPClient(&http.Client{
-		Timeout: awsTimeout,
-	})
+	config := aws.NewConfig().
+		WithHTTPClient(&http.Client{
+			Timeout: awsTimeout,
+		}).
+		WithEndpoint(endpointURL)
 	ec2Client := ec2.New(sess, config)
 	return ec2Client, nil
-}
-
-// Todo, see if we can either share clients or cut down on the
-// copypaste.
-func getELBClient() (*elb.ELB, error) {
-	sess, err := session.NewSession()
-	if err != nil {
-		return nil, util.WrapError(err, "Error creating ELB client session")
-	}
-
-	config := aws.NewConfig()
-	config = config.WithHTTPClient(&http.Client{
-		Timeout: awsTimeout,
-	})
-	client := elb.New(sess, config)
-	return client, nil
-
 }
 
 func getECSClient() (*ecs.ECS, error) {
@@ -96,16 +78,16 @@ func getECSClient() (*ecs.ECS, error) {
 	if err != nil {
 		return nil, util.WrapError(err, "Error creating ECS client session")
 	}
-	config := aws.NewConfig()
-	config = config.WithHTTPClient(&http.Client{
-		Timeout: awsTimeout,
-	})
+	config := aws.NewConfig().
+		WithHTTPClient(&http.Client{
+			Timeout: awsTimeout,
+		})
 	client := ecs.New(sess, config)
 	return client, nil
 }
 
-func CheckConnection() error {
-	client, err := getEC2Client()
+func CheckConnection(endpointURL string) error {
+	client, err := getEC2Client(endpointURL)
 	if err != nil {
 		return util.WrapError(err, "Check connection failed setting up an ec2 client")
 	}
@@ -132,6 +114,7 @@ type EC2ClientConfig struct {
 	SubnetID       string
 	ECSClusterName string
 	PrivateIPOnly  bool
+	EndpointURL    string
 }
 
 // Parsing our server.json configuration should have put all confg
@@ -143,13 +126,9 @@ func NewEC2Client(config EC2ClientConfig) (*AwsEC2, error) {
 	if config.Nametag == "" {
 		return nil, fmt.Errorf("Nametag is a required parameter")
 	}
-	ec2Client, err := getEC2Client()
+	ec2Client, err := getEC2Client(config.EndpointURL)
 	if err != nil {
 		return nil, util.WrapError(err, "Error creating EC2 client")
-	}
-	elbClient, err := getELBClient()
-	if err != nil {
-		return nil, util.WrapError(err, "Error creating ELB client")
 	}
 	var ecsClient *ecs.ECS
 	if config.ECSClusterName != "" {
@@ -160,7 +139,6 @@ func NewEC2Client(config EC2ClientConfig) (*AwsEC2, error) {
 	}
 	client := &AwsEC2{
 		client:         ec2Client,
-		elb:            elbClient,
 		ecs:            ecsClient,
 		ecsClusterName: config.ECSClusterName,
 		controllerID:   config.ControllerID,

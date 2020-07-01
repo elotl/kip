@@ -89,6 +89,7 @@ type AWSConfig struct {
 	VPCID           string `json:"vpcID,omitempty"`
 	SubnetID        string `json:"subnetID,omitempty"`
 	EcsClusterName  string `json:"ecsClusterName"`
+	EndpointURL     string `json:"endpointURL"`
 }
 
 // See https://github.com/Azure/azure-sdk-for-go/blob/master/README.md
@@ -238,7 +239,7 @@ func setupAwsEnvVars(c *AWSConfig) error {
 		}
 	}
 	klog.V(2).Infof("Validating connection to AWS")
-	if err := aws.CheckConnection(); err != nil {
+	if err := aws.CheckConnection(c.EndpointURL); err != nil {
 		return util.WrapError(err, "Error validationg connection to AWS")
 	}
 	klog.V(2).Infof("Validated access to AWS")
