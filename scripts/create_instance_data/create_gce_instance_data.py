@@ -6,6 +6,7 @@ import googleapiclient.discovery
 from util import (
     write_go,
     dumpjson,
+    upload,
 )
 
 nano = 10**-9
@@ -399,6 +400,13 @@ if __name__ == '__main__':
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--project_id', help='Google Cloud project ID.',
                         default='elotl-kip')
+    parser.add_argument('--upload', action="store_true", default=False)
     args = parser.parse_args()
     instance_data, custom_instance_data = get_instance_data(args.project_id)
-    write_go('gce', dumpjson(instance_data), dumpjson(custom_instance_data))
+    if args.upload:
+        jsonfp = dumpjson(instance_data)
+        upload('gce_instance_data.json', jsonfp)
+        jsonfp = dumpjson(custom_instance_data)
+        upload('gce_custom_instance_data.json', jsonfp)
+    else:
+        write_go('gce', dumpjson(instance_data), dumpjson(custom_instance_data))
