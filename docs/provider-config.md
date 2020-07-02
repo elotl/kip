@@ -41,6 +41,10 @@ cloud:
     # and will launch pods into that subnet.
     # subnetID: ''
 
+    # Specify a custom endpoint URL for AWS EC2 service/API requests
+    # this corresponds to the --endpoint-url option in the AWS CLI
+    # endpointURL: ''
+
   # gce:
 
     # The GCE project where kip will be running. Can be auto-detected
