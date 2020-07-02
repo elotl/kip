@@ -224,6 +224,7 @@ func setupAWSRegion(configRegion string) error {
 	if os.Getenv("AWS_DEFAULT_REGION") != "" {
 		winningRegionVal = os.Getenv("AWS_DEFAULT_REGION")
 	}
+	klog.V(2).Infof("using AWS region %q", winningRegionVal)
 	return os.Setenv("AWS_REGION", winningRegionVal)
 }
 
@@ -234,8 +235,12 @@ func setupAwsEnvVars(c *AWSConfig) error {
 	if err := setEnvIfNotSet("AWS_SECRET_ACCESS_KEY", c.SecretAccessKey); err != nil {
 		return err
 	}
-	if c.Region != "" {
-		if err := setupAWSRegion(c.Region); err != nil {
+	region := c.Region
+	if region == "" {
+		region = aws.AutoDetectRegion()
+	}
+	if region != "" {
+		if err := setupAWSRegion(region); err != nil {
 			return err
 		}
 	}
