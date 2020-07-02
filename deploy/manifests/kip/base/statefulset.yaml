@@ -52,7 +52,7 @@ spec:
       - command:
         - bash
         - -c
-        - mkdir -p $CERT_DIR && /opt/csr/get-cert.sh
+        - mkdir -p $(CERT_DIR) && /opt/csr/get-cert.sh
         env:
         - name: NODE_NAME
           valueFrom:
