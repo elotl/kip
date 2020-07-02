@@ -7,7 +7,7 @@
 
 set -exuo pipefail
 
-TAG=${TAG:-$(git describe --dirty)}
+TAG=${TAG:-$(git describe --tags --dirty)}
 DKR=${DKR:-docker}
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
