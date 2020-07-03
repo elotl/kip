@@ -66,7 +66,7 @@ func getAWSConfig(endpointURL string, insecureSkipSSLVerify bool) *aws.Config {
 	// Disabling security checks is dangerous and should be
 	// avoided. Use case for this one was an on-prem proxy with self
 	// signed certificate.  We might consider only enabling this option
-	// if enpointURL is also not empty
+	// if endpointURL is also not empty
 	if insecureSkipSSLVerify {
 		transport := http.DefaultTransport.(*http.Transport).Clone()
 		transport.TLSClientConfig.InsecureSkipVerify = true
