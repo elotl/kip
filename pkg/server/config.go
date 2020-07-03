@@ -83,13 +83,14 @@ type MultiCloudConfig struct {
 }
 
 type AWSConfig struct {
-	Region          string `json:"region"`
-	AccessKeyID     string `json:"accessKeyID"`
-	SecretAccessKey string `json:"secretAccessKey"`
-	VPCID           string `json:"vpcID,omitempty"`
-	SubnetID        string `json:"subnetID,omitempty"`
-	EcsClusterName  string `json:"ecsClusterName"`
-	EndpointURL     string `json:"endpointURL"`
+	Region                string `json:"region"`
+	AccessKeyID           string `json:"accessKeyID"`
+	SecretAccessKey       string `json:"secretAccessKey"`
+	VPCID                 string `json:"vpcID,omitempty"`
+	SubnetID              string `json:"subnetID,omitempty"`
+	EcsClusterName        string `json:"ecsClusterName"`
+	EndpointURL           string `json:"endpointURL"`
+	InsecureTLSSkipVerify bool   `json:"insecureTLSSkipVerify"`
 }
 
 // See https://github.com/Azure/azure-sdk-for-go/blob/master/README.md
@@ -239,7 +240,7 @@ func setupAwsEnvVars(c *AWSConfig) error {
 		}
 	}
 	klog.V(2).Infof("Validating connection to AWS")
-	if err := aws.CheckConnection(c.EndpointURL); err != nil {
+	if err := aws.CheckConnection(c.EndpointURL, c.InsecureTLSSkipVerify); err != nil {
 		return util.WrapError(err, "Error validationg connection to AWS")
 	}
 	klog.V(2).Infof("Validated access to AWS")
@@ -309,13 +310,14 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 		// will be available from there
 
 		client, err := aws.NewEC2Client(aws.EC2ClientConfig{
-			ControllerID:   controllerID,
-			Nametag:        nametag,
-			VPCID:          cc.AWS.VPCID,
-			SubnetID:       cc.AWS.SubnetID,
-			ECSClusterName: cc.AWS.EcsClusterName,
-			PrivateIPOnly:  privateIPOnly,
-			EndpointURL:    cc.AWS.EndpointURL,
+			ControllerID:          controllerID,
+			Nametag:               nametag,
+			VPCID:                 cc.AWS.VPCID,
+			SubnetID:              cc.AWS.SubnetID,
+			ECSClusterName:        cc.AWS.EcsClusterName,
+			PrivateIPOnly:         privateIPOnly,
+			EndpointURL:           cc.AWS.EndpointURL,
+			InsecureTLSSkipVerify: cc.AWS.InsecureTLSSkipVerify,
 		})
 
 		if err != nil {

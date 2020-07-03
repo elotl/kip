@@ -58,36 +58,48 @@ type AwsEC2 struct {
 	cloudStatus          *cloud.LinkedAZSubnetStatus
 }
 
-func getEC2Client(endpointURL string) (*ec2.EC2, error) {
+func getAWSConfig(endpointURL string, insecureSkipSSLVerify bool) *aws.Config {
+	httpClient := &http.Client{
+		Timeout: awsTimeout,
+	}
+
+	// Disabling security checks is dangerous and should be
+	// avoided. Use case for this one was an on-prem proxy with self
+	// signed certificate.  We might consider only enabling this option
+	// if endpointURL is also not empty
+	if insecureSkipSSLVerify {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig.InsecureSkipVerify = true
+		httpClient.Transport = transport
+	}
+	config := aws.NewConfig().
+		WithHTTPClient(httpClient).
+		WithEndpoint(endpointURL)
+	return config
+}
+
+func getEC2Client(endpointURL string, insecureSkipSSLVerify bool) (*ec2.EC2, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, util.WrapError(err, "Error creating EC2 client session")
 	}
-
-	config := aws.NewConfig().
-		WithHTTPClient(&http.Client{
-			Timeout: awsTimeout,
-		}).
-		WithEndpoint(endpointURL)
+	config := getAWSConfig(endpointURL, insecureSkipSSLVerify)
 	ec2Client := ec2.New(sess, config)
 	return ec2Client, nil
 }
 
-func getECSClient() (*ecs.ECS, error) {
+func getECSClient(endpointURL string, insecureSkipSSLVerify bool) (*ecs.ECS, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, util.WrapError(err, "Error creating ECS client session")
 	}
-	config := aws.NewConfig().
-		WithHTTPClient(&http.Client{
-			Timeout: awsTimeout,
-		})
+	config := getAWSConfig(endpointURL, insecureSkipSSLVerify)
 	client := ecs.New(sess, config)
 	return client, nil
 }
 
-func CheckConnection(endpointURL string) error {
-	client, err := getEC2Client(endpointURL)
+func CheckConnection(endpointURL string, insecureSkipSSLVerify bool) error {
+	client, err := getEC2Client(endpointURL, insecureSkipSSLVerify)
 	if err != nil {
 		return util.WrapError(err, "Check connection failed setting up an ec2 client")
 	}
@@ -108,13 +120,14 @@ func CheckConnection(endpointURL string) error {
 }
 
 type EC2ClientConfig struct {
-	ControllerID   string
-	Nametag        string
-	VPCID          string
-	SubnetID       string
-	ECSClusterName string
-	PrivateIPOnly  bool
-	EndpointURL    string
+	ControllerID          string
+	Nametag               string
+	VPCID                 string
+	SubnetID              string
+	ECSClusterName        string
+	PrivateIPOnly         bool
+	EndpointURL           string
+	InsecureTLSSkipVerify bool
 }
 
 // Parsing our server.json configuration should have put all confg
@@ -126,13 +139,13 @@ func NewEC2Client(config EC2ClientConfig) (*AwsEC2, error) {
 	if config.Nametag == "" {
 		return nil, fmt.Errorf("Nametag is a required parameter")
 	}
-	ec2Client, err := getEC2Client(config.EndpointURL)
+	ec2Client, err := getEC2Client(config.EndpointURL, config.InsecureTLSSkipVerify)
 	if err != nil {
 		return nil, util.WrapError(err, "Error creating EC2 client")
 	}
 	var ecsClient *ecs.ECS
 	if config.ECSClusterName != "" {
-		ecsClient, err = getECSClient()
+		ecsClient, err = getECSClient(config.EndpointURL, config.InsecureTLSSkipVerify)
 		if err != nil {
 			return nil, util.WrapError(err, "Error creating ECS client")
 		}
