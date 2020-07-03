@@ -45,6 +45,12 @@ cloud:
     # this corresponds to the --endpoint-url option in the AWS CLI
     # endpointURL: ''
 
+    # Disable verifying the API server's certificate chain and host
+    # name. In this mode, TLS is susceptible to man-in-the-middle
+    # attacks. Disabling security checks is dangerous and should be
+    # avoided. This should only be used for testing.
+    # insecureTLSSkipVerify: false
+
   # gce:
 
     # The GCE project where kip will be running. Can be auto-detected
