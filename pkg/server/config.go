@@ -315,6 +315,7 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 			SubnetID:       cc.AWS.SubnetID,
 			ECSClusterName: cc.AWS.EcsClusterName,
 			PrivateIPOnly:  privateIPOnly,
+			EndpointURL:    cc.AWS.EndpointURL,
 		})
 
 		if err != nil {
