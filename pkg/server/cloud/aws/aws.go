@@ -68,12 +68,9 @@ func getAWSConfig(endpointURL string, insecureSkipSSLVerify bool) *aws.Config {
 	// signed certificate.  We might consider only enabling this option
 	// if enpointURL is also not empty
 	if insecureSkipSSLVerify {
-		defaultTransport, ok := http.DefaultTransport.(*http.Transport)
-		if ok {
-			transport := defaultTransport.Clone()
-			transport.TLSClientConfig.InsecureSkipVerify = true
-			httpClient.Transport = transport
-		}
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig.InsecureSkipVerify = true
+		httpClient.Transport = transport
 	}
 	config := aws.NewConfig().
 		WithHTTPClient(httpClient).
