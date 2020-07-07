@@ -193,7 +193,7 @@ We are actively working on adding missing features. One of the main objectives o
 ##
 **Q.** How long does it take to start a workload?
 
-**A.** In AWS, instances boot in under a minute, usually pods are dispatched to the instance in about 45 seconds. Depending on the size of the container image, a pod will be running in 60 to 90 seconds.  In our experience, starting pods in Azure can be a bit slower with startup times between 1.5 to 3 minutes.
+**A.** In AWS and GCE, instances boot in under a minute, usually pods are dispatched to the instance in about 45 seconds. Depending on the size of the container image, a pod will be running in 60 to 90 seconds.  In our experience, starting pods in Azure can be a bit slower with startup times between 1.5 to 3 minutes.
 
 ##
 **Q.** Does it work with the Horizontal Pod Autoscaler and Vertical Pod Autoscaler?
@@ -213,7 +213,7 @@ We are actively working on adding missing features. One of the main objectives o
 ##
 **Q.** What cloud providers does Kip support?
 
-**A.** Kip is currently GA on AWS and pre-alpha on Azure.
+**A.** Kip is currently GA on AWS and GCE. We are actively working on Azure support.
 
 ##
 **Q.** What components make up the Kip system?
