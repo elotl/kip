@@ -362,8 +362,13 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 			sustainedCPU: false,
 		},
 		{
+			Resources:    api.ResourceSpec{Memory: "1.0Gi", CPU: "5.0"},
+			instanceType: "e2-custom-6-3072",
+			sustainedCPU: false,
+		},
+		{
 			Resources:    api.ResourceSpec{Memory: "3.75Gi", CPU: "1.0"},
-			instanceType: "e2-custom-1-3840",
+			instanceType: "n1-standard-1",
 			sustainedCPU: false,
 		},
 		{
@@ -388,8 +393,14 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "15.0Gi", CPU: "32.0"},
-			instanceType: "n2-custom-32-16384",
+			instanceType: "e2-highcpu-32",
 			sustainedCPU: false,
+		},
+		{
+			Resources:        api.ResourceSpec{Memory: "40.0Gi", CPU: "25.0"},
+			instanceType:     "n2-custom-26-40960",
+			sustainedCPU:     false,
+			instanceTypeGlob: "n2*",
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "1.0Gi", CPU: "2.0", SustainedCPU: &f},

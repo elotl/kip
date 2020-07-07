@@ -20,7 +20,7 @@ machine_families_for_custom_vm_sizes = [
 ]
 
 custom_vm_possible_cpu_numbers = {
-    'e2': [1] + [2*x for x in range(1,9)],
+    'e2': [2*x for x in range(1,9)],
     'n2': [2*x for x in range(1,41)],
     'n2d': [2, 4, 8] + [16*x for x in range(1,7)],
     'n1': [1] + [2*x for x in range(1,33)],

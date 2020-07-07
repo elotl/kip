@@ -42,6 +42,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.2564624,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -161,6 +172,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.7019264,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -528,6 +550,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.79152384,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -647,6 +680,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.07218272,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -1125,6 +1169,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.2564624,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -1244,6 +1299,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.7019264,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -1697,6 +1763,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.2564624,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -1816,6 +1893,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.7019264,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -2194,6 +2282,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.79152384,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -2313,6 +2412,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.07218272,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -3133,6 +3243,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.79152384,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -3252,6 +3373,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.07218272,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -4098,6 +4230,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.79152384,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -4217,6 +4360,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.07218272,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -4848,6 +5002,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.89150208,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -4967,6 +5132,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.20753312,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -5764,6 +5940,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.89150208,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -5883,6 +6070,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.20753312,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -6680,6 +6878,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.89150208,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -6799,6 +7008,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.20753312,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -7516,6 +7736,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.10751072,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -7635,6 +7866,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.50018144,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -8002,6 +8244,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.8714092800000001,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -8121,6 +8374,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.18035264,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -9337,6 +9601,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.8714092800000001,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -9456,6 +9731,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.18035264,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -10655,6 +10941,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.8714092800000001,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -10774,6 +11071,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.18035264,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -11438,6 +11746,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.8714092800000001,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -11557,6 +11876,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.18035264,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -11990,6 +12320,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.9164966400000001,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -12109,6 +12450,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.24147008,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -12825,6 +13177,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.8714092800000001,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -12944,6 +13307,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.18035264,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -13408,6 +13782,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.8714092800000001,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -13527,6 +13912,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.18035264,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -13991,6 +14387,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.976488,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -14110,6 +14517,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.32265824,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -14763,6 +15181,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.976488,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -14882,6 +15311,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.32265824,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -16072,6 +16512,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.976488,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -16191,6 +16642,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.32265824,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -17299,6 +17761,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.06437184,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -17418,6 +17891,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.44169696,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -17730,6 +18214,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.06437184,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -17849,6 +18344,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.44169696,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -18161,6 +18667,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.06437184,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -18280,6 +18797,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.44169696,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -18647,6 +19175,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01983104,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -18766,6 +19305,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.38136896,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -19485,6 +20035,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01983104,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -19604,6 +20165,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.38136896,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -20346,6 +20918,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01983104,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -20465,6 +21048,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.38136896,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -20920,6 +21514,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01983104,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -21039,6 +21644,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.38136896,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -21736,6 +22352,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01983104,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -21855,6 +22482,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.38136896,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -22552,6 +23190,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01983104,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -22671,6 +23320,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.38136896,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -23388,6 +24048,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.10751072,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -23507,6 +24178,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.50018144,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -23819,6 +24501,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.9164966400000001,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -23938,6 +24631,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.24147008,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -24674,6 +25378,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.12314336,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -24793,6 +25508,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.521312,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -25565,6 +26291,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.79152384,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -25684,6 +26421,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.07218272,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -26733,6 +27481,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.12314336,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -26852,6 +27611,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.521312,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -27494,6 +28264,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.9507427199999999,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -27613,6 +28394,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.28783808,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -27980,6 +28772,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.79152384,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -28099,6 +28902,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.07218272,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -28971,6 +29785,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.79152384,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -29090,6 +29915,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.07218272,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -29913,6 +30749,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.79152384,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -30032,6 +30879,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.07218272,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -31219,6 +32077,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.9507206399999999,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -31338,6 +32207,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.28774976,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -31816,6 +32696,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01649696,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -31935,6 +32826,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.37545152,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -32566,6 +33468,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01649696,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -32685,6 +33598,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.37545152,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -33457,6 +34381,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01649696,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -33576,6 +34511,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.37545152,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -34293,6 +35239,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.89150208,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -34412,6 +35369,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.20753312,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -34779,6 +35747,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.9164966400000001,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -34898,6 +35877,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.24147008,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -35690,6 +36680,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.89150208,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -35809,6 +36810,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.20753312,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -36121,6 +37133,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.89150208,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -36240,6 +37263,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.20753312,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -36552,6 +37586,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01649696,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -36671,6 +37716,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.37545152,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -37038,6 +38094,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.9507427199999999,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -37157,6 +38224,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.28783808,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -37610,6 +38688,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01649696,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -37729,6 +38818,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.37545152,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -38041,6 +39141,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01649696,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -38160,6 +39271,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.37545152,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -38472,6 +39594,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.10751072,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -38591,6 +39724,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.50018144,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -38958,6 +40102,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.87070272,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -39077,6 +40232,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.17944736,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -40186,6 +41352,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.10751072,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -40305,6 +41482,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.50018144,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -40617,6 +41805,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.10751072,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -40736,6 +41935,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.50018144,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -41048,6 +42258,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.9507427199999999,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -41167,6 +42388,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.28783808,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -41534,6 +42766,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.9507427199999999,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -41653,6 +42896,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.28783808,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -41965,6 +43219,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.12314336,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -42084,6 +43349,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.521312,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -42801,6 +44077,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.9507427199999999,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -42920,6 +44207,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.28783808,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -43232,6 +44530,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.8714976,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -43351,6 +44660,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.1804409599999999,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -43784,6 +45104,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.79152384,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -43903,6 +45234,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.07218272,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -44639,6 +45981,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.8714976,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -44758,6 +46111,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.1804409599999999,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -45136,6 +46500,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.8714976,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -45255,6 +46630,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.1804409599999999,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -45622,6 +47008,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.87070272,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -45741,6 +47138,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.17944736,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -46905,6 +48313,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.87070272,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -47024,6 +48443,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.17944736,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -47996,6 +49426,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.79152384,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -48115,6 +49556,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.07218272,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -48912,6 +50364,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.9507206399999999,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -49031,6 +50494,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.28774976,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -49409,6 +50883,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01649696,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -49528,6 +51013,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.37545152,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -49840,6 +51336,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.10751072,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -49959,6 +51466,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.50018144,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -50271,6 +51789,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.9507206399999999,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -50390,6 +51919,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.28774976,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -50790,6 +52330,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 0.9507427199999999,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -50909,6 +52460,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.28783808,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -51362,6 +52924,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01649696,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -51481,6 +53054,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.37545152,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -51859,6 +53443,17 @@ const gceInstanceJson = `
             "cpu": 2
         },
         {
+            "baseline": 32,
+            "memory": 32.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.01649696,
+            "burstable": false,
+            "instanceType": "e2-highcpu-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
+        },
+        {
             "baseline": 4,
             "memory": 4.0,
             "generation": "current",
@@ -51978,6 +53573,17 @@ const gceInstanceJson = `
             "instanceType": "e2-standard-2",
             "supportedGPUTypes": {},
             "cpu": 2
+        },
+        {
+            "baseline": 32,
+            "memory": 128.0,
+            "generation": "current",
+            "gpu": 0,
+            "price": 1.37545152,
+            "burstable": false,
+            "instanceType": "e2-standard-32",
+            "supportedGPUTypes": {},
+            "cpu": 32
         },
         {
             "baseline": 4,
@@ -52390,7 +53996,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.036336,
             "pricePerGBOfMemory": 0.00487,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -52459,7 +54064,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02289,
             "pricePerGBOfMemory": 0.003068,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -52528,7 +54132,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.036336,
             "pricePerGBOfMemory": 0.00487,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -52594,7 +54197,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.036336,
             "pricePerGBOfMemory": 0.00487,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -52717,7 +54319,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02289,
             "pricePerGBOfMemory": 0.003068,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -52841,7 +54442,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02289,
             "pricePerGBOfMemory": 0.003068,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -52958,7 +54558,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02289,
             "pricePerGBOfMemory": 0.003068,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -53078,7 +54677,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025782,
             "pricePerGBOfMemory": 0.003455,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -53198,7 +54796,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025782,
             "pricePerGBOfMemory": 0.003455,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -53318,7 +54915,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025782,
             "pricePerGBOfMemory": 0.003455,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -53384,7 +54980,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.032029,
             "pricePerGBOfMemory": 0.004293,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -53527,7 +55122,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025201,
             "pricePerGBOfMemory": 0.003377,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -53670,7 +55264,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025201,
             "pricePerGBOfMemory": 0.003377,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -53791,7 +55384,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025201,
             "pricePerGBOfMemory": 0.003377,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -53860,7 +55452,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025201,
             "pricePerGBOfMemory": 0.003377,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -53979,7 +55570,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.026504,
             "pricePerGBOfMemory": 0.003553,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -54048,7 +55638,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025201,
             "pricePerGBOfMemory": 0.003377,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -54117,7 +55706,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025201,
             "pricePerGBOfMemory": 0.003377,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -54234,7 +55822,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02824,
             "pricePerGBOfMemory": 0.003784,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -54376,7 +55963,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02824,
             "pricePerGBOfMemory": 0.003784,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -54518,7 +56104,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02824,
             "pricePerGBOfMemory": 0.003784,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -54584,7 +56169,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.030782,
             "pricePerGBOfMemory": 0.004125,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -54650,7 +56234,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.030782,
             "pricePerGBOfMemory": 0.004125,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -54716,7 +56299,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.030782,
             "pricePerGBOfMemory": 0.004125,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -54833,7 +56415,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029493,
             "pricePerGBOfMemory": 0.003952,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -54953,7 +56534,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029493,
             "pricePerGBOfMemory": 0.003952,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -55019,7 +56599,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029493,
             "pricePerGBOfMemory": 0.003952,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -55139,7 +56718,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029493,
             "pricePerGBOfMemory": 0.003952,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -55256,7 +56834,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029493,
             "pricePerGBOfMemory": 0.003952,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -55376,7 +56953,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029493,
             "pricePerGBOfMemory": 0.003952,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -55442,7 +57018,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.032029,
             "pricePerGBOfMemory": 0.004293,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -55565,7 +57140,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.026504,
             "pricePerGBOfMemory": 0.003553,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -55685,7 +57259,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.032481,
             "pricePerGBOfMemory": 0.004353,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -55828,7 +57401,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02289,
             "pricePerGBOfMemory": 0.003068,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -55948,7 +57520,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.032481,
             "pricePerGBOfMemory": 0.004353,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -56014,7 +57585,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.027495,
             "pricePerGBOfMemory": 0.003685,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -56138,7 +57708,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02289,
             "pricePerGBOfMemory": 0.003068,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -56259,7 +57828,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02289,
             "pricePerGBOfMemory": 0.003068,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -56403,7 +57971,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02289,
             "pricePerGBOfMemory": 0.003068,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -56472,7 +58039,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.027495,
             "pricePerGBOfMemory": 0.003684,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -56589,7 +58155,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029412,
             "pricePerGBOfMemory": 0.003924,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -56709,7 +58274,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029412,
             "pricePerGBOfMemory": 0.003924,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -56829,7 +58393,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029412,
             "pricePerGBOfMemory": 0.003924,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -56895,7 +58458,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025782,
             "pricePerGBOfMemory": 0.003455,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -57018,7 +58580,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.026504,
             "pricePerGBOfMemory": 0.003553,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -57084,7 +58645,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025782,
             "pricePerGBOfMemory": 0.003455,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -57150,7 +58710,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025782,
             "pricePerGBOfMemory": 0.003455,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -57216,7 +58775,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029412,
             "pricePerGBOfMemory": 0.003924,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -57285,7 +58843,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.027495,
             "pricePerGBOfMemory": 0.003685,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -57351,7 +58908,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029412,
             "pricePerGBOfMemory": 0.003924,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -57417,7 +58973,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029412,
             "pricePerGBOfMemory": 0.003924,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -57483,7 +59038,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.032029,
             "pricePerGBOfMemory": 0.004293,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -57624,7 +59178,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02518,
             "pricePerGBOfMemory": 0.003375,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -57690,7 +59243,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.032029,
             "pricePerGBOfMemory": 0.004293,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -57756,7 +59308,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.032029,
             "pricePerGBOfMemory": 0.004293,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -57822,7 +59373,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.027495,
             "pricePerGBOfMemory": 0.003685,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -57888,7 +59438,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.027495,
             "pricePerGBOfMemory": 0.003685,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -58008,7 +59557,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.032481,
             "pricePerGBOfMemory": 0.004353,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -58074,7 +59622,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.027495,
             "pricePerGBOfMemory": 0.003685,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -58140,7 +59687,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025204,
             "pricePerGBOfMemory": 0.003377,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -58263,7 +59809,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02289,
             "pricePerGBOfMemory": 0.003068,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -58329,7 +59874,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025204,
             "pricePerGBOfMemory": 0.003377,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -58395,7 +59939,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.025204,
             "pricePerGBOfMemory": 0.003377,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -58536,7 +60079,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02518,
             "pricePerGBOfMemory": 0.003375,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -58673,7 +60215,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02518,
             "pricePerGBOfMemory": 0.003375,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -58794,7 +60335,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.02289,
             "pricePerGBOfMemory": 0.003068,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -58863,7 +60403,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.027495,
             "pricePerGBOfMemory": 0.003684,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -58929,7 +60468,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029412,
             "pricePerGBOfMemory": 0.003924,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -58995,7 +60533,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.032029,
             "pricePerGBOfMemory": 0.004293,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -59061,7 +60598,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.027495,
             "pricePerGBOfMemory": 0.003684,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -59130,7 +60666,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.027495,
             "pricePerGBOfMemory": 0.003685,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -59199,7 +60734,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029412,
             "pricePerGBOfMemory": 0.003924,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
@@ -59268,7 +60802,6 @@ const gceCustomInstanceJson = `
             "pricePerCPU": 0.029412,
             "pricePerGBOfMemory": 0.003924,
             "possibleNumberOfCPUs": [
-                1,
                 2,
                 4,
                 6,
