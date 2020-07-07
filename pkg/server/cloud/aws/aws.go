@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -96,6 +97,22 @@ func getECSClient(endpointURL string, insecureSkipSSLVerify bool) (*ecs.ECS, err
 	config := getAWSConfig(endpointURL, insecureSkipSSLVerify)
 	client := ecs.New(sess, config)
 	return client, nil
+}
+
+func AutoDetectRegion() string {
+	session, err := session.NewSession()
+	if err != nil {
+		klog.Warningf("creating session to autodetect AWS region: %v", err)
+		return ""
+	}
+	client := ec2metadata.New(session)
+	region, err := client.Region()
+	if err != nil {
+		klog.Warningf("trying to autodetect AWS region: %v", err)
+		return ""
+	}
+	klog.V(2).Infof("detected AWS region: %q", region)
+	return region
 }
 
 func CheckConnection(endpointURL string, insecureSkipSSLVerify bool) error {
