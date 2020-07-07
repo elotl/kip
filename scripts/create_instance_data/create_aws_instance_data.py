@@ -67,6 +67,7 @@ HOURS_IN_MONTH = 30 * 24
 def get_instance_data(raw_data):
     print('computing instance data')
     ec2_offer = awspricing.offer('AmazonEC2')
+    print('retrieved amazon ec2 offer data')
     simple_instance_data = defaultdict(list)
     for instance in raw_data:
         baseline = instance['vCPU']
@@ -93,7 +94,7 @@ def get_instance_data(raw_data):
                   region=region,
                 )
                 instance_info['price'] = float(price)
-                print instance_info
+                print(instance_info)
                 simple_instance_data[region].append(instance_info)
             except ValueError:
                 continue
@@ -176,7 +177,9 @@ def get_elb_pricing():
 
 
 def update_instance_data(args):
+    print('loading raw instance data')
     raw_data = get_raw_instance_data()
+    print('getting instance data')
     simple_instance_data = get_instance_data(raw_data)
     jsonfp = dumpjson(simple_instance_data)
     if args.upload:
@@ -202,5 +205,3 @@ def update_storage_data(args):
 if __name__ == '__main__':
     args = parse_args()
     update_instance_data(args)
-    update_network_data(args)
-    update_storage_data(args)

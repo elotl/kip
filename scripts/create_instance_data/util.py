@@ -21,7 +21,7 @@ def parse_args():
 python create_instance_data.py
 
 # create instance data locally and upload to s3
-python create_instance_data.py --s3
+python create_instance_data.py --upload
         ''')
     parser.add_argument('--upload', action="store_true", default=False)
     args = parser.parse_args()

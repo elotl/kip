@@ -197,6 +197,7 @@ def get_pricing():
                 'memory': memory,
                 'instanceType': rs.name,
                 'price': rates[name][loc],
+                'gpu': 0, # this is wrong but gets things working for now
             })
     return result
 
