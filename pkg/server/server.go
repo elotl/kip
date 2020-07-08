@@ -340,6 +340,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		networkAgentKubeconfig: networkAgentKubeconfig,
 		statusInterval:         time.Duration(serverConfigFile.Cells.StatusInterval) * time.Second,
 		healthChecker:          healthChecker,
+		defaultIAMPermissions:  serverConfigFile.Cells.DefaultIAMPermissions,
 	}
 
 	klog.V(5).Infof("creating image ID cache")

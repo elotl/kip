@@ -79,6 +79,7 @@ type PodController struct {
 	dnsConfigurer          *dns.Configurer
 	statusInterval         time.Duration
 	healthChecker          *healthcheck.HealthCheckController
+	defaultIAMPermissions  string
 }
 
 type FullPodStatus struct {
@@ -487,6 +488,11 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 	}
 
 	instanceProfile := pod.Annotations[annotations.PodInstanceProfile]
+	if len(instanceProfile) == 0 {
+		// This is called defaultIAMPermissions, and the semantics are
+		// cloud-specific. For example, on AWS this is an IAM instance profile.
+		instanceProfile = c.defaultIAMPermissions
+	}
 	if len(instanceProfile) != 0 {
 		err := c.cloudClient.AssignInstanceProfile(node, instanceProfile)
 		if err != nil {

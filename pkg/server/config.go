@@ -138,19 +138,20 @@ type InternalEtcdConfig struct {
 }
 
 type CellsConfig struct {
-	BootImageSpec       cloud.BootImageSpec           `json:"bootImageSpec"`
-	DefaultInstanceType string                        `json:"defaultInstanceType"`
-	DefaultVolumeSize   string                        `json:"defaultVolumeSize"`
-	StandbyCells        []nodemanager.StandbyNodeSpec `json:"standbyCells"`
-	CloudInitFile       string                        `json:"cloudInitFile"`
-	Itzo                ItzoConfig                    `json:"itzo"`
-	ExtraCIDRs          []string                      `json:"extraCIDRs"`
-	ExtraSecurityGroups []string                      `json:"extraSecurityGroups"`
-	Nametag             string                        `json:"nametag"`
-	StatusInterval      int                           `json:"statusInterval"`
-	HealthCheck         HealthCheckConfig             `json:"healthcheck"`
-	PrivateIPOnly       *bool                         `json:"privateIPOnly"`
-	CellConfig          map[string]string             `json:"cellConfig"`
+	BootImageSpec         cloud.BootImageSpec           `json:"bootImageSpec"`
+	DefaultInstanceType   string                        `json:"defaultInstanceType"`
+	DefaultVolumeSize     string                        `json:"defaultVolumeSize"`
+	StandbyCells          []nodemanager.StandbyNodeSpec `json:"standbyCells"`
+	CloudInitFile         string                        `json:"cloudInitFile"`
+	Itzo                  ItzoConfig                    `json:"itzo"`
+	ExtraCIDRs            []string                      `json:"extraCIDRs"`
+	ExtraSecurityGroups   []string                      `json:"extraSecurityGroups"`
+	Nametag               string                        `json:"nametag"`
+	StatusInterval        int                           `json:"statusInterval"`
+	HealthCheck           HealthCheckConfig             `json:"healthcheck"`
+	PrivateIPOnly         *bool                         `json:"privateIPOnly"`
+	CellConfig            map[string]string             `json:"cellConfig"`
+	DefaultIAMPermissions string                        `json:"defaultIAMPermissions"`
 }
 
 type HealthCheckConfig struct {
