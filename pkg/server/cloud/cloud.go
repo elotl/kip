@@ -49,7 +49,7 @@ type CloudClient interface {
 	WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
 	EnsureMilpaSecurityGroups([]string, []string) error
 	AttachSecurityGroups(node *api.Node, groups []string) error
-	AssignInstanceProfile(node *api.Node, instanceProfile string) error
+	AddIAMPermissions(node *api.Node, permissions string) error
 	ListInstancesFilterID([]string) ([]CloudInstance, error)
 	ListInstances() ([]CloudInstance, error)
 	ResizeVolume(node *api.Node, size int64) (error, bool)

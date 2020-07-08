@@ -606,7 +606,7 @@ func isUnsupportedInstanceError(err error) bool {
 // UnsupportedInstanceAttribute, UnsupportedOperation
 // InvalidAvailabilityZone
 
-func (e *AwsEC2) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
+func (e *AwsEC2) AddIAMPermissions(node *api.Node, instanceProfile string) error {
 	_, err := e.client.AssociateIamInstanceProfile(
 		&ec2.AssociateIamInstanceProfileInput{
 			IamInstanceProfile: &ec2.IamInstanceProfileSpecification{

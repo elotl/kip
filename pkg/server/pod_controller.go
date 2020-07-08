@@ -487,16 +487,16 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		}
 	}
 
-	instanceProfile := pod.Annotations[annotations.PodInstanceProfile]
-	if len(instanceProfile) == 0 {
+	permissions := pod.Annotations[annotations.PodInstanceProfile]
+	if len(permissions) == 0 {
 		// This is called defaultIAMPermissions, and the semantics are
 		// cloud-specific. For example, on AWS this is an IAM instance profile.
-		instanceProfile = c.defaultIAMPermissions
+		permissions = c.defaultIAMPermissions
 	}
-	if len(instanceProfile) != 0 {
-		err := c.cloudClient.AssignInstanceProfile(node, instanceProfile)
+	if len(permissions) != 0 {
+		err := c.cloudClient.AddIAMPermissions(node, permissions)
 		if err != nil {
-			msg := fmt.Sprintf("Error dispatching pod to node, could not assign instance profile %s to pod %s: %s", instanceProfile, pod.Name, err)
+			msg := fmt.Sprintf("Error dispatching pod to node, could not add IAM permissions %s to pod %s: %s", permissions, pod.Name, err)
 			klog.Errorln(msg)
 			c.markFailedPod(pod, true, msg)
 			return

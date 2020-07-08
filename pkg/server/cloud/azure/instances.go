@@ -566,6 +566,6 @@ func isUnsupportedInstanceError(err error) bool {
 	return strings.Contains(err.Error(), "SkuNotAvailable")
 }
 
-func (az *AzureClient) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
+func (az *AzureClient) AddIAMPermissions(node *api.Node, permissions string) error {
 	return nil
 }
