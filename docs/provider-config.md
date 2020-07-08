@@ -127,6 +127,12 @@ cells:
   # value as "8Gi".  Must be 1Gi or larger, defaults to 5Gi.
   defaultVolumeSize: "5Gi"
 
+  # defaultIAMPermissions specifies the a cloud-specific IAM permission that
+  # will be attached to cell instances. On AWS, this is an IAM instance
+  # profile, and can be overridden by the pod.elotl.co/instance-profile pod
+  # annotation.
+  #defaultIAMPermissions: "arn:aws:iam::11123456789:instance-profile/kip-cell"
+
   # bootImageSpec is a dictionary of cloud-specific image properties for
   # specifying the boot image to use for cells.
   # Valid fields on AWS are:
