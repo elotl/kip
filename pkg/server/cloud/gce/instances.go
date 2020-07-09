@@ -540,7 +540,7 @@ func (c *gceClient) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	}, nil
 }
 
-func (c *gceClient) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
+func (c *gceClient) AddIAMPermissions(node *api.Node, permissions string) error {
 	klog.Errorf("In GCE Instances must be stopped to assign service account")
 	return nil
 }

@@ -215,7 +215,7 @@ func (m *MockCloudClient) AttachSecurityGroups(node *api.Node, groups []string) 
 	return nil
 }
 
-func (m *MockCloudClient) AssignInstanceProfile(node *api.Node, instanceProfile string) error {
+func (m *MockCloudClient) AddIAMPermissions(node *api.Node, permissions string) error {
 	return nil
 }
 
