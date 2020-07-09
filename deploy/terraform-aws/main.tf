@@ -260,7 +260,7 @@ resource "aws_iam_role_policy" "k8s-node" {
         "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
         "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
         "iam:CreateServiceLinkedRole",
-        "iam:PassRole"
+        "iam:PassRole",
         "kms:DescribeKey"
       ],
       "Resource": [
