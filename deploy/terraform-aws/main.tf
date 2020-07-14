@@ -172,6 +172,7 @@ resource "aws_iam_role_policy" "k8s-node" {
         "autoscaling:DescribeLaunchConfigurations",
         "autoscaling:DescribeTags",
         "ec2:AssignPrivateIpAddresses",
+        "ec2:AssociateIamInstanceProfile",
         "ec2:AttachNetworkInterface",
         "ec2:AttachVolume",
         "ec2:AuthorizeSecurityGroupIngress",
@@ -259,6 +260,7 @@ resource "aws_iam_role_policy" "k8s-node" {
         "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
         "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
         "iam:CreateServiceLinkedRole",
+        "iam:PassRole",
         "kms:DescribeKey"
       ],
       "Resource": [
