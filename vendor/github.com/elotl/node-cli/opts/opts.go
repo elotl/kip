@@ -23,6 +23,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/util/workqueue"
 )
 
 // Defaults for root command options
@@ -30,7 +31,7 @@ const (
 	DefaultNodeName             = "virtual-kubelet"
 	DefaultOperatingSystem      = "Linux"
 	DefaultInformerResyncPeriod = 1 * time.Minute
-	DefaultMetricsAddr          = ":10255"
+	DefaultMetricsAddr          = ""
 	DefaultListenPort           = 10250 // TODO(cpuguy83)(VK1.0): Change this to an addr instead of just a port.. we should not be listening on all interfaces.
 	DefaultPodSyncWorkers       = 10
 	DefaultKubeNamespace        = corev1.NamespaceAll
@@ -93,6 +94,8 @@ type Opts struct {
 	KubeAPIQPS int32
 	// KubeAPIBurst is the burst to allow while talking with kubernetes apiserver
 	KubeAPIBurst int32
+	// RateLimiter defines the rate limit of work queue used in PodController
+	RateLimiter workqueue.RateLimiter
 
 	Version string
 }
@@ -147,6 +150,7 @@ func setDefaults(o *Opts) {
 	o.KubeClusterDomain = DefaultKubeClusterDomain
 	o.StreamIdleTimeout = DefaultStreamIdleTimeout
 	o.StreamCreationTimeout = DefaultStreamCreationTimeout
+	o.RateLimiter = workqueue.DefaultControllerRateLimiter()
 }
 
 func getEnv(key, defaultValue string) string {

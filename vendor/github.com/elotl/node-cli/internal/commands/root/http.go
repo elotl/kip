@@ -24,9 +24,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/elotl/node-cli/opts"
 	"github.com/elotl/node-cli/provider"
-	"github.com/pkg/errors"
 	"github.com/virtual-kubelet/virtual-kubelet/log"
 	"github.com/virtual-kubelet/virtual-kubelet/node/api"
 )
@@ -59,7 +59,7 @@ func loadTLSConfig(certPath, keyPath string) (*tls.Config, error) {
 	}, nil
 }
 
-func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerConfig) (_ func(), retErr error) {
+func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerConfig, getPodsFromKubernetes api.PodListerFunc) (_ func(), retErr error) {
 	var closers []io.Closer
 	cancel := func() {
 		for _, c := range closers {
@@ -92,11 +92,21 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 		podRoutes := api.PodHandlerConfig{
 			RunInContainer:        p.RunInContainer,
 			GetContainerLogs:      p.GetContainerLogs,
-			GetPods:               p.GetPods,
 			StreamIdleTimeout:     cfg.StreamIdleTimeout,
 			StreamCreationTimeout: cfg.StreamCreationTimeout,
+			GetPodsFromKubernetes: getPodsFromKubernetes,
+			GetPods:               p.GetPods,
 		}
 		api.AttachPodRoutes(podRoutes, mux, true)
+
+		var summaryHandlerFunc api.PodStatsSummaryHandlerFunc
+		if mp, ok := p.(provider.PodMetricsProvider); ok {
+			summaryHandlerFunc = mp.GetStatsSummary
+		}
+		podMetricsRoutes := api.PodMetricsConfig{
+			GetStatsSummary: summaryHandlerFunc,
+		}
+		api.AttachPodMetricsRoutes(podMetricsRoutes, mux)
 
 		s := &http.Server{
 			Handler:   mux,
@@ -106,16 +116,11 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 		closers = append(closers, s)
 	}
 
-	if cfg.MetricsAddr == "" {
-		log.G(ctx).Info("Pod metrics server not setup due to empty metrics address")
-	} else {
+	if cfg.MetricsAddr != "" {
 		l, err := net.Listen("tcp", cfg.MetricsAddr)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not setup listener for pod metrics http server")
 		}
-
-		mux := http.NewServeMux()
-
 		var summaryHandlerFunc api.PodStatsSummaryHandlerFunc
 		if mp, ok := p.(provider.PodMetricsProvider); ok {
 			summaryHandlerFunc = mp.GetStatsSummary
@@ -123,6 +128,8 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 		podMetricsRoutes := api.PodMetricsConfig{
 			GetStatsSummary: summaryHandlerFunc,
 		}
+
+		mux := http.NewServeMux()
 		api.AttachPodMetricsRoutes(podMetricsRoutes, mux)
 		s := &http.Server{
 			Handler: mux,

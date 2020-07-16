@@ -119,6 +119,30 @@ func podsEqual(pod1, pod2 *corev1.Pod) bool {
 
 }
 
+func deleteGraceTimeEqual(old, new *int64) bool {
+	if old == nil && new == nil {
+		return true
+	}
+	if old != nil && new != nil {
+		return *old == *new
+	}
+	return false
+}
+
+// podShouldEnqueue checks if two pods equal according according to podsEqual func and DeleteTimeStamp
+func podShouldEnqueue(oldPod, newPod *corev1.Pod) bool {
+	if !podsEqual(oldPod, newPod) {
+		return true
+	}
+	if !deleteGraceTimeEqual(oldPod.DeletionGracePeriodSeconds, newPod.DeletionGracePeriodSeconds) {
+		return true
+	}
+	if !oldPod.DeletionTimestamp.Equal(newPod.DeletionTimestamp) {
+		return true
+	}
+	return false
+}
+
 func (pc *PodController) handleProviderError(ctx context.Context, span trace.Span, origErr error, pod *corev1.Pod) {
 	podPhase := corev1.PodPending
 	if pod.Spec.RestartPolicy == corev1.RestartPolicyNever {
@@ -185,6 +209,9 @@ func (pc *PodController) updatePodStatus(ctx context.Context, podFromKubernetes 
 	kPod.Lock()
 	podFromProvider := kPod.lastPodStatusReceivedFromProvider.DeepCopy()
 	kPod.Unlock()
+	if cmp.Equal(podFromKubernetes.Status, podFromProvider.Status) {
+		return nil
+	}
 	// We need to do this because the other parts of the pod can be updated elsewhere. Since we're only updating
 	// the pod status, and we should be the sole writers of the pod status, we can blind overwrite it. Therefore
 	// we need to copy the pod and set ResourceVersion to 0.
