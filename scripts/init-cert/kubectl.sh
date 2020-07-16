@@ -15,7 +15,6 @@ if [[ -d /opt/kubectl/${major_vsn}.${minor_vsn} ]]; then
     kubectl=/opt/kubectl/${major_vsn}.${minor_vsn}/kubectl
 else
     for kdir in ${kubectl_dir_base}/*; do
-        echo $kdir
         vdir=$(basename ${kdir})
         kdir_major=$(echo ${vdir} | sed -r 's/([0-9]+)\.([0-9]+)/\1/')
         if [[ ${kdir_major} -ne ${major_vsn} ]]; then
