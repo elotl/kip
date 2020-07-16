@@ -12,10 +12,10 @@ echo "generating certificate for DNS \"$NODE_NAME\" IP \"$INTERNAL_IP\" " \
 
 if [[ -f "$CERT_DIR/$NODE_NAME.key" ]] && [[ -f "$CERT_DIR/$NODE_NAME.crt" ]]; then
     echo "checking existing cert"
-    openssl x509 -noout -ext subjectAltName -in "$CERT_DIR/$NODE_NAME.crt" | \
-        grep -i "\<$INTERNAL_IP\>" && \
-        echo "found valid certificate for $INTERNAL_IP" && exit 0 || \
-        echo "invalid certificate \"$CERT_DIR/$NODE_NAME.crt\", recreating it"
+    openssl x509 -checkip $INTERNAL_IP -checkhost $NODE_NAME -noout -in "$CERT_DIR/$NODE_NAME.crt" | \
+        grep "does NOT match certificate" && \
+        echo "certificate \"$CERT_DIR/$NODE_NAME.crt\" not valid, recreating it" || \
+        exit 0
 fi
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -27,33 +27,34 @@ if [[ -z $KUBECONFIG ]]; then
     export KUBECONFIG=$(pwd)/kubeconfig
 fi
 
-export CSR_NAME="kip-$(date +%s)"
+export CSR_NAME="${NODE_NAME}-$(date +%s)"
 
 ./create-csr.sh | kubectl apply -f -
 
-i=0
-while [[ $i -lt 30 ]]; do
-    i=$((i+1))
-    kubectl get csr $CSR_NAME || {
+approve_csr() {
+    while true; do
+        kubectl get csr $CSR_NAME || {
+            sleep 1
+            continue
+        }
+        kubectl certificate approve $CSR_NAME
+        break
+    done
+}
+export -f approve_csr
+timeout 30s bash -c approve_csr
+
+fetch_cert() {
+    CERT_DATA=""
+    while [[ -z "$CERT_DATA" ]]; do
+        CERT_DATA=$(kubectl get csr $CSR_NAME -ojsonpath='{.status.certificate}')
         sleep 1
-        continue
-    }
-    kubectl certificate approve $CSR_NAME
-    break
-done
+    done
+    echo "$CERT_DATA" | base64 -d > $NODE_NAME.crt
+}
+export -f fetch_cert
+timeout 30s bash -c fetch_cert
 
-i=0
-CERT_DATA=""
-while [[ -z "$CERT_DATA" ]]; do
-    i=$((i+1))
-    if [[ $i -gt 30 ]]; then
-        echo "timeout waiting for CSR $CSR_NAME"
-    fi
-    sleep 1
-    CERT_DATA=$(kubectl get csr $CSR_NAME -ojsonpath='{.status.certificate}')
-done
-
-echo "$CERT_DATA" | base64 -d > $NODE_NAME.crt
 echo "generated certificate:"
 openssl x509 -text -in $NODE_NAME.crt
 
