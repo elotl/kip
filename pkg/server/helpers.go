@@ -8,12 +8,10 @@ import (
 
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
-	"github.com/elotl/kip/pkg/util/k8s"
 	"github.com/elotl/kip/pkg/util/k8s/eventrecorder"
 	"github.com/elotl/node-cli/manager"
 	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	v1 "k8s.io/api/core/v1"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog"
 )
 
@@ -72,16 +70,4 @@ func createDNSConfigurer(kubernetesNodeName, clusterDNS, clusterDomain string, c
 		clusterDomain,
 		resolverConfig,
 	), nil
-}
-
-func createNetworkAgentKubeconfig(kubernetesNodeName, networkAgentSecret, serverURL string, rm *manager.ResourceManager) (*clientcmdapi.Config, error) {
-	kc, err := k8s.CreateNetworkAgentKubeconfig(
-		rm, serverURL, networkAgentSecret)
-	if err != nil {
-		return nil, util.WrapError(err, "creating network-agent kubeconfig")
-	}
-	if err := k8s.ValidateKubeconfig(kc); err != nil {
-		return nil, util.WrapError(err, "validating network-agent kubeconfig")
-	}
-	return kc, err
 }

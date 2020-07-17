@@ -53,6 +53,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilexec "k8s.io/utils/exec"
@@ -132,18 +134,25 @@ func setupEtcd(configFile, dataDir string, quit <-chan struct{}, wg *sync.WaitGr
 	return client, err
 }
 
-func ConfigureK8sKipClient() (*kubeclient.Clientset, *rest.Config, error) {
-	klog.V(2).Infof("Configuring k8s client with provided service account credentials")
-	config, err := restclient.InClusterConfig()
+func ConfigureK8sKipClient(kubeConfig *clientcmdapi.Config) (*kubeclient.Clientset, *rest.Config, error) {
+	var err error
+	var config *restclient.Config
+	if kubeConfig != nil {
+		klog.V(2).Infof("configuring k8s client from kubeconfig")
+		config, err = clientcmd.NewDefaultClientConfig(*kubeConfig, &clientcmd.ConfigOverrides{}).ClientConfig()
+	} else {
+		klog.V(2).Infof("configuring k8s client with provided service account credentials")
+		config, err = restclient.InClusterConfig()
+	}
 	if err != nil {
-		return nil, nil, util.WrapError(err, "Could not load kube config using the provided service account")
+		return nil, nil, util.WrapError(err, "could not create k8s rest client")
 	}
 	config.QPS = 50
 	config.Burst = 100
 	config.Timeout = 30 * time.Second
 	clientset, err := kubeclient.NewForConfig(config)
 	if err != nil {
-		return nil, nil, util.WrapError(err, "Could not create kube clientset from the provided service account")
+		return nil, nil, util.WrapError(err, "could not create k8s clientset")
 	}
 	return clientset, config, nil
 }
@@ -171,7 +180,7 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 }
 
 // InstanceProvider should implement node.PodLifecycleHandler
-func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networkAgentSecret, clusterDNS, clusterDomain string, daemonEndpointPort int32, debugServer bool, rm *manager.ResourceManager, systemQuit <-chan struct{}) (*InstanceProvider, error) {
+func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clusterDomain string, daemonEndpointPort int32, debugServer bool, rm *manager.ResourceManager, kubeConfig, networkAgentKubeConfig *clientcmdapi.Config, systemQuit <-chan struct{}) (*InstanceProvider, error) {
 	systemWG := &sync.WaitGroup{}
 
 	execer := utilexec.New()
@@ -290,13 +299,6 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		return nil, util.WrapError(err, "creating DNS configurer")
 	}
 
-	klog.V(5).Infof("creating network agent kubeconfig")
-	networkAgentKubeconfig, err := createNetworkAgentKubeconfig(
-		nodeName, networkAgentSecret, serverURL, rm)
-	if err != nil {
-		return nil, util.WrapError(err, "creating network-agent kubeconfig")
-	}
-
 	klog.V(5).Infof("determining connectivity to cells")
 	connectWithPublicIPs := cloudClient.ConnectWithPublicIPs()
 	itzoClientFactory := nodeclient.NewItzoFactory(
@@ -337,7 +339,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 		nametag:                nametag,
 		kubernetesNodeName:     nodeName,
 		dnsConfigurer:          dnsConfigurer,
-		networkAgentKubeconfig: networkAgentKubeconfig,
+		networkAgentKubeConfig: networkAgentKubeConfig,
 		statusInterval:         time.Duration(serverConfigFile.Cells.StatusInterval) * time.Second,
 		healthChecker:          healthChecker,
 		defaultIAMPermissions:  serverConfigFile.Cells.DefaultIAMPermissions,
@@ -403,7 +405,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, serverURL, networ
 	}
 
 	klog.V(5).Infof("configuring k8s client")
-	k8sKipClient, k8sRestConfig, err := ConfigureK8sKipClient()
+	k8sKipClient, k8sRestConfig, err := ConfigureK8sKipClient(kubeConfig)
 	if err != nil {
 		klog.Errorln("Error configuring kubernetes kip client", err)
 		time.Sleep(3 * time.Second)

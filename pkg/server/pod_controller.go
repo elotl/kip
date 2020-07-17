@@ -75,7 +75,7 @@ type PodController struct {
 	controlLoopTimer       stats.LoopTimer
 	cleanTimer             stats.LoopTimer
 	kubernetesNodeName     string
-	networkAgentKubeconfig *clientcmdapi.Config
+	networkAgentKubeConfig *clientcmdapi.Config
 	dnsConfigurer          *dns.Configurer
 	statusInterval         time.Duration
 	healthChecker          *healthcheck.HealthCheckController
@@ -545,7 +545,7 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 		return
 	}
 
-	err = deployNetworkAgentToken(c.networkAgentKubeconfig, pod, node, c.nodeClientFactory)
+	err = deployNetworkAgentToken(c.networkAgentKubeConfig, pod, node, c.nodeClientFactory)
 	if err != nil {
 		msg := fmt.Sprintf(
 			"deploying network agent kubeconfig for %q: %v", pod.Name, err)
