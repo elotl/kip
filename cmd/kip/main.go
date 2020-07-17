@@ -24,7 +24,6 @@ import (
 	"github.com/elotl/kip/pkg/klog"
 	"github.com/elotl/kip/pkg/server"
 	"github.com/elotl/kip/pkg/util/habitat"
-	"github.com/elotl/kip/pkg/util/k8s"
 	cli "github.com/elotl/node-cli"
 	opencensuscli "github.com/elotl/node-cli/opencensus"
 	"github.com/elotl/node-cli/opts"
@@ -95,22 +94,27 @@ func main() {
 		cli.WithCLIVersion(buildVersion, buildTime),
 		cli.WithProvider("kip",
 			func(cfg provider.InitConfig) (provider.Provider, error) {
-				serverURL := k8s.GetServerURL(o.KubeConfigPath)
-				if serverURL == "" {
-					log.G(ctx).Fatal("can't determine API server URL, " +
-						"please set --kubeconfig or MASTER_URI")
+				kubeConfig, err := maybeLoadKubeConfig(o.KubeConfigPath)
+				if err != nil {
+					// We'll revert back to InClusterConfig().
+					log.G(ctx).Warnf("%v", err)
+				}
+				networkAgentKubeConfig, err := loadOrCreateKubeConfig(serverConfig.NetworkAgentKubeConfig, o.KubeConfigPath, serverConfig.NetworkAgentSecret, cfg.ResourceManager)
+				if err != nil {
+					// Unable to continue without network agent kubeconfig.
+					log.G(ctx).Fatalf("%v", err)
 				}
 				return server.NewInstanceProvider(
 					cfg.ConfigPath,
 					cfg.NodeName,
 					internalIP,
-					serverURL,
-					serverConfig.NetworkAgentSecret,
 					serverConfig.ClusterDNS,
 					cfg.KubeClusterDomain,
 					cfg.DaemonPort,
 					serverConfig.DebugServer,
 					cfg.ResourceManager,
+					kubeConfig,
+					networkAgentKubeConfig,
 					ctx.Done(),
 				)
 			}),

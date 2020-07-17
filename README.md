@@ -228,6 +228,11 @@ We are actively working on adding missing features. One of the main objectives o
 
 **A.** Yes, take a look at [Bring your Own Image](docs/cells.md#bring-your-own-image).
 
+##
+Q. Can Kip use a kubeconfig file for API server access?
+
+A. Yes, see [kubeconfig](docs/kubeconfig.md) for more information.
+
 ## How it Works
 * [Cells](docs/cells.md)
 * [Networking](docs/networking.md)

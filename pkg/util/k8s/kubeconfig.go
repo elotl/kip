@@ -28,8 +28,23 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-func CreateNetworkAgentKubeconfig(rm *manager.ResourceManager, serverURL, networkAgentSecret string) (*clientcmdapi.Config, error) {
-	parts := strings.SplitN(networkAgentSecret, "/", 2)
+func CreateKubeConfigFromSecret(rm *manager.ResourceManager, kubeConfigPath, saSecret string) (*clientcmdapi.Config, error) {
+	serverURL := GetServerURL(kubeConfigPath)
+	if serverURL == "" {
+		return nil, fmt.Errorf("can't determine API server URL, set --kubeconfig or MASTER_URI")
+	}
+	kc, err := createKubeConfigFromSecret(rm, serverURL, saSecret)
+	if err != nil {
+		return nil, util.WrapError(err, "creating kubeconfig from service account secret")
+	}
+	if err := validateKubeconfig(kc); err != nil {
+		return nil, util.WrapError(err, "validating kubeconfig")
+	}
+	return kc, err
+}
+
+func createKubeConfigFromSecret(rm *manager.ResourceManager, serverURL, saSecret string) (*clientcmdapi.Config, error) {
+	parts := strings.SplitN(saSecret, "/", 2)
 	name := parts[len(parts)-1]
 	namespace := "default"
 	if len(parts) > 1 {
@@ -41,28 +56,28 @@ func CreateNetworkAgentKubeconfig(rm *manager.ResourceManager, serverURL, networ
 	}
 	token, ok := secret.Data["token"]
 	if !ok {
-		return nil, fmt.Errorf("missing token in network agent secret")
+		return nil, fmt.Errorf("missing token in service account secret")
 	}
 	cacrt, ok := secret.Data["ca.crt"]
 	if !ok {
-		return nil, fmt.Errorf("missing CA cert in network agent secret")
+		return nil, fmt.Errorf("missing CA cert in service account secret")
 	}
 	cfg := kubeconfig.CreateFromToken(serverURL, "", name, cacrt, token)
 	return cfg, nil
 }
 
-func ValidateKubeconfig(config *clientcmdapi.Config) error {
+func validateKubeconfig(config *clientcmdapi.Config) error {
 	cc, err := clientcmd.NewDefaultClientConfig(*config, &clientcmd.ConfigOverrides{}).ClientConfig()
 	if err != nil {
-		return util.WrapError(err, "validating network agent access")
+		return util.WrapError(err, "validating kubeconfig")
 	}
 	clientset, err := kubernetes.NewForConfig(cc)
 	if err != nil {
-		return util.WrapError(err, "validating network agent access")
+		return util.WrapError(err, "validating kubeconfig")
 	}
 	_, err = clientset.ServerVersion()
 	if err != nil {
-		return util.WrapError(err, "validating network agent access")
+		return util.WrapError(err, "validating kubeconfig")
 	}
 	return nil
 }
