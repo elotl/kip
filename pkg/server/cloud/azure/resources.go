@@ -90,7 +90,7 @@ func (az *AzureClient) ListNodeResourceGroups() ([]string, error) {
 		for _, rg := range rgs {
 			name := to.String(rg.Name)
 			// if the resource name starts with a cluster prefix and
-			// ends with a UUID, then that's a milpa node resource
+			// ends with a UUID, then that's a kip node resource
 			// group
 			if isNodeResourceGroup(name, az.controllerID) {
 				groupNames = append(groupNames, name)

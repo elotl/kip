@@ -196,10 +196,10 @@ func filterLabelsForTags(resource string, labels map[string]string) (map[string]
 	for i, k := range labelKeys {
 		v := labels[k]
 		// constraints:
-		// <= 15 tags (reserve 5 for milpa)
+		// <= 15 tags (reserve 5 for kip)
 		// key - 512 characters
 		// value - 255 chars
-		// Key can't be one of our internal Milpa tag keys
+		// Key can't be one of our internal Kip tag keys
 		if i >= maxAzureUserTags {
 			e := fmt.Errorf("Error tagging resource %s: Users are limited to %d tags", resource, maxAzureUserTags)
 			allErrs = append(allErrs, e)
@@ -243,7 +243,7 @@ func replaceReservedTagChars(s string) string {
 }
 
 func (az *AzureClient) GetRegistryAuth() (string, string, error) {
-	return "", "", fmt.Errorf("Azure registry not implemented (ACR is being phased out at the start of 2019")
+	return "", "", fmt.Errorf("Azure registry not implemented")
 }
 
 // Display name is like "Central India", "East US 2" or "Brazil South"

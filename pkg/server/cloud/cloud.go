@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-const MilpaAPISGName = "CellSecurityGroup"
+const KipAPISGName = "CellSecurityGroup"
 const PublicCIDR = "0.0.0.0/0"
 const RestAPIPort = 6421
 
@@ -47,7 +47,7 @@ type CloudClient interface {
 	// This should always be called from a goroutine as it can take a while
 	StopInstance(instanceID string) error
 	WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
-	EnsureMilpaSecurityGroups([]string, []string) error
+	EnsureKipSecurityGroups([]string, []string) error
 	AttachSecurityGroups(node *api.Node, groups []string) error
 	AddIAMPermissions(node *api.Node, permissions string) error
 	ListInstancesFilterID([]string) ([]CloudInstance, error)

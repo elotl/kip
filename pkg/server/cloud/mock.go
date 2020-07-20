@@ -126,7 +126,7 @@ func (c *MockCloudClient) IsAvailable() (bool, error) {
 	return c.AvailabilityChecker()
 }
 
-func (c *MockCloudClient) EnsureMilpaSecurityGroups([]string, []string) error {
+func (c *MockCloudClient) EnsureKipSecurityGroups([]string, []string) error {
 	return nil
 }
 

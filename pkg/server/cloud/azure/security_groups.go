@@ -29,10 +29,10 @@ import (
 	"k8s.io/klog"
 )
 
-func (az *AzureClient) EnsureMilpaNSG() error {
+func (az *AzureClient) EnsureKipNSG() error {
 	// to keep things simple, the cluster NSG Name is the same as the
 	// resourceGroupName
-	nsgName := cloud.MilpaAPISGName
+	nsgName := cloud.KipAPISGName
 	resourceGroupName := controllerResourceGroupName(az.controllerID)
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, azureDefaultTimeout)
@@ -75,8 +75,8 @@ func (az *AzureClient) GetBootSecurityGroupIDs() []string {
 	return az.bootASGNames
 }
 
-func (az *AzureClient) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string) error {
-	milpaPorts := []cloud.InstancePort{
+func (az *AzureClient) EnsureKipSecurityGroups(extraCIDRs, extraGroupIDs []string) error {
+	kipPorts := []cloud.InstancePort{
 		{
 			Protocol:      api.ProtocolTCP,
 			Port:          cloud.RestAPIPort,
@@ -103,12 +103,12 @@ func (az *AzureClient) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []str
 		az.SetBootSecurityGroupIDs(extraGroupIDs)
 		return nil
 	}
-	err := az.EnsureMilpaNSG()
+	err := az.EnsureKipNSG()
 	if err != nil {
-		return util.WrapError(err, "Error ensuring milpa network security group exists")
+		return util.WrapError(err, "Error ensuring kip network security group exists")
 	}
 	cidrs := append(az.virtualNetwork.CIDRs, extraCIDRs...)
-	_, err = az.EnsureSecurityGroup(cloud.MilpaAPISGName, milpaPorts, cidrs)
+	_, err = az.EnsureSecurityGroup(cloud.KipAPISGName, kipPorts, cidrs)
 	return err
 }
 

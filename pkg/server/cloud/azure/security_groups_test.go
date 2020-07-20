@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetMilpaIPConfiguration(t *testing.T) {
+func TestGetKipIPConfiguration(t *testing.T) {
 	cases := []struct {
 		iface   network.Interface
 		isError bool
@@ -44,7 +44,7 @@ func TestGetMilpaIPConfiguration(t *testing.T) {
 				InterfacePropertiesFormat: &network.InterfacePropertiesFormat{
 					IPConfigurations: &[]network.InterfaceIPConfiguration{
 						{
-							Name: to.StringPtr(milpaIPConfig),
+							Name: to.StringPtr(kipIPConfig),
 						},
 					},
 				},
@@ -59,7 +59,7 @@ func TestGetMilpaIPConfiguration(t *testing.T) {
 							Name: to.StringPtr("something else"),
 						},
 						{
-							Name: to.StringPtr(milpaIPConfig),
+							Name: to.StringPtr(kipIPConfig),
 						},
 					},
 				},
@@ -68,13 +68,13 @@ func TestGetMilpaIPConfiguration(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		ipconfig, err := getMilpaIPConfiguration(tc.iface)
+		ipconfig, err := getKipIPConfiguration(tc.iface)
 		if tc.isError {
 			assert.Error(t, err)
 		} else {
 			assert.NoError(t, err)
 			assert.NotNil(t, ipconfig)
-			assert.Equal(t, milpaIPConfig, to.String(ipconfig.Name))
+			assert.Equal(t, kipIPConfig, to.String(ipconfig.Name))
 		}
 	}
 }
@@ -89,11 +89,11 @@ func TestGetSecurityGroupsFromInterface(t *testing.T) {
 				InterfacePropertiesFormat: &network.InterfacePropertiesFormat{
 					IPConfigurations: &[]network.InterfaceIPConfiguration{
 						{
-							Name: to.StringPtr(milpaIPConfig),
+							Name: to.StringPtr(kipIPConfig),
 							InterfaceIPConfigurationPropertiesFormat: &network.InterfaceIPConfigurationPropertiesFormat{
 								ApplicationSecurityGroups: &[]network.ApplicationSecurityGroup{
-									{ID: to.StringPtr("/subscriptions/4e84e89a-b806-4d7d-900b-cae8cb640215/resourceGroups/milpa-testcluster/providers/Microsoft.Network/applicationSecurityGroups/my-svc1")},
-									{ID: to.StringPtr("/subscriptions/4e84e89a-b806-4d7d-900b-cae8cb640215/resourceGroups/milpa-testcluster/providers/Microsoft.Network/applicationSecurityGroups/my-svc2")},
+									{ID: to.StringPtr("/subscriptions/4e84e89a-b806-4d7d-900b-cae8cb640215/resourceGroups/kip-testcluster/providers/Microsoft.Network/applicationSecurityGroups/my-svc1")},
+									{ID: to.StringPtr("/subscriptions/4e84e89a-b806-4d7d-900b-cae8cb640215/resourceGroups/kip-testcluster/providers/Microsoft.Network/applicationSecurityGroups/my-svc2")},
 								},
 							},
 						},

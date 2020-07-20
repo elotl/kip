@@ -35,8 +35,8 @@ import (
 )
 
 var (
-	milpaIPConfig    = "milpaIPConfig"
-	milpaPodIPConfig = "milpaPodIPConfig"
+	kipIPConfig    = "kipIPConfig"
+	kipPodIPConfig = "kipPodIPConfig"
 )
 
 func (az *AzureClient) StopInstance(instanceID string) error {
@@ -100,7 +100,7 @@ func (az *AzureClient) createNIC(instanceID string, ipID string) (string, error)
 			IPConfigurations: &[]network.InterfaceIPConfiguration{
 				{
 					// This name is used to find the IP configuration later on
-					Name: to.StringPtr(milpaIPConfig),
+					Name: to.StringPtr(kipIPConfig),
 					InterfaceIPConfigurationPropertiesFormat: &network.InterfaceIPConfigurationPropertiesFormat{
 						Subnet: &network.Subnet{
 							Name: to.StringPtr(az.subnet.Name),
@@ -116,7 +116,7 @@ func (az *AzureClient) createNIC(instanceID string, ipID string) (string, error)
 				},
 				{
 					// Pod IP address.
-					Name: to.StringPtr(milpaPodIPConfig),
+					Name: to.StringPtr(kipPodIPConfig),
 					InterfaceIPConfigurationPropertiesFormat: &network.InterfaceIPConfigurationPropertiesFormat{
 						Subnet: &network.Subnet{
 							Name: to.StringPtr(az.subnet.Name),
@@ -217,7 +217,7 @@ func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata str
 
 				OsProfile: &compute.OSProfile{
 					ComputerName:  to.StringPtr(instanceID),
-					AdminUsername: to.StringPtr("milpa"),
+					AdminUsername: to.StringPtr("kip"),
 					// We can't _not_ include this so we'll add it here
 					// but it wont be used by our image
 					AdminPassword: to.StringPtr("thisisunused-AFdsj483.fd8r37r"),
@@ -290,7 +290,7 @@ func (az *AzureClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, err
 	addresses := []api.NetworkAddress{}
 	if nic.IPConfigurations != nil {
 		for _, ipconfig := range *nic.IPConfigurations {
-			if to.String(ipconfig.Name) == milpaIPConfig {
+			if to.String(ipconfig.Name) == kipIPConfig {
 				ipProperties := ipconfig.InterfaceIPConfigurationPropertiesFormat
 				if ipProperties == nil {
 					return addresses, fmt.Errorf("invalid response from Azure when getting %s interface parameters", node.Status.InstanceID)
@@ -304,7 +304,7 @@ func (az *AzureClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, err
 					}
 				}
 			}
-			if to.String(ipconfig.Name) == milpaPodIPConfig {
+			if to.String(ipconfig.Name) == kipPodIPConfig {
 				ipProperties := ipconfig.InterfaceIPConfigurationPropertiesFormat
 				if ipProperties == nil {
 					return addresses, fmt.Errorf("invalid response from Azure when getting %s pod IP address", node.Status.InstanceID)
@@ -447,7 +447,7 @@ func (az *AzureClient) listInstancesHelper(filter func(inst compute.VirtualMachi
 }
 
 func getSecurityGroupsFromInterface(iface network.Interface) []cloud.SecurityGroupIdentifier {
-	ipConfig, err := getMilpaIPConfiguration(iface)
+	ipConfig, err := getKipIPConfiguration(iface)
 	if err != nil || ipConfig.ApplicationSecurityGroups == nil {
 		return []cloud.SecurityGroupIdentifier{}
 	}

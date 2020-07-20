@@ -116,7 +116,7 @@ func (az *AzureClient) setupClusterVNet(vNetName, subnetName string) error {
 }
 
 // subnetIDs look like:
-// /subscriptions/4e84e89a-b806-4d7d-900b-cae8cb640215/resourceGroups/milpa-bcox/providers/Microsoft.Network/virtualNetworks/milpa-bcox/subnets/milpa-bcox-default
+// /subscriptions/4e84e89a-b806-4d7d-900b-cae8cb640215/resourceGroups/kip-bcox/providers/Microsoft.Network/virtualNetworks/kip-bcox/subnets/kip-bcox-default
 func subnetToVirtualNetwork(resourceID string) string {
 	const resourceIDPatternText = `resourceGroups/([^/]+)/.*/virtualNetworks/([^/]+)/subnets`
 	resourceIDPattern := regexp.MustCompile(resourceIDPatternText)
@@ -283,7 +283,7 @@ func (az *AzureClient) RemoveRoute(destinationCIDR, instanceID string) error {
 		if err != nil {
 			return util.WrapError(err, "looking up NIC for adding route")
 		}
-		ipconfig, err := getMilpaIPConfiguration(nic)
+		ipconfig, err := getKipIPConfiguration(nic)
 		if err != nil {
 			return util.WrapError(err, "getting IP config for adding route")
 		}
@@ -376,7 +376,7 @@ func (az *AzureClient) AddRoute(destinationCIDR, instanceID string) error {
 	if err != nil {
 		return util.WrapError(err, "looking up NIC for adding route")
 	}
-	ipconfig, err := getMilpaIPConfiguration(nic)
+	ipconfig, err := getKipIPConfiguration(nic)
 	if err != nil {
 		return util.WrapError(err, "getting IP config for adding route")
 	}
@@ -525,16 +525,16 @@ func (az *AzureClient) getPublicIP(name string) (string, error) {
 	return to.String(prop.IPAddress), nil
 }
 
-func getMilpaIPConfiguration(iface network.Interface) (*network.InterfaceIPConfiguration, error) {
+func getKipIPConfiguration(iface network.Interface) (*network.InterfaceIPConfiguration, error) {
 	if iface.InterfacePropertiesFormat == nil || iface.InterfacePropertiesFormat.IPConfigurations == nil {
 		return nil, fmt.Errorf("Could not parse nic %s info. Azure sent back a garbage reply", to.String(iface.Name))
 	}
 	for i := range *iface.InterfacePropertiesFormat.IPConfigurations {
-		if to.String((*iface.IPConfigurations)[i].Name) == milpaIPConfig {
+		if to.String((*iface.IPConfigurations)[i].Name) == kipIPConfig {
 			return &((*iface.IPConfigurations)[i]), nil
 		}
 	}
-	return nil, fmt.Errorf("Could not find milpa IP configuration")
+	return nil, fmt.Errorf("Could not find kip IP configuration")
 }
 
 func (az *AzureClient) GetDNSInfo() ([]string, []string, error) {

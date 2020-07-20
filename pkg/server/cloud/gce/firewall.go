@@ -168,7 +168,7 @@ func (c *gceClient) toFirewallRule(sgName string, ports []cloud.InstancePort, so
 	}
 }
 
-func (c *gceClient) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string) error {
+func (c *gceClient) EnsureKipSecurityGroups(extraCIDRs, extraGroupIDs []string) error {
 	milpaPorts := []cloud.InstancePort{
 		{
 			Protocol:      api.ProtocolTCP,

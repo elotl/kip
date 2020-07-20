@@ -115,7 +115,7 @@ func (ts *TestState) Cleanup(t *testing.T) {
 func SetupFirewallRules(t *testing.T, c cloud.CloudClient) error {
 	extraGroups := []string{}
 	extraCIDRs := []string{cloud.PublicCIDR}
-	err := c.EnsureMilpaSecurityGroups(extraCIDRs, extraGroups)
+	err := c.EnsureKipSecurityGroups(extraCIDRs, extraGroups)
 	return err
 }
 

@@ -45,7 +45,7 @@ func TestMatchSpec(t *testing.T) {
 				"name": "elotl-kipdev-1234-20200222-010203",
 			},
 			Spec: cloud.BootImageSpec{
-				"name": "elotl-milpadev-*",
+				"name": "elotl-kipdev-*",
 			},
 			Matches: false,
 		},

@@ -37,7 +37,7 @@ import (
 const (
 	testControllerID   = "azure-func-test"
 	testSubscriptionID = "4e84e89a-b806-4d7d-900b-cae8cb640215"
-	testVNetName       = "milpa-tests/milpa-tests-vnet"
+	testVNetName       = "kip-tests/kip-tests-vnet"
 	testSubnetName     = "default"
 	testRegion         = "East US"
 	instanceType       = string(compute.VirtualMachineSizeTypesBasicA0)

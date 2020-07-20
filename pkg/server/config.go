@@ -452,7 +452,7 @@ func ConfigureCloud(configFile *ServerConfigFile, controllerID, nametag string) 
 	} else {
 		klog.V(2).Infof("controller will connect to nodes via private IPs")
 	}
-	err = cloudClient.EnsureMilpaSecurityGroups(
+	err = cloudClient.EnsureKipSecurityGroups(
 		configFile.Cells.ExtraCIDRs,
 		configFile.Cells.ExtraSecurityGroups,
 	)

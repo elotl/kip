@@ -32,7 +32,7 @@ const (
 )
 
 // This function grabs the azuremetadata for the local machine that
-// milpa is running on.  Times out after a couple of seconds
+// kip is running on.  Times out after a couple of seconds
 func GetMetadata(p string) (string, error) {
 	if len(p) > 0 && p[0] == '/' {
 		p = p[1:]

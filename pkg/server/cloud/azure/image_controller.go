@@ -39,7 +39,7 @@ import (
 const (
 	elotlImages      = "elotlimages"
 	containerName    = "itzodisks"
-	accountName      = "milpastorage"
+	accountName      = "kipstorage"
 	blobFormatString = `https://%s.blob.core.windows.net`
 )
 
@@ -127,7 +127,7 @@ func (ic *ImageController) CreateStorageAccount() (storage.Account, error) {
 			Location:                          to.StringPtr(ic.az.region),
 			AccountPropertiesCreateParameters: &storage.AccountPropertiesCreateParameters{},
 			Tags: map[string]*string{
-				"Created By":           to.StringPtr("milpa"),
+				"Created By":           to.StringPtr("kip"),
 				cloud.ControllerTagKey: to.StringPtr(ic.controllerID),
 			},
 		})
