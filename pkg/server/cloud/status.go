@@ -251,6 +251,7 @@ func (s *LinkedAZSubnetStatus) GetAvailableSubnets(instanceType string, spot, pr
 func (s *LinkedAZSubnetStatus) AddUnavailableInstance(instanceType string, spot bool) {
 	s.RLock()
 	defer s.RUnlock()
+	klog.V(2).Infof("Adding unavailable instance type %s", instanceType)
 	for i, _ := range s.subnets {
 		s.AddUnavailableSubnet(instanceType, spot, s.subnets[i].ID)
 	}

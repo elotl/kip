@@ -90,12 +90,14 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	if pod.Spec.Spot.Policy == api.SpotAlways {
 		// don't create pods if spot is unavailable
 		if s.cloudStatus.IsUnavailableZone(pod.Spec.InstanceType, true, pod.Spec.Resources.PrivateIPOnly, pod.Spec.Placement.AvailabilityZone) {
+			klog.V(5).Infof("Not creating node for pod %s: Unavailable zone", pod.Name)
 			return nil
 		}
 		isSpotPod = true
 	}
 
 	if s.cloudStatus.IsUnavailableZone(pod.Spec.InstanceType, isSpotPod, pod.Spec.Resources.PrivateIPOnly, pod.Spec.Placement.AvailabilityZone) {
+		klog.V(5).Infof("Not creating node for pod %s: Unavailable zone", pod.Name)
 		return nil
 	}
 
@@ -164,6 +166,7 @@ func (s *BindingNodeScaler) nodeMatchesStandbySpec(node *api.Node, spec *Standby
 func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.Node, []*api.Node, map[string]string) {
 	// we only care about nodes in availableOrBaking...
 	// remove bound nodes and pods, leaving only needyPods and unboundNodes
+	klog.V(5).Infof("Compute inputs: %d nodes, %d pods", len(nodes), len(pods))
 	newNodes := make([]*api.Node, 0)
 	dirtyNodes := make(map[string]*api.Node)
 
@@ -197,6 +200,7 @@ func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.
 			unboundPods = append(unboundPods, pod)
 		}
 	}
+
 	// Prioritize matching to spot nodes by putting them at the front
 	// of the slice.  We do this because we might have unavilability
 	// in spot nodes but still have some sitting around that we've
@@ -232,6 +236,8 @@ func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.
 		}
 	}
 
+	klog.V(5).Infof("waitingPods: %d, unboundPods: %d, needyPods: %d", len(waitingPods), len(unboundPods), len(needyPods))
+
 	// for all remaining pods, create new nodes for those and add a
 	// BoundPodName to them as well
 	for _, pod := range needyPods {
@@ -239,8 +245,13 @@ func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.
 		if newNode != nil {
 			podNodeBinding[pod.Name] = newNode.Name
 			newNodes = append(newNodes, newNode)
+		} else {
+			klog.Warningln("Could not create node for pod", pod.Name)
 		}
 	}
+
+	klog.V(5).Infof("num new nodes: %d", len(newNodes))
+
 	// for all nodes that remain, match them to the buffered pool spec.
 	// Keep track of the number of nodes each pool needs and keep
 	// unbound nodes up to date by
@@ -260,6 +271,8 @@ func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.
 		}
 		standbyToNumNeeded[standbySpec] = neededNodes
 	}
+
+	klog.V(5).Infof("num standy nodes needed: %d", len(newNodes))
 	// Create nodes to keep the buffered pool up to date
 	for spec, numNeeded := range standbyToNumNeeded {
 		for i := 0; i < numNeeded; i++ {
@@ -271,9 +284,11 @@ func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.
 	// we might be updating a ton of nodes and if the DB goes away
 	// this will take 10s per node to timeout. A context would be
 	// better but isn't part of the registry interface....
+	klog.V(5).Infof("updating %d node bindings", len(dirtyNodes))
 	deadline := time.Now().Add(time.Second * 15)
 	for _, node := range dirtyNodes {
 		if time.Now().After(deadline) {
+			klog.Warningln("Deadline exceeded updating nodes in pools calculation")
 			return nil, nil, nil
 		}
 		_, err := s.nodeRegistry.UpdateStatus(node)

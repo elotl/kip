@@ -140,6 +140,7 @@ func (c *NodeController) updateBufferedNodesLoop(quit <-chan struct{}, wg *sync.
 // in this goroutine, otherwise our node scaling calculations
 // will get thrown off
 func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
+	klog.V(5).Infoln("Starting node pool calculation")
 	nodes, err := c.NodeRegistry.ListNodes(registry.MatchAllNodes)
 	if err != nil {
 		return nil, util.WrapError(err, "Couldn't list nodes for pool calculation")
@@ -151,6 +152,7 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 	if err != nil {
 		return nil, util.WrapError(err, "Couldn't list pods for pool calculation")
 	}
+	klog.V(5).Infof("nodes: %d, pods: %d", len(nodes.Items), len(pods.Items))
 
 	// If we can't get the boot image, just use the old value for the image
 	newBootImage, err := c.imageSpecToImage(c.BootImageSpec)
@@ -162,15 +164,18 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 			newBootImage = BootImage
 		}
 	}
+	klog.V(5).Infoln("BootImage:", BootImage)
 	BootImage = newBootImage
 
 	if BootImage.ID == "" {
 		return nil, fmt.Errorf("can not create create new nodes: empty value for machine image.  Please ensure boot image spec maps to a machine image: %v", c.BootImageSpec)
 	}
 	startNodes, stopNodes, podNodeMap := c.NodeScaler.Compute(nodes.Items, pods.Items)
+	klog.V(5).Infof("startNodes: %d, stopNodes %d, podNodeMap: %v", len(startNodes), len(stopNodes), podNodeMap)
 	if podNodeMap == nil {
 		return nil, fmt.Errorf("Error computing new node pools, this is likely a problem with the DB. Not updating pod-node bindings")
 	}
+
 	c.startNodes(startNodes, BootImage)
 	for _, node := range stopNodes {
 		err := c.stopSingleNode(node)
@@ -230,6 +235,7 @@ func (c *NodeController) getCloudInitContents() (string, error) {
 }
 
 func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
+	klog.V(5).Infof("Starting %d nodes", len(nodes))
 	if len(nodes) <= 0 {
 		return
 	}
@@ -238,6 +244,7 @@ func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
 		klog.Errorf("Error creating node metadata: %s", err)
 		return
 	}
+	klog.V(5).Infof("created cloudInitData. len(metadata):", len(metadata))
 	// Randomize boot order to prevent getting stuck with 10 nodes at
 	// the start of the boot list that can't be booted for some reason
 	if len(nodes) > MaxBootPerIteration {
@@ -251,6 +258,7 @@ func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
 			klog.V(2).Infof("Rate limiting start requests to %d per iteration", MaxBootPerIteration)
 			break
 		}
+		klog.V(5).Infof("creating new node %s in registry", newNode.Name)
 		newNode, err := c.NodeRegistry.CreateNode(newNode)
 		if err != nil {
 			klog.Errorf("Error creating node in registry: %v", err)
@@ -263,6 +271,7 @@ func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
 func (c *NodeController) handleStartNodeError(node *api.Node, err error, isSpot bool) {
 	switch err := err.(type) {
 	case *cloud.NoCapacityError:
+		klog.Warningln("No capacity error:", err.Error())
 		if err.AZ != "" {
 			c.CloudStatus.AddUnavailableZone(node.Spec.InstanceType, isSpot, err.AZ)
 		} else if err.SubnetID != "" {
@@ -271,6 +280,7 @@ func (c *NodeController) handleStartNodeError(node *api.Node, err error, isSpot 
 			c.CloudStatus.AddUnavailableInstance(node.Spec.InstanceType, isSpot)
 		}
 	case *cloud.UnsupportedInstanceError:
+		klog.Warningln("Unsupported instance error:", err.Error())
 		// It's possible we should eventually kill the pod associated
 		// with this but I hesitate to do that, instead lets push that
 		// off to the operator for now.
@@ -283,6 +293,7 @@ func (c *NodeController) startSingleNode(node *api.Node, image cloud.Image, clou
 		startResult *cloud.StartNodeResult
 		err         error
 	)
+	klog.V(5).Infof("Starting node %s", node.Name)
 	if node.Spec.Spot {
 		startResult, err = c.CloudClient.StartSpotNode(node, image, cloudInitData)
 	} else {
