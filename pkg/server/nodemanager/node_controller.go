@@ -110,7 +110,8 @@ func (c *NodeController) Dump() []byte {
 func (c *NodeController) updateBufferedNodesLoop(quit <-chan struct{}, wg *sync.WaitGroup, nodeBindingsUpdate chan map[string]string) {
 	wg.Add(1)
 	defer wg.Done()
-
+	klog.Warningln("Logging extra info in NodeController buffered nodes loop")
+	klog.Errorln("Ensuring errors are captured as well")
 	ticker := time.NewTicker(c.Config.PoolInterval)
 	defer ticker.Stop()
 	for {
