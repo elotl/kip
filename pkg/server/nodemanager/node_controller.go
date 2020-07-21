@@ -244,7 +244,7 @@ func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
 		klog.Errorf("Error creating node metadata: %s", err)
 		return
 	}
-	klog.V(5).Infof("created cloudInitData. len(metadata):", len(metadata))
+	klog.V(5).Infoln("created cloudInitData. len(metadata):", len(metadata))
 	// Randomize boot order to prevent getting stuck with 10 nodes at
 	// the start of the boot list that can't be booted for some reason
 	if len(nodes) > MaxBootPerIteration {
