@@ -71,7 +71,6 @@ type AzureClient struct {
 	nsgID          string
 	nsgName        string
 	bootASGNames   []string // Names, not the full azure IDs
-	cloudStatus    cloud.StatusKeeper
 }
 
 func getAzureConnection(subscriptionID string) (*AzureClient, error) {
@@ -137,10 +136,6 @@ func NewAzureClient(controllerID, nametag, subscriptionID, region, vNetName, sub
 	if err != nil {
 		return az, util.WrapError(err, "Error setting up cluster virtual network")
 	}
-	az.cloudStatus, err = cloud.NewAZSubnetStatus(az)
-	if err != nil {
-		return az, util.WrapError(err, "Error creating azure cloud status keeper")
-	}
 	return az, err
 }
 
@@ -158,10 +153,6 @@ func CheckConnection(subscriptionID string) error {
 		return fmt.Errorf("Could not access azure API")
 	}
 	return nil
-}
-
-func (az *AzureClient) CloudStatusKeeper() cloud.StatusKeeper {
-	return az.cloudStatus
 }
 
 func (az *AzureClient) GetVPCCIDRs() []string {

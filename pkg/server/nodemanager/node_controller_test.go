@@ -59,13 +59,13 @@ func FakeLister() ([]cloud.CloudInstance, error) {
 	return nil, nil
 }
 
-func StartReturnsOK(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
-	result := &cloud.StartNodeResult{"instID", "us-east-1a"}
+func StartReturnsOK(node *api.Node, image cloud.Image, metadata string) (string, error) {
+	result := "instID"
 	return result, nil
 }
 
-func StartFails(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
-	return nil, fmt.Errorf("Testing, purposefully returning error")
+func StartFails(node *api.Node, image cloud.Image, metadata string) (string, error) {
+	return "", fmt.Errorf("Testing, purposefully returning error")
 }
 
 func ReturnAddresses(node *api.Node) ([]api.NetworkAddress, error) {
@@ -100,7 +100,7 @@ func MakeNodeController() (*NodeController, func()) {
 	imageIdCache := timeoutmap.New(false, make(chan struct{}))
 	imageIdCache.Add(defaultBootImageSpec.String(), defaultBootImage, 5*time.Minute, timeoutmap.Noop)
 	fakeCertFactory, _ := certs.NewFake()
-	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
+	bootLimiter := NewInstanceBootLimiter()
 	ciFile, _ := cloudinitfile.New("")
 	nc := &NodeController{
 		Config: NodeControllerConfig{
@@ -115,7 +115,7 @@ func MakeNodeController() (*NodeController, func()) {
 		NodeScaler: &BindingNodeScaler{
 			nodeRegistry: nodeRegistry,
 			standbyNodes: nil,
-			cloudStatus:  cloudStatus,
+			bootLimiter:  bootLimiter,
 		},
 		CloudClient:        cloudClient,
 		NodeClientFactory:  nodeclient.NewMockItzoClientFactory(),
@@ -124,7 +124,7 @@ func MakeNodeController() (*NodeController, func()) {
 		ImageIdCache:       imageIdCache,
 		CertificateFactory: fakeCertFactory,
 		CloudInitFile:      ciFile,
-		CloudStatus:        cloudStatus,
+		BootLimiter:        bootLimiter,
 		BootImageSpec:      defaultBootImageSpec,
 	}
 	return nc, closer

@@ -17,11 +17,8 @@ limitations under the License.
 package validation
 
 import (
-	"fmt"
-
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/server/cloud"
-	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/kip/pkg/util/validation/field"
 )
 
@@ -33,14 +30,12 @@ import (
 // system.
 
 type StatefulValidator struct {
-	cloudStatus   cloud.StatusKeeper
 	cloudProvider string
 	vpcCIDRs      []string
 }
 
-func NewStatefulValidator(status cloud.StatusKeeper, cloudProvider string, vpcCIDRs []string) *StatefulValidator {
+func NewStatefulValidator(cloudProvider string, vpcCIDRs []string) *StatefulValidator {
 	return &StatefulValidator{
-		cloudStatus:   status,
 		cloudProvider: cloudProvider,
 		vpcCIDRs:      vpcCIDRs,
 	}
@@ -48,25 +43,6 @@ func NewStatefulValidator(status cloud.StatusKeeper, cloudProvider string, vpcCI
 
 func (v *StatefulValidator) ValidatePodSpec(spec *api.PodSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	if spec.Placement.AvailabilityZone != "" {
-		if status, ok := v.cloudStatus.(*cloud.LinkedAZSubnetStatus); ok {
-			subnets := status.GetAllAZSubnets(spec.Placement.AvailabilityZone, spec.Resources.PrivateIPOnly)
-			if len(subnets) == 0 {
-				addressType := "public"
-				if spec.Resources.PrivateIPOnly {
-					addressType = "private"
-				}
-				msg := fmt.Sprintf("Invalid Availability Zone. No %s address subnets found in %s", addressType, spec.Placement.AvailabilityZone)
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("placement.availabilityZone"), spec.Placement.AvailabilityZone, msg))
-			}
-		} else if status, ok := v.cloudStatus.(*cloud.AZSubnetStatus); ok {
-			azs := status.GetAllAvailabilityZones()
-			if !util.StringInSlice(spec.Placement.AvailabilityZone, azs) {
-				msg := fmt.Sprintf("Invalid Availability Zone %s. Available zones: %v", spec.Placement.AvailabilityZone, azs)
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("placement.availabilityZone"), spec.Placement.AvailabilityZone, msg))
-			}
-		}
-	}
 	if v.cloudProvider == cloud.ProviderAzure {
 		if spec.Resources.SustainedCPU != nil && *spec.Resources.SustainedCPU {
 			msg := "Azure does not support burstable instances with sustained CPUs"

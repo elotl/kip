@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/elotl/kip/pkg/api"
-	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/server/registry"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,10 +32,10 @@ func (f *FakeNodeStatusUpdater) UpdateStatus(n *api.Node) (*api.Node, error) {
 
 func MakeNodeScaler() (*BindingNodeScaler, func()) {
 	nodeRegistry, closer := registry.SetupTestNodeRegistry()
-	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
+	bootLimiter := NewInstanceBootLimiter()
 	return &BindingNodeScaler{
 		nodeRegistry:      nodeRegistry,
-		cloudStatus:       cloudStatus,
+		bootLimiter:       bootLimiter,
 		defaultVolumeSize: "2G",
 	}, closer
 }
@@ -59,26 +58,26 @@ func TestSpotMatches(t *testing.T) {
 		pod.Spec.Spot.Policy = tc.spotPolicy
 		node := api.GetFakeNode()
 		node.Spec.Spot = tc.nodeSpot
-		cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
+		bootLimiter := NewInstanceBootLimiter()
 		if tc.spotUnavailable {
-			cloudStatus.AddUnavailableInstance(pod.Spec.InstanceType, true)
+			bootLimiter.AddUnavailableInstance(pod.Spec.InstanceType, true)
 		}
-		ns.cloudStatus = cloudStatus
+		ns.bootLimiter = bootLimiter
 		matches := ns.spotMatches(pod, node)
 		assert.Equal(t, tc.result, matches, "error on case %d", i)
 	}
 }
 
 func TestPodMatchesNode(t *testing.T) {
-	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
-	ns := BindingNodeScaler{cloudStatus: cloudStatus, defaultVolumeSize: "5G"}
+	bootLimiter := NewInstanceBootLimiter()
+	ns := BindingNodeScaler{
+		bootLimiter:       bootLimiter,
+		defaultVolumeSize: "5G",
+	}
 	pod := api.GetFakePod()
 	node := ns.createNodeForPod(pod)
 	assert.True(t, ns.podMatchesNode(pod, node))
 	p2 := *pod
-	p2.Spec.Placement.AvailabilityZone = "us-east-1a"
-	assert.False(t, ns.podMatchesNode(&p2, node))
-	p2 = *pod
 	p2.Spec.InstanceType = "p3.xlarge"
 	assert.False(t, ns.podMatchesNode(&p2, node))
 	p2 = *pod
@@ -90,8 +89,11 @@ func TestPodMatchesNode(t *testing.T) {
 }
 
 func TestCreateNodeForPodUnavailable(t *testing.T) {
-	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
-	ns := BindingNodeScaler{cloudStatus: cloudStatus, defaultVolumeSize: "5G"}
+	bootLimiter := NewInstanceBootLimiter()
+	ns := BindingNodeScaler{
+		bootLimiter:       bootLimiter,
+		defaultVolumeSize: "5G",
+	}
 
 	// if not a spot pod
 	pod := api.GetFakePod()
@@ -105,22 +107,22 @@ func TestCreateNodeForPodUnavailable(t *testing.T) {
 	assert.True(t, node.Spec.Spot)
 
 	// Now it's unavailable...
-	ns.cloudStatus.AddUnavailableInstance(pod.Spec.InstanceType, true)
+	ns.bootLimiter.AddUnavailableInstance(pod.Spec.InstanceType, true)
 	node = ns.createNodeForPod(pod)
 	assert.Nil(t, node)
 
 	// Now it's totally unavailable we shouldn't get a node back
-	ns.cloudStatus.AddUnavailableInstance(pod.Spec.InstanceType, true)
-	ns.cloudStatus.AddUnavailableInstance(pod.Spec.InstanceType, false)
+	ns.bootLimiter.AddUnavailableInstance(pod.Spec.InstanceType, true)
+	ns.bootLimiter.AddUnavailableInstance(pod.Spec.InstanceType, false)
 	node = ns.createNodeForPod(pod)
 	assert.Nil(t, node)
 }
 
 func TestCreateNodeForPodVolumeSize(t *testing.T) {
-	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
+	bootLimiter := NewInstanceBootLimiter()
 	defaultVolumeSize := "5G"
 	ns := BindingNodeScaler{
-		cloudStatus:       cloudStatus,
+		bootLimiter:       bootLimiter,
 		defaultVolumeSize: defaultVolumeSize,
 	}
 
@@ -138,20 +140,12 @@ func TestCreateNodeForPodVolumeSize(t *testing.T) {
 	assert.Equal(t, largerVolume, node.Spec.Resources.VolumeSize)
 }
 
-func TestPlacementMatches(t *testing.T) {
-	node := api.GetFakeNode()
-	node.Spec.Placement.AvailabilityZone = "us-east-1a"
-	pod := api.GetFakePod()
-	assert.True(t, placementMatches(pod, node))
-	pod.Spec.Placement.AvailabilityZone = "us-east-1a"
-	assert.True(t, placementMatches(pod, node))
-	pod.Spec.Placement.AvailabilityZone = "us-west-1a"
-	assert.False(t, placementMatches(pod, node))
-}
-
 func TestCreateNodeForStandbySpec(t *testing.T) {
-	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
-	ns := BindingNodeScaler{cloudStatus: cloudStatus, defaultVolumeSize: "5G"}
+	bootLimiter := NewInstanceBootLimiter()
+	ns := BindingNodeScaler{
+		bootLimiter:       bootLimiter,
+		defaultVolumeSize: "5G",
+	}
 
 	sb := &StandbyNodeSpec{
 		InstanceType: "t2.nano",
@@ -168,8 +162,11 @@ func TestCreateNodeForStandbySpec(t *testing.T) {
 }
 
 func TestNodeMatchesStandbySpec(t *testing.T) {
-	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
-	ns := BindingNodeScaler{cloudStatus: cloudStatus, defaultVolumeSize: "5G"}
+	bootLimiter := NewInstanceBootLimiter()
+	ns := BindingNodeScaler{
+		bootLimiter:       bootLimiter,
+		defaultVolumeSize: "5G",
+	}
 
 	sb := &StandbyNodeSpec{
 		InstanceType: "t2.nano",
@@ -193,11 +190,10 @@ func TestNodeMatchesStandbySpec(t *testing.T) {
 
 func makeNodeScaler() (*BindingNodeScaler, func()) {
 	nodeRegistry, closer := registry.SetupTestNodeRegistry()
-	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
 	ns := &BindingNodeScaler{
 		nodeRegistry:      nodeRegistry,
 		standbyNodes:      []StandbyNodeSpec{},
-		cloudStatus:       cloudStatus,
+		bootLimiter:       NewInstanceBootLimiter(),
 		defaultVolumeSize: "5G",
 	}
 	return ns, closer

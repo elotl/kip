@@ -150,12 +150,12 @@ func (az *AzureClient) createNIC(instanceID string, ipID string) (string, error)
 	return to.String(nic.ID), nil
 }
 
-func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
+func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	instanceID := makeInstanceID(az.controllerID, node.Name)
 	err := az.createResourceGroup(instanceID)
 	if err != nil {
-		return nil, util.WrapError(err, "Error creating new Azure Resource Group for Node %s", node.Name)
+		return "", util.WrapError(err, "Error creating new Azure Resource Group for Node %s", node.Name)
 	}
 	cleanup := func() {
 		err := az.DeleteResourceGroup(instanceID)
@@ -167,14 +167,15 @@ func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata str
 		}
 	}
 
-	zone := node.Spec.Placement.AvailabilityZone
+	// Todo, use an annotation to pass through the zone
+	zone := ""
 	ipID := ""
 	if !node.Spec.Resources.PrivateIPOnly {
 		ip, err := az.createIPAddress(instanceID, zone)
 		if err != nil {
 			cleanup()
 			// todo, see if our subnet is constrained, return that error instead
-			return nil, util.WrapError(err, "Error creating new IP for Node %s", node.Name)
+			return "", util.WrapError(err, "Error creating new IP for Node %s", node.Name)
 		}
 		ipID = to.String(ip.ID)
 	}
@@ -182,7 +183,7 @@ func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata str
 	if err != nil {
 		// Todo, see if our subnet is constrained on private addresses
 		cleanup()
-		return nil, util.WrapError(err, "Error creating new NIC for Node %s", node.Name)
+		return "", util.WrapError(err, "Error creating new NIC for Node %s", node.Name)
 	}
 	metadataptr := to.StringPtr(metadata)
 	// Azure doesn't like emptystring metadata
@@ -242,28 +243,24 @@ func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata str
 	)
 	if err != nil {
 		cleanup()
-		return nil, getStartVMError(err, az.subnet.ID, node.Spec.Placement.AvailabilityZone)
+		return "", getStartVMError(err, az.subnet.ID, "")
 	}
 	timeoutCtx, cancel = context.WithTimeout(ctx, azureStartNodeTimeout)
 	defer cancel()
 	err = future.WaitForCompletionRef(timeoutCtx, az.vms.Client)
 	if err != nil {
 		cleanup()
-		return nil, util.WrapError(err, "Error waiting for VM %s to boot", instanceID)
+		return "", util.WrapError(err, "Error waiting for VM %s to boot", instanceID)
 	}
 	_, err = future.Result(az.vms)
 	if err != nil {
 		cleanup()
-		return nil, util.WrapError(err, "Error getting VM %s after booting", instanceID)
+		return "", util.WrapError(err, "Error getting VM %s after booting", instanceID)
 	}
-	startResult := &cloud.StartNodeResult{
-		InstanceID:       instanceID,
-		AvailabilityZone: zone,
-	}
-	return startResult, nil
+	return instanceID, nil
 }
 
-func (az *AzureClient) StartSpotNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
+func (az *AzureClient) StartSpotNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
 	return az.StartNode(node, image, metadata)
 }
 

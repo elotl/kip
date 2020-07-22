@@ -245,10 +245,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 		return nil, fmt.Errorf("error creating node client certificate: %v", err)
 	}
 	klog.V(5).Infof("starting cloud status keeper")
-	cloudStatus := cloudClient.CloudStatusKeeper()
-	cloudStatus.Start()
 	statefulValidator := validation.NewStatefulValidator(
-		cloudStatus,
 		cloudClient.GetAttributes().Provider,
 		cloudClient.GetVPCCIDRs(),
 	)
@@ -354,7 +351,8 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 		return nil, fmt.Errorf("error in user supplied cloud-init file: %v", err)
 	}
 	fixedSizeVolume := cloudClient.GetAttributes().FixedSizeVolume
-
+	bootLimiter := nodemanager.NewInstanceBootLimiter()
+	bootLimiter.Start()
 	klog.V(5).Infof("creating node controller")
 	nodeController := &nodemanager.NodeController{
 		Config: nodemanager.NodeControllerConfig{
@@ -372,7 +370,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 		NodeScaler: nodemanager.NewBindingNodeScaler(
 			nodeRegistry,
 			serverConfigFile.Cells.StandbyCells,
-			cloudStatus,
+			bootLimiter,
 			serverConfigFile.Cells.DefaultVolumeSize,
 			fixedSizeVolume,
 		),
@@ -382,7 +380,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 		ImageIdCache:       imageIdCache,
 		CloudInitFile:      cloudInitFile,
 		CertificateFactory: certFactory,
-		CloudStatus:        cloudStatus,
+		BootLimiter:        bootLimiter,
 		BootImageSpec:      serverConfigFile.Cells.BootImageSpec,
 	}
 

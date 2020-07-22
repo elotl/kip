@@ -206,10 +206,6 @@ func (c *gceClient) GetSubnets() ([]cloud.SubnetAttributes, error) {
 	return sns, nil
 }
 
-func (c *gceClient) GetAvailabilityZones() ([]string, error) {
-	return []string{c.zone}, nil
-}
-
 func (c *gceClient) AddRoute(destinationCIDR, instanceID string) error {
 	// TODO
 	return nil

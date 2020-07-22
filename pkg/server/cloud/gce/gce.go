@@ -59,7 +59,6 @@ type gceClient struct {
 	subnetCIDR           string   // Unsure if this is needed?
 	usePublicIPs         bool
 	bootSecurityGroupIDs []string
-	cloudStatus          *cloud.AZSubnetStatus
 	gkeMetadata          map[string]string
 }
 
@@ -119,10 +118,6 @@ func NewGCEClient(controllerID, nametag, projectID string, opts ...ClientOption)
 			return nil, err
 		}
 	}
-	client.cloudStatus, err = cloud.NewAZSubnetStatus(client)
-	if err != nil {
-		return nil, util.WrapError(err, "Error creating gce cloud status keeper")
-	}
 	client.gkeMetadata = getGKEMetadata()
 
 	return client, nil
@@ -159,10 +154,6 @@ func (c *gceClient) GetAttributes() cloud.CloudAttributes {
 		Region:          c.region,
 		Zone:            c.zone,
 	}
-}
-
-func (c *gceClient) CloudStatusKeeper() cloud.StatusKeeper {
-	return c.cloudStatus
 }
 
 func (c *gceClient) GetRegistryAuth() (string, string, error) {

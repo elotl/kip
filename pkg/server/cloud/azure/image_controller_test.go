@@ -44,19 +44,7 @@ func getImageController() *ImageController {
 
 func TestImageParametersMatch(t *testing.T) {
 	ctl := getImageController()
-	// A bit convoluted, we create a mock status keeper and put it in our
-	// az cloudStatus but the status is backed by a MockCloudClient
-	c := cloud.NewMockClient()
-	c.Subnets = []cloud.SubnetAttributes{
-		{
-			AZ: "",
-		},
-	}
-	c.StatusKeeperGetter = func() cloud.StatusKeeper {
-		s, _ := cloud.NewAZSubnetStatus(c)
-		return s
-	}
-	ctl.az.cloudStatus = c.CloudStatusKeeper()
+	ctl.supportsAvailabilityZones = true
 	img := compute.Image{
 		ImageProperties: &compute.ImageProperties{
 			StorageProfile: &compute.ImageStorageProfile{
@@ -66,13 +54,6 @@ func TestImageParametersMatch(t *testing.T) {
 	}
 	assert.True(t, ctl.imageParametersMatch(img))
 	// Now test out in a location that supports azs
-	c.Subnets = []cloud.SubnetAttributes{
-		{
-			AZ: "1",
-		},
-	}
-	ctl.az.cloudStatus = c.CloudStatusKeeper()
-	assert.True(t, c.CloudStatusKeeper().SupportsAvailabilityZones())
 	assert.True(t, ctl.imageParametersMatch(img))
 
 	img.StorageProfile.ZoneResilient = to.BoolPtr(false)

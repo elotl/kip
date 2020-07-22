@@ -42,8 +42,8 @@ const PodNameTagKey = "KipPodName"
 type CloudClient interface {
 	SetBootSecurityGroupIDs([]string)
 	GetBootSecurityGroupIDs() []string
-	StartNode(*api.Node, Image, string) (*StartNodeResult, error)
-	StartSpotNode(*api.Node, Image, string) (*StartNodeResult, error)
+	StartNode(*api.Node, Image, string) (string, error)
+	StartSpotNode(*api.Node, Image, string) (string, error)
 	// This should always be called from a goroutine as it can take a while
 	StopInstance(instanceID string) error
 	WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
@@ -63,9 +63,6 @@ type CloudClient interface {
 	AddRoute(string, string) error
 	GetVPCCIDRs() []string
 	GetDNSInfo() ([]string, []string, error)
-	CloudStatusKeeper() StatusKeeper
-	GetSubnets() ([]SubnetAttributes, error)
-	GetAvailabilityZones() ([]string, error)
 	GetAttributes() CloudAttributes
 	IsAvailable() (bool, error)
 }
@@ -76,11 +73,6 @@ type CloudAttributes struct {
 	Provider        string
 	Region          string
 	Zone            string
-}
-
-type StartNodeResult struct {
-	InstanceID       string
-	AvailabilityZone string
 }
 
 type SubnetAddressAffinity string

@@ -56,7 +56,6 @@ type AwsEC2 struct {
 	usePublicIPs         bool
 	region               string
 	bootSecurityGroupIDs []string
-	cloudStatus          *cloud.LinkedAZSubnetStatus
 }
 
 func getAWSConfig(endpointURL string, insecureSkipSSLVerify bool) *aws.Config {
@@ -186,11 +185,6 @@ func NewEC2Client(config EC2ClientConfig) (*AwsEC2, error) {
 		}
 	}
 	client.region = os.Getenv("AWS_REGION")
-	client.cloudStatus, err = cloud.NewLinkedAZSubnetStatus(client)
-	if err != nil {
-		return nil, util.WrapError(
-			err, "Error setting up cloud status keeper")
-	}
 
 	subnetAttrs, err := client.getSubnetAttributes()
 	if err != nil {
@@ -220,10 +214,6 @@ func (c *AwsEC2) getSubnetAttributes() (cloud.SubnetAttributes, error) {
 		}
 	}
 	return sn, fmt.Errorf("could not match the provided subnetID %s to any subnet in the VPC", c.subnetID)
-}
-
-func (c *AwsEC2) CloudStatusKeeper() cloud.StatusKeeper {
-	return c.cloudStatus
 }
 
 func (c *AwsEC2) GetVPCCIDRs() []string {

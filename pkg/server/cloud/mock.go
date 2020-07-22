@@ -34,8 +34,8 @@ type MockCloudClient struct {
 	VPCCIDRs     []string
 	Subnets      []SubnetAttributes
 
-	Starter             func(node *api.Node, image Image, metadata string) (*StartNodeResult, error)
-	SpotStarter         func(node *api.Node, image Image, metadata string) (*StartNodeResult, error)
+	Starter             func(node *api.Node, image Image, metadata string) (string, error)
+	SpotStarter         func(node *api.Node, image Image, metadata string) (string, error)
 	Stopper             func(instanceID string) error
 	Waiter              func(node *api.Node) ([]api.NetworkAddress, error)
 	Lister              func() ([]CloudInstance, error)
@@ -51,9 +51,8 @@ type MockCloudClient struct {
 	RouteRemover func(string, string) error
 	RouteAdder   func(string, string) error
 
-	StatusKeeperGetter func() StatusKeeper
-	SubnetGetter       func() ([]SubnetAttributes, error)
-	AZGetter           func() ([]string, error)
+	SubnetGetter func() ([]SubnetAttributes, error)
+	AZGetter     func() ([]string, error)
 
 	AvailabilityChecker func() (bool, error)
 
@@ -74,11 +73,11 @@ func (m *MockCloudClient) GetBootSecurityGroupIDs() []string {
 	return nil
 }
 
-func (m *MockCloudClient) StartNode(node *api.Node, image Image, metadata string) (*StartNodeResult, error) {
+func (m *MockCloudClient) StartNode(node *api.Node, image Image, metadata string) (string, error) {
 	return m.Starter(node, image, metadata)
 }
 
-func (m *MockCloudClient) StartSpotNode(node *api.Node, image Image, metadata string) (*StartNodeResult, error) {
+func (m *MockCloudClient) StartSpotNode(node *api.Node, image Image, metadata string) (string, error) {
 	return m.SpotStarter(node, image, metadata)
 }
 
@@ -110,16 +109,8 @@ func (m *MockCloudClient) AddInstanceTags(string, map[string]string) error {
 	return nil
 }
 
-func (c *MockCloudClient) CloudStatusKeeper() StatusKeeper {
-	return c.StatusKeeperGetter()
-}
-
 func (c *MockCloudClient) GetSubnets() ([]SubnetAttributes, error) {
 	return c.SubnetGetter()
-}
-
-func (c *MockCloudClient) GetAvailabilityZones() ([]string, error) {
-	return c.AZGetter()
 }
 
 func (c *MockCloudClient) IsAvailable() (bool, error) {
@@ -353,18 +344,13 @@ func NewMockClient() *MockCloudClient {
 		return azs.List(), nil
 	}
 
-	net.StatusKeeperGetter = func() StatusKeeper {
-		status, _ := NewLinkedAZSubnetStatus(net)
-		return status
-	}
-
-	net.Starter = func(node *api.Node, image Image, metadata string) (*StartNodeResult, error) {
+	net.Starter = func(node *api.Node, image Image, metadata string) (string, error) {
 		inst := CloudInstance{
 			ID:       node.Status.InstanceID,
 			NodeName: node.Name,
 		}
 		net.Instances[node.Status.InstanceID] = inst
-		return nil, nil
+		return node.Status.InstanceID, nil
 	}
 
 	net.Stopper = func(instID string) error {

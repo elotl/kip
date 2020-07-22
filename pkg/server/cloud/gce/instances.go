@@ -260,11 +260,11 @@ EOF
 
 // this function handles the starting of both regular and spot type instances
 // it is called in the exported StartNode and StartSpotNode functions
-func (c *gceClient) startNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
+func (c *gceClient) startNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	spec, err := c.createInstanceSpec(node, image, metadata)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		c.bootSecurityGroupIDs, c.subnetName)
@@ -272,29 +272,25 @@ func (c *gceClient) startNode(node *api.Node, image cloud.Image, metadata string
 	defer cancel()
 	op, err := c.service.Instances.Insert(c.projectID, c.zone, spec).Context(ctx).Do()
 	if err != nil {
-		return nil, util.WrapError(err, "startup error")
+		return "", util.WrapError(err, "startup error")
 	}
 	// Todo: catch and convert errors to notify us of
 	// out of capacity errors or invalid machine types
 	// see pkg/server/cloud/aws/instances.StartNode()
 	if err := waitOnOperation(op.Name, c.getZoneOperation); err != nil {
-		return nil, err
+		return "", err
 	}
-	startResult := &cloud.StartNodeResult{
-		InstanceID:       spec.Name,
-		AvailabilityZone: c.zone,
-	}
-	return startResult, nil
+	return spec.Name, nil
 }
 
-func (c *gceClient) StartNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
+func (c *gceClient) StartNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
 	return c.startNode(node, image, metadata)
 }
 
 // In we dictate whether the node is a spot based on the node passed in
 // this is decided in createInstanceSpec which is called in the unexported
 // startNode function. StartSpotNode is necessary to fullfil the interface.
-func (c *gceClient) StartSpotNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
+func (c *gceClient) StartSpotNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
 	return c.startNode(node, image, metadata)
 }
 

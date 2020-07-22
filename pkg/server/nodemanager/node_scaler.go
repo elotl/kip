@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/elotl/kip/pkg/api"
-	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
 	"k8s.io/klog"
 )
@@ -32,16 +31,16 @@ type StatusUpdater interface {
 type BindingNodeScaler struct {
 	nodeRegistry      StatusUpdater
 	standbyNodes      []StandbyNodeSpec
-	cloudStatus       cloud.StatusKeeper
+	bootLimiter       *InstanceBootLimiter
 	defaultVolumeSize string
 	fixedSizeVolume   bool
 }
 
-func NewBindingNodeScaler(nodeReg StatusUpdater, standbyNodes []StandbyNodeSpec, cloudStatus cloud.StatusKeeper, defaultVolumeSize string, fixedSizeVolume bool) *BindingNodeScaler {
+func NewBindingNodeScaler(nodeReg StatusUpdater, standbyNodes []StandbyNodeSpec, bootLimiter *InstanceBootLimiter, defaultVolumeSize string, fixedSizeVolume bool) *BindingNodeScaler {
 	return &BindingNodeScaler{
 		nodeRegistry:      nodeReg,
 		standbyNodes:      standbyNodes,
-		cloudStatus:       cloudStatus,
+		bootLimiter:       bootLimiter,
 		defaultVolumeSize: defaultVolumeSize,
 		fixedSizeVolume:   fixedSizeVolume,
 	}
@@ -58,19 +57,11 @@ func (s *BindingNodeScaler) spotMatches(pod *api.Pod, node *api.Node) bool {
 	return false
 }
 
-// a pod with no specified placement can match any node
-// a pod with a specified placement can only match nodes with that placement
-func placementMatches(pod *api.Pod, node *api.Node) bool {
-	return pod.Spec.Placement.AvailabilityZone == "" ||
-		pod.Spec.Placement.AvailabilityZone == node.Spec.Placement.AvailabilityZone
-}
-
 func (s *BindingNodeScaler) podMatchesNode(pod *api.Pod, node *api.Node) bool {
 	return node.Spec.InstanceType == pod.Spec.InstanceType &&
 		node.Spec.Resources.PrivateIPOnly == pod.Spec.Resources.PrivateIPOnly &&
 		node.Spec.Resources.GPU == pod.Spec.Resources.GPU &&
 		s.spotMatches(pod, node) &&
-		placementMatches(pod, node) &&
 		s.diskMatches(pod, node)
 }
 
@@ -88,14 +79,9 @@ func (s *BindingNodeScaler) diskMatches(pod *api.Pod, node *api.Node) bool {
 func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	isSpotPod := false
 	if pod.Spec.Spot.Policy == api.SpotAlways {
-		// don't create pods if spot is unavailable
-		if s.cloudStatus.IsUnavailableZone(pod.Spec.InstanceType, true, pod.Spec.Resources.PrivateIPOnly, pod.Spec.Placement.AvailabilityZone) {
-			return nil
-		}
 		isSpotPod = true
 	}
-
-	if s.cloudStatus.IsUnavailableZone(pod.Spec.InstanceType, isSpotPod, pod.Spec.Resources.PrivateIPOnly, pod.Spec.Placement.AvailabilityZone) {
+	if s.bootLimiter.IsUnavailableInstance(pod.Spec.InstanceType, isSpotPod) {
 		return nil
 	}
 
@@ -112,7 +98,6 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	if s.fixedSizeVolume && pod.Spec.Resources.VolumeSize != "" {
 		node.Spec.Resources.VolumeSize = pod.Spec.Resources.VolumeSize
 	}
-	node.Spec.Placement = pod.Spec.Placement
 	node.Status.BoundPodName = pod.Name
 	return node
 }
@@ -145,11 +130,9 @@ func (s *BindingNodeScaler) nodeMatchesStandbySpec(node *api.Node, spec *Standby
 // killed a pod). Along the way we keep track of unbound pods and
 // nodes.
 //
-// 3. Match any unbound pods to unbound nodes.  Before doing that,
-// order our pods and nodes so that we choose the most specific
-// matches for our pods and nodes).  E.g. a pod with a supplied
-// Placement will match a specific node before a pod with no placement
-// spec matches/takes that specific node.
+// 3. Match any unbound pods to unbound nodes.  Before doing that, we
+// need to ensure that we order our pods and nodes so that we choose
+// the most specific matches for our pods and nodes).
 //
 // 4. Any remaining unbound pods that haven't been matched will get a
 // node booted for them with the exception of node requests that we
@@ -204,11 +187,6 @@ func (s *BindingNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*api.
 	// 5...)
 	util.PartitionSlice(unboundNodes, func(i int) bool {
 		return unboundNodes[i].Spec.Spot
-	})
-	// prioritize matching pods with a specified Placement to a node
-	// by putting them at the front of the slice
-	util.PartitionSlice(unboundPods, func(i int) bool {
-		return unboundPods[i].Spec.Placement.AvailabilityZone != ""
 	})
 
 	// match needyPods to any unboundNodes O(n**2) but with any luck,

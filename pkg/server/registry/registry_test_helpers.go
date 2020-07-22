@@ -77,9 +77,8 @@ func makeRegistryComponents() (*events.EventSystem, etcd.Storer, func()) {
 }
 
 func makeFakeStatefulValidator() *validation.StatefulValidator {
-	cs, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
 	vpcCIDRs := []string{"172.20.0.0/16"}
-	sv := validation.NewStatefulValidator(cs, cloud.ProviderAWS, vpcCIDRs)
+	sv := validation.NewStatefulValidator(cloud.ProviderAWS, vpcCIDRs)
 	return sv
 }
 

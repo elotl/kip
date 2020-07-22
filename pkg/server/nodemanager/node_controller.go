@@ -81,7 +81,7 @@ type NodeController struct {
 	ImageIdCache       *timeoutmap.TimeoutMap
 	CloudInitFile      *cloudinitfile.File
 	CertificateFactory *certs.CertificateFactory
-	CloudStatus        cloud.StatusKeeper
+	BootLimiter        *InstanceBootLimiter
 	BootImageSpec      cloud.BootImageSpec
 }
 
@@ -261,32 +261,26 @@ func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
 }
 
 func (c *NodeController) handleStartNodeError(node *api.Node, err error, isSpot bool) {
-	switch err := err.(type) {
+	switch err.(type) {
 	case *cloud.NoCapacityError:
-		if err.AZ != "" {
-			c.CloudStatus.AddUnavailableZone(node.Spec.InstanceType, isSpot, err.AZ)
-		} else if err.SubnetID != "" {
-			c.CloudStatus.AddUnavailableSubnet(node.Spec.InstanceType, isSpot, err.SubnetID)
-		} else {
-			c.CloudStatus.AddUnavailableInstance(node.Spec.InstanceType, isSpot)
-		}
+		c.BootLimiter.AddUnavailableInstance(node.Spec.InstanceType, isSpot)
 	case *cloud.UnsupportedInstanceError:
 		// It's possible we should eventually kill the pod associated
 		// with this but I hesitate to do that, instead lets push that
 		// off to the operator for now.
-		c.CloudStatus.AddUnavailableInstance(node.Spec.InstanceType, true)
+		c.BootLimiter.AddUnavailableInstance(node.Spec.InstanceType, isSpot)
 	}
 }
 
 func (c *NodeController) startSingleNode(node *api.Node, image cloud.Image, cloudInitData string) error {
 	var (
-		startResult *cloud.StartNodeResult
-		err         error
+		instanceID string
+		err        error
 	)
 	if node.Spec.Spot {
-		startResult, err = c.CloudClient.StartSpotNode(node, image, cloudInitData)
+		instanceID, err = c.CloudClient.StartSpotNode(node, image, cloudInitData)
 	} else {
-		startResult, err = c.CloudClient.StartNode(node, image, cloudInitData)
+		instanceID, err = c.CloudClient.StartNode(node, image, cloudInitData)
 	}
 	if err != nil {
 		c.handleStartNodeError(node, err, false)
@@ -298,8 +292,7 @@ func (c *NodeController) startSingleNode(node *api.Node, image cloud.Image, clou
 		}
 		return util.WrapError(err, "Error starting node")
 	}
-	node.Status.InstanceID = startResult.InstanceID
-	node.Spec.Placement.AvailabilityZone = startResult.AvailabilityZone
+	node.Status.InstanceID = instanceID
 	return c.finishNodeStart(node)
 }
 

@@ -179,18 +179,6 @@ func (e *AwsEC2) GetSubnets() ([]cloud.SubnetAttributes, error) {
 	return subnets, err
 }
 
-func (az *AwsEC2) GetAvailabilityZones() ([]string, error) {
-	sns, err := az.GetSubnets()
-	if err != nil {
-		return nil, err
-	}
-	azs := sets.NewString()
-	for _, sn := range sns {
-		azs.Insert(sn.AZ)
-	}
-	return azs.List(), nil
-}
-
 func (az *AwsEC2) IsAvailable() (bool, error) {
 	out, err := az.client.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
 		ZoneNames: aws.StringSlice([]string{az.availabilityZone}),
