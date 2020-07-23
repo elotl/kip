@@ -22,7 +22,6 @@ import (
 
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/util"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 type MockCloudClient struct {
@@ -32,7 +31,7 @@ type MockCloudClient struct {
 	ControllerID string
 	InsideVPC    bool
 	VPCCIDRs     []string
-	Subnets      []SubnetAttributes
+	Subnet       SubnetAttributes
 
 	Starter             func(node *api.Node, image Image, metadata string) (string, error)
 	SpotStarter         func(node *api.Node, image Image, metadata string) (string, error)
@@ -50,9 +49,6 @@ type MockCloudClient struct {
 
 	RouteRemover func(string, string) error
 	RouteAdder   func(string, string) error
-
-	SubnetGetter func() ([]SubnetAttributes, error)
-	AZGetter     func() ([]string, error)
 
 	AvailabilityChecker func() (bool, error)
 
@@ -107,10 +103,6 @@ func (m *MockCloudClient) SetSustainedCPU(n *api.Node, enabled bool) error {
 
 func (m *MockCloudClient) AddInstanceTags(string, map[string]string) error {
 	return nil
-}
-
-func (c *MockCloudClient) GetSubnets() ([]SubnetAttributes, error) {
-	return c.SubnetGetter()
 }
 
 func (c *MockCloudClient) IsAvailable() (bool, error) {
@@ -169,7 +161,7 @@ func (m *MockCloudClient) GetAttributes() CloudAttributes {
 		FixedSizeVolume: false,
 		Provider:        ProviderAWS,
 		Region:          "us-east-1",
-		Zone:            m.Subnets[0].AZ,
+		Zone:            m.Subnet.AZ,
 	}
 }
 
@@ -217,28 +209,12 @@ func NewMockClient() *MockCloudClient {
 		ControllerID:       "test_cluster",
 		InsideVPC:          true,
 		VPCCIDRs:           []string{"172.20.0.0/16"},
-		Subnets: []SubnetAttributes{
-			{
-				ID:                 "sub-1111",
-				CIDR:               "172.16.0.0/16",
-				AZ:                 "us-east-1a",
-				AddressAffinity:    PublicAddress,
-				AvailableAddresses: 250,
-			},
-			{
-				ID:                 "sub-2222",
-				CIDR:               "172.17.0.0/16",
-				AZ:                 "us-east-1b",
-				AddressAffinity:    PrivateAddress,
-				AvailableAddresses: 250,
-			},
-			{
-				ID:                 "sub-3333",
-				CIDR:               "172.18.0.0/16",
-				AZ:                 "us-east-1c",
-				AddressAffinity:    PublicAddress,
-				AvailableAddresses: 250,
-			},
+		Subnet: SubnetAttributes{
+			ID:                 "sub-1111",
+			CIDR:               "172.16.0.0/16",
+			AZ:                 "us-east-1a",
+			AddressAffinity:    PublicAddress,
+			AvailableAddresses: 250,
 		},
 	}
 
@@ -323,25 +299,6 @@ func NewMockClient() *MockCloudClient {
 
 	net.DNSInfoGetter = func() ([]string, []string, error) {
 		return []string{"cloud.internal"}, []string{"1.1.1.1"}, nil
-	}
-
-	net.SubnetGetter = func() ([]SubnetAttributes, error) {
-		return net.Subnets, nil
-	}
-
-	net.AZGetter = func() ([]string, error) {
-		sns, err := net.GetSubnets()
-		if err != nil {
-			return nil, err
-		}
-		azs := sets.NewString()
-		for _, sn := range sns {
-			if len(sn.AZ) > 0 {
-				azs.Insert(sn.AZ)
-			}
-		}
-
-		return azs.List(), nil
 	}
 
 	net.Starter = func(node *api.Node, image Image, metadata string) (string, error) {
