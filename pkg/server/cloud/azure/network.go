@@ -434,10 +434,6 @@ func addressCount(ipnet *net.IPNet) int {
 	return numAddresses - unavailable
 }
 
-func (az *AzureClient) GetSubnets() ([]cloud.SubnetAttributes, error) {
-	return []cloud.SubnetAttributes{az.subnet}, nil
-}
-
 func (az *AzureClient) getSubnet(resourceGroup, virtualNetworkName, subnetName string) (cloud.SubnetAttributes, error) {
 	var subnet cloud.SubnetAttributes
 	ctx := context.Background()

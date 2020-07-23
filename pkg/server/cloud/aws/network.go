@@ -150,33 +150,48 @@ func (e *AwsEC2) assertVPCExists(vpcID string) (string, string, error) {
 	return aws.StringValue(vpcs[0].VpcId), aws.StringValue(vpcs[0].CidrBlock), nil
 }
 
-func (e *AwsEC2) GetSubnets() ([]cloud.SubnetAttributes, error) {
+func (e *AwsEC2) getSubnetAttributes(subnetID string) (snAttrs cloud.SubnetAttributes, err error) {
 	klog.V(2).Infof("Getting subnets and availability zones for VPC %s", e.vpcID)
-	vpcFilters := []*ec2.Filter{
-		{
-			Name: aws.String("vpc-id"),
-			Values: []*string{
-				aws.String(e.vpcID),
-			},
+	vpcFilter := &ec2.Filter{
+		Name: aws.String("vpc-id"),
+		Values: []*string{
+			aws.String(e.vpcID),
 		},
 	}
+	subnetFilter := &ec2.Filter{
+		Name: aws.String("subnet-id"),
+		Values: []*string{
+			aws.String(subnetID),
+		},
+	}
+	subnetAssociationFilter := &ec2.Filter{
+		Name: aws.String("association.subnet-id"),
+		Values: []*string{
+			aws.String(subnetID),
+		},
+	}
+	describeSubnetsFilter := []*ec2.Filter{vpcFilter, subnetFilter}
 	snResp, err := e.client.DescribeSubnets(&ec2.DescribeSubnetsInput{
-		Filters: vpcFilters,
+		Filters: describeSubnetsFilter,
 	})
 	if err != nil {
-		return nil, util.WrapError(err, "Error getting VPC subnets from AWS")
+		return snAttrs, util.WrapError(err, "Error getting subnet %s from AWS", subnetID)
 	}
-	if len(snResp.Subnets) == 0 {
-		return nil, fmt.Errorf("No subnets found in VPC")
+	if len(snResp.Subnets) == 0 || snResp.Subnets[0] == nil {
+		return snAttrs, fmt.Errorf("Could not find subnet %s in in VPC", subnetID)
 	}
+	describeRoutTablesFilter := []*ec2.Filter{vpcFilter, subnetAssociationFilter}
 	rtResp, err := e.client.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
-		Filters: vpcFilters,
+		Filters: describeRoutTablesFilter,
 	})
 	if err != nil {
-		return nil, util.WrapError(err, "Error getting VPC route tables from AWS")
+		return snAttrs, util.WrapError(err, "Error getting VPC route tables from AWS")
 	}
-	subnets, err := makeMilpaSubnets(snResp.Subnets, rtResp.RouteTables)
-	return subnets, err
+	if len(snResp.Subnets) == 0 || snResp.Subnets[0] == nil {
+		return snAttrs, fmt.Errorf("Could not get route table associated with subnet %s in in VPC", subnetID)
+	}
+	snAttrs, err = makeSubnetAttrs(snResp.Subnets[0], rtResp.RouteTables[0])
+	return snAttrs, err
 }
 
 func (az *AwsEC2) IsAvailable() (bool, error) {
@@ -193,92 +208,44 @@ func (az *AwsEC2) IsAvailable() (bool, error) {
 	return state == "available", nil
 }
 
-func makeMilpaSubnets(awsSubnets []*ec2.Subnet, rts []*ec2.RouteTable) ([]cloud.SubnetAttributes, error) {
-	// Todo, return an error if we have a subnet length of 0
-	subnets := make([]cloud.SubnetAttributes, len(awsSubnets))
-	for i, subnet := range awsSubnets {
-		subnetID := aws.StringValue(subnet.SubnetId)
-		addressType := cloud.PrivateAddress
-		isPublic, err := isSubnetPublic(rts, subnetID)
-		if err != nil {
-			klog.Errorf("could not compute if %s is public subnet: %v", subnetID, err)
-			continue
-		}
-		if isPublic {
-			addressType = cloud.PublicAddress
-		}
-		subnetInfo := cloud.SubnetAttributes{
-			ID:                 subnetID,
-			CIDR:               aws.StringValue(subnet.CidrBlock),
-			AZ:                 aws.StringValue(subnet.AvailabilityZone),
-			AddressAffinity:    addressType,
-			AvailableAddresses: int(aws.Int64Value(subnet.AvailableIpAddressCount)),
-		}
-		subnets[i] = subnetInfo
+func makeSubnetAttrs(awsSubnet *ec2.Subnet, rt *ec2.RouteTable) (cloud.SubnetAttributes, error) {
+	snAttrs := cloud.SubnetAttributes{}
+	subnetID := aws.StringValue(awsSubnet.SubnetId)
+	addressType := cloud.PrivateAddress
+	isPublic, err := isSubnetPublic(rt, subnetID)
+	if err != nil {
+		return snAttrs, util.WrapError(err, "could not compute if %s is public subnet", subnetID)
+
 	}
-	// Now, if we have public AND private address subnets then we are
-	// good to go, that means the user has setup their network with 2
-	// different zones (public and private addressing:
-	// https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario2.html).
-	// However, if we have only public subnets (pretty likely, esp if
-	// the user created their VPC for Milpa), then we want to mark the
-	// public subnets as available for any address type.  That way,
-	// the user can launch instances with both public and private IP
-	// addresses using milpa (which is what they want!).
-	onlyPublic := true
-	for i := range subnets {
-		if subnets[i].AddressAffinity == cloud.PrivateAddress {
-			onlyPublic = false
-			break
-		}
+	if isPublic {
+		addressType = cloud.AnyAddress
 	}
-	if onlyPublic {
-		for i := range subnets {
-			subnets[i].AddressAffinity = cloud.AnyAddress
-		}
+	snAttrs = cloud.SubnetAttributes{
+		ID:                 subnetID,
+		CIDR:               aws.StringValue(awsSubnet.CidrBlock),
+		AZ:                 aws.StringValue(awsSubnet.AvailabilityZone),
+		AddressAffinity:    addressType,
+		AvailableAddresses: int(aws.Int64Value(awsSubnet.AvailableIpAddressCount)),
 	}
-	return subnets, nil
+	return snAttrs, nil
 }
 
-// Taken from k8s.  Works as advertised (finds the route table associated
-// with the subnet and figures out if there's an internet gateway route
-// in that table
-func isSubnetPublic(rt []*ec2.RouteTable, subnetID string) (bool, error) {
-	var subnetTable *ec2.RouteTable
-	for _, table := range rt {
-		for _, assoc := range table.Associations {
-			if aws.StringValue(assoc.SubnetId) == subnetID {
-				subnetTable = table
-				break
-			}
-		}
-	}
-	if subnetTable == nil {
-		// If there is no explicit association, the subnet will be implicitly
-		// associated with the VPC's main routing table.
-		for _, table := range rt {
-			for _, assoc := range table.Associations {
-				if aws.BoolValue(assoc.Main) == true {
-					klog.V(4).Infof("Assuming implicit use of main routing table %s for %s",
-						aws.StringValue(table.RouteTableId), subnetID)
-					subnetTable = table
-					break
-				}
-			}
-		}
-	}
-
+// Taken from k8s.  Works as advertised (giventhe route table associated
+// with the subnet, figure out if there's an internet gateway route
+// in that table. If so then the subnet supports public addresses.
+func isSubnetPublic(subnetTable *ec2.RouteTable, subnetID string) (bool, error) {
 	if subnetTable == nil {
 		return false, fmt.Errorf("Could not locate routing table for subnet %s", subnetID)
 	}
 
 	for _, route := range subnetTable.Routes {
-		// There is no direct way in the AWS API to determine if a subnet is public or private.
-		// A public subnet is one which has an internet gateway route
-		// we look for the gatewayId and make sure it has the prefix of igw to differentiate
-		// from the default in-subnet route which is called "local"
-		// or other virtual gateway (starting with vgv)
-		// or vpc peering connections (starting with pcx).
+		// There is no direct way in the AWS API to determine if a
+		// subnet is public or private.  A public subnet is one which
+		// has an internet gateway route we look for the gatewayId and
+		// make sure it has the prefix of igw to differentiate from
+		// the default in-subnet route which is called "local" or
+		// other virtual gateway (starting with vgv) or vpc peering
+		// connections (starting with pcx).
 		if strings.HasPrefix(aws.StringValue(route.GatewayId), "igw") {
 			return true, nil
 		}
