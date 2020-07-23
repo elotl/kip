@@ -152,25 +152,20 @@ func (e *AwsEC2) assertVPCExists(vpcID string) (string, string, error) {
 
 func (e *AwsEC2) getSubnetAttributes(subnetID string) (snAttrs cloud.SubnetAttributes, err error) {
 	klog.V(2).Infof("Getting subnets and availability zones for VPC %s", e.vpcID)
-	vpcFilter := &ec2.Filter{
-		Name: aws.String("vpc-id"),
-		Values: []*string{
-			aws.String(e.vpcID),
+	describeSubnetsFilter := []*ec2.Filter{
+		{
+			Name: aws.String("vpc-id"),
+			Values: []*string{
+				aws.String(e.vpcID),
+			},
+		},
+		{
+			Name: aws.String("subnet-id"),
+			Values: []*string{
+				aws.String(subnetID),
+			},
 		},
 	}
-	subnetFilter := &ec2.Filter{
-		Name: aws.String("subnet-id"),
-		Values: []*string{
-			aws.String(subnetID),
-		},
-	}
-	subnetAssociationFilter := &ec2.Filter{
-		Name: aws.String("association.subnet-id"),
-		Values: []*string{
-			aws.String(subnetID),
-		},
-	}
-	describeSubnetsFilter := []*ec2.Filter{vpcFilter, subnetFilter}
 	snResp, err := e.client.DescribeSubnets(&ec2.DescribeSubnetsInput{
 		Filters: describeSubnetsFilter,
 	})
@@ -180,18 +175,41 @@ func (e *AwsEC2) getSubnetAttributes(subnetID string) (snAttrs cloud.SubnetAttri
 	if len(snResp.Subnets) == 0 || snResp.Subnets[0] == nil {
 		return snAttrs, fmt.Errorf("Could not find subnet %s in in VPC", subnetID)
 	}
-	describeRoutTablesFilter := []*ec2.Filter{vpcFilter, subnetAssociationFilter}
+	rt, err := e.getSubnetRouteTable(subnetID)
+	snAttrs, err = makeSubnetAttrs(snResp.Subnets[0], rt)
+	return snAttrs, err
+}
+
+func (e *AwsEC2) getSubnetRouteTable(subnetID string) (*ec2.RouteTable, error) {
+	describeVPCRouteTablesFilter := []*ec2.Filter{
+		{
+			Name: aws.String("vpc-id"),
+			Values: []*string{
+				aws.String(e.vpcID),
+			},
+		},
+	}
 	rtResp, err := e.client.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
-		Filters: describeRoutTablesFilter,
+		Filters: describeVPCRouteTablesFilter,
 	})
 	if err != nil {
-		return snAttrs, util.WrapError(err, "Error getting VPC route tables from AWS")
+		return nil, util.WrapError(err, "Error getting VPC route tables from AWS")
 	}
-	if len(snResp.Subnets) == 0 || snResp.Subnets[0] == nil {
-		return snAttrs, fmt.Errorf("Could not get route table associated with subnet %s in in VPC", subnetID)
+	var defaultRT *ec2.RouteTable
+	for i, rt := range rtResp.RouteTables {
+		for _, assoc := range rt.Associations {
+			if aws.BoolValue(assoc.Main) {
+				defaultRT = rtResp.RouteTables[i]
+			}
+			if aws.StringValue(assoc.SubnetId) == subnetID {
+				return rt, nil
+			}
+		}
 	}
-	snAttrs, err = makeSubnetAttrs(snResp.Subnets[0], rtResp.RouteTables[0])
-	return snAttrs, err
+	if defaultRT == nil {
+		return nil, fmt.Errorf("Could not get route table associated with subnet %s in in VPC", subnetID)
+	}
+	return defaultRT, nil
 }
 
 func (az *AwsEC2) IsAvailable() (bool, error) {
