@@ -256,26 +256,21 @@ func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
 			klog.Errorf("Error creating node in registry: %v", err)
 			continue
 		}
-		go func() {
-			err := c.startSingleNode(newNode, image, metadata)
-			if err != nil {
-				klog.Error(err)
-			}
-		}()
+		go c.startSingleNode(newNode, image, metadata)
 	}
 }
 
-// func (c *NodeController) handleStartNodeError(node *api.Node, err error, isSpot bool) {
-// 	switch err.(type) {
-// 	case *cloud.NoCapacityError:
-// 		c.BootLimiter.AddUnavailableInstance(node.Spec.InstanceType, isSpot)
-// 	case *cloud.UnsupportedInstanceError:
-// 		// It's possible we should eventually kill the pod associated
-// 		// with this but I hesitate to do that, instead lets push that
-// 		// off to the operator for now.
-// 		c.BootLimiter.AddUnavailableInstance(node.Spec.InstanceType, isSpot)
-// 	}
-// }
+func (c *NodeController) handleStartNodeError(node *api.Node, err error, isSpot bool) {
+	switch err.(type) {
+	case *cloud.NoCapacityError:
+		c.BootLimiter.AddUnavailableInstance(node.Spec.InstanceType, isSpot)
+	case *cloud.UnsupportedInstanceError:
+		// It's possible we should eventually kill the pod associated
+		// with this but I hesitate to do that, instead lets push that
+		// off to the operator for now.
+		c.BootLimiter.AddUnavailableInstance(node.Spec.InstanceType, isSpot)
+	}
+}
 
 func (c *NodeController) startSingleNode(node *api.Node, image cloud.Image, cloudInitData string) error {
 	var (
@@ -288,7 +283,7 @@ func (c *NodeController) startSingleNode(node *api.Node, image cloud.Image, clou
 		instanceID, err = c.CloudClient.StartNode(node, image, cloudInitData)
 	}
 	if err != nil {
-		//c.handleStartNodeError(node, err, false)
+		c.handleStartNodeError(node, err, false)
 		klog.Errorf("Error in node start: %v", err)
 		_, regError := c.NodeRegistry.PurgeNode(node)
 		if regError != nil {

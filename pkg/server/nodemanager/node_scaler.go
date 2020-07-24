@@ -81,9 +81,9 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	if pod.Spec.Spot.Policy == api.SpotAlways {
 		isSpotPod = true
 	}
-	// if s.bootLimiter.IsUnavailableInstance(pod.Spec.InstanceType, isSpotPod) {
-	// 	return nil
-	// }
+	if s.bootLimiter.IsUnavailableInstance(pod.Spec.InstanceType, isSpotPod) {
+		return nil
+	}
 
 	node := api.NewNode()
 	node.Spec.InstanceType = pod.Spec.InstanceType
