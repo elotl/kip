@@ -106,16 +106,16 @@ func TestCreateNodeForPodUnavailable(t *testing.T) {
 	node = ns.createNodeForPod(pod)
 	assert.True(t, node.Spec.Spot)
 
-	// // Now it's unavailable...
-	// ns.bootLimiter.AddUnavailableInstance(pod.Spec.InstanceType, true)
-	// node = ns.createNodeForPod(pod)
-	// assert.Nil(t, node)
+	// Now it's unavailable...
+	ns.bootLimiter.AddUnavailableInstance(pod.Spec.InstanceType, true)
+	node = ns.createNodeForPod(pod)
+	assert.Nil(t, node)
 
-	// // Now it's totally unavailable we shouldn't get a node back
-	// ns.bootLimiter.AddUnavailableInstance(pod.Spec.InstanceType, true)
-	// ns.bootLimiter.AddUnavailableInstance(pod.Spec.InstanceType, false)
-	// node = ns.createNodeForPod(pod)
-	// assert.Nil(t, node)
+	// Now it's totally unavailable we shouldn't get a node back
+	ns.bootLimiter.AddUnavailableInstance(pod.Spec.InstanceType, true)
+	ns.bootLimiter.AddUnavailableInstance(pod.Spec.InstanceType, false)
+	node = ns.createNodeForPod(pod)
+	assert.Nil(t, node)
 }
 
 func TestCreateNodeForPodVolumeSize(t *testing.T) {
