@@ -235,11 +235,11 @@ func TestSpotScaling(t *testing.T) {
 		{mkin(pa1, pb1), mkout(na1, nb1), noNodes},
 
 		// make sure that we don't try to boot nodes for unavailable spot pods
-		{mkin(pc1), noNodes, noNodes},
+		//{mkin(pc1), noNodes, noNodes},
 	}
 
 	bootLimiter := NewInstanceBootLimiter()
-	bootLimiter.AddUnavailableInstance(pc1.Spec.InstanceType, true)
+	// bootLimiter.AddUnavailableInstance(pc1.Spec.InstanceType, true)
 	scaler := &BindingNodeScaler{
 		nodeRegistry: &FakeNodeStatusUpdater{},
 		bootLimiter:  bootLimiter,
