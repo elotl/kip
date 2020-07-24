@@ -14,7 +14,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ROOT_DIR=$SCRIPT_DIR/..
 cd $ROOT_DIR
 
-if [[ $TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[-a-zA-Z0-9]+)?$ ]]; then
+if [[ $TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     echo "adding latest tags to kip and init-cert"
     $DKR tag elotl/kip:$TAG elotl/kip:latest
     $DKR tag elotl/init-cert:$TAG elotl/init-cert:latest
