@@ -53,7 +53,7 @@ type CloudClient interface {
 	ListInstancesFilterID([]string) ([]CloudInstance, error)
 	ListInstances() ([]CloudInstance, error)
 	ResizeVolume(node *api.Node, size int64) (error, bool)
-	GetRegistryAuth() (string, string, error)
+	GetRegistryAuth(string) (string, string, error)
 	GetImage(spec BootImageSpec) (Image, error)
 	SetSustainedCPU(*api.Node, bool) error
 	AddInstanceTags(string, map[string]string) error

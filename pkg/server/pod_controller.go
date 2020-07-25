@@ -380,7 +380,7 @@ func (c *PodController) loadRegistryCredentials(pod *api.Pod) (map[string]api.Re
 				// container images.
 				continue
 			}
-			username, password, err := c.cloudClient.GetRegistryAuth()
+			username, password, err := c.cloudClient.GetRegistryAuth(pod.Spec.Units[i].Image)
 			if err != nil {
 				return nil, util.WrapError(err, "Could not get container auth")
 			}
