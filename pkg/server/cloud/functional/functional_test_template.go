@@ -167,20 +167,3 @@ func deleteInstances(t *testing.T, c cloud.CloudClient) {
 		fmt.Printf("%d instances stopped\n", i+1)
 	}
 }
-
-func ContainerAuthTest(t *testing.T, c cloud.CloudClient) {
-	username1, password1, err := c.GetRegistryAuth("689494258501.dkr.ecr.us-east-1.amazonaws.com/helloserver:latest")
-	assert.NoError(t, err, "Error getting container authorization")
-	assert.Equal(t, "AWS", username1)
-
-	// Make sure we cache passwords
-	username2, password2, err := c.GetRegistryAuth("689494258501.dkr.ecr.us-east-1.amazonaws.com/helloserver:latest")
-	assert.NoError(t, err, "Error getting container authorization second time")
-	assert.Equal(t, username1, username2)
-	assert.Equal(t, password1, password2)
-
-	// // Get auth for different region, make sure we get a new password
-	_, password3, err := c.GetRegistryAuth("689494258501.dkr.ecr.us-west-1.amazonaws.com/helloserver:latest")
-	assert.NoError(t, err, "Error getting container authorization in other region")
-	assert.NotEqual(t, password1, password3)
-}
