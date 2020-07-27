@@ -60,12 +60,15 @@ func (e *AwsEC2) GetRegistryAuth(image string) (string, string, error) {
 
 	var regionAuth ecsAuth
 	regionAuthIface, ok := ecsRegionAuth.Load(region)
-	if !ok {
-		// This should never happen. Just in case, don't panic so we
-		// don't bring the entire system down repeatedly.
-		return "", "", fmt.Errorf("wrong type stored for ECS registry credentials")
+	if ok {
+		regionAuth, ok = regionAuthIface.(ecsAuth)
+		if !ok {
+			// This should never happen. Just in case, don't panic so we
+			// don't bring the entire system down repeatedly.
+			return "", "", fmt.Errorf("wrong type stored for ECS registry credentials")
+		}
 	}
-	regionAuth = regionAuthIface.(ecsAuth)
+
 	// We don't want auth to expire when deploying a pod so we pad
 	// our expire time by a bit
 	aFewMinutesFromNow := time.Now().UTC().Add(15 * time.Minute)
