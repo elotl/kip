@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/server/cloud/functional"
 	"github.com/elotl/kip/pkg/util"
 	"github.com/stretchr/testify/assert"
@@ -91,9 +92,26 @@ func TestAWSCloud(t *testing.T) {
 	}
 	defer ts.Cleanup(t)
 	t.Run("GetRegistryAuthTest", func(t *testing.T) {
-		functional.ContainerAuthTest(t, ts.CloudClient)
+		AWSContainerAuthTest(t, ts.CloudClient)
 	})
 	t.Run("BootSpotInstanceTest", func(t *testing.T) {
 		functional.RunSpotInstanceTest(t, ts.CloudClient, imageAmi, rootDevice)
 	})
+}
+
+func AWSContainerAuthTest(t *testing.T, c cloud.CloudClient) {
+	username1, password1, err := c.GetRegistryAuth("689494258501.dkr.ecr.us-east-1.amazonaws.com/helloserver:latest")
+	assert.NoError(t, err, "Error getting container authorization")
+	assert.Equal(t, "AWS", username1)
+
+	// Make sure we cache passwords
+	username2, password2, err := c.GetRegistryAuth("689494258501.dkr.ecr.us-east-1.amazonaws.com/helloserver:latest")
+	assert.NoError(t, err, "Error getting container authorization second time")
+	assert.Equal(t, username1, username2)
+	assert.Equal(t, password1, password2)
+
+	// // Get auth for different region, make sure we get a new password
+	_, password3, err := c.GetRegistryAuth("689494258501.dkr.ecr.us-west-1.amazonaws.com/helloserver:latest")
+	assert.NoError(t, err, "Error getting container authorization in other region")
+	assert.NotEqual(t, password1, password3)
 }

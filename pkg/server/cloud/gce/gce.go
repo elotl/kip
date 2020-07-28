@@ -156,7 +156,11 @@ func (c *gceClient) GetAttributes() cloud.CloudAttributes {
 	}
 }
 
-func (c *gceClient) GetRegistryAuth() (string, string, error) {
+func (c *gceClient) CloudStatusKeeper() cloud.StatusKeeper {
+	return c.cloudStatus
+}
+
+func (c *gceClient) GetRegistryAuth(image string) (string, string, error) {
 	return "", "", fmt.Errorf("Not implemented in gce")
 }
 

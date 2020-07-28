@@ -17,6 +17,8 @@ The following policy covers all permissions Kip requires in order to run in AWS.
                 "ec2:CreateTags",
                 "ec2:DeleteRoute",
                 "ecr:GetAuthorizationToken",
+		"ecr:GetDownloadUrlForLayer",
+		"ecr:BatchGetImage",
                 "ec2:DescribeDhcpOptions",
                 "ec2:RunInstances",
                 "ec2:DescribeSecurityGroups",

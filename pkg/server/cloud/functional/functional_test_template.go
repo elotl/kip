@@ -167,14 +167,3 @@ func deleteInstances(t *testing.T, c cloud.CloudClient) {
 		fmt.Printf("%d instances stopped\n", i+1)
 	}
 }
-
-func ContainerAuthTest(t *testing.T, c cloud.CloudClient) {
-	username1, password1, err := c.GetRegistryAuth()
-	assert.NoError(t, err, "Error getting container authorization")
-	assert.Equal(t, "AWS", username1)
-
-	username2, password2, err := c.GetRegistryAuth()
-	assert.NoError(t, err, "Error getting container authorization second time")
-	assert.Equal(t, username1, username2)
-	assert.Equal(t, password1, password2)
-}

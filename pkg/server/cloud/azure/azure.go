@@ -233,7 +233,7 @@ func replaceReservedTagChars(s string) string {
 	}, s)
 }
 
-func (az *AzureClient) GetRegistryAuth() (string, string, error) {
+func (az *AzureClient) GetRegistryAuth(image string) (string, string, error) {
 	return "", "", fmt.Errorf("Azure registry not implemented (ACR is being phased out at the start of 2019")
 }
 

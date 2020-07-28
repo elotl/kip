@@ -39,7 +39,7 @@ type MockCloudClient struct {
 	Waiter              func(node *api.Node) ([]api.NetworkAddress, error)
 	Lister              func() ([]CloudInstance, error)
 	Resizer             func(node *api.Node, size int64) (error, bool)
-	ContainerAuthorizer func() (string, string, error)
+	ContainerAuthorizer func(string) (string, string, error)
 	ImageGetter         func(BootImageSpec) (Image, error)
 
 	InstanceListerFilter func([]string) ([]CloudInstance, error)
@@ -89,8 +89,8 @@ func (m *MockCloudClient) ResizeVolume(node *api.Node, size int64) (error, bool)
 	return m.Resizer(node, size)
 }
 
-func (m *MockCloudClient) GetRegistryAuth() (string, string, error) {
-	return m.ContainerAuthorizer()
+func (m *MockCloudClient) GetRegistryAuth(image string) (string, string, error) {
+	return m.ContainerAuthorizer(image)
 }
 
 func (m *MockCloudClient) GetImage(spec BootImageSpec) (Image, error) {

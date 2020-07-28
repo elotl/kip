@@ -113,7 +113,7 @@ For rendering the manifests, [kustomize](https://kustomize.io/) is used. You can
     EOF
     $ kustomize build deploy/manifests/kip/overlays/local-config | kubectl apply -f -
 
-After applying, you should see a new kip pod in the kube-system namespace and a new node named "kip-0" in the cluster.
+After applying, you should see a new kip pod in the kube-system namespace and a new node named "kip-provider-0" in the cluster.
 
 ## Running Pods on Kip
 
