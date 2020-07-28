@@ -115,7 +115,7 @@ func (c *gceClient) getAttachedDiskSpec(isBoot bool, size int64, name, typeURL, 
 
 func (c *gceClient) getInstanceNetworkSpec(privateIPOnly bool) []*compute.NetworkInterface {
 	networkURL := c.getNetworkURL()
-	subNetworkURL := c.getSubNetworkURL()
+	subNetworkURL := c.getSubnetworkURL()
 
 	accessConfig := &compute.AccessConfig{
 		Name:        "External NAT",

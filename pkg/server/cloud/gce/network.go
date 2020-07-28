@@ -181,6 +181,7 @@ func (c *gceClient) autodetectSubnet() (string, string, error) {
 	return "", "", fmt.Errorf("Could not determine this machine's subnet from local metadata and querying the API. Please specify a subnet name at cloud.gce.subnetName in provider.yaml")
 }
 
+// As of 7/28/20 this is only used to ensure that the subnet exists
 func (c *gceClient) getSubnetCIDR(subnetName string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
