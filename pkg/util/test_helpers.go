@@ -51,3 +51,11 @@ func AzureEnvVarsSet() bool {
 	}
 	return true
 }
+
+func GCEEnvVarsSet() bool {
+	if os.Getenv("GCE_CLIENT_EMAIL") == "" ||
+		os.Getenv("GCE_PRIVATE_KEY") == "" {
+		return false
+	}
+	return true
+}

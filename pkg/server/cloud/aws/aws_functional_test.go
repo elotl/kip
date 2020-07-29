@@ -20,12 +20,14 @@ import (
 	"flag"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/server/cloud/functional"
 	"github.com/elotl/kip/pkg/util"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/klog"
 )
 
 // should probably load this from some static config
@@ -37,6 +39,8 @@ const (
 	rootDevice       = "xvda" // Update if imageAmi is changed.
 	instanceType     = "t2.nano"
 )
+
+var runFunctional = flag.Bool("functional", false, "run functional system tests")
 
 func getEC2(t *testing.T, controllerID string) *AwsEC2 {
 	if !util.AWSEnvVarsSet() {
@@ -56,22 +60,40 @@ func getEC2(t *testing.T, controllerID string) *AwsEC2 {
 	return e
 }
 
-// If the user is running functional tests on their laptop, choose a
-// subnetID for them, otherwise we'll leave it blank and pull out the
-// subnet from the metadata service.
-func maybeSetSubnet() string {
-	_, err := detectCurrentVPC()
+// Each functional test run creates a unique securty group that we need to delete
+func ensureSecurityGroupDeleted(e *AwsEC2) error {
+	apiGroupName := util.CreateSecurityGroupName(e.controllerID, cloud.MilpaAPISGName)
+	sg, err := e.FindSecurityGroup(apiGroupName)
 	if err != nil {
-		return defaultSubnetID
+		// Todo, return if security group not found
+		return util.WrapError(err, "Error finding security group")
 	}
-	return ""
-}
+	if sg == nil {
+		return nil
+	}
 
-var runFunctional = flag.Bool("functional", false, "run functional system tests")
+	// Try to delete groups for up to 3 minutes
+	// this has flaked a few times and we've had dependency violations for
+	// up to 2 mintues...  It's getting worse for AWS.
+	// Azure takes for freakin' ever
+	for i := 1; i < 60; i++ {
+		fmt.Printf("Deleting security group: %s - %s\n", sg.Name, sg.ID)
+		err = e.DeleteSecurityGroup(sg.ID)
+		if err == nil {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+	if err != nil {
+		return util.WrapError(err, "Could not delete security group")
+	}
+	klog.Infof("Deleted security group %s", sg.ID)
+	return nil
+}
 
 func TestAWSCloud(t *testing.T) {
 	if !(*runFunctional) {
-		t.Skip("skipping cloud functional tests")
+		t.Skip("skipping aws cloud functional tests")
 	}
 	fmt.Printf("Running Functional Tests\n")
 
@@ -86,6 +108,13 @@ func TestAWSCloud(t *testing.T) {
 		SubnetID:     defaultSubnetID,
 	})
 	assert.Nil(t, err)
+	defer func() {
+		err := ensureSecurityGroupDeleted(c)
+		if err != nil {
+			assert.FailNow(t, "Failed to delete cell security group")
+		}
+	}()
+
 	ts, err := functional.SetupCloudFunctionalTest(t, c, imageAmi, rootDevice, instanceType)
 	if err != nil {
 		assert.FailNow(t, "Failed to setup functional test: %s", err.Error())

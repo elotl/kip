@@ -55,6 +55,7 @@ func SetupCloudFunctionalTest(t *testing.T, c cloud.CloudClient, imageID, rootDe
 
 	img := cloud.Image{
 		ID:         imageID,
+		Name:       imageID, // GCE implementation gets these reversed
 		RootDevice: rootDevice,
 	}
 
@@ -115,6 +116,7 @@ func (ts *TestState) Cleanup(t *testing.T) {
 func SetupFirewallRules(t *testing.T, c cloud.CloudClient) error {
 	extraGroups := []string{}
 	extraCIDRs := []string{cloud.PublicCIDR}
+	fmt.Println("creating security group")
 	err := c.EnsureMilpaSecurityGroups(extraCIDRs, extraGroups)
 	return err
 }
