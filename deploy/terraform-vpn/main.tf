@@ -1,5 +1,22 @@
+terraform {
+  required_version = ">= 0.12.0"
+}
+
+provider "http" {
+  version = "~> 1.2"
+}
+
+provider "local" {
+  version = "~> 1.4"
+}
+
+provider "null" {
+  version = "~> 2.1"
+}
+
 provider "aws" {
-  region = var.region
+  version = "~> 2.53"
+  region  = var.region
 }
 
 data "http" "client_ip" {
