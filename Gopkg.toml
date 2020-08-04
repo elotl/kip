@@ -75,7 +75,7 @@
 
 [[constraint]]
   name = "github.com/elotl/node-cli"
-  version = "v0.1.3-elotl1"
+  revision = "3822b4fcef6b1786a55b25311bd6e64f5979b9b6"
 
 #[[constraint]]
 #  name = "github.com/gogo/protobuf"

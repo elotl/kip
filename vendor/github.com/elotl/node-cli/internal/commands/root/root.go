@@ -120,7 +120,9 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 	// Start the informers now, so the provider will get a functional resource
 	// manager.
 	podInformerFactory.Start(ctx.Done())
+	podInformerFactory.WaitForCacheSync(ctx.Done())
 	scmInformerFactory.Start(ctx.Done())
+	scmInformerFactory.WaitForCacheSync(ctx.Done())
 
 	apiConfig, err := getAPIConfig(c)
 	if err != nil {
