@@ -30,7 +30,7 @@ variable "node-disk-size" {
   default = 15
 }
 
-variable "blacklisted-azs" {
+variable "excluded-azs" {
   type    = list(string)
   default = ["use1-az3"]
 }

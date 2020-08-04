@@ -1,5 +1,26 @@
+terraform {
+  required_version = ">= 0.12.0"
+}
+
+provider "external" {
+  version = "~> 1.2"
+}
+
+provider "random" {
+  version = "~> 2.3"
+}
+
+provider "template" {
+  version = "~> 2.1"
+}
+
+provider "tls" {
+  version = "~> 2.2"
+}
+
 provider "aws" {
-  region = var.region
+  version = "~> 3.0"
+  region  = var.region
 }
 
 locals {
@@ -10,8 +31,8 @@ locals {
 }
 
 data "aws_availability_zones" "available-azs" {
-  state                = "available"
-  blacklisted_zone_ids = var.blacklisted-azs
+  state             = "available"
+  exclude_zone_ids  = var.excluded-azs
 }
 
 resource "random_shuffle" "azs" {
