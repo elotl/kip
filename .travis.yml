@@ -42,7 +42,6 @@ script:
 - make img login-img push-img DKR=docker
 - "./scripts/init-cert/build.sh"
 - "./scripts/run_smoke_test.sh"
-- "./scripts/push_to_gcr_ecr.sh"
 - "./scripts/update_latest_tags.sh"
 notifications:
   slack:
