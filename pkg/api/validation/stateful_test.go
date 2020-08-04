@@ -25,48 +25,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestValidateStatefulPodSpecPlacementLinkedStatus(t *testing.T) {
-	cs, err := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
-	assert.NoError(t, err)
-	sv := StatefulValidator{cloudStatus: cs}
-	azTests := []struct {
-		az      string
-		numErrs int
-	}{
-		{"", 0},
-		{"us-east-1a", 0},
-		{"us-east-2b", 1},
-		{"foo", 1},
-	}
-	for i, testCase := range azTests {
-		ps := api.PodSpec{}
-		ps.Placement.AvailabilityZone = testCase.az
-		errs := sv.ValidatePodSpec(&ps, field.NewPath("field"))
-		assert.Len(t, errs, testCase.numErrs, "test %d failed", i)
-	}
-}
-
-func TestValidateStatefulPodSpecPlacement(t *testing.T) {
-	cs, err := cloud.NewAZSubnetStatus(cloud.NewMockClient())
-	assert.NoError(t, err)
-	sv := StatefulValidator{cloudStatus: cs}
-	azTests := []struct {
-		az      string
-		numErrs int
-	}{
-		{"", 0},
-		{"us-east-1a", 0},
-		{"us-east-2b", 1},
-		{"foo", 1},
-	}
-	for i, testCase := range azTests {
-		ps := api.PodSpec{}
-		ps.Placement.AvailabilityZone = testCase.az
-		errs := sv.ValidatePodSpec(&ps, field.NewPath("field"))
-		assert.Len(t, errs, testCase.numErrs, "test %d failed", i)
-	}
-}
-
 func TestValidateStatefulPodSpecSustainedCPU(t *testing.T) {
 	sv := StatefulValidator{}
 	truth := true

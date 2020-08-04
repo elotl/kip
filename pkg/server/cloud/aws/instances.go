@@ -105,18 +105,17 @@ func (e *AwsEC2) getInstanceNetworkSpec(privateIPOnly bool) []*ec2.InstanceNetwo
 			SecondaryPrivateIpAddressCount: aws.Int64(1),
 		},
 	}
-	// Let AWS figure out the subnet/AZ if we didn't specify a subnet
 	networkSpec[0].SubnetId = aws.String(e.subnetID)
 	return networkSpec
 }
 
-func (e *AwsEC2) getFirstVolume(instanceId string) *ec2.Volume {
+func (e *AwsEC2) getFirstVolume(instanceID string) *ec2.Volume {
 	input := &ec2.DescribeVolumesInput{
 		Filters: []*ec2.Filter{
 			{
 				Name: aws.String("attachment.instance-id"),
 				Values: []*string{
-					aws.String(instanceId),
+					aws.String(instanceID),
 				},
 			},
 		},
@@ -124,7 +123,7 @@ func (e *AwsEC2) getFirstVolume(instanceId string) *ec2.Volume {
 	result, err := e.client.DescribeVolumes(input)
 	if err != nil {
 		klog.Errorf("Error retrieving list of volumes attached to %s: %v",
-			instanceId, err)
+			instanceID, err)
 		return nil
 	}
 	return result.Volumes[0]
@@ -267,7 +266,7 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	return images[len(images)-1], nil
 }
 
-func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
+func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	tags := e.getNodeTags(node)
 	tagSpec := ec2.TagSpecification{
@@ -291,32 +290,28 @@ func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata string) (
 	})
 	if err != nil {
 		if isSubnetConstrainedError(err) {
-			return nil, &cloud.NoCapacityError{
+			return "", &cloud.NoCapacityError{
 				OriginalError: err.Error(),
 				SubnetID:      e.subnetID,
 			}
 		} else if isAZConstrainedError(err) || isInstanceConstrainedError(err) {
-			return nil, &cloud.NoCapacityError{
+			return "", &cloud.NoCapacityError{
 				OriginalError: err.Error(),
 			}
 		}
-		return nil, util.WrapError(err, "Could not run instance")
+		return "", util.WrapError(err, "Could not run instance")
 	}
 	if len(result.Instances) == 0 {
-		return nil, fmt.Errorf("Could not get instance info at result.Instances")
+		return "", fmt.Errorf("Could not get instance info at result.Instances")
 	}
 	cloudID := aws.StringValue(result.Instances[0].InstanceId)
 	klog.V(2).Infof("Started instance: %s", cloudID)
-	startResult := &cloud.StartNodeResult{
-		InstanceID:       cloudID,
-		AvailabilityZone: e.availabilityZone,
-	}
-	return startResult, nil
+	return cloudID, nil
 }
 
 // This isn't terribly different from Start node but there are
 // some minor differences.  We'll capture errors correctly here and there
-func (e *AwsEC2) StartSpotNode(node *api.Node, image cloud.Image, metadata string) (*cloud.StartNodeResult, error) {
+func (e *AwsEC2) StartSpotNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	tags := e.getNodeTags(node)
 	tagSpec := ec2.TagSpecification{
@@ -351,29 +346,25 @@ func (e *AwsEC2) StartSpotNode(node *api.Node, image cloud.Image, metadata strin
 
 	if err != nil {
 		if isSubnetConstrainedError(err) {
-			return nil, &cloud.NoCapacityError{
+			return "", &cloud.NoCapacityError{
 				OriginalError: err.Error(),
 				SubnetID:      e.subnetID,
 			}
 		} else if isAZConstrainedError(err) || isInstanceConstrainedError(err) {
-			return nil, &cloud.NoCapacityError{
+			return "", &cloud.NoCapacityError{
 				OriginalError: err.Error(),
 			}
 		} else if isUnsupportedInstanceError(err) {
-			return nil, &cloud.UnsupportedInstanceError{err.Error()}
+			return "", &cloud.UnsupportedInstanceError{err.Error()}
 		}
-		return nil, util.WrapError(err, "Could not run instance")
+		return "", util.WrapError(err, "Could not run instance")
 	}
 	if len(result.Instances) == 0 {
-		return nil, fmt.Errorf("Could not get instance info at result.Instances")
+		return "", fmt.Errorf("Could not get instance info at result.Instances")
 	}
 	cloudID := aws.StringValue(result.Instances[0].InstanceId)
 	klog.V(2).Infof("Started instance: %s", cloudID)
-	startResult := &cloud.StartNodeResult{
-		InstanceID:       cloudID,
-		AvailabilityZone: e.availabilityZone,
-	}
-	return startResult, nil
+	return cloudID, nil
 }
 
 func (e *AwsEC2) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {

@@ -63,21 +63,13 @@ func TestMakeMilpaSubnetsAddressType(t *testing.T) {
 	s2 := createTestSubnet(s2ID)
 	mainRT := createTestRouteTable(rt1ID, []string{"nope"}, []string{"igw-1234"})
 	mainRT.Associations[0].Main = aws.Bool(true)
-	sns, err := makeMilpaSubnets([]*ec2.Subnet{s1}, []*ec2.RouteTable{mainRT})
+	sn, err := makeSubnetAttrs(s1, mainRT)
 	assert.NoError(t, err)
-	assert.Len(t, sns, 1)
-	assert.Equal(t, cloud.AnyAddress, sns[0].AddressAffinity)
+	assert.Equal(t, cloud.AnyAddress, sn.AddressAffinity)
 
 	// test that private and public subnets are differentiated
-	pubRT := createTestRouteTable(rt1ID, []string{s1ID}, []string{"igw-1234"})
 	privRT := createTestRouteTable(rt2ID, []string{s2ID}, []string{"aaa"})
-	sns, err = makeMilpaSubnets([]*ec2.Subnet{s1, s2}, []*ec2.RouteTable{pubRT, privRT})
+	sn, err = makeSubnetAttrs(s2, privRT)
 	assert.NoError(t, err)
-	assert.Len(t, sns, 2)
-	addressing := []cloud.SubnetAddressAffinity{}
-	for _, sn := range sns {
-		addressing = append(addressing, sn.AddressAffinity)
-	}
-	expected := []cloud.SubnetAddressAffinity{cloud.PublicAddress, cloud.PrivateAddress}
-	assert.ElementsMatch(t, expected, addressing)
+	assert.Equal(t, cloud.PrivateAddress, sn.AddressAffinity)
 }

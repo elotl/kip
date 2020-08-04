@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"cloud.google.com/go/compute/metadata"
-	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
 	"google.golang.org/api/compute/v1"
 )
@@ -182,6 +181,7 @@ func (c *gceClient) autodetectSubnet() (string, string, error) {
 	return "", "", fmt.Errorf("Could not determine this machine's subnet from local metadata and querying the API. Please specify a subnet name at cloud.gce.subnetName in provider.yaml")
 }
 
+// As of 7/28/20 this is only used to ensure that the subnet exists
 func (c *gceClient) getSubnetCIDR(subnetName string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
@@ -193,21 +193,6 @@ func (c *gceClient) getSubnetCIDR(subnetName string) (string, error) {
 		return "", nilResponseError("Subnetworks.Get")
 	}
 	return resp.IpCidrRange, nil
-}
-
-func (c *gceClient) GetSubnets() ([]cloud.SubnetAttributes, error) {
-	sns := []cloud.SubnetAttributes{{
-		Name:            c.subnetName,
-		ID:              c.subnetName,
-		CIDR:            c.subnetCIDR,
-		AZ:              c.zone,
-		AddressAffinity: cloud.AnyAddress,
-	}}
-	return sns, nil
-}
-
-func (c *gceClient) GetAvailabilityZones() ([]string, error) {
-	return []string{c.zone}, nil
 }
 
 func (c *gceClient) AddRoute(destinationCIDR, instanceID string) error {

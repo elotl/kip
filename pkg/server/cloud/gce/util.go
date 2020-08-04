@@ -77,7 +77,7 @@ func (c *gceClient) getNetworkURL() string {
 	)
 }
 
-func (c *gceClient) getSubNetworkURL() string {
+func (c *gceClient) getSubnetworkURL() string {
 	return gceComputeAPIEndpoint + strings.Join(
 		[]string{"projects", c.projectID, "regions", c.region, "subnetworks", c.subnetName},
 		"/",

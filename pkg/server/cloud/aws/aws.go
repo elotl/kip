@@ -56,7 +56,6 @@ type AwsEC2 struct {
 	usePublicIPs         bool
 	region               string
 	bootSecurityGroupIDs []string
-	cloudStatus          *cloud.LinkedAZSubnetStatus
 }
 
 func getAWSConfig(endpointURL string, insecureSkipSSLVerify bool) *aws.Config {
@@ -186,13 +185,8 @@ func NewEC2Client(config EC2ClientConfig) (*AwsEC2, error) {
 		}
 	}
 	client.region = os.Getenv("AWS_REGION")
-	client.cloudStatus, err = cloud.NewLinkedAZSubnetStatus(client)
-	if err != nil {
-		return nil, util.WrapError(
-			err, "Error setting up cloud status keeper")
-	}
 
-	subnetAttrs, err := client.getSubnetAttributes()
+	subnetAttrs, err := client.getSubnetAttributes(client.subnetID)
 	if err != nil {
 		return nil, util.WrapError(err, "Error getting subnet attributes")
 	}
@@ -203,27 +197,6 @@ func NewEC2Client(config EC2ClientConfig) (*AwsEC2, error) {
 		client.usePublicIPs = false
 	}
 	return client, nil
-}
-
-func (c *AwsEC2) getSubnetAttributes() (cloud.SubnetAttributes, error) {
-	var sn cloud.SubnetAttributes
-	subnets, err := c.GetSubnets()
-	if err != nil {
-		return sn, err
-	}
-	if len(subnets) == 0 {
-		return sn, fmt.Errorf("no subnets found")
-	}
-	for _, sn := range subnets {
-		if sn.ID == c.subnetID {
-			return sn, nil
-		}
-	}
-	return sn, fmt.Errorf("could not match the provided subnetID %s to any subnet in the VPC", c.subnetID)
-}
-
-func (c *AwsEC2) CloudStatusKeeper() cloud.StatusKeeper {
-	return c.cloudStatus
 }
 
 func (c *AwsEC2) GetVPCCIDRs() []string {

@@ -44,21 +44,23 @@ const (
 )
 
 type ImageController struct {
-	az                *AzureClient
-	bootImageSpec     cloud.BootImageSpec
-	controllerID      string
-	resourceGroupName string
-	isSynced          *atomic.Bool
-	queue             *controllerqueue.Queue
+	az                        *AzureClient
+	bootImageSpec             cloud.BootImageSpec
+	controllerID              string
+	resourceGroupName         string
+	isSynced                  *atomic.Bool
+	queue                     *controllerqueue.Queue
+	supportsAvailabilityZones bool
 }
 
 func NewImageController(controllerID string, bootImageSpec cloud.BootImageSpec, azureClient *AzureClient) *ImageController {
 	ic := &ImageController{
-		controllerID:      controllerID,
-		bootImageSpec:     bootImageSpec,
-		az:                azureClient,
-		resourceGroupName: regionalResourceGroupName(azureClient.region),
-		isSynced:          atomic.NewBool(false),
+		controllerID:              controllerID,
+		bootImageSpec:             bootImageSpec,
+		az:                        azureClient,
+		resourceGroupName:         regionalResourceGroupName(azureClient.region),
+		isSynced:                  atomic.NewBool(false),
+		supportsAvailabilityZones: false,
 	}
 	ic.queue = controllerqueue.New("image", ic.syncSingleBlobFromQueue)
 	return ic
@@ -352,7 +354,7 @@ func (ic *ImageController) copyBlob(accountName, containerName, blobName string)
 // an image without zone resiliancy and then the location enables
 // AZs then we need to re-create the image.
 func (ic *ImageController) imageParametersMatch(img compute.Image) bool {
-	if ic.az.CloudStatusKeeper().SupportsAvailabilityZones() {
+	if ic.supportsAvailabilityZones {
 		if img.ImageProperties == nil ||
 			img.ImageProperties.StorageProfile == nil ||
 			!to.Bool(img.ImageProperties.StorageProfile.ZoneResilient) {
@@ -422,9 +424,6 @@ func (ic *ImageController) syncSingleBlob(blobName string) error {
 		}
 	}
 
-	cloudStatus := ic.az.CloudStatusKeeper()
-	locationSupportsAZs := cloudStatus.SupportsAvailabilityZones()
-
 	timeoutCtx, cancel = context.WithTimeout(ctx, azureDefaultTimeout)
 	defer cancel()
 	future, err := ic.az.images.CreateOrUpdate(
@@ -440,7 +439,7 @@ func (ic *ImageController) syncSingleBlob(blobName string) error {
 						OsType:  compute.Linux,
 						BlobURI: to.StringPtr(url),
 					},
-					ZoneResilient: to.BoolPtr(locationSupportsAZs),
+					ZoneResilient: to.BoolPtr(ic.supportsAvailabilityZones),
 				},
 			},
 			Tags: map[string]*string{

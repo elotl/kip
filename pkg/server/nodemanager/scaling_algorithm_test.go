@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"github.com/elotl/kip/pkg/api"
-	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -61,8 +60,6 @@ func sortNodes(nodes []*api.Node) {
 			return nodes[i].Spec.InstanceType < nodes[j].Spec.InstanceType
 		} else if nodes[i].Spec.Spot != nodes[j].Spec.Spot {
 			return nodes[i].Spec.Spot
-		} else if nodes[i].Spec.Placement.AvailabilityZone != nodes[j].Spec.Placement.AvailabilityZone {
-			return nodes[i].Spec.Placement.AvailabilityZone < nodes[j].Spec.Placement.AvailabilityZone
 		} else if nodes[i].Spec.Resources.PrivateIPOnly != nodes[j].Spec.Resources.PrivateIPOnly {
 			return !nodes[i].Spec.Resources.PrivateIPOnly
 		}
@@ -77,7 +74,6 @@ func nodesEqual(t *testing.T, output, expected []*api.Node, msgArgs ...interface
 	for i := 0; i < len(output); i++ {
 		assert.Equal(t, output[i].Spec.InstanceType, expected[i].Spec.InstanceType, msgArgs...)
 		assert.Equal(t, output[i].Spec.Resources.PrivateIPOnly, expected[i].Spec.Resources.PrivateIPOnly, msgArgs...)
-		assert.Equal(t, output[i].Spec.Placement.AvailabilityZone, expected[i].Spec.Placement.AvailabilityZone, msgArgs...)
 		assert.Equal(t, output[i].Spec.Spot, expected[i].Spec.Spot, msgArgs...)
 	}
 }
@@ -88,20 +84,18 @@ func verify(t *testing.T, scaler ScalingAlgorithm, entry ScalingTestEntry, i int
 	nodesEqual(t, stopNodes, entry.stop, "test %d stop nodes failed", i)
 }
 
-func mkPod(instance string, privateIP bool, az string) *api.Pod {
+func mkPod(instance string, privateIP bool) *api.Pod {
 	p := api.GetFakePod()
 	p.Spec.Resources.PrivateIPOnly = privateIP
 	p.Spec.InstanceType = instance
-	p.Spec.Placement.AvailabilityZone = az
 	return p
 }
 
-func mkNode(instance string, privateIP bool, spot bool, az string) *api.Node {
+func mkNode(instance string, privateIP bool, spot bool) *api.Node {
 	n := api.GetFakeNode()
 	n.Spec.InstanceType = instance
 	n.Spec.Resources.PrivateIPOnly = privateIP
 	n.Spec.Spot = spot
-	n.Spec.Placement.AvailabilityZone = az
 	return n
 }
 
@@ -115,21 +109,17 @@ func TestOnDemandScalingNoStandby(t *testing.T) {
 	noNodes := []*api.Node{}
 	instanceA := "t2.A"
 	instanceB := "t2.B"
-	pa1 := mkPod(instanceA, false, "")
-	pa2 := mkPod(instanceA, false, "")
-	pb1 := mkPod(instanceB, true, "")
-	pb2 := mkPod(instanceB, true, "us-east-1b")
-	na1 := mkNode(instanceA, false, false, "")
-	na2 := mkNode(instanceA, false, false, "")
-	nb1 := mkNode(instanceB, true, false, "")
-	nb2 := mkNode(instanceB, true, false, "us-east-1b")
+	pa1 := mkPod(instanceA, false)
+	pa2 := mkPod(instanceA, false)
+	pb1 := mkPod(instanceB, true)
+	na1 := mkNode(instanceA, false, false)
+	na2 := mkNode(instanceA, false, false)
+	nb1 := mkNode(instanceB, true, false)
 	table := []ScalingTestEntry{
 		// no pods, no nodes
 		{mkin(), noNodes, noNodes},
 		// 1 pod, no nodes -- 1 node
 		{mkin(pa1), mkout(na1), noNodes},
-		// 1 pod with AZ, no nodes -- 1 node
-		{mkin(pb2), mkout(nb2), noNodes},
 		// 2 pods (different images), no nodes -- 2 nodes
 		{mkin(pa1, pb1), mkout(na1, nb1), noNodes},
 		// 2 different pods, 1 node of input pod type -- 1 node
@@ -145,10 +135,9 @@ func TestOnDemandScalingNoStandby(t *testing.T) {
 		// 1 pod, 2 nodes (one same, one different)
 		{mkin(pa1, pa2, na1, nb1), mkout(na1), mkout(nb1)},
 	}
-	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
 	scaler := &BindingNodeScaler{
 		nodeRegistry: &FakeNodeStatusUpdater{},
-		cloudStatus:  cloudStatus,
+		bootLimiter:  NewInstanceBootLimiter(),
 		standbyNodes: nil,
 	}
 	for i, entry := range table {
@@ -162,10 +151,10 @@ func TestOnDemandScalingWithStandby(t *testing.T) {
 	noNodes := []*api.Node{}
 	instanceA := "t2.A"
 	instanceB := "t2.B"
-	pa1 := mkPod(instanceA, false, "")
-	pb1 := mkPod(instanceB, true, "")
-	na1 := mkNode(instanceA, false, false, "")
-	nb1 := mkNode(instanceB, true, false, "")
+	pa1 := mkPod(instanceA, false)
+	pb1 := mkPod(instanceB, true)
+	na1 := mkNode(instanceA, false, false)
+	nb1 := mkNode(instanceB, true, false)
 	table := []ScalingTestEntry{
 		{mkin(), mkout(na1, na1), noNodes},
 		{mkin(pa1, na1, na1), mkout(na1), noNodes},
@@ -186,10 +175,9 @@ func TestOnDemandScalingWithStandby(t *testing.T) {
 			Spot:         false,
 		},
 	}
-	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
 	scaler := &BindingNodeScaler{
 		nodeRegistry: &FakeNodeStatusUpdater{},
-		cloudStatus:  cloudStatus,
+		bootLimiter:  NewInstanceBootLimiter(),
 		standbyNodes: standbyNodes,
 	}
 	for i, entry := range table {
@@ -203,28 +191,28 @@ func TestSpotScaling(t *testing.T) {
 	instanceA := "t2.A"
 	instanceB := "t2.B"
 	instanceC := "t2.C"
-	pa1 := mkPod(instanceA, false, "")
+	pa1 := mkPod(instanceA, false)
 	pa1.Spec.Spot.Policy = api.SpotAlways
-	pa2 := mkPod(instanceA, false, "")
+	pa2 := mkPod(instanceA, false)
 
-	pa3 := mkPod(instanceA, false, "")
+	pa3 := mkPod(instanceA, false)
 	pa3.Spec.Spot.Policy = api.SpotAlways
 
-	pa4 := mkPod(instanceA, false, "")
+	pa4 := mkPod(instanceA, false)
 	pa4.Spec.Phase = api.PodFailed
 	pa4.Status.Phase = api.PodFailed
 
-	pa5 := mkPod(instanceA, false, "us-east-1a")
+	pa5 := mkPod(instanceA, false)
 	pa5.Spec.Spot.Policy = api.SpotAlways
 
-	pb1 := mkPod(instanceB, false, "")
+	pb1 := mkPod(instanceB, false)
 	pb1.Spec.Spot.Policy = api.SpotAlways
-	pc1 := mkPod(instanceC, false, "")
+	pc1 := mkPod(instanceC, false)
 	pc1.Spec.Spot.Policy = api.SpotAlways
-	na1 := mkNode(instanceA, false, true, "")
-	na2 := mkNode(instanceA, false, false, "")
-	na3 := mkNode(instanceA, false, true, "")
-	nb1 := mkNode(instanceB, false, true, "")
+	na1 := mkNode(instanceA, false, true)
+	na2 := mkNode(instanceA, false, false)
+	na3 := mkNode(instanceA, false, true)
+	nb1 := mkNode(instanceB, false, true)
 	table := []ScalingTestEntry{
 		// no pods, no nodes
 		{mkin(), noNodes, noNodes},
@@ -243,8 +231,6 @@ func TestSpotScaling(t *testing.T) {
 		// spot nodes without pods should be deleted
 		{mkin(na1), noNodes, mkout(na1)},
 		{mkin(pa1, na1, na3), noNodes, mkout(na3)},
-		// Make sure spot zone failures don't cause us to boot nodes
-		{mkin(pa5), noNodes, noNodes},
 
 		{mkin(pa1, pb1), mkout(na1, nb1), noNodes},
 
@@ -252,12 +238,11 @@ func TestSpotScaling(t *testing.T) {
 		{mkin(pc1), noNodes, noNodes},
 	}
 
-	cloudStatus, _ := cloud.NewLinkedAZSubnetStatus(cloud.NewMockClient())
-	cloudStatus.AddUnavailableInstance(pc1.Spec.InstanceType, true)
-	cloudStatus.AddUnavailableZone(pa5.Spec.InstanceType, true, pa5.Spec.Placement.AvailabilityZone)
+	bootLimiter := NewInstanceBootLimiter()
+	bootLimiter.AddUnavailableInstance(pc1.Spec.InstanceType, true)
 	scaler := &BindingNodeScaler{
 		nodeRegistry: &FakeNodeStatusUpdater{},
-		cloudStatus:  cloudStatus,
+		bootLimiter:  bootLimiter,
 		standbyNodes: nil,
 	}
 

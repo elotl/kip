@@ -722,7 +722,6 @@ func (in *NodeList) DeepCopy() *NodeList {
 func (in *NodeSpec) DeepCopyInto(out *NodeSpec) {
 	*out = *in
 	in.Resources.DeepCopyInto(&out.Resources)
-	out.Placement = in.Placement
 	return
 }
 
@@ -1056,7 +1055,6 @@ func (in *PodSpec) DeepCopyInto(out *PodSpec) {
 	}
 	out.Spot = in.Spot
 	in.Resources.DeepCopyInto(&out.Resources)
-	out.Placement = in.Placement
 	if in.Volumes != nil {
 		in, out := &in.Volumes, &out.Volumes
 		*out = make([]Volume, len(*in))

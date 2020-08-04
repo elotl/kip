@@ -133,9 +133,6 @@ type PodSpec struct {
 	// instanceType and resources are specified, instanceType will take
 	// precedence.
 	Resources ResourceSpec `json:"resources,omitempty"`
-	// Placement is used to specify where a Pod will be place in the
-	// infrastructure.
-	Placement PlacementSpec `json:"placement,omitempty"`
 	// List of volumes that will be made available to the Pod. Units can then
 	// attach any of these mounts.
 	Volumes []Volume `json:"volumes,omitempty"`
@@ -967,8 +964,6 @@ type NodeSpec struct {
 	// allows a variable number of CPUs/memory for an instance type,
 	// the combination of resources and instance type will be used.
 	Resources ResourceSpec `json:"resources,omitempty"`
-	// Placement of the Node in the infrastructure.
-	Placement PlacementSpec `json:"placement,omitempty"`
 }
 
 type PlacementSpec struct {
