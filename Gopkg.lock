@@ -91,7 +91,7 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
-  digest = "1:31436312f62f224eaa3f851eb8b9800c95d9b42e9eb0711cd9e47140215db287"
+  digest = "1:318672918d5a16b70fa384528a6be375fa6eb5f97708d3a5f06a668bc96de6f4"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -130,7 +130,6 @@
     "service/ec2",
     "service/ecr",
     "service/ecs",
-    "service/elb",
     "service/sts",
     "service/sts/stsiface",
   ]
@@ -1818,11 +1817,11 @@
     "github.com/Azure/go-autorest/autorest/to",
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/awserr",
+    "github.com/aws/aws-sdk-go/aws/ec2metadata",
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/ec2",
     "github.com/aws/aws-sdk-go/service/ecr",
     "github.com/aws/aws-sdk-go/service/ecs",
-    "github.com/aws/aws-sdk-go/service/elb",
     "github.com/coreos/etcd/clientv3",
     "github.com/coreos/etcd/compactor",
     "github.com/coreos/etcd/embed",
