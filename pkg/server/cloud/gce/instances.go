@@ -528,6 +528,7 @@ func (c *gceClient) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 			creationTime = &ts
 		}
 	}
+	// TODO: these values seem to be reversed?
 	return cloud.Image{
 		ID:           resp.Name,
 		Name:         resp.SelfLink,

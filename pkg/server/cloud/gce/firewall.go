@@ -227,6 +227,14 @@ func (c *gceClient) FindSecurityGroup(sgName string) (*cloud.SecurityGroup, erro
 	return sg, nil
 }
 
+func (c *gceClient) DeleteSecurityGroup(sgName string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	fmt.Println("Deleting security group", sgName)
+	_, err := c.service.Firewalls.Delete(c.projectID, sgName).Context(ctx).Do()
+	return err
+}
+
 func portsToAllowedRules(ports []cloud.InstancePort) []*compute.FirewallAllowed {
 	allowed := make([]*compute.FirewallAllowed, len(ports))
 	for i := range ports {
