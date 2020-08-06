@@ -26,7 +26,7 @@ cmd/kip/kip
 /kipctl
 staticcheck.conf
 kubeconfig
-*.tfstate.*
+*.tfstate*
 *.tfvars
 deploy/terraform/.terraform/
 deploy/terraform-gcp/.terraform/
