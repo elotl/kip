@@ -182,6 +182,14 @@ cells:
   # extraSecurityGroups:
   #   - sg-246810
 
+  # extraCIDRs is a list of CIDRs that will be allowed to access pods. This is
+  # useful if Kip pods run in a separate network from "regular" pods. The other
+  # network also needs to allow incoming connecting from Kip pods for pod-pod
+  # communication.
+  #
+  # extraCIDRs:
+  #   - 10.50.0.0/16
+
   # By default, cells will be assigned a publicIP address if the
   # subnet is configured to allow access to the public internet
   # without NAT.  Set privateIPOnly to true to force all cells

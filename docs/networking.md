@@ -22,3 +22,11 @@ Kip cells running in public subnets are assigned a public address by default whi
 Kip pods without public addresses and access to the internet must be able to download an itzo binary from S3 and be able to download any container images used in the pod spec.  The easiest way to ensure access to S3 from a private subnet in AWS is to setup a VPC endpoint to allow access to `com.amazonaws.us-east-1.s3`.  Likewise, a VPC endpoint can be used to allow access to ECR registries.
 
 Itzo images can be downloaded from alternative locations by specifying a custom url for `cells.itzo.url` in [provider.yaml](#provider-configuration).  This allows cells to download the itzo binary from a webserver or other endpoint inside the user's cloud network.
+
+## Interconnecting Networks
+
+If Kip pods run in a separate network from the rest of the cluster (for example, when Kip is used to add extra capacity via a public cloud to an on-prem cluster), then pod-pod communication needs to go through a tunnel. This can be a software or hardware VPN, AWS Direct Connect, or some other mechanism; a simple VPN example configuration can be found in [deploy/terraform-vpn](deploy/terraform-vpn).
+
+By default Kip will ensure that a security group or firewall allows access from within the VPC to Kip pods, so that Kubernetes services, ingress, etc work when backed by Kip pods. To ensure pod-pod communication between the on-prem network and Kip pods in the VPC, either a security group needs to be created, or the on-prem CIDR needs to be allowed to connect to Kip pods. See `extraSecurityGroups` and `extraCIDRs` in [docs/provider.yaml](docs/provider.yaml).
+
+It is also possible to interconnect two VPCs in the same cloud, or in separate public clouds (for example, an AWS VPC and a GCP network) in a similar way.
