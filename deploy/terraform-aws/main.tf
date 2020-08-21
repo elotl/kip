@@ -46,7 +46,7 @@ resource "aws_vpc" "main" {
 
   provisioner "local-exec" {
     when        = destroy
-    command     = "./cleanup-vpc.sh ${self.id} ${var.cluster_name}"
+    command     = "${path.module}/cleanup-vpc.sh ${self.id} ${var.cluster_name}"
     interpreter = ["/bin/bash", "-c"]
     environment = {
       "AWS_REGION"         = var.region
@@ -62,7 +62,7 @@ resource "aws_internet_gateway" "gw" {
 
   provisioner "local-exec" {
     when        = destroy
-    command     = "./cleanup-vpc.sh ${self.vpc_id} ${var.cluster_name}"
+    command     = "${path.module}/cleanup-vpc.sh ${self.vpc_id} ${var.cluster_name}"
     interpreter = ["/bin/bash", "-c"]
     environment = {
       "AWS_REGION"         = var.region
@@ -319,7 +319,7 @@ data "external" "manifest" {
 }
 
 data "template_file" "node-userdata" {
-  template = file("node.sh")
+  template = file("${path.module}/node.sh")
 
   vars = {
     k8stoken                  = local.k8stoken

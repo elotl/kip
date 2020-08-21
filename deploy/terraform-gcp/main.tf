@@ -154,7 +154,7 @@ resource "null_resource" "client_permissions" {
     environment = {
       KUBECONFIG = "${path.module}/kubeconfig"
     }
-    command = "kubectl apply -f cluster-admin.yaml --username=client --password=${local.password}"
+    command = "kubectl apply -f ${path.module}/cluster-admin.yaml --username=client --password=${local.password}"
   }
 
   triggers = {
