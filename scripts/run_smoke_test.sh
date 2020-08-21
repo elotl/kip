@@ -31,7 +31,7 @@ cleanup() {
         kill -9 $PORTFW_PID
     fi
     cd $ROOT_DIR/deploy/terraform-aws
-    terraform destroy -var cluster-name=${CLUSTER_NAME} -auto-approve
+    terraform destroy -var cluster_name=${CLUSTER_NAME} -auto-approve
 }
 
 update_vk() {
@@ -66,9 +66,9 @@ trap cleanup EXIT
 # Create a test cluster.
 cd $ROOT_DIR/deploy/terraform-aws
 terraform init
-terraform apply -var cluster-name=${CLUSTER_NAME} -auto-approve
-terraform show -json | jq -r '.values.root_module.resources | .[] | select(.address=="tls_private_key.ssh-key") | .values.private_key_pem' > $SSH_KEY_FILE
-SSH_HOST=$(terraform show -json | jq -r '.values.root_module.resources | .[] | select(.address=="aws_instance.k8s-node") | .values.public_ip')
+terraform apply -var cluster_name=${CLUSTER_NAME} -auto-approve
+terraform show -json | jq -r '.values.root_module.resources | .[] | select(.address=="tls_private_key.ssh_key") | .values.private_key_pem' > $SSH_KEY_FILE
+SSH_HOST=$(terraform show -json | jq -r '.values.root_module.resources | .[] | select(.address=="aws_instance.k8s_node") | .values.public_ip')
 
 fetch_kubeconfig
 
