@@ -307,26 +307,29 @@ resource "random_id" "k8stoken-suffix" {
 }
 
 locals {
-  k8stoken = format(
+  k8stoken      = format(
     "%s.%s",
     random_id.k8stoken_prefix.hex,
     random_id.k8stoken-suffix.hex,
   )
+  kustomize_dir = "%{ if substr(var.kustomize_dir, 0, 1) == "." }${path.module}/${var.kustomize_dir}%{ else }${var.kustomize_dir}%{ endif }"
+  kip_manifest  = length(local.kustomize_dir) > 0 ? base64encode(data.external.manifest[0].result.output) : ""
 }
 
 data "external" "manifest" {
-  program = ["bash", "-c", "set -e; set -o pipefail; kustomize build ${var.kustomize_dir} | jq -s -R '{\"output\": .}'"]
+  count   = length(local.kustomize_dir) > 0 ? 1 : 0
+  program = ["bash", "-c", "set -e; set -o pipefail; kustomize build ${local.kustomize_dir} | jq -s -R '{\"output\": .}'"]
 }
 
 data "template_file" "node_userdata" {
   template = file("${path.module}/node.sh")
 
   vars = {
-    k8stoken                  = local.k8stoken
-    k8s_version               = var.k8s_version
-    pod_cidr                  = var.pod_cidr
-    service_cidr              = var.service_cidr
-    kip_manifest  = base64encode(data.external.manifest.result.output)
+    k8stoken      = local.k8stoken
+    k8s_version   = var.k8s_version
+    pod_cidr      = var.pod_cidr
+    service_cidr  = var.service_cidr
+    kip_manifest  = local.kip_manifest
   }
 }
 
