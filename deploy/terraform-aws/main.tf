@@ -30,13 +30,13 @@ locals {
   }
 }
 
-data "aws_availability_zones" "available-azs" {
+data "aws_availability_zones" "available_azs" {
   state             = "available"
   exclude_zone_ids  = var.excluded_azs
 }
 
 resource "random_shuffle" "azs" {
-  input        = data.aws_availability_zones.available-azs.names
+  input        = data.aws_availability_zones.available_azs.names
   result_count = 1
 }
 
@@ -82,7 +82,7 @@ resource "aws_subnet" "subnet" {
   tags = local.k8s_cluster_tags
 }
 
-resource "aws_route_table" "route-table" {
+resource "aws_route_table" "route_table" {
   vpc_id = aws_vpc.main.id
 
   route {
@@ -99,9 +99,9 @@ resource "aws_route_table" "route-table" {
   }
 }
 
-resource "aws_route_table_association" "route-table-to-subnet" {
+resource "aws_route_table_association" "route_table_to_subnet" {
   subnet_id      = aws_subnet.subnet.id
-  route_table_id = aws_route_table.route-table.id
+  route_table_id = aws_route_table.route_table.id
 }
 
 resource "aws_efs_file_system" "efs" {
@@ -159,7 +159,7 @@ resource "aws_security_group" "kubernetes" {
   tags = local.k8s_cluster_tags
 }
 
-resource "aws_iam_role" "k8s-node" {
+resource "aws_iam_role" "k8s_node" {
   name               = "k8s-node-${var.cluster_name}"
   assume_role_policy = <<EOF
 {
@@ -179,9 +179,9 @@ EOF
   tags = local.k8s_cluster_tags
 }
 
-resource "aws_iam_role_policy" "k8s-node" {
+resource "aws_iam_role_policy" "k8s_node" {
   name = "k8s-node-${var.cluster_name}"
-  role = aws_iam_role.k8s-node.id
+  role = aws_iam_role.k8s_node.id
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -293,12 +293,12 @@ resource "aws_iam_role_policy" "k8s-node" {
 EOF
 }
 
-resource "aws_iam_instance_profile" "k8s-node" {
+resource "aws_iam_instance_profile" "k8s_node" {
   name = "k8s-node-${var.cluster_name}"
-  role = aws_iam_role.k8s-node.name
+  role = aws_iam_role.k8s_node.name
 }
 
-resource "random_id" "k8stoken-prefix" {
+resource "random_id" "k8stoken_prefix" {
   byte_length = 3
 }
 
@@ -309,7 +309,7 @@ resource "random_id" "k8stoken-suffix" {
 locals {
   k8stoken = format(
     "%s.%s",
-    random_id.k8stoken-prefix.hex,
+    random_id.k8stoken_prefix.hex,
     random_id.k8stoken-suffix.hex,
   )
 }
@@ -318,7 +318,7 @@ data "external" "manifest" {
   program = ["bash", "-c", "set -e; set -o pipefail; kustomize build ${var.kustomize_dir} | jq -s -R '{\"output\": .}'"]
 }
 
-data "template_file" "node-userdata" {
+data "template_file" "node_userdata" {
   template = file("${path.module}/node.sh")
 
   vars = {
@@ -349,31 +349,31 @@ data "aws_ami" "ubuntu" {
 locals {
   node_ami = length(var.node_ami) > 0 ? var.node_ami : data.aws_ami.ubuntu.id
   create_ssh_key = length(var.ssh_key_name) > 0 ? false : true
-  ssh_key_name = local.create_ssh_key ? aws_key_pair.ssh-key.0.key_name : var.ssh_key_name
+  ssh_key_name = local.create_ssh_key ? aws_key_pair.ssh_key.0.key_name : var.ssh_key_name
 }
 
-resource "tls_private_key" "ssh-key" {
+resource "tls_private_key" "ssh_key" {
   count = local.create_ssh_key ? 1 : 0
   algorithm = "RSA"
 }
 
-resource "aws_key_pair" "ssh-key" {
+resource "aws_key_pair" "ssh_key" {
   count = local.create_ssh_key ? 1 : 0
   key_name   = "ssh-key-${var.cluster_name}"
-  public_key = tls_private_key.ssh-key.0.public_key_openssh
+  public_key = tls_private_key.ssh_key.0.public_key_openssh
 
   tags = local.k8s_cluster_tags
 }
 
-resource "aws_instance" "k8s-node" {
+resource "aws_instance" "k8s_node" {
   ami                         = local.node_ami
   instance_type               = "t3.medium"
   subnet_id                   = aws_subnet.subnet.id
-  user_data                   = data.template_file.node-userdata.rendered
+  user_data                   = data.template_file.node_userdata.rendered
   key_name                    = local.ssh_key_name
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.kubernetes.id]
-  iam_instance_profile        = aws_iam_instance_profile.k8s-node.id
+  iam_instance_profile        = aws_iam_instance_profile.k8s_node.id
   source_dest_check           = false
 
   root_block_device {
@@ -385,14 +385,14 @@ resource "aws_instance" "k8s-node" {
       type        = "ssh"
       user        = "ubuntu"
       host        = self.public_ip
-      private_key = local.create_ssh_key ? tls_private_key.ssh-key.0.private_key_pem : null
+      private_key = local.create_ssh_key ? tls_private_key.ssh_key.0.private_key_pem : null
     }
     inline = [
       "timeout 600 bash -x -c 'echo Waiting for cluster to come up; while true; do kubectl cluster-info && kubectl get svc kubernetes && exit 0; sleep 5; done'",
     ]
   }
 
-  depends_on = [aws_internet_gateway.gw, aws_key_pair.ssh-key]
+  depends_on = [aws_internet_gateway.gw, aws_key_pair.ssh_key]
 
   tags = merge(local.k8s_cluster_tags,
     {"Name" = "${var.cluster_name}-node"})

@@ -60,7 +60,7 @@ resource "google_container_cluster" "cluster" {
   }
 }
 
-resource "google_container_node_pool" "node-pool" {
+resource "google_container_node_pool" "node_pool" {
   name       = "node-pool-${var.cluster_name}"
   location   = var.zone
   cluster    = google_container_cluster.cluster.name
