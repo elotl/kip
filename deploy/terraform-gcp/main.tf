@@ -26,7 +26,7 @@ locals {
 }
 
 resource "google_container_cluster" "cluster" {
-  name = var.cluster-name
+  name = var.cluster_name
 
   # Create a zonal cluster. In production, you want a regional cluster with
   # multiple masters spread across zones in the region.
@@ -48,8 +48,8 @@ resource "google_container_cluster" "cluster" {
   }
 
   ip_allocation_policy {
-    cluster_ipv4_cidr_block   = var.pod-cidr
-    services_ipv4_cidr_block  = var.service-cidr
+    cluster_ipv4_cidr_block   = var.pod_cidr
+    services_ipv4_cidr_block  = var.service_cidr
   }
 
   master_authorized_networks_config {
@@ -61,7 +61,7 @@ resource "google_container_cluster" "cluster" {
 }
 
 resource "google_container_node_pool" "node-pool" {
-  name       = "node-pool-${var.cluster-name}"
+  name       = "node-pool-${var.cluster_name}"
   location   = var.zone
   cluster    = google_container_cluster.cluster.name
   node_count = 1
@@ -83,21 +83,21 @@ resource "google_container_node_pool" "node-pool" {
 }
 
 resource "google_filestore_instance" "filestore" {
-  count = var.filestore-enable ? 1 : 0
+  count = var.filestore_enable ? 1 : 0
 
-  name = var.cluster-name
+  name = var.cluster_name
   zone = var.zone
-  tier = var.filestore-tier
+  tier = var.filestore_tier
 
   file_shares {
-    name        = var.filestore-fileshare-name
-    capacity_gb = var.filestore-fileshare-capacity-gb
+    name        = var.filestore_fileshare_name
+    capacity_gb = var.filestore_fileshare_capacity_gb
   }
 
   networks {
     network = "default"
     modes   = ["MODE_IPV4"]
-    reserved_ip_range = var.filestore-reserved-ip-range
+    reserved_ip_range = var.filestore_reserved_ip_range
   }
 }
 
@@ -168,7 +168,7 @@ resource "null_resource" "client_permissions" {
 }
 
 resource "null_resource" "deploy" {
-  count = length(var.kustomize-dir) > 0 ? 1 : 0
+  count = length(var.kustomize_dir) > 0 ? 1 : 0
 
   provisioner "local-exec" {
     environment = {
@@ -180,7 +180,7 @@ resource "null_resource" "deploy" {
       "-c",
     ]
     # This needs kubectl and kustomize.
-    command = "kustomize build ${var.kustomize-dir} | kubectl apply -f -"
+    command = "kustomize build ${var.kustomize_dir} | kubectl apply -f -"
   }
 
   triggers = {
