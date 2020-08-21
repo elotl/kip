@@ -1,5 +1,32 @@
+# Steps to deploy via Minikube:
+# 1. Create your overlay:
+#     $ mkdir -p overlays/local-minikube
+#     $ cat <<EOF > overlays/local-minikube/kustomization.yaml
+#     bases:
+#     - ../minikube
+#     namespace: kube-system
+#     configMapGenerator:
+#     - name: kip-config
+#       behavior: merge
+#       files:
+#       - provider.yaml
+#     secretGenerator:
+#     - name: kip-secrets
+#       literals:
+#       - AWS_ACCESS_KEY_ID=...
+#       - AWS_SECRET_ACCESS_KEY=...
+#     EOF
+#     $ cp overlays/minikube/provider.yaml overlays/local-minikube/
+# 2. Set VPC, subnet ID and security group:
+#     $ vi overlays/local-minikube/provider.yaml
+# 3. Set your AWS access keys:
+#     $ vi overlays/local-minikube/kustomization.yaml
+# 4. Apply via:
+#     $ kustomize build overlays/local-minikube | kubectl apply -f -
 bases:
 - ../../base
+patchesStrategicMerge:
+- statefulset.yaml
 configMapGenerator:
 - name: config
   behavior: merge
