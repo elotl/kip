@@ -29,7 +29,7 @@ variable "service_cidr" {
 }
 
 variable "kustomize_dir" {
-  default     = "../manifests/kip/overlays/gcp"
+  default     = "github.com/elotl/kip/deploy/manifests/kip/overlays/gcp?ref=v1.0.0"
   description = "A kustomization directory that will be applied once the cluster is created. Leave it empty to disable."
 }
 

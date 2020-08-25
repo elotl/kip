@@ -40,7 +40,7 @@ variable "node_ami" {
 }
 
 variable "kustomize_dir" {
-  default = "../manifests/kip/base"
+  default = "github.com/elotl/kip/deploy/manifests/kip/base?ref=v1.0.0"
 }
 
 variable "efs_enable" {
