@@ -349,7 +349,8 @@ func (e *AwsEC2) StartSpotNode(node *api.Node, image cloud.Image, metadata strin
 	//var subnet *cloud.SubnetAttributes
 	klog.V(2).Infof("Starting spot node in: %s", e.subnetID)
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
-	devices := e.getBlockDeviceMapping(image, volSizeGiB)
+	totalVolSizeGiB := cloud.AddVolSpecSizeToRootSize(volSizeGiB, image)
+	devices := e.getBlockDeviceMapping(image, totalVolSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)

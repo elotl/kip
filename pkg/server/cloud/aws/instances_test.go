@@ -72,11 +72,12 @@ func TestGetRootDeviceVolumeSize(t *testing.T) {
 	notRootDeviceName := "not-root"
 	rootDeviceName := "root-device"
 	var volumeSize int64 = 100
+	var expectedVolumeSize int32 = 100
 	testCases := []struct{
 		caseName string
 		blockDevices []*ec2.BlockDeviceMapping
 		rootDeviceName string
-		expectedRootDiskSize *int64
+		expectedRootDiskSize *int32
 	}{
 		{
 			"root-device-found",
@@ -103,7 +104,7 @@ func TestGetRootDeviceVolumeSize(t *testing.T) {
 				},
 			},
 			"root-device",
-			&volumeSize,
+			&expectedVolumeSize,
 
 		},
 	}
