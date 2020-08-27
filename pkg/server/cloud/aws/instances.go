@@ -238,15 +238,15 @@ func getRootDeviceName(img *ec2.Image) (string, error) {
 	return "", nil // todo add error
 }
 
-func getRootDeviceVolumeSize(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) (*int64) {
-	var rootDiskSize *int64
+func getRootDeviceVolumeSize(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) *int32 {
+	var rootDiskSize int32
 	for _, blockDevice := range blockDevices {
 		if *blockDevice.DeviceName == rootDeviceName {
-			rootDiskSize = blockDevice.Ebs.VolumeSize
+			rootDiskSize = int32(*blockDevice.Ebs.VolumeSize)
 			break
 		}
 	}
-	return rootDiskSize
+	return &rootDiskSize
 }
 
 func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
@@ -274,7 +274,7 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 			}
 		}
 		rootDeviceName, err := getRootDeviceName(img)
-		var rootDiskSize *int64
+		var rootDiskSize *int32
 		if err != nil {
 			rootDiskSize = getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
 		}
@@ -299,7 +299,9 @@ func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata string) (
 		Tags:         tags,
 	}
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
-	devices := e.getBlockDeviceMapping(image, volSizeGiB)
+	totalVolSizeGiB := cloud.AddVolSpecSizeToRootSize(volSizeGiB, image)
+
+	devices := e.getBlockDeviceMapping(image, totalVolSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)

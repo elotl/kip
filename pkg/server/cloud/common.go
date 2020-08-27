@@ -140,3 +140,10 @@ func ToSaneVolumeSize(volSizeSpec string) int32 {
 	}
 	return volSizeGiB
 }
+
+func AddVolSpecSizeToRootSize(specSize int32, img Image) int32 {
+	if img.VolumeDiskSize == nil {
+		return specSize
+	}
+	return *img.VolumeDiskSize + specSize
+}
