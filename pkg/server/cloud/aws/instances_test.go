@@ -67,3 +67,50 @@ func TestBootImageSpecToDescribeImagesInput(t *testing.T) {
 		assert.Equal(t, tc.Input, *input)
 	}
 }
+
+func TestGetRootDeviceVolumeSize(t *testing.T) {
+	notRootDeviceName := "not-root"
+	rootDeviceName := "root-device"
+	var volumeSize int64 = 100
+	testCases := []struct{
+		caseName string
+		blockDevices []*ec2.BlockDeviceMapping
+		rootDeviceName string
+		expectedRootDiskSize *int64
+	}{
+		{
+			"root-device-found",
+			[]*ec2.BlockDeviceMapping{
+				&ec2.BlockDeviceMapping{
+					DeviceName:  &notRootDeviceName,
+					Ebs:         nil,
+					NoDevice:    nil,
+					VirtualName: nil,
+				},
+				&ec2.BlockDeviceMapping{
+					DeviceName:  &rootDeviceName,
+					Ebs:         &ec2.EbsBlockDevice{
+						DeleteOnTermination: nil,
+						Encrypted:           nil,
+						Iops:                nil,
+						KmsKeyId:            nil,
+						SnapshotId:          nil,
+						VolumeSize:          &volumeSize,
+						VolumeType:          nil,
+					},
+					NoDevice:    nil,
+					VirtualName: nil,
+				},
+			},
+			"root-device",
+			&volumeSize,
+
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.caseName, func(t *testing.T) {
+			rootDiskSize := getRootDeviceVolumeSize(testCase.blockDevices, testCase.rootDeviceName)
+			assert.Equal(t, testCase.expectedRootDiskSize, rootDiskSize)
+		})
+	}
+}

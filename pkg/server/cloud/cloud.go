@@ -109,6 +109,7 @@ type Image struct {
 	Name         string
 	RootDevice   string
 	CreationTime *time.Time
+	VolumeDiskSize *int64
 }
 
 func SortImagesByCreationTime(images []Image) {
