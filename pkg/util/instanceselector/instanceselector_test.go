@@ -407,6 +407,11 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 			instanceType: "e2-micro",
 			sustainedCPU: false,
 		},
+		{
+			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "1.0"},
+			instanceType: "n1-custom-1-1024",
+			sustainedCPU: false,
+		},
 	}
 	runInstanceTypeTests(t, testCases)
 }

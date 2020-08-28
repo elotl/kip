@@ -253,6 +253,8 @@ func cheapestCustomInstanceSizeForCPUAndMemory(cid CustomInstanceData, memoryReq
 			if memory < cid.MinimumMemoryPerCPU*cpu {
 				memory = cid.MinimumMemoryPerCPU * cpu
 			}
+			ceil := math.Ceil(float64(memory / cid.BaseMemoryUnit))
+			memory = float32(ceil) * cid.BaseMemoryUnit
 			price := memory*cid.PricePerGBOfMemory + cpu*cid.PricePerCPU
 			if price < customPrice {
 				customPrice = price
