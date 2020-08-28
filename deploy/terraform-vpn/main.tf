@@ -78,7 +78,7 @@ module "vpc" {
   }
 }
 
-resource "local_file" "vpn-deployment-yaml" {
+resource "local_file" "vpn_deployment_yaml" {
   content         = templatefile("${path.module}/kustomization/vpn-deployment.yaml.tmpl", {
     dnspolicy=var.vpn_hostnetwork ? "ClusterFirstWithHostNet" : "ClusterFirst",
     hostnetwork=var.vpn_hostnetwork ? "true" : "false",
@@ -88,7 +88,7 @@ resource "local_file" "vpn-deployment-yaml" {
   file_permission = "0644"
 }
 
-resource "local_file" "kustomization-yaml" {
+resource "local_file" "kustomization_yaml" {
   sensitive_content = templatefile("${path.module}/kustomization/kustomization.yaml.tmpl", {
     aws_access_key_id=var.aws_access_key_id,
     aws_secret_access_key=var.aws_secret_access_key,
@@ -97,7 +97,7 @@ resource "local_file" "kustomization-yaml" {
   file_permission   = "0600"
 }
 
-resource "local_file" "aws-vpn-client-env" {
+resource "local_file" "aws_vpn_client_env" {
   sensitive_content = templatefile("${path.module}/kustomization/aws-vpn-client.env.tmpl", {
     tunnel1_address=module.vpn_gateway.vpn_connection_tunnel1_address,
     tunnel1_cgw_inside_address=module.vpn_gateway.vpn_connection_tunnel1_cgw_inside_address,
@@ -118,7 +118,7 @@ resource "local_file" "aws-vpn-client-env" {
   file_permission   = "0600"
 }
 
-resource "local_file" "provider-yaml" {
+resource "local_file" "provider_yaml" {
   sensitive_content = templatefile("${path.module}/kustomization/provider.yaml.tmpl", {
     name=var.name,
     region=var.region,
@@ -130,7 +130,7 @@ resource "local_file" "provider-yaml" {
   file_permission   = "0600"
 }
 
-resource "local_file" "command-extra-args-yaml" {
+resource "local_file" "command_extra_args_yaml" {
   content = templatefile("${path.module}/kustomization/command-extra-args.yaml.tmpl", {
     local_dns=var.local_dns,
   })
@@ -138,7 +138,7 @@ resource "local_file" "command-extra-args-yaml" {
   file_permission   = "0644"
 }
 
-resource "local_file" "node-local-dns-yaml" {
+resource "local_file" "node_local_dns_yaml" {
   content = templatefile("${path.module}/kustomization/node-local-dns.yaml.tmpl", {
     cluster_domain=var.cluster_domain,
     local_dns=var.local_dns,
@@ -162,20 +162,20 @@ resource "null_resource" "deploy" {
   }
 
   triggers = {
-    vpn-deployment-yaml=local_file.vpn-deployment-yaml.content,
-    node-local-dns-yaml=local_file.node-local-dns-yaml.content
-    aws-vpn-client-env=local_file.aws-vpn-client-env.sensitive_content,
-    kustomization-yaml=local_file.kustomization-yaml.sensitive_content,
-    command-extra-args-yaml=local_file.command-extra-args-yaml.content,
-    provider-yaml=local_file.provider-yaml.sensitive_content,
+    vpn_deployment_yaml=local_file.vpn_deployment_yaml.content,
+    node_local_dns_yaml=local_file.node_local_dns_yaml.content
+    aws_vpn_client_env=local_file.aws_vpn_client_env.sensitive_content,
+    kustomization_yaml=local_file.kustomization_yaml.sensitive_content,
+    command_extra_args_yaml=local_file.command_extra_args_yaml.content,
+    provider_yaml=local_file.provider_yaml.sensitive_content,
   }
 
   depends_on = [
-    local_file.vpn-deployment-yaml,
-    local_file.node-local-dns-yaml,
-    local_file.aws-vpn-client-env,
-    local_file.kustomization-yaml,
-    local_file.command-extra-args-yaml,
-    local_file.provider-yaml,
+    local_file.vpn_deployment_yaml,
+    local_file.node_local_dns_yaml,
+    local_file.aws_vpn_client_env,
+    local_file.kustomization_yaml,
+    local_file.command_extra_args_yaml,
+    local_file.provider_yaml,
   ]
 }

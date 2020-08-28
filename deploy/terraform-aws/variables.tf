@@ -1,8 +1,8 @@
-variable "ssh-key-name" {
+variable "ssh_key_name" {
   default = ""
 }
 
-variable "cluster-name" {
+variable "cluster_name" {
   default = "vk"
 }
 
@@ -10,59 +10,59 @@ variable "region" {
   default = "us-east-1"
 }
 
-variable "vpc-cidr" {
+variable "vpc_cidr" {
   default = "10.0.0.0/16"
 }
 
-variable "pod-cidr" {
+variable "pod_cidr" {
   default = "172.20.0.0/16"
 }
 
-variable "service-cidr" {
+variable "service_cidr" {
   default = "10.96.0.0/12"
 }
 
-variable "k8s-version" {
+variable "k8s_version" {
   default = ""
 }
 
-variable "node-disk-size" {
+variable "node_disk_size" {
   default = 15
 }
 
-variable "excluded-azs" {
+variable "excluded_azs" {
   type    = list(string)
   default = ["use1-az3"]
 }
 
-variable "node-ami" {
+variable "node_ami" {
   default = ""
 }
 
-variable "kustomize-dir" {
-  default = "../manifests/kip/base"
+variable "kustomize_dir" {
+  default = "github.com/elotl/kip/deploy/manifests/kip/base?ref=v1.0.0"
 }
 
-variable "efs-enable" {
+variable "efs_enable" {
   type    = bool
   default = false
   description = "Create an EFS volume cells and/or pods in the VPC can mount and use."
 }
 
-variable "efs-performance-mode" {
+variable "efs_performance_mode" {
   type        = string
   default     = "generalPurpose"
   description = "Optional. The file system performance mode. Can be either generalPurpose or maxIO."
 }
 
-variable "efs-provisioned-throughput-in-mibps" {
+variable "efs_provisioned_throughput_in_mibps" {
   type        = number
   default     = 0
-  description = "Optional. The throughput, measured in MiB/s, that you want to provision for the file system. Only applicable with efs-throughput-mode set to provisioned."
+  description = "Optional. The throughput, measured in MiB/s, that you want to provision for the file system. Only applicable with efs_throughput_mode set to provisioned."
 }
 
-variable "efs-throughput-mode" {
+variable "efs_throughput_mode" {
   type        = string
   default     = "bursting"
-  description = "Optional. Throughput mode for the file system. Defaults to bursting. Valid values: bursting, provisioned. When using provisioned, also set efs-provisioned-throughput-in-mibps."
+  description = "Optional. Throughput mode for the file system. Defaults to bursting. Valid values: bursting, provisioned. When using provisioned, also set efs_provisioned_throughput_in_mibps."
 }

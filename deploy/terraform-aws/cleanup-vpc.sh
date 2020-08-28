@@ -5,7 +5,7 @@
 
 function usage() {
     {
-        echo "Usage $0 <vpc-id> <cluster-name>"
+        echo "Usage $0 <vpc-id> <cluster_name>"
         echo "You can also set the environment variables"
         echo "VPC_ID and CLUSTER_NAME."
     } >&2
