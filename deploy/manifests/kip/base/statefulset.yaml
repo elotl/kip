@@ -92,6 +92,10 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: spec.nodeName
+        - name: KIP_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
         - name: VKUBELET_NODE_NAME
           valueFrom:
             fieldRef:

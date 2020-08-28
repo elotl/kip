@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"regexp"
 	"strconv"
@@ -42,6 +43,7 @@ import (
 
 const (
 	blankTemplateValue = "FILL_IN"
+	kipPodIPVarName    = "KIP_POD_IP"
 )
 
 var (
@@ -440,6 +442,29 @@ func setConfigDefaults(config *ServerConfigFile) {
 	}
 }
 
+func appendKipIP(extraCIDRs []string) []string {
+	kipIPStr := os.Getenv(kipPodIPVarName)
+	if kipIPStr == "" {
+		return extraCIDRs
+	}
+	kipIP := net.ParseIP(kipIPStr)
+	if kipIP == nil {
+		return extraCIDRs
+	}
+	for _, cidr := range extraCIDRs {
+		_, ipnet, err := net.ParseCIDR(cidr)
+		if err != nil || ipnet == nil {
+			klog.Warningf("detected unparsable cidr %q in extraCIDRs, tying to continue", cidr)
+			continue
+		}
+		if ipnet.Contains(kipIP) {
+			return extraCIDRs
+		}
+	}
+	extraCIDRs = append(extraCIDRs, kipIPStr)
+	return extraCIDRs
+}
+
 func ConfigureCloud(configFile *ServerConfigFile, controllerID, nametag string) (cloud.CloudClient, error) {
 	cloudClient, err := configureCloudProvider(configFile, controllerID, nametag)
 	if err != nil {
@@ -452,8 +477,9 @@ func ConfigureCloud(configFile *ServerConfigFile, controllerID, nametag string) 
 	} else {
 		klog.V(2).Infof("controller will connect to nodes via private IPs")
 	}
+	extraCIDRs := appendKipIP(configFile.Cells.ExtraCIDRs)
 	err = cloudClient.EnsureMilpaSecurityGroups(
-		configFile.Cells.ExtraCIDRs,
+		extraCIDRs,
 		configFile.Cells.ExtraSecurityGroups,
 	)
 	if err != nil {
