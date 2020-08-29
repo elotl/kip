@@ -528,12 +528,14 @@ func (c *gceClient) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 			creationTime = &ts
 		}
 	}
+	diskSize := int32(resp.DiskSizeGb)
 	// TODO: these values seem to be reversed?
 	return cloud.Image{
 		ID:           resp.Name,
 		Name:         resp.SelfLink,
 		RootDevice:   "",
 		CreationTime: creationTime,
+		VolumeDiskSize: &diskSize,
 	}, nil
 }
 
