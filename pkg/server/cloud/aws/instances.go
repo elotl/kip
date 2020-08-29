@@ -17,6 +17,7 @@ limitations under the License.
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -232,10 +233,11 @@ func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeI
 }
 
 func getRootDeviceName(img *ec2.Image) (string, error) {
-	if img.RootDeviceName != nil {
-		return *img.RootDeviceName, nil
+	if img.RootDeviceName == nil {
+		msg := "cannot get root device name from image: " + *img.Name
+		return "", errors.New(msg)
 	}
-	return "", nil // todo add error
+	return *img.RootDeviceName, nil
 }
 
 func getRootDeviceVolumeSize(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) *int32 {
@@ -274,10 +276,11 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 			}
 		}
 		rootDeviceName, err := getRootDeviceName(img)
-		var rootDiskSize *int32
 		if err != nil {
-			rootDiskSize = getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
+			klog.Warningf("getting root device name from image: %v")
 		}
+		var rootDiskSize *int32
+		rootDiskSize = getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
 
 		images[i] = cloud.Image{
 			Name:         aws.StringValue(img.Name),
