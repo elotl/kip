@@ -126,7 +126,7 @@ func MergeSecurityGroups(cloudSG SecurityGroup, specPorts []InstancePort, specSo
 	return add, delete
 }
 
-func ToSaneVolumeSize(volSizeSpec string) int32 {
+func ToSaneVolumeSize(volSizeSpec string, image Image) int32 {
 	size, _ := resource.ParseQuantity(volSizeSpec)
 	volSizeGiB := util.ToGiBRoundUp(&size)
 	if volSizeGiB == 0 {
@@ -138,12 +138,10 @@ func ToSaneVolumeSize(volSizeSpec string) int32 {
 		klog.Errorln("Empty volume size found in resource spec, setting to reasonable value")
 		volSizeGiB = 8
 	}
-	return volSizeGiB
-}
-
-func AddVolSpecSizeToRootSize(specSize int32, img Image) int32 {
-	if img.VolumeDiskSize == nil {
-		return specSize
+	if image.VolumeDiskSize != nil {
+		if *image.VolumeDiskSize > volSizeGiB {
+			return *image.VolumeDiskSize
+		}
 	}
-	return *img.VolumeDiskSize + specSize
+	return volSizeGiB
 }

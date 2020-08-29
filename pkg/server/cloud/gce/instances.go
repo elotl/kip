@@ -175,7 +175,7 @@ func (c *gceClient) createInstanceSpec(node *api.Node, image cloud.Image, metada
 
 	name := makeInstanceID(c.controllerID, node.Name)
 	diskType := c.getDiskTypeURL()
-	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
+	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
 	disks := c.getAttachedDiskSpec(true, int64(volSizeGiB), name, diskType, image.Name)
 	labels := c.getInstanceLabels(node.Name)
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
