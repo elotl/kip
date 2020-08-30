@@ -277,7 +277,7 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 		}
 		rootDeviceName, err := getRootDeviceName(img)
 		if err != nil {
-			klog.Warningf("getting root device name from image: %v")
+			klog.Warningf("getting root device name from image: %v", err.Error())
 		}
 		var rootDiskSize *int32
 		rootDiskSize = getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
