@@ -233,22 +233,22 @@ func awsSGToMilpa(sg *ec2.SecurityGroup) cloud.SecurityGroup {
 	ports := make([]cloud.InstancePort, len(sg.IpPermissions))
 
 	for i := 0; i < len(sg.IpPermissions); i++ {
-		port := int(*(sg.IpPermissions[i].FromPort))
-		portRangeSize := int(*(sg.IpPermissions[i].ToPort)) - port + 1
+		port := aws.Int64Value(sg.IpPermissions[i].FromPort)
+		portRangeSize := aws.Int64Value(sg.IpPermissions[i].ToPort) - port + 1
 		if portRangeSize <= 0 {
 			portRangeSize = 1
 		}
 		ports[i] = cloud.InstancePort{
-			Port:          port,
-			PortRangeSize: portRangeSize,
-			Protocol:      api.MakeProtocol(*sg.IpPermissions[i].IpProtocol),
+			Port:          int(port),
+			PortRangeSize: int(portRangeSize),
+			Protocol:      api.MakeProtocol(aws.StringValue(sg.IpPermissions[i].IpProtocol)),
 		}
 		for i := 0; i < len(sg.IpPermissions[0].IpRanges); i++ {
-			sourceRangesSet.Insert(*sg.IpPermissions[0].IpRanges[i].CidrIp)
+			sourceRangesSet.Insert(aws.StringValue(sg.IpPermissions[0].IpRanges[i].CidrIp))
 		}
 	}
 	return cloud.NewSecurityGroup(
-		*(sg.GroupId), *(sg.GroupName), ports, sourceRangesSet.List())
+		aws.StringValue(sg.GroupId), aws.StringValue(sg.GroupName), ports, sourceRangesSet.List())
 }
 
 // go through and figure out what rules need to be deleted and what
