@@ -35,3 +35,11 @@ Add a cloud-init section to the provider configmap, e.g. for ubuntu or debian:
 Finally, restart the provider:
 
     $ kubectl delete pod -n kube-system -l app=kip-provider
+
+### Secondary/Alias IP Handling
+
+If you build your custom image or use cloud-init to bootstrap cell instances, you will also need to ensure that the operating system does not configure secondary or alias IP addresses automatically. A secondary or alias IP address (depending on the cloud provider) is used for the pod that runs on the instance, and configuring it automatically on the main interface will result in pod networking issues.
+
+On our default images this is done when the image is built, but on custom images you might have take extra steps. Please refer to your cloud provider and operating system documentation on the exact steps.
+
+You can find more information on networking [here](networking.md).
