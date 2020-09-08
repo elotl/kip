@@ -17,7 +17,6 @@ limitations under the License.
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -232,15 +231,7 @@ func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeI
 	return input
 }
 
-func getRootDeviceName(img *ec2.Image) (string, error) {
-	if img.RootDeviceName == nil {
-		msg := "cannot get root device name from image: " + *img.Name
-		return "", errors.New(msg)
-	}
-	return *img.RootDeviceName, nil
-}
-
-func getRootDeviceVolumeSize(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) *int32 {
+func getRootDeviceVolumeSize(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) int32 {
 	var rootDiskSize int32
 	for _, blockDevice := range blockDevices {
 		if *blockDevice.DeviceName == rootDeviceName {
@@ -248,7 +239,8 @@ func getRootDeviceVolumeSize(blockDevices []*ec2.BlockDeviceMapping, rootDeviceN
 			break
 		}
 	}
-	return &rootDiskSize
+	diskSize := aws.Int32Value(&rootDiskSize)
+	return diskSize
 }
 
 func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
@@ -275,19 +267,17 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 				creationTime = &ts
 			}
 		}
-		rootDeviceName, err := getRootDeviceName(img)
-		if err != nil {
-			klog.Warningf("getting root device name from image: %v", err.Error())
+		rootDeviceName := aws.StringValue(img.RootDeviceName)
+		if rootDeviceName == "" {
+			klog.Warningf("cannot get root device name from image: %v", img.Name)
 		}
-		var rootDiskSize *int32
-		rootDiskSize = getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
-
+		rootDiskSize := getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
 		images[i] = cloud.Image{
 			Name:         aws.StringValue(img.Name),
 			RootDevice:   aws.StringValue(img.RootDeviceName),
 			ID:           aws.StringValue(img.ImageId),
 			CreationTime: creationTime,
-			VolumeDiskSize: rootDiskSize,
+			VolumeDiskSize: &rootDiskSize,
 		}
 	}
 	cloud.SortImagesByCreationTime(images)

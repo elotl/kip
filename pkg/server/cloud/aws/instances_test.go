@@ -77,35 +77,43 @@ func TestGetRootDeviceVolumeSize(t *testing.T) {
 		caseName string
 		blockDevices []*ec2.BlockDeviceMapping
 		rootDeviceName string
-		expectedRootDiskSize *int32
+		expectedRootDiskSize int32
 	}{
 		{
 			"root-device-found",
 			[]*ec2.BlockDeviceMapping{
 				&ec2.BlockDeviceMapping{
 					DeviceName:  &notRootDeviceName,
-					Ebs:         nil,
-					NoDevice:    nil,
-					VirtualName: nil,
 				},
 				&ec2.BlockDeviceMapping{
 					DeviceName:  &rootDeviceName,
 					Ebs:         &ec2.EbsBlockDevice{
-						DeleteOnTermination: nil,
-						Encrypted:           nil,
-						Iops:                nil,
-						KmsKeyId:            nil,
-						SnapshotId:          nil,
 						VolumeSize:          &volumeSize,
-						VolumeType:          nil,
 					},
-					NoDevice:    nil,
-					VirtualName: nil,
 				},
 			},
-			"root-device",
-			&expectedVolumeSize,
+			rootDeviceName,
+			expectedVolumeSize,
 
+		},
+		{
+			"empty-volume-list",
+			[]*ec2.BlockDeviceMapping{},
+			rootDeviceName,
+			0,
+		},
+		{
+			"root-device-not-found",
+			[]*ec2.BlockDeviceMapping{
+				&ec2.BlockDeviceMapping{
+					DeviceName:  &notRootDeviceName,
+					Ebs:         &ec2.EbsBlockDevice{
+						VolumeSize:          &volumeSize,
+					},
+				},
+			},
+			rootDeviceName,
+			0,
 		},
 	}
 	for _, testCase := range testCases {
