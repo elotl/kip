@@ -129,6 +129,11 @@ func MergeSecurityGroups(cloudSG SecurityGroup, specPorts []InstancePort, specSo
 func ToSaneVolumeSize(volSizeSpec string, image Image) int32 {
 	size, _ := resource.ParseQuantity(volSizeSpec)
 	volSizeGiB := util.ToGiBRoundUp(&size)
+	if image.VolumeDiskSize != 0 {
+		if image.VolumeDiskSize > volSizeGiB {
+			return image.VolumeDiskSize
+		}
+	}
 	if volSizeGiB == 0 {
 		// This should never happen but handle it with grace. It would
 		// be nice to set volSizeGiB to the default volume size but
@@ -137,11 +142,6 @@ func ToSaneVolumeSize(volSizeSpec string, image Image) int32 {
 		// would start abusing that out of lazyness.
 		klog.Errorln("Empty volume size found in resource spec, setting to reasonable value")
 		volSizeGiB = 8
-	}
-	if image.VolumeDiskSize != nil {
-		if *image.VolumeDiskSize > volSizeGiB {
-			return *image.VolumeDiskSize
-		}
 	}
 	return volSizeGiB
 }

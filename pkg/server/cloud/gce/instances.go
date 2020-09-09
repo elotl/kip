@@ -535,7 +535,7 @@ func (c *gceClient) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 		Name:         resp.SelfLink,
 		RootDevice:   "",
 		CreationTime: creationTime,
-		VolumeDiskSize: &diskSize,
+		VolumeDiskSize: diskSize,
 	}, nil
 }
 

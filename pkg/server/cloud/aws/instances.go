@@ -234,7 +234,7 @@ func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeI
 func getRootDeviceVolumeSize(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) int32 {
 	var rootDiskSize int32
 	for _, blockDevice := range blockDevices {
-		if *blockDevice.DeviceName == rootDeviceName {
+		if *blockDevice.DeviceName == rootDeviceName && blockDevice.Ebs != nil {
 			rootDiskSize = int32(*blockDevice.Ebs.VolumeSize)
 			break
 		}
@@ -277,7 +277,7 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 			RootDevice:   aws.StringValue(img.RootDeviceName),
 			ID:           aws.StringValue(img.ImageId),
 			CreationTime: creationTime,
-			VolumeDiskSize: &rootDiskSize,
+			VolumeDiskSize: rootDiskSize,
 		}
 	}
 	cloud.SortImagesByCreationTime(images)

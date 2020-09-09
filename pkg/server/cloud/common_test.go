@@ -32,7 +32,7 @@ func TestToSaneVolumeSize(t *testing.T) {
 				Name:           "dummy-name",
 				RootDevice:     "dummy-root-device",
 				CreationTime:   nil,
-				VolumeDiskSize: &testCase.imageVolumeDiskSize,
+				VolumeDiskSize: testCase.imageVolumeDiskSize,
 			})
 			assert.Equal(t, got, testCase.expectedSize)
 		})
