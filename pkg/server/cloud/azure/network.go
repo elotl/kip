@@ -530,7 +530,7 @@ func getMilpaIPConfiguration(iface network.Interface) (*network.InterfaceIPConfi
 			return &((*iface.IPConfigurations)[i]), nil
 		}
 	}
-	return nil, fmt.Errorf("Could not find milpa IP configuration")
+	return nil, fmt.Errorf("Could not find Kip IP configuration")
 }
 
 func (az *AzureClient) GetDNSInfo() ([]string, []string, error) {

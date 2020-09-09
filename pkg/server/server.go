@@ -480,7 +480,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 	if ctrl, ok := controllers["ImageController"]; ok {
 		klog.V(5).Infof("starting azure image controller")
 		azureImageController := ctrl.(*azure.ImageController)
-		klog.V(2).Infof("downloading Milpa node image to local Azure subscription (this could take a few minutes)")
+		klog.V(2).Infof("downloading Kip node image to local Azure subscription (this could take a few minutes)")
 		azureImageController.WaitForAvailable()
 	}
 

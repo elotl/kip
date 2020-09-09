@@ -127,14 +127,14 @@ func (c *AwsEC2) EnsureContainerInstanceCluster() error {
 		Clusters: aws.StringSlice([]string{c.ecsClusterName}),
 	})
 	if err != nil {
-		return util.WrapError(err, "Could not query ECS for Milpa cluster")
+		return util.WrapError(err, "Could not query ECS for Kip cluster")
 	}
 
 	if len(output.Clusters) == 0 {
 		klog.V(2).Infof("Creating ECS cluster %s", c.ecsClusterName)
-		val := fmt.Sprintf("Milpa Controller %s", c.controllerID)
+		val := fmt.Sprintf("Kip Controller %s", c.controllerID)
 		tags := []*ecs.Tag{{
-			Key:   aws.String("Created by Milpa Controller"),
+			Key:   aws.String("Created by Kip Controller"),
 			Value: aws.String(val),
 		}}
 		if c.nametag != "" {
@@ -157,11 +157,11 @@ func (c *AwsEC2) EnsureContainerInstanceCluster() error {
 		for i := range output.Clusters {
 			clusterNames[i] = aws.StringValue(output.Clusters[i].ClusterName)
 		}
-		return fmt.Errorf("Multiple ECS clusters matching specified milpa cluster name found: %v", clusterNames)
+		return fmt.Errorf("Multiple ECS clusters matching specified Kip cluster name found: %v", clusterNames)
 	} else {
 		clusterStatus := aws.StringValue(output.Clusters[0].Status)
 		if clusterStatus != "ACTIVE" {
-			return fmt.Errorf("ECS cluster %s is not in an active state.  Status is %s. We assume this is on purpose. Milpa cannot continue if the cluster is not active", c.ecsClusterName, clusterStatus)
+			return fmt.Errorf("ECS cluster %s is not in an active state.  Status is %s. We assume this is on purpose. Kip cannot continue if the cluster is not active", c.ecsClusterName, clusterStatus)
 		}
 	}
 	return nil
@@ -328,7 +328,7 @@ func containerToUnitStatus(container *ecs.Container) api.UnitStatus {
 	case containerStatusRunning:
 		state = api.UnitState{
 			Running: &api.UnitStateRunning{
-			// StartedAt is managed by the ContainerInstanceController
+				// StartedAt is managed by the ContainerInstanceController
 			},
 		}
 
@@ -517,7 +517,7 @@ func (c *AwsEC2) StopContainerInstance(containerInstanceID string) error {
 	klog.V(2).Infof("Stopping container instance %s", containerInstanceID)
 	stopTaskInput := &ecs.StopTaskInput{
 		Cluster: aws.String(c.ecsClusterName),
-		Reason:  aws.String("Stopped by Milpa"),
+		Reason:  aws.String("Stopped by Kip"),
 		Task:    aws.String(containerInstanceID),
 	}
 

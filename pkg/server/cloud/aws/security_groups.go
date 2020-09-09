@@ -67,7 +67,7 @@ func (c *AwsEC2) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []string) e
 	apiGroupName := util.CreateSecurityGroupName(c.controllerID, cloud.MilpaAPISGName)
 	apiGroup, err := c.EnsureSecurityGroup(apiGroupName, milpaPorts, cidrs)
 	if err != nil {
-		return util.WrapError(err, "Could not setup Milpa API cloud firewall rules")
+		return util.WrapError(err, "Could not setup Kip API cloud firewall rules")
 	}
 	ids := append(extraGroupIDs, apiGroup.ID)
 	klog.V(2).Infoln("security group name", apiGroupName, ids)
@@ -169,7 +169,7 @@ func (e *AwsEC2) tagSecurityGroup(groupName, groupID string) error {
 func (e *AwsEC2) CreateSecurityGroup(sgName string, ports []cloud.InstancePort, sourceRanges []string) (*cloud.SecurityGroup, error) {
 	createRes, err := e.client.CreateSecurityGroup(&ec2.CreateSecurityGroupInput{
 		GroupName:   aws.String(sgName),
-		Description: aws.String(fmt.Sprintf("MilpaSG %s %s", e.nametag, sgName)),
+		Description: aws.String(fmt.Sprintf("KipSG %s %s", e.nametag, sgName)),
 		VpcId:       aws.String(e.vpcID),
 	})
 	if err != nil {
