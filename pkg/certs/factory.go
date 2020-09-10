@@ -49,10 +49,10 @@ func New(kvstore etcd.Storer) (*CertificateFactory, error) {
 	certFactory.kvstore.Put(CertificateDirectoryPlaceholder, []byte("."), nil)
 	err := certFactory.GetRootFromStore()
 	if err == store.ErrKeyNotFound {
-		klog.V(2).Infof("Initializing Milpa root certificate")
+		klog.V(2).Infof("Initializing Kip root certificate")
 		certFactory.InitRootCert()
 	} else if err != nil {
-		return nil, util.WrapError(err, "Error creating Milpa PKI")
+		return nil, util.WrapError(err, "Error creating Kip PKI")
 	}
 	return certFactory, nil
 }

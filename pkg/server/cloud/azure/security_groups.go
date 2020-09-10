@@ -105,7 +105,7 @@ func (az *AzureClient) EnsureMilpaSecurityGroups(extraCIDRs, extraGroupIDs []str
 	}
 	err := az.EnsureMilpaNSG()
 	if err != nil {
-		return util.WrapError(err, "Error ensuring milpa network security group exists")
+		return util.WrapError(err, "Error ensuring Kip network security group exists")
 	}
 	cidrs := append(az.virtualNetwork.CIDRs, extraCIDRs...)
 	_, err = az.EnsureSecurityGroup(cloud.MilpaAPISGName, milpaPorts, cidrs)
