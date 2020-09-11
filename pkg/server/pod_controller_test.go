@@ -31,8 +31,8 @@ import (
 	"github.com/elotl/kip/pkg/server/nodemanager"
 	"github.com/elotl/kip/pkg/server/registry"
 	"github.com/elotl/kip/pkg/util/k8s/eventrecorder"
-	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/kubernetes/pkg/kubelet/network/dns"
 )
 
 func createPodController(c nodeclient.ItzoClientFactoryer) (*PodController, func()) {

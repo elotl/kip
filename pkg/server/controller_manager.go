@@ -19,7 +19,7 @@ package server
 import (
 	"sync"
 
-	"github.com/uber-go/atomic"
+	"go.uber.org/atomic"
 	"k8s.io/klog"
 )
 

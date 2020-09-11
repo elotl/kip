@@ -24,9 +24,9 @@ import (
 	"strings"
 
 	"github.com/elotl/kip/pkg/api"
-	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/klog"
+	"k8s.io/kubernetes/pkg/kubelet/network/dns"
 )
 
 const (
