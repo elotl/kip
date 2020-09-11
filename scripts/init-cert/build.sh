@@ -2,7 +2,13 @@
 
 set -euxo pipefail
 
+
+
 TAG=${TAG:-$(git describe --dirty)}
+if [[ `git status --porcelain` ]]; then
+    echo "repo status is dirty, here's what changed:"
+    git status
+fi
 DKR=${DKR:-docker}
 REPO=${REPO:-elotl/init-cert}
 PUSH_IMAGES=${PUSH_IMAGES:-true}
