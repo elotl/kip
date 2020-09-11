@@ -26,10 +26,13 @@ import (
 )
 
 // CellLister helps list Cells.
+// All objects returned here must be treated as read-only.
 type CellLister interface {
 	// List lists all Cells in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.Cell, err error)
 	// Get retrieves the Cell from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.Cell, error)
 	CellListerExpansion
 }
