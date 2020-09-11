@@ -20,7 +20,8 @@ GENERATED_SRC=$(TOP_DIR)pkg/clientapi/clientapi.pb.go \
 all: $(BINARIES)
 
 kip: $(PKG_SRC) $(CMD_SRC) $(GENERATED_SRC)
-	CGO_ENABLED=0 go build $(LDFLAGS) -o $(TOP_DIR)$@ $(TOP_DIR)cmd/kip
+	@echo $(GOFLAGS)
+	CGO_ENABLED=0 go build $(GOFLAGS) $(LDFLAGS) -o $(TOP_DIR)$@ $(TOP_DIR)cmd/kip
 
 
 $(TOP_DIR)pkg/clientapi/clientapi.pb.go: $(TOP_DIR)pkg/clientapi/clientapi.proto
@@ -33,7 +34,7 @@ $(TOP_DIR)pkg/api/deepcopy_generated.go: $(TOP_DIR)pkg/api/types.go
 
 # kipctl is compiled staticly so it'll run on pods
 kipctl: $(PKG_SRC) $(KIPCTL_SRC)
-	cd cmd/kipctl && CGO_ENABLED=0 GOOS=linux go build $(LDFLAGS) -o $(TOP_DIR)kipctl
+	cd cmd/kipctl && CGO_ENABLED=0 GOOS=linux go build $(GOFLAGS) $(LDFLAGS) -o $(TOP_DIR)kipctl
 
 img: $(BINARIES)
 	@echo "Checking if IMAGE_TAG is set" && test -n "$(IMAGE_TAG)"
