@@ -16,7 +16,7 @@ require (
 	github.com/cloudflare/cfssl v0.0.0-20180726162950-56268a613adf // indirect
 	github.com/codedellemc/goscaleio v0.0.0-20170830184815-20e2ce2cf885 // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
-	github.com/coreos/etcd v3.3.10+incompatible
+	github.com/coreos/etcd v3.3.13+incompatible
 	github.com/coreos/rkt v1.30.0 // indirect
 	github.com/creack/pty v1.1.9 // indirect
 	github.com/d2g/dhcp4 v0.0.0-20170904100407-a1d1b6c41b1c // indirect
