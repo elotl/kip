@@ -41,7 +41,8 @@ before_script:
 - GO111MODULE=on go get k8s.io/gengo/examples/deepcopy-gen
 script:
 - set -e
-- "GOFLAGS='-mod=readonly' make"
+- make
+- 'checkout -- go.mod go.sum'
 - "./scripts/run_tests.sh"
 - make img login-img push-img DKR=docker
 - "./scripts/init-cert/build.sh"
