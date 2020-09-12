@@ -42,7 +42,7 @@ before_script:
 script:
 - set -e
 - make
-- 'checkout -- go.mod go.sum'
+- 'git checkout -- go.mod go.sum'
 - "./scripts/run_tests.sh"
 - make img login-img push-img DKR=docker
 - "./scripts/init-cert/build.sh"
