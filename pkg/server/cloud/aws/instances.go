@@ -235,12 +235,11 @@ func getRootDeviceVolumeSize(blockDevices []*ec2.BlockDeviceMapping, rootDeviceN
 	var rootDiskSize int32
 	for _, blockDevice := range blockDevices {
 		if *blockDevice.DeviceName == rootDeviceName && blockDevice.Ebs != nil {
-			rootDiskSize = int32(*blockDevice.Ebs.VolumeSize)
+			rootDiskSize = int32(aws.Int64Value(blockDevice.Ebs.VolumeSize))
 			break
 		}
 	}
-	diskSize := aws.Int32Value(&rootDiskSize)
-	return diskSize
+	return rootDiskSize
 }
 
 func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
