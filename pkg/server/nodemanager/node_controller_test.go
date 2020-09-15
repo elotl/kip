@@ -530,7 +530,7 @@ func TestWaitForAvailableOrTerminateFails(t *testing.T) {
 	n.Status.Addresses = api.NewNetworkAddresses("1.2.3.4", "")
 	err := ctl.waitForAvailableOrTerminate(n, HealthyTimeout)
 	assert.NotNil(t, err)
-	assert.Equal(t, api.NodeTerminating, n.Status.Phase)
+	assert.Contains(t, []api.NodePhase{api.NodeTerminating, api.NodeTerminated}, n.Status.Phase)
 }
 
 func TestRemovePodFromNode(t *testing.T) {
