@@ -5,10 +5,6 @@ sudo: required
 dist: xenial
 services:
 - docker
-cache:
-  directories:
-    - $HOME/.cache/go-build
-    - $HOME/gopath/pkg/mod
 env:
   global:
   - AWS_REGION=us-east-1
