@@ -10,9 +10,9 @@ import (
 	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/kip/pkg/util/k8s/eventrecorder"
 	"github.com/elotl/node-cli/manager"
-	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog"
+	"k8s.io/kubernetes/pkg/kubelet/network/dns"
 )
 
 func createResolverFile(nameservers, searches []string) (string, error) {

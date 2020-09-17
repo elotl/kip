@@ -29,7 +29,6 @@ import (
 	"github.com/elotl/kip/pkg/nodeclient"
 	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/node-cli/manager"
-	"github.com/kubernetes/kubernetes/pkg/kubelet/network/dns"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,6 +36,7 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/klog"
+	"k8s.io/kubernetes/pkg/kubelet/network/dns"
 )
 
 const (

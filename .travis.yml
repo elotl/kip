@@ -5,6 +5,10 @@ sudo: required
 dist: xenial
 services:
 - docker
+cache:
+  directories:
+    - $HOME/.cache/go-build
+    - $HOME/gopath/pkg/mod
 env:
   global:
   - AWS_REGION=us-east-1
@@ -34,7 +38,7 @@ before_script:
 - curl -fsL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz | sudo tar -C /usr/local/bin/ -xvzf - && sudo chmod +x /usr/local/bin/kustomize
 - curl -Os https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
   && sudo unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin/
-- GO111MODULE=on go get k8s.io/gengo/examples/deepcopy-gen
+- (cd && GO111MODULE=on go get k8s.io/gengo/examples/deepcopy-gen)
 script:
 - set -e
 - make

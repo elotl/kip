@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -223,7 +224,7 @@ func (c *CellController) createNodeCell(n *api.Node) error {
 		return fmt.Errorf("Could not create cell record: invalid kip node")
 	}
 	kn := c.makeNodeCell(n, nil)
-	_, err := c.k8sKipClient.Create(kn)
+	_, err := c.k8sKipClient.Create(context.TODO(), kn, metav1.CreateOptions{})
 	return err
 }
 
@@ -237,7 +238,7 @@ func (c *CellController) updateCell(n *api.Node, p *api.Pod) error {
 }
 
 func (c *CellController) updateK8sCell(cell *v1beta1.Cell) error {
-	kn, err := c.k8sKipClient.Get(cell.Name, metav1.GetOptions{})
+	kn, err := c.k8sKipClient.Get(context.TODO(), cell.Name, metav1.GetOptions{})
 	if err != nil {
 		return util.WrapError(err, "Error getting cell from k8s for updating")
 	}
@@ -245,7 +246,7 @@ func (c *CellController) updateK8sCell(cell *v1beta1.Cell) error {
 	kn.Status.PodName = cell.Status.PodName
 	kn.Status.PodNamespace = cell.Status.PodNamespace
 	kn.Status.IP = cell.Status.IP
-	_, err = c.k8sKipClient.Update(kn)
+	_, err = c.k8sKipClient.Update(context.TODO(), kn, metav1.UpdateOptions{})
 	if err != nil {
 		return util.WrapError(err, "Error updating cell record in k8s")
 	}
@@ -256,7 +257,7 @@ func (c *CellController) deleteNodeCell(n *api.Node) error {
 	if n == nil {
 		return fmt.Errorf("Could not delete cell record: no corresponding kip node provided")
 	}
-	return c.k8sKipClient.Delete(n.Name, &metav1.DeleteOptions{})
+	return c.k8sKipClient.Delete(context.TODO(), n.Name, metav1.DeleteOptions{})
 }
 
 func (c *CellController) syncAllCells() error {
@@ -283,7 +284,7 @@ func (c *CellController) syncAllCells() error {
 	}
 
 	// pull the current list of cells from k8s
-	kCellList, err := c.k8sKipClient.List(metav1.ListOptions{})
+	kCellList, err := c.k8sKipClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return util.WrapError(err, "Could not load cells from k8s for full sync")
 	}
@@ -322,7 +323,7 @@ func (c *CellController) syncAllCells() error {
 			continue
 		}
 		cell := cellIface.(*v1beta1.Cell)
-		_, err := c.k8sKipClient.Create(cell)
+		_, err := c.k8sKipClient.Create(context.TODO(), cell, metav1.CreateOptions{})
 		if err != nil {
 			errs = append(errs, util.WrapError(err, "Could not create cell in k8s"))
 		}
@@ -343,14 +344,14 @@ func (c *CellController) syncAllCells() error {
 		statusCell := statusCellIface.(*v1beta1.Cell)
 		statusCell.Status = specCell.Status
 		statusCell.Labels = specCell.Labels
-		_, err := c.k8sKipClient.Update(statusCell)
+		_, err := c.k8sKipClient.Update(context.TODO(), statusCell, metav1.UpdateOptions{})
 		if err != nil {
 			errs = append(errs, util.WrapError(err, "Could not update cell in k8s"))
 		}
 	}
 
 	for _, cellName := range delete {
-		err := c.k8sKipClient.Delete(cellName, &metav1.DeleteOptions{})
+		err := c.k8sKipClient.Delete(context.TODO(), cellName, metav1.DeleteOptions{})
 		if err != nil {
 			errs = append(errs, util.WrapError(err, "Error deleting cell in k8s"))
 		}
@@ -379,12 +380,12 @@ func (c *CellController) CreateCRDIfNotExists() error {
 	}
 
 	crdName := crdDef.Name
-	_, err = clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
+	_, err = clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), crdName, metav1.GetOptions{})
 	if err != nil {
 		// Create if it's not found
 		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("Creating cells CRD in k8s")
-			_, err = clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(&crdDef)
+			_, err = clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(context.TODO(), &crdDef, metav1.CreateOptions{})
 			if err != nil {
 				if apierrors.IsAlreadyExists(err) {
 					// probably a race between 2 controllers, We're OK
@@ -410,7 +411,7 @@ func (c *CellController) CreateCRDIfNotExists() error {
 
 func waitForCRDToExist(clientset apiextensionsclientset.Interface, crdName string) error {
 	err := wait.Poll(500*time.Millisecond, 60*time.Second, func() (bool, error) {
-		crd, err := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
+		crd, err := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), crdName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

@@ -13,14 +13,14 @@ REGISTRY_REPO=elotl/kip
 TOP_DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 PKG_SRC=$(shell find $(TOP_DIR)pkg -type f -name '*.go')
 CMD_SRC=$(shell find $(TOP_DIR)cmd/kip -type f -name '*.go')
-VENDOR_SRC=$(shell find $(TOP_DIR)vendor -type f -name '*.go')
+MODULE_FILES=go.mod go.sum
 KIPCTL_SRC=$(shell find $(TOP_DIR)cmd/kipctl -type f -name '*.go')
 GENERATED_SRC=$(TOP_DIR)pkg/clientapi/clientapi.pb.go \
 			  $(TOP_DIR)pkg/api/deepcopy_generated.go
 
 all: $(BINARIES)
 
-kip: $(PKG_SRC) $(VENDOR_SRC) $(CMD_SRC) $(GENERATED_SRC)
+kip: $(PKG_SRC) $(CMD_SRC) $(GENERATED_SRC) $(MODULE_FILES)
 	CGO_ENABLED=0 go build $(LDFLAGS) -o $(TOP_DIR)$@ $(TOP_DIR)cmd/kip
 
 
@@ -33,7 +33,7 @@ $(TOP_DIR)pkg/api/deepcopy_generated.go: $(TOP_DIR)pkg/api/types.go
 		--go-header-file $(TOP_DIR)scripts/boilerplate.go.txt
 
 # kipctl is compiled staticly so it'll run on pods
-kipctl: $(PKG_SRC) $(VENDOR_SRC) $(KIPCTL_SRC)
+kipctl: $(PKG_SRC) $(KIPCTL_SRC) $(MODULE_FILES)
 	cd cmd/kipctl && CGO_ENABLED=0 GOOS=linux go build $(LDFLAGS) -o $(TOP_DIR)kipctl
 
 img: $(BINARIES)

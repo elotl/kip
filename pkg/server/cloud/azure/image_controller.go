@@ -32,7 +32,7 @@ import (
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util/controllerqueue"
 	"github.com/elotl/kip/pkg/util/jitter"
-	"github.com/uber-go/atomic"
+	"go.uber.org/atomic"
 	"k8s.io/klog"
 )
 

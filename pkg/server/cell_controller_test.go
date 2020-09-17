@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/elotl/kip/pkg/server/registry"
 	"github.com/elotl/kip/pkg/util/controllerqueue"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
@@ -27,7 +27,7 @@ func newFakeKipClient() *fakeKipClient {
 	}
 }
 
-func (c *fakeKipClient) Create(n *v1beta1.Cell) (*v1beta1.Cell, error) {
+func (c *fakeKipClient) Create(ctx context.Context, n *v1beta1.Cell, opts metav1.CreateOptions) (*v1beta1.Cell, error) {
 	if _, exists := c.recs[n.Name]; exists {
 		return nil, fmt.Errorf("Alredy exists")
 	}
@@ -35,7 +35,7 @@ func (c *fakeKipClient) Create(n *v1beta1.Cell) (*v1beta1.Cell, error) {
 	return n, nil
 }
 
-func (c *fakeKipClient) Update(n *v1beta1.Cell) (*v1beta1.Cell, error) {
+func (c *fakeKipClient) Update(ctx context.Context, n *v1beta1.Cell, opts metav1.UpdateOptions) (*v1beta1.Cell, error) {
 	if _, exists := c.recs[n.Name]; exists {
 		c.recs[n.Name] = n
 		return n, nil
@@ -43,23 +43,23 @@ func (c *fakeKipClient) Update(n *v1beta1.Cell) (*v1beta1.Cell, error) {
 	return nil, fmt.Errorf("Can't update a record that doesn't exist")
 }
 
-func (c *fakeKipClient) Delete(name string, options *v1.DeleteOptions) error {
+func (c *fakeKipClient) Delete(ctx context.Context, name string, options metav1.DeleteOptions) error {
 	delete(c.recs, name)
 	return nil
 }
 
-func (c *fakeKipClient) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *fakeKipClient) DeleteCollection(ctx context.Context, options metav1.DeleteOptions, listOptions metav1.ListOptions) error {
 	return nil
 }
 
-func (c *fakeKipClient) Get(name string, options v1.GetOptions) (*v1beta1.Cell, error) {
+func (c *fakeKipClient) Get(ctx context.Context, name string, options metav1.GetOptions) (*v1beta1.Cell, error) {
 	if _, exists := c.recs[name]; exists {
 		return c.recs[name], nil
 	}
 	return nil, fmt.Errorf("Item does not exist")
 }
 
-func (c *fakeKipClient) List(opts v1.ListOptions) (*v1beta1.CellList, error) {
+func (c *fakeKipClient) List(ctx context.Context, opts metav1.ListOptions) (*v1beta1.CellList, error) {
 	lst := &v1beta1.CellList{}
 	lst.Items = make([]v1beta1.Cell, 0, len(c.recs))
 	for _, v := range c.recs {
@@ -68,11 +68,11 @@ func (c *fakeKipClient) List(opts v1.ListOptions) (*v1beta1.CellList, error) {
 	return lst, nil
 }
 
-func (c *fakeKipClient) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *fakeKipClient) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	return watch.NewEmptyWatch(), nil
 }
 
-func (c *fakeKipClient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.Cell, err error) {
+func (c *fakeKipClient) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1beta1.Cell, err error) {
 	return nil, nil
 }
 
@@ -124,7 +124,8 @@ func TestCellCtlNodeCreated(t *testing.T) {
 	if err != nil {
 		assert.FailNow(t, err.Error())
 	}
-	kn, err := c.k8sKipClient.Get(n.Name, metav1.GetOptions{})
+	ctx := context.Background()
+	kn, err := c.k8sKipClient.Get(ctx, n.Name, metav1.GetOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, kn.Name)
 	assert.Equal(t, c.controllerID, kn.Status.ControllerID)
@@ -161,7 +162,8 @@ func TestCellCtlPodRunning(t *testing.T) {
 	if err != nil {
 		assert.FailNow(t, err.Error())
 	}
-	kn, err := c.k8sKipClient.Get(n.Name, metav1.GetOptions{})
+	ctx := context.Background()
+	kn, err := c.k8sKipClient.Get(ctx, n.Name, metav1.GetOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, kn.Name)
 	assert.Equal(t, p.Labels, kn.Labels)
@@ -188,7 +190,8 @@ func TestCellCtlNodePurged(t *testing.T) {
 	if err != nil {
 		assert.FailNow(t, err.Error())
 	}
-	_, err = c.k8sKipClient.Get(n.Name, metav1.GetOptions{})
+	ctx := context.Background()
+	_, err = c.k8sKipClient.Get(ctx, n.Name, metav1.GetOptions{})
 	assert.Error(t, err)
 }
 
@@ -209,7 +212,8 @@ func TestCellCtlSyncAll(t *testing.T) {
 	n, err = c.nodeLister.(*registry.NodeRegistry).CreateNode(n)
 	assert.NoError(t, err)
 	kn := c.makeCell(n, nil)
-	_, err = c.k8sKipClient.Create(kn)
+	ctx := context.Background()
+	_, err = c.k8sKipClient.Create(ctx, kn, metav1.CreateOptions{})
 	assert.NoError(t, err)
 
 	p := api.GetFakePod()
@@ -230,7 +234,7 @@ func TestCellCtlSyncAll(t *testing.T) {
 	}
 	doomedName := "deleteme"
 	kn.Name = doomedName
-	_, err = c.k8sKipClient.Create(kn)
+	_, err = c.k8sKipClient.Create(ctx, kn, metav1.CreateOptions{})
 	assert.NoError(t, err)
 
 	// Other Controller: preserve cells that that we didn't create
@@ -241,7 +245,7 @@ func TestCellCtlSyncAll(t *testing.T) {
 	}
 	otherName := "other-controller-cell"
 	kn.Name = otherName
-	_, err = c.k8sKipClient.Create(kn)
+	_, err = c.k8sKipClient.Create(ctx, kn, metav1.CreateOptions{})
 	assert.NoError(t, err)
 
 	err = c.syncAllCells()
@@ -253,20 +257,20 @@ func TestCellCtlSyncAll(t *testing.T) {
 	}
 
 	// Ensure node add worked
-	_, err = c.k8sKipClient.Get(addNode.Name, metav1.GetOptions{})
+	_, err = c.k8sKipClient.Get(ctx, addNode.Name, metav1.GetOptions{})
 	assert.NoError(t, err)
 
 	// ensure node update worked
-	kn, err = c.k8sKipClient.Get(updatedNodePod.Status.BoundNodeName, metav1.GetOptions{})
+	kn, err = c.k8sKipClient.Get(ctx, updatedNodePod.Status.BoundNodeName, metav1.GetOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, updatedNodePod.Labels, kn.Labels)
 
 	// Ensure node delete worked
-	_, err = c.k8sKipClient.Get(doomedName, metav1.GetOptions{})
+	_, err = c.k8sKipClient.Get(ctx, doomedName, metav1.GetOptions{})
 	assert.Error(t, err)
 
 	// Ensure we don't touch other cells of other controllers
-	_, err = c.k8sKipClient.Get(otherName, metav1.GetOptions{})
+	_, err = c.k8sKipClient.Get(ctx, otherName, metav1.GetOptions{})
 	assert.NoError(t, err)
 
 }

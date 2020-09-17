@@ -17,8 +17,10 @@ limitations under the License.
 package k8s
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -26,6 +28,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 )
+
+const k8sTimeout = 15 * time.Second
 
 func GetServerURLFromInCluster() string {
 	config, err := rest.InClusterConfig()
@@ -39,7 +43,9 @@ func GetServerURLFromInCluster() string {
 		return ""
 	}
 	endpoints := clientset.CoreV1().Endpoints(v1.NamespaceDefault)
-	ep, err := endpoints.Get("kubernetes", v1.GetOptions{})
+	ctx, cancel := context.WithTimeout(context.Background(), k8sTimeout)
+	defer cancel()
+	ep, err := endpoints.Get(ctx, "kubernetes", v1.GetOptions{})
 	if err != nil {
 		klog.Errorf("trying to determine API server URL: %v", err)
 		return ""

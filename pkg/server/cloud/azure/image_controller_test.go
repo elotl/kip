@@ -23,7 +23,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/stretchr/testify/assert"
-	"github.com/uber-go/atomic"
+	"go.uber.org/atomic"
 )
 
 func getImageController() *ImageController {
