@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	uuid "github.com/satori/go.uuid"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -555,26 +556,26 @@ type ConfigMapProjection struct {
 // 	Mode *int32 `json:"mode,omitempty" protobuf:"varint,4,opt,name=mode"`
 // }
 
-// // ObjectFieldSelector selects an APIVersioned field of an object.
-// type ObjectFieldSelector struct {
-// 	// Version of the schema the FieldPath is written in terms of, defaults to "v1".
-// 	// +optional
-// 	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,1,opt,name=apiVersion"`
-// 	// Path of the field to select in the specified API version.
-// 	FieldPath string `json:"fieldPath" protobuf:"bytes,2,opt,name=fieldPath"`
-// }
+// ObjectFieldSelector selects an APIVersioned field of an object.
+type ObjectFieldSelector struct {
+	// Version of the schema the FieldPath is written in terms of,
+	// defaults to "v1".  +optional
+	APIVersion string `json:"apiVersion,omitempty"`
+	// Path of the field to select in the specified API version.
+	FieldPath string `json:"fieldPath"`
+}
 
-// // ResourceFieldSelector represents container resources (cpu, memory) and their output format
-// type ResourceFieldSelector struct {
-// 	// Container name: required for volumes, optional for env vars
-// 	// +optional
-// 	ContainerName string `json:"containerName,omitempty" protobuf:"bytes,1,opt,name=containerName"`
-// 	// Required: resource to select
-// 	Resource string `json:"resource" protobuf:"bytes,2,opt,name=resource"`
-// 	// Specifies the output format of the exposed resources, defaults to "1"
-// 	// +optional
-// 	Divisor resource.Quantity `json:"divisor,omitempty" protobuf:"bytes,3,opt,name=divisor"`
-// }
+// ResourceFieldSelector represents container resources (cpu, memory)
+// and their output format
+type ResourceFieldSelector struct {
+	// Container name: required for volumes, optional for env vars
+	ContainerName string `json:"containerName,omitempty"`
+	// Required: resource to select
+	Resource string `json:"resource"`
+	// Specifies the output format of the exposed resources, defaults to "1"
+	// +optional
+	Divisor resource.Quantity `json:"divisor,omitempty"`
+}
 
 const (
 	ContainerInstanceType = "ContainerInstance"
@@ -802,6 +803,28 @@ type EnvVar struct {
 	Name string `json:"name"`
 	// Value of the environment variable.
 	Value string `json:"value,omitempty"`
+	// Source for the environment variable's value. Cannot be used if value is not empty.
+	ValueFrom *EnvVarSource `json:"valueFrom,omitempty"`
+}
+
+// EnvVarSource represents a source for the value of an EnvVar.
+type EnvVarSource struct {
+	// Selects a field of the pod: supports metadata.name,
+	// metadata.namespace, metadata.labels, metadata.annotations,
+	// spec.nodeName, spec.serviceAccountName, status.hostIP,
+	// status.podIP, status.podIPs.  +optional
+	FieldRef *ObjectFieldSelector `json:"fieldRef,omitempty"`
+	// Selects a resource of the container: only resources limits and
+	// requests (limits.cpu, limits.memory, limits.ephemeral-storage,
+	// requests.cpu, requests.memory and requests.ephemeral-storage)
+	// are currently supported.  +optional
+	ResourceFieldRef *ResourceFieldSelector `json:"resourceFieldRef,omitempty"`
+	// Selects a key of a ConfigMap.
+	// +optional
+	ConfigMapKeyRef *ConfigMapKeySelector `json:"configMapKeyRef,omitempty"`
+	// Selects a key of a secret in the pod's namespace
+	// +optional
+	SecretKeyRef *SecretKeySelector `json:"secretKeyRef,omitempty"`
 }
 
 // LocalObjectReference contains enough information to let you locate the referenced object inside the same namespace.

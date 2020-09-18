@@ -45,29 +45,7 @@ var (
 	}
 )
 
-func getStatus(internalIP string, milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
-	// Todo: make the call if this should be the dispatch time of the
-	// pod in milpa.
-	startTime := metav1.NewTime(milpaPod.CreationTimestamp.Time)
-	privateIPv4Address := ""
-	for _, address := range milpaPod.Status.Addresses {
-		if address.Type == api.PrivateIP {
-			privateIPv4Address = address.Address
-		}
-	}
-	initComplete := true
-	initContainerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.InitUnitStatuses))
-	for i, st := range milpaPod.Status.InitUnitStatuses {
-		initContainerStatuses[i] = unitToContainerStatus(st)
-		if st.State.Terminated == nil ||
-			st.State.Terminated.ExitCode != int32(0) {
-			initComplete = false
-		}
-	}
-	containerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.UnitStatuses))
-	for i, st := range milpaPod.Status.UnitStatuses {
-		containerStatuses[i] = unitToContainerStatus(st)
-	}
+func milpaToK8sPhase(milpaPod *api.Pod, initComplete bool) v1.PodPhase {
 	phase := v1.PodUnknown
 	switch milpaPod.Status.Phase {
 	case api.PodWaiting:
@@ -94,6 +72,34 @@ func getStatus(internalIP string, milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
 	if phase == v1.PodRunning && !initComplete {
 		phase = v1.PodPending
 	}
+	return phase
+}
+
+func getStatus(internalIP string, milpaPod *api.Pod, pod *v1.Pod) v1.PodStatus {
+	// Todo: make the call if this should be the dispatch time of the
+	// pod in milpa.
+	startTime := metav1.NewTime(milpaPod.CreationTimestamp.Time)
+	privateIPv4Address := ""
+	for _, address := range milpaPod.Status.Addresses {
+		if address.Type == api.PrivateIP {
+			privateIPv4Address = address.Address
+		}
+	}
+	initComplete := true
+	initContainerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.InitUnitStatuses))
+	for i, st := range milpaPod.Status.InitUnitStatuses {
+		initContainerStatuses[i] = unitToContainerStatus(st)
+		if st.State.Terminated == nil ||
+			st.State.Terminated.ExitCode != int32(0) {
+			initComplete = false
+		}
+	}
+	containerStatuses := make([]v1.ContainerStatus, len(milpaPod.Status.UnitStatuses))
+	for i, st := range milpaPod.Status.UnitStatuses {
+		containerStatuses[i] = unitToContainerStatus(st)
+	}
+	phase := milpaToK8sPhase(milpaPod, initComplete)
+
 	// We use the implementation from Kubernetes here to determine conditions.
 	conditions := []v1.PodCondition{}
 	conditions = append(conditions, status.GeneratePodInitializedCondition(&pod.Spec, initContainerStatuses, pod.Status.Phase))
@@ -164,12 +170,7 @@ func containerToUnit(container v1.Container) api.Unit {
 		Args:       container.Args,
 		WorkingDir: container.WorkingDir,
 	}
-	for _, e := range container.Env {
-		unit.Env = append(unit.Env, api.EnvVar{
-			Name:  e.Name,
-			Value: e.Value,
-		})
-	}
+	unit.Env = k8sToMilpaEnv(container.Env)
 	if container.SecurityContext != nil {
 		unit.SecurityContext = &api.SecurityContext{
 			RunAsUser:  container.SecurityContext.RunAsUser,
@@ -225,10 +226,42 @@ func containerToUnit(container v1.Container) api.Unit {
 func milpaToK8sEnv(milpaEnv []api.EnvVar) []v1.EnvVar {
 	k8sEnv := make([]v1.EnvVar, len(milpaEnv))
 	for i, e := range milpaEnv {
-		k8sEnv[i] = v1.EnvVar{
+		ke := v1.EnvVar{
 			Name:  e.Name,
 			Value: e.Value,
 		}
+		if e.ValueFrom != nil {
+			ke.ValueFrom = &v1.EnvVarSource{}
+			if e.ValueFrom.FieldRef != nil {
+				ke.ValueFrom.FieldRef = &v1.ObjectFieldSelector{
+					APIVersion: e.ValueFrom.FieldRef.APIVersion,
+					FieldPath:  e.ValueFrom.FieldRef.FieldPath,
+				}
+			} else if e.ValueFrom.ResourceFieldRef != nil {
+				ke.ValueFrom.ResourceFieldRef = &v1.ResourceFieldSelector{
+					ContainerName: e.ValueFrom.ResourceFieldRef.ContainerName,
+					Resource:      e.ValueFrom.ResourceFieldRef.Resource,
+					Divisor:       e.ValueFrom.ResourceFieldRef.Divisor,
+				}
+			} else if e.ValueFrom.ConfigMapKeyRef != nil {
+				ke.ValueFrom.ConfigMapKeyRef = &v1.ConfigMapKeySelector{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: e.ValueFrom.ConfigMapKeyRef.Name,
+					},
+					Key:      e.ValueFrom.ConfigMapKeyRef.Key,
+					Optional: boolPointerValue(e.ValueFrom.ConfigMapKeyRef.Optional),
+				}
+			} else if e.ValueFrom.SecretKeyRef != nil {
+				ke.ValueFrom.SecretKeyRef = &v1.SecretKeySelector{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: e.ValueFrom.SecretKeyRef.Name,
+					},
+					Key:      e.ValueFrom.SecretKeyRef.Key,
+					Optional: boolPointerValue(e.ValueFrom.SecretKeyRef.Optional),
+				}
+			}
+		}
+		k8sEnv[i] = ke
 	}
 	return k8sEnv
 }
@@ -236,9 +269,40 @@ func milpaToK8sEnv(milpaEnv []api.EnvVar) []v1.EnvVar {
 func k8sToMilpaEnv(k8sEnv []v1.EnvVar) []api.EnvVar {
 	milpaEnv := make([]api.EnvVar, len(k8sEnv))
 	for i, e := range k8sEnv {
-		milpaEnv[i] = api.EnvVar{
+		me := api.EnvVar{
 			Name:  e.Name,
 			Value: e.Value,
+		}
+		if e.ValueFrom != nil {
+			me.ValueFrom = &api.EnvVarSource{}
+			if e.ValueFrom.FieldRef != nil {
+				me.ValueFrom.FieldRef = &api.ObjectFieldSelector{
+					APIVersion: e.ValueFrom.FieldRef.APIVersion,
+					FieldPath:  e.ValueFrom.FieldRef.FieldPath,
+				}
+			} else if e.ValueFrom.ResourceFieldRef != nil {
+				me.ValueFrom.ResourceFieldRef = &api.ResourceFieldSelector{
+					ContainerName: e.ValueFrom.ResourceFieldRef.ContainerName,
+					Resource:      e.ValueFrom.ResourceFieldRef.Resource,
+					Divisor:       e.ValueFrom.ResourceFieldRef.Divisor,
+				}
+			} else if e.ValueFrom.ConfigMapKeyRef != nil {
+				me.ValueFrom.ConfigMapKeyRef = &api.ConfigMapKeySelector{
+					LocalObjectReference: api.LocalObjectReference{
+						Name: e.ValueFrom.ConfigMapKeyRef.Name,
+					},
+					Key:      e.ValueFrom.ConfigMapKeyRef.Key,
+					Optional: boolPointerValue(e.ValueFrom.ConfigMapKeyRef.Optional),
+				}
+			} else if e.ValueFrom.SecretKeyRef != nil {
+				me.ValueFrom.SecretKeyRef = &api.SecretKeySelector{
+					LocalObjectReference: api.LocalObjectReference{
+						Name: e.ValueFrom.SecretKeyRef.Name,
+					},
+					Key:      e.ValueFrom.SecretKeyRef.Key,
+					Optional: boolPointerValue(e.ValueFrom.SecretKeyRef.Optional),
+				}
+			}
 		}
 	}
 	return milpaEnv
@@ -253,13 +317,7 @@ func unitToContainer(unit api.Unit, container *v1.Container) v1.Container {
 	container.Command = unit.Command
 	container.Args = unit.Args
 	container.WorkingDir = unit.WorkingDir
-	container.Env = make([]v1.EnvVar, len(unit.Env))
-	for i, e := range unit.Env {
-		container.Env[i] = v1.EnvVar{
-			Name:  e.Name,
-			Value: e.Value,
-		}
-	}
+	container.Env = milpaToK8sEnv(unit.Env)
 	for _, port := range unit.Ports {
 		container.Ports = append(container.Ports,
 			v1.ContainerPort{
@@ -532,6 +590,14 @@ func milpaToK8sVolume(vol api.Volume) *v1.Volume {
 		klog.Warningf("Unspported volume type for volume: %s", vol.Name)
 	}
 	return nil
+}
+
+func boolPointerValue(v *bool) *bool {
+	if v == nil {
+		return nil
+	}
+	b := *v
+	return &b
 }
 
 func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {

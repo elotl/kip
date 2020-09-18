@@ -30,7 +30,8 @@ import (
 	"github.com/elotl/kip/pkg/certs"
 	"github.com/elotl/kip/pkg/clientapi"
 	"github.com/elotl/kip/pkg/etcd"
-	kubeclient "github.com/elotl/kip/pkg/k8sclient/clientset/versioned"
+	kipclientset "github.com/elotl/kip/pkg/k8sclient/clientset/versioned"
+	"github.com/elotl/kip/pkg/k8sclient/clientset/versioned/scheme"
 	"github.com/elotl/kip/pkg/nodeclient"
 	"github.com/elotl/kip/pkg/portmanager"
 	"github.com/elotl/kip/pkg/server/cloud"
@@ -52,10 +53,12 @@ import (
 	"google.golang.org/grpc"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilexec "k8s.io/utils/exec"
@@ -135,7 +138,7 @@ func setupEtcd(configFile, dataDir string, quit <-chan struct{}, wg *sync.WaitGr
 	return client, err
 }
 
-func ConfigureK8sKipClient(kubeConfig *clientcmdapi.Config) (*kubeclient.Clientset, *rest.Config, error) {
+func ConfigureK8sKipClient(kubeConfig *clientcmdapi.Config) (*kipclientset.Clientset, *rest.Config, error) {
 	var err error
 	var config *restclient.Config
 	if kubeConfig != nil {
@@ -151,11 +154,22 @@ func ConfigureK8sKipClient(kubeConfig *clientcmdapi.Config) (*kubeclient.Clients
 	config.QPS = 50
 	config.Burst = 100
 	config.Timeout = 30 * time.Second
-	clientset, err := kubeclient.NewForConfig(config)
+	clientset, err := kipclientset.NewForConfig(config)
 	if err != nil {
 		return nil, nil, util.WrapError(err, "could not create k8s clientset")
 	}
 	return clientset, config, nil
+}
+
+func NewK8sEventRecorder(client *kubernetes.Clientset) record.EventRecorder {
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartLogging(klog.Infof)
+	eventBroadcaster.StartRecordingToSink(
+		&typedcorev1.EventSinkImpl{
+			Interface: client.CoreV1().Events(""),
+		})
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "kip"})
+	return recorder
 }
 
 func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
@@ -330,12 +344,13 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 		os.Exit(2)
 	}
 	k8sCoreClient, err := kubernetes.NewForConfig(k8sRestConfig)
+	k8sEventRecorder := NewK8sEventRecorder(k8sCoreClient)
 	if err != nil {
 		klog.Errorln("Error configuring kubernetes core client", err)
 		time.Sleep(3 * time.Second)
 		os.Exit(2)
 	}
-	envResolver := NewKipPodEnvironmentResolver(k8sCoreClient)
+	envResolver := NewKipPodEnvironmentResolver(k8sCoreClient, k8sEventRecorder, nodeName, internalIP)
 
 	klog.V(5).Infof("creating pod controller")
 	podController := &PodController{
