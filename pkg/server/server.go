@@ -51,6 +51,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -321,6 +322,21 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 		)
 	}
 
+	klog.V(5).Infof("configuring k8s client")
+	k8sKipClient, k8sRestConfig, err := ConfigureK8sKipClient(kubeConfig)
+	if err != nil {
+		klog.Errorln("Error configuring kubernetes kip client", err)
+		time.Sleep(3 * time.Second)
+		os.Exit(2)
+	}
+	k8sCoreClient, err := kubernetes.NewForConfig(k8sRestConfig)
+	if err != nil {
+		klog.Errorln("Error configuring kubernetes core client", err)
+		time.Sleep(3 * time.Second)
+		os.Exit(2)
+	}
+	envResolver := NewKipPodEnvironmentResolver(k8sCoreClient)
+
 	klog.V(5).Infof("creating pod controller")
 	podController := &PodController{
 		podRegistry:            podRegistry,
@@ -340,6 +356,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 		statusInterval:         time.Duration(serverConfigFile.Cells.StatusInterval) * time.Second,
 		healthChecker:          healthChecker,
 		defaultIAMPermissions:  serverConfigFile.Cells.DefaultIAMPermissions,
+		environmentResolver:    envResolver,
 	}
 
 	klog.V(5).Infof("creating image ID cache")
@@ -400,14 +417,6 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 	metricsController := &MetricsController{
 		metricsRegistry: metricsRegistry,
 		podLister:       podRegistry,
-	}
-
-	klog.V(5).Infof("configuring k8s client")
-	k8sKipClient, k8sRestConfig, err := ConfigureK8sKipClient(kubeConfig)
-	if err != nil {
-		klog.Errorln("Error configuring kubernetes kip client", err)
-		time.Sleep(3 * time.Second)
-		os.Exit(2)
 	}
 
 	klog.V(5).Infof("creating cell controller")

@@ -222,6 +222,28 @@ func containerToUnit(container v1.Container) api.Unit {
 	return unit
 }
 
+func milpaToK8sEnv(milpaEnv []api.EnvVar) []v1.EnvVar {
+	k8sEnv := make([]v1.EnvVar, len(milpaEnv))
+	for i, e := range milpaEnv {
+		k8sEnv[i] = v1.EnvVar{
+			Name:  e.Name,
+			Value: e.Value,
+		}
+	}
+	return k8sEnv
+}
+
+func k8sToMilpaEnv(k8sEnv []v1.EnvVar) []api.EnvVar {
+	milpaEnv := make([]api.EnvVar, len(k8sEnv))
+	for i, e := range k8sEnv {
+		milpaEnv[i] = api.EnvVar{
+			Name:  e.Name,
+			Value: e.Value,
+		}
+	}
+	return milpaEnv
+}
+
 func unitToContainer(unit api.Unit, container *v1.Container) v1.Container {
 	if container == nil {
 		container = &v1.Container{}

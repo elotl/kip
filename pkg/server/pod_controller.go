@@ -80,6 +80,7 @@ type PodController struct {
 	statusInterval         time.Duration
 	healthChecker          *healthcheck.HealthCheckController
 	defaultIAMPermissions  string
+	environmentResolver    EnvironmentResolver
 }
 
 type FullPodStatus struct {
@@ -431,7 +432,12 @@ func (c *PodController) updatePodUnits(pod *api.Pod) error {
 		c.dnsConfigurer, name, ns, pod.Spec.Hostname, pod.Spec.Subdomain)
 	if err != nil {
 		return util.WrapError(err,
-			"unable to sync pod %s: generating hostname: %v", pod.Name, err)
+			"unable to sync pod %s: generating hostname", pod.Name)
+	}
+	err = c.environmentResolver.Resolve(pod)
+	if err != nil {
+		return util.WrapError(err, "Error resolving pod %s environment variables",
+			pod.Name)
 	}
 	podParams := api.PodParameters{
 		Credentials: podCreds,

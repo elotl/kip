@@ -18,7 +18,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dghubble/sling v1.3.0
 	github.com/docker/libkv v0.2.1
-	github.com/elotl/node-cli v0.1.3-0.20200910230114-dc9515d74fa9
+	github.com/elotl/node-cli v0.1.3-0.20200917213213-b27a17d29884
 	github.com/elotl/wsstream v0.0.0-20200212170458-7144cd9ecd95
 	github.com/emicklei/go-restful v2.11.2+incompatible // indirect
 	github.com/ghodss/yaml v1.0.0
@@ -63,6 +63,7 @@ require (
 	k8s.io/code-generator v0.18.4
 	k8s.io/cri-api v0.18.4
 	k8s.io/klog v1.0.0
+	k8s.io/kubectl v0.18.4 // indirect
 	k8s.io/kubernetes v1.18.4
 	k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
 )
@@ -112,3 +113,5 @@ replace k8s.io/kubectl => k8s.io/kubectl v0.18.4
 replace github.com/coreos/go-systemd => github.com/coreos/go-systemd/v22 v22.0.0
 
 replace github.com/ugorji/go => github.com/ugorji/go/codec v1.1.7
+
+replace github.com/virtual-kubelet/virtual-kubelet => /home/bcox/go/src/github.com/elotl/virtual-kubelet
