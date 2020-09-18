@@ -55,13 +55,14 @@ annotations:
   pod.elotl.co/instance-profile: "arn:aws:iam::11123456789:instance-profile/kip-s3-full-access-role"
 ```
 
-**pod.elotl.co/healthcheck-healthy-timeout"**
+**pod.elotl.co/healthcheck-healthy-timeout**
 
 Use this annotation to change the healthcheck timeout for individual pods from the value specified in provider.yaml. If a pod doesn't have a healthy response to healthcheck probes for greater than healthcheck-timeout the pod will be terminated and restarted according to the pod's restartPolicy.  A healthcheck-timeout of zero means the pod will not be terminated due to failing healthchecks.
 
 ```yaml
 annotations:
   pod.elotl.co/healthcheck-healthy-timeout: "300"
+```
 
 **pod.elotl.co/cloud-route**
 
