@@ -126,9 +126,14 @@ func MergeSecurityGroups(cloudSG SecurityGroup, specPorts []InstancePort, specSo
 	return add, delete
 }
 
-func ToSaneVolumeSize(volSizeSpec string) int32 {
+func ToSaneVolumeSize(volSizeSpec string, image Image) int32 {
 	size, _ := resource.ParseQuantity(volSizeSpec)
 	volSizeGiB := util.ToGiBRoundUp(&size)
+	if image.VolumeDiskSize != 0 {
+		if image.VolumeDiskSize > volSizeGiB {
+			return image.VolumeDiskSize
+		}
+	}
 	if volSizeGiB == 0 {
 		// This should never happen but handle it with grace. It would
 		// be nice to set volSizeGiB to the default volume size but

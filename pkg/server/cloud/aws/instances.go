@@ -231,6 +231,17 @@ func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeI
 	return input
 }
 
+func getRootDeviceVolumeSize(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) int32 {
+	var rootDiskSize int32
+	for _, blockDevice := range blockDevices {
+		if aws.StringValue(blockDevice.DeviceName) == rootDeviceName && blockDevice.Ebs != nil {
+			rootDiskSize = int32(aws.Int64Value(blockDevice.Ebs.VolumeSize))
+			break
+		}
+	}
+	return rootDiskSize
+}
+
 func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	input := bootImageSpecToDescribeImagesInput(spec)
 	resp, err := e.client.DescribeImages(input)
@@ -255,11 +266,17 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 				creationTime = &ts
 			}
 		}
+		rootDeviceName := aws.StringValue(img.RootDeviceName)
+		if rootDeviceName == "" {
+			klog.Warningf("cannot get root device name from image: %v", img.Name)
+		}
+		rootDiskSize := getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
 		images[i] = cloud.Image{
 			Name:         aws.StringValue(img.Name),
 			RootDevice:   aws.StringValue(img.RootDeviceName),
 			ID:           aws.StringValue(img.ImageId),
 			CreationTime: creationTime,
+			VolumeDiskSize: rootDiskSize,
 		}
 	}
 	cloud.SortImagesByCreationTime(images)
@@ -273,7 +290,7 @@ func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata string) (
 		ResourceType: aws.String("instance"),
 		Tags:         tags,
 	}
-	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
+	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
 	devices := e.getBlockDeviceMapping(image, volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
@@ -321,7 +338,7 @@ func (e *AwsEC2) StartSpotNode(node *api.Node, image cloud.Image, metadata strin
 	var err error
 	//var subnet *cloud.SubnetAttributes
 	klog.V(2).Infof("Starting spot node in: %s", e.subnetID)
-	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
+	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
 	devices := e.getBlockDeviceMapping(image, volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",

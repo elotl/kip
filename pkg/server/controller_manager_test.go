@@ -59,7 +59,7 @@ func TestControllerManagerGet(t *testing.T) {
 }
 
 func waitForControllersRunningState(t *testing.T, cm *ControllerManager, isRunning bool) {
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(5 * time.Second)
 	for {
 		if cm.ControllersRunning() == isRunning {
 			break

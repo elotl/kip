@@ -175,7 +175,7 @@ func (c *gceClient) createInstanceSpec(node *api.Node, image cloud.Image, metada
 
 	name := makeInstanceID(c.controllerID, node.Name)
 	diskType := c.getDiskTypeURL()
-	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
+	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
 	disks := c.getAttachedDiskSpec(true, int64(volSizeGiB), name, diskType, image.Name)
 	labels := c.getInstanceLabels(node.Name)
 	networkInterfaces := c.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
@@ -528,12 +528,14 @@ func (c *gceClient) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 			creationTime = &ts
 		}
 	}
+	diskSize := int32(resp.DiskSizeGb)
 	// TODO: these values seem to be reversed?
 	return cloud.Image{
 		ID:           resp.Name,
 		Name:         resp.SelfLink,
 		RootDevice:   "",
 		CreationTime: creationTime,
+		VolumeDiskSize: diskSize,
 	}, nil
 }
 

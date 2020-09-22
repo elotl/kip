@@ -191,7 +191,7 @@ func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata str
 		metadataptr = nil
 	}
 
-	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize)
+	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, azureDefaultTimeout)
 	defer cancel()
