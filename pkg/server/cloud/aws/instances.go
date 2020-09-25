@@ -136,31 +136,34 @@ func (e *AwsEC2) ResizeVolume(node *api.Node, size int64) (error, bool) {
 		return fmt.Errorf("Error retrieving volume info for node %s: %v",
 			node.Name, vol), false
 	}
-	if *vol.Size >= size {
+	if aws.Int64Value(vol.Size) >= size {
 		klog.V(2).Infof("Volume on node %s is %dGiB >= %dGiB",
-			node.Name, *vol.Size, size)
+			node.Name, aws.Int64Value(vol.Size), size)
 		return nil, false
 	}
 	klog.V(2).Infof("Resizing volume to %dGiB for node: %v", size, node)
 	result, err := e.client.ModifyVolume(&ec2.ModifyVolumeInput{
 		Size:     aws.Int64(size),
-		VolumeId: aws.String(*vol.VolumeId),
+		VolumeId: aws.String(aws.StringValue(vol.VolumeId)),
 	})
 	if err != nil {
 		return util.WrapError(err, "Failed to resize volume"), false
 	}
 	// These fields are pointers, check if any of them is nil.
 	targetsize := int64(0)
-	if result.VolumeModification.TargetSize != nil {
-		targetsize = *result.VolumeModification.TargetSize
+	if result.VolumeModification != nil &&
+		result.VolumeModification.TargetSize != nil {
+		targetsize = aws.Int64Value(result.VolumeModification.TargetSize)
 	}
 	state := "N/A"
-	if result.VolumeModification.ModificationState != nil {
-		state = *result.VolumeModification.ModificationState
+	if result.VolumeModification != nil &&
+		result.VolumeModification.ModificationState != nil {
+		state = aws.StringValue(result.VolumeModification.ModificationState)
 	}
 	statusmsg := "N/A"
-	if result.VolumeModification.StatusMessage != nil {
-		statusmsg = *result.VolumeModification.StatusMessage
+	if result.VolumeModification != nil &&
+		result.VolumeModification.StatusMessage != nil {
+		statusmsg = aws.StringValue(result.VolumeModification.StatusMessage)
 	}
 	if targetsize != size {
 		klog.Errorf("Error resizing volume for %v to %dGiB: state %s status %s",
@@ -175,17 +178,46 @@ func (e *AwsEC2) ResizeVolume(node *api.Node, size int64) (error, bool) {
 			return fmt.Errorf("Error retrieving volume info for node %s: %v",
 				node.Name, vol), false
 		}
-		if *vol.Size >= size {
+		state, reason, err := e.getVolumeModificationState(aws.StringValue(vol.VolumeId))
+		if err != nil {
+			return fmt.Errorf("Retrieving volume modification state failed for node %s: %v", node.Name, err), false
+		}
+		if state == ec2.VolumeModificationStateFailed {
+			return fmt.Errorf("Volume modification failed for node %s: %v. Reason: %s",
+				node.Name, vol, reason), false
+		}
+		if aws.Int64Value(vol.Size) >= size &&
+			(state == ec2.VolumeModificationStateOptimizing ||
+				state == ec2.VolumeModificationStateCompleted) {
 			klog.V(2).Infof("Volume on node %s is %dGiB >= %dGiB",
-				node.Name, *vol.Size, size)
+				node.Name, aws.Int64Value(vol.Size), size)
 			return nil, true
 		} else {
-			klog.V(2).Infof("Resizing volume on %s: currently %dGiB, requested %dGiB",
-				node.Name, *vol.Size, size)
+			klog.V(2).Infof("Resizing volume on %s: currently %dGiB, state: %s, requested %dGiB",
+				node.Name, aws.Int64Value(vol.Size), state, size)
 		}
 	}
 	return fmt.Errorf(
 		"Volume resize request timeout on node %s", node.Name), false
+}
+
+func (e *AwsEC2) getVolumeModificationState(volumeID string) (string, string, error) {
+	result, err := e.client.DescribeVolumesModifications(&ec2.DescribeVolumesModificationsInput{
+		VolumeIds: []*string{aws.String(volumeID)},
+	})
+	if err != nil {
+		return "", "", err
+	}
+	for i := range result.VolumesModifications {
+		if result.VolumesModifications[i] != nil &&
+			aws.StringValue(result.VolumesModifications[i].VolumeId) == volumeID {
+			mod := aws.StringValue(result.VolumesModifications[i].ModificationState)
+			reason := aws.StringValue(result.VolumesModifications[i].StatusMessage)
+			return mod, reason, err
+		}
+	}
+	klog.Warningf("No volume modifications returned from api for volume %s. Will retry.", volumeID)
+	return "", "", nil
 }
 
 func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeImagesInput {
