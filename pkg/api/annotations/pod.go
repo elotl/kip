@@ -27,6 +27,13 @@ const PodLaunchType = "pod.elotl.co/launch-type"
 // override specified resource requests and limits.
 const PodInstanceType = "pod.elotl.co/instance-type"
 
+// PodImageOverlayRootfs is an annotation users add to their
+// kubernetes pods to inform kip whether the itzo cell will use
+// -mount or -extractto argument when itzo calls tosi to pull rootfs
+// images. This annotation will default to -mount if its value is empty
+// or truthy, if the value is falsy it will use the -extractto option.
+const PodImageOverlayRootfs = "pod.elotl.co/image-overlay-rootfs"
+
 // PodVolumeSize is an annotation tells kip to resize the root
 // partition of the pod's cell to the specified size in bytes. The
 // size can be expressed as a plain integer or as a fixed-point

@@ -434,6 +434,7 @@ func (c *PodController) updatePodUnits(pod *api.Pod) error {
 			"unable to sync pod %s: generating hostname: %v", pod.Name, err)
 	}
 	podParams := api.PodParameters{
+		Annotations: getCellAnnotations(pod.Annotations),
 		Credentials: podCreds,
 		Spec:        util.ExpandCommandAndArgs(pod.Spec),
 		PodName:     pod.Name,
@@ -442,6 +443,17 @@ func (c *PodController) updatePodUnits(pod *api.Pod) error {
 		PodHostname: podHostname,
 	}
 	return client.UpdateUnits(podParams)
+}
+
+func getCellAnnotations(podAnnotations map[string]string) map[string]string {
+	annotationPrefix := "pod.elotl.co/"
+	annotations := make(map[string]string)
+	for k, v := range podAnnotations {
+		if strings.HasPrefix(k, annotationPrefix) {
+			annotations[k] = v
+		}
+	}
+	return annotations
 }
 
 func isBurstableMachine(machine string) bool {
