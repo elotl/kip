@@ -32,6 +32,7 @@ const PodInstanceType = "pod.elotl.co/instance-type"
 // -mount or -extractto argument when itzo calls tosi to pull rootfs
 // images. This annotation will default to -mount if its value is empty
 // or truthy, if the value is falsy it will use the -extractto option.
+// Allowed values: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False
 const PodImageOverlayRootfs = "pod.elotl.co/image-overlay-rootfs"
 
 // PodVolumeSize is an annotation tells kip to resize the root
