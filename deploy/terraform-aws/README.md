@@ -40,6 +40,11 @@ If you haven't set an existing ssh key in your configuration, a new ssh key has 
     $ terraform show -json | jq -r '.values.root_module.resources | .[] | select(.address=="tls_private_key.ssh-key") | .values.private_key_pem' > /tmp/id_rsa
     $ ssh -i /tmp/id_rsa ubuntu@<public IP of node>
 
+AmazonSystemManagedInstanceCore permissions are attached to the node instance.
+You should be able to see node instance in AWS Console under Systems Manager -> Instances and Nodes -> Managed Instances. There you can start new SSH session.
+You can also connect to instance using AWS CLI:
+`$ aws ssm start-session --target <instance ID in i-XXX format>`
+
 ## Run a Pod via Virtual Kubelet
 
 The node taint in kip is disabled in the manifest, so Kubernetes will try to run all pods via the virtual node.

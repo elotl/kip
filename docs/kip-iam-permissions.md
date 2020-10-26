@@ -31,6 +31,7 @@ The following policy covers all permissions Kip requires in order to run in AWS.
                 "ec2:DescribeVpcs",
                 "ec2:CreateSecurityGroup",
                 "ec2:DescribeVolumes",
+                "ec2:DescribeVolumesModifications",
                 "ec2:DeleteSecurityGroup",
                 "ec2:ModifyInstanceAttribute",
                 "ec2:DescribeSubnets",
