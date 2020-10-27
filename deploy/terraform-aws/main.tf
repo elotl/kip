@@ -179,9 +179,8 @@ EOF
   tags = local.k8s_cluster_tags
 }
 
-resource "aws_iam_role_policy" "k8s_node" {
-  name = "k8s-node-${var.cluster_name}"
-  role = aws_iam_role.k8s_node.id
+resource "aws_iam_policy" "k8s_node_k8s_policy" {
+  name = "k8s-node-${var.cluster_name}-k8s"
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -192,48 +191,28 @@ resource "aws_iam_role_policy" "k8s_node" {
         "autoscaling:DescribeAutoScalingGroups",
         "autoscaling:DescribeLaunchConfigurations",
         "autoscaling:DescribeTags",
-        "ec2:AssignPrivateIpAddresses",
-        "ec2:AssociateIamInstanceProfile",
-        "ec2:AttachNetworkInterface",
         "ec2:AttachVolume",
         "ec2:AuthorizeSecurityGroupIngress",
-        "ec2:CreateNetworkInterface",
         "ec2:CreateRoute",
         "ec2:CreateSecurityGroup",
         "ec2:CreateTags",
         "ec2:CreateVolume",
-        "ec2:DeleteNetworkInterface",
         "ec2:DeleteRoute",
         "ec2:DeleteSecurityGroup",
         "ec2:DeleteVolume",
-        "ec2:DescribeAddresses",
-        "ec2:DescribeAvailabilityZones",
-        "ec2:DescribeDhcpOptions",
-        "ec2:DescribeElasticGpus",
-        "ec2:DescribeImages",
         "ec2:DescribeInstances",
-        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeInstances",
+        "ec2:DescribeRegions",
         "ec2:DescribeRegions",
         "ec2:DescribeRouteTables",
         "ec2:DescribeSecurityGroups",
-        "ec2:DescribeSpotPriceHistory",
         "ec2:DescribeSubnets",
-        "ec2:DescribeTags",
         "ec2:DescribeVolumes",
-        "ec2:DescribeVpcAttribute",
         "ec2:DescribeVpcs",
-        "ec2:DetachNetworkInterface",
         "ec2:DetachVolume",
         "ec2:ModifyInstanceAttribute",
-        "ec2:ModifyInstanceCreditSpecification",
-        "ec2:ModifyNetworkInterfaceAttribute",
         "ec2:ModifyVolume",
-        "ec2:ModifyVpcAttribute",
-        "ec2:RequestSpotInstances",
         "ec2:RevokeSecurityGroupIngress",
-        "ec2:RunInstances",
-        "ec2:TerminateInstances",
-        "ec2:UnassignPrivateIpAddresses",
         "ecr:BatchCheckLayerAvailability",
         "ecr:BatchGetImage",
         "ecr:DescribeRepositories",
@@ -241,17 +220,32 @@ resource "aws_iam_role_policy" "k8s_node" {
         "ecr:GetDownloadUrlForLayer",
         "ecr:GetRepositoryPolicy",
         "ecr:ListImages",
-        "ecs:CreateCluster",
-        "ecs:DeregisterTaskDefinition",
-        "ecs:DescribeClusters",
-        "ecs:DescribeTasks",
-        "ecs:ListAccountSettings",
         "ecs:ListTaskDefinitions",
+        "ec2:DescribeElasticGpus",
+        "ecs:DescribeClusters",
+        "ec2:ModifyNetworkInterfaceAttribute",
+        "ec2:ModifyVpcAttribute",
         "ecs:ListTasks",
-        "ecs:PutAccountSetting",
-        "ecs:RegisterTaskDefinition",
+        "ec2:AssignPrivateIpAddresses",
         "ecs:RunTask",
+        "ecs:DeregisterTaskDefinition",
+        "ecs:ListAccountSettings",
+        "ecs:CreateCluster",
+        "ec2:DescribeVpcAttribute",
+        "ec2:DeleteNetworkInterface",
+        "ec2:UnassignPrivateIpAddresses",
+        "ecs:RegisterTaskDefinition",
+        "ec2:DescribeAddresses",
+        "ec2:DetachNetworkInterface",
+        "ec2:DescribeSpotPriceHistory",
+        "ec2:AttachNetworkInterface",
+        "ec2:DescribeTags",
+        "ecs:PutAccountSetting",
+        "ecs:DescribeTasks",
+        "ec2:CreateNetworkInterface",
+        "ec2:RequestSpotInstances",
         "ecs:StopTask",
+        "elasticloadbalancing:AddTags",
         "elasticloadbalancing:AddTags",
         "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
         "elasticloadbalancing:AttachLoadBalancerToSubnets",
@@ -266,6 +260,7 @@ resource "aws_iam_role_policy" "k8s_node" {
         "elasticloadbalancing:DeleteLoadBalancerListeners",
         "elasticloadbalancing:DeleteTargetGroup",
         "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+        "elasticloadbalancing:DeregisterTargets",
         "elasticloadbalancing:DescribeListeners",
         "elasticloadbalancing:DescribeLoadBalancerAttributes",
         "elasticloadbalancing:DescribeLoadBalancerPolicies",
@@ -281,7 +276,6 @@ resource "aws_iam_role_policy" "k8s_node" {
         "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
         "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
         "iam:CreateServiceLinkedRole",
-        "iam:PassRole",
         "kms:DescribeKey"
       ],
       "Resource": [
@@ -291,6 +285,69 @@ resource "aws_iam_role_policy" "k8s_node" {
   ]
 }
 EOF
+}
+
+resource "aws_iam_role_policy_attachment" "k8s-policy-attachment" {
+  policy_arn = aws_iam_policy.k8s_node_k8s_policy.arn
+  role = aws_iam_role.k8s_node.name
+}
+
+resource "aws_iam_policy" "k8s_node_kip_policy" {
+  name = "k8s-node-${var.cluster_name}-kip"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AssociateIamInstanceProfile",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:CreateRoute",
+        "ec2:CreateSecurityGroup",
+        "ec2:CreateTags",
+        "ec2:DeleteRoute",
+        "ec2:DeleteSecurityGroup",
+        "ec2:DescribeAvailabilityZones",
+        "ec2:DescribeDhcpOptions",
+        "ec2:DescribeImages",
+        "ec2:DescribeInstances",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeRouteTables",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeVolumesModifications",
+        "ec2:DescribeVpcs",
+        "ec2:ModifyInstanceAttribute",
+        "ec2:ModifyInstanceCreditSpecification",
+        "ec2:ModifyVolume",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RunInstances",
+        "ec2:TerminateInstances",
+        "ecr:BatchGetImage",
+        "ecr:GetAuthorizationToken",
+        "ecr:GetDownloadUrlForLayer",
+        "iam:PassRole"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
+}
+EOF
+}
+
+
+resource "aws_iam_role_policy_attachment" "kip-policy-attachment" {
+  policy_arn = aws_iam_policy.k8s_node_kip_policy.arn
+  role = aws_iam_role.k8s_node.name
+}
+
+resource "aws_iam_role_policy_attachment" "ssm-policy-attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  role = aws_iam_role.k8s_node.name
 }
 
 resource "aws_iam_instance_profile" "k8s_node" {
