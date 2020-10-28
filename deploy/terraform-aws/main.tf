@@ -31,13 +31,21 @@ locals {
 }
 
 data "aws_availability_zones" "available_azs" {
-  state             = "available"
-  exclude_zone_ids  = var.excluded_azs
+  state            = "available"
+  exclude_zone_ids = var.excluded_azs
+
+  filter {
+    name   = "opt-in-status"
+    values = ["opt-in-not-required"]
+  }
 }
 
 resource "random_shuffle" "azs" {
   input        = data.aws_availability_zones.available_azs.names
   result_count = 1
+  keepers      = {
+    availables_azs = join(",", data.aws_availability_zones.available_azs.names)
+  }
 }
 
 resource "aws_vpc" "main" {
