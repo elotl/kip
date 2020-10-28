@@ -460,6 +460,10 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 			msg := fmt.Sprintf("Error resizing volume on node %s pod %s: %v",
 				node.Name, pod.Name, err)
 			klog.Errorf("%s", msg)
+			// TODO - send k8s event here
+			// podRef := api.ToObjectReference(pod)
+			//
+			// c.events.EmitK8sEvent()
 			c.markFailedPod(pod, true, msg)
 			return
 		}

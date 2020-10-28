@@ -18,6 +18,11 @@ package events
 
 import (
 	"fmt"
+	"github.com/elotl/kip/pkg/k8sclient/clientset/versioned/scheme"
+	v1 "k8s.io/api/core/v1"
+	clientset "k8s.io/client-go/kubernetes"
+	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/record"
 	"reflect"
 	"sync"
 
@@ -49,12 +54,21 @@ type EventSystem struct {
 	sync.RWMutex
 	eventHandlers map[string][]EventHandler
 	eventChan     chan Event
+	k8sRecorder   record.EventRecorder
 }
 
-func NewEventSystem(quit <-chan struct{}, wg *sync.WaitGroup) *EventSystem {
+func NewEventSystem(quit <-chan struct{}, wg *sync.WaitGroup, kubeClient clientset.Interface) *EventSystem {
+	eventBroadcater := record.NewBroadcaster()
+	eventBroadcater.StartRecordingToSink(&typedv1.EventSinkImpl{
+		Interface: typedv1.New(kubeClient.CoreV1().RESTClient()).Events(""),
+	})
+	recorder := eventBroadcater.NewRecorder(
+		scheme.Scheme,
+		v1.EventSource{Component: "kip"})
 	e := &EventSystem{
 		eventHandlers: make(map[string][]EventHandler),
 		eventChan:     make(chan Event, ArbitraryChanSize),
+		k8sRecorder:   &recorder,
 	}
 	go e.Run(quit, wg)
 	return e
@@ -92,6 +106,9 @@ func (es *EventSystem) Emit(status, source string, obj interface{}, args ...inte
 	// The race detector doesn't like it when that happens.
 	eCpy := copyEvent(e)
 	es.eventChan <- eCpy
+	k8sECpy := copyEvent(e)
+	es.k8sRecorder.Eventf()
+	es.RecordK8sEvent(k8sECpy)
 }
 
 // Events are passed around the system and the resulting objects
