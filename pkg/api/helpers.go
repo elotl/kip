@@ -18,6 +18,8 @@ package api
 
 import (
 	"fmt"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"reflect"
 
 	"github.com/elotl/kip/pkg/labels"
@@ -194,4 +196,20 @@ func IsHostNetwork(securityContext *PodSecurityContext) bool {
 		return false
 	}
 	return true
+}
+
+func ObjReferenceToK8sObjectReference(resource interface{}) *v1.ObjectReference {
+	v := reflect.ValueOf(resource)
+	kind := reflect.Indirect(v).FieldByName("Kind").String()
+	name := reflect.Indirect(v).FieldByName("Name").String()
+	namespace := reflect.Indirect(v).FieldByName("Namespace").String()
+	uid := reflect.Indirect(v).FieldByName("UID").String()
+	return &v1.ObjectReference{
+		Kind:            kind,
+		APIVersion:      version,
+		Name:            name,
+		Namespace:       namespace,
+		UID:             types.UID(uid),
+		ResourceVersion: objectMeta.GetResourceVersion(),
+	},
 }

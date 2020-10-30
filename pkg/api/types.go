@@ -105,6 +105,7 @@ type Pod struct {
 	// Status is the observed status of the Pod. It is kept up to date by
 	// Milpa.
 	Status PodStatus `json:"status,omitempty"`
+
 }
 
 type PodSpec struct {

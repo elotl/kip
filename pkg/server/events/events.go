@@ -18,8 +18,10 @@ package events
 
 import (
 	"fmt"
+	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/k8sclient/clientset/versioned/scheme"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	clientset "k8s.io/client-go/kubernetes"
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -68,7 +70,7 @@ func NewEventSystem(quit <-chan struct{}, wg *sync.WaitGroup, kubeClient clients
 	e := &EventSystem{
 		eventHandlers: make(map[string][]EventHandler),
 		eventChan:     make(chan Event, ArbitraryChanSize),
-		k8sRecorder:   &recorder,
+		k8sRecorder:   recorder,
 	}
 	go e.Run(quit, wg)
 	return e
@@ -106,9 +108,19 @@ func (es *EventSystem) Emit(status, source string, obj interface{}, args ...inte
 	// The race detector doesn't like it when that happens.
 	eCpy := copyEvent(e)
 	es.eventChan <- eCpy
-	k8sECpy := copyEvent(e)
-	es.k8sRecorder.Eventf()
-	es.RecordK8sEvent(k8sECpy)
+}
+
+func (es *EventSystem) RecordK8sEvent(object interface{}, eventtype, reason, message string) error {
+	objReference := api.ToObjectReference(object)
+	k8sObjReference := &v1.ObjectReference{
+		Kind:            kind,
+		APIVersion:      version,
+		Name:            objectMeta.GetName(),
+		Namespace:       objectMeta.GetNamespace(),
+		UID:             objectMeta.GetUID(),
+		ResourceVersion: objectMeta.GetResourceVersion(),
+	},
+	es.k8sRecorder.Eventf(objReference, eventtype, reason, message)
 }
 
 // Events are passed around the system and the resulting objects
