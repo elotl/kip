@@ -110,7 +110,7 @@ func (es *EventSystem) Emit(status, source string, obj interface{}, args ...inte
 	es.eventChan <- eCpy
 }
 
-func (es *EventSystem) RecordK8sEvent(object interface{}, eventtype, reason, message string) error {
+func (es *EventSystem) EmitK8sEvent(object interface{}, eventtype, reason, message string) error {
 	objReference := api.ToObjectReference(object)
 	k8sObjReference := &v1.ObjectReference{
 		Kind:            kind,
