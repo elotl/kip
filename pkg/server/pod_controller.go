@@ -50,6 +50,7 @@ const (
 	PodControllerCleanPeriod    = 20 * time.Second
 	PodControllerControlPeriod  = 5 * time.Second
 	PodControllerFullSyncPeriod = 31 * time.Second
+	elotlAnnotationPrefix       = "pod.elotl.co/"
 )
 
 var lastWrongPod map[string]string
@@ -446,10 +447,9 @@ func (c *PodController) updatePodUnits(pod *api.Pod) error {
 }
 
 func getCellAnnotations(podAnnotations map[string]string) map[string]string {
-	annotationPrefix := "pod.elotl.co/"
 	annotations := make(map[string]string)
 	for k, v := range podAnnotations {
-		if strings.HasPrefix(k, annotationPrefix) {
+		if strings.HasPrefix(k, elotlAnnotationPrefix) {
 			annotations[k] = v
 		}
 	}
