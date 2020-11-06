@@ -52,6 +52,14 @@ jobs:
         env:
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # TODO change it to true
-          VALIDATE_ALL_CODEBASE: false
+          VALIDATE_ALL_CODEBASE: true
+          VALIDATE_BASH: false
+          VALIDATE_DOCKERFILE: false
+          VALIDATE_DOCKERFILE_HADOLINT: false
           VALIDATE_GO: true
+          VALIDATE_KUBERNETES_KUBEVAL: false
+          VALIDATE_MARKDOWN: false
+          VALIDATE_PROTOBUF: false
+          VALIDATE_PYTHON: false
+          VALIDATE_TERRAFORM: false
+          VALIDATE_TERRAFORM_TERRASCAN: false
