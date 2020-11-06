@@ -33,27 +33,6 @@ const (
 	nanosecondsPerSecond = float64(time.Second / time.Nanosecond)
 )
 
-type usageMetrics struct {
-	UsageNanoCores       uint64
-	UsageCoreNanoSeconds uint64
-	AvailableBytes       uint64
-	UsageBytes           uint64
-	WorkingSetBytes      uint64
-	RSSBytes             uint64
-	PageFaults           uint64
-	MajorPageFaults      uint64
-	NetRxBytes           uint64
-	NetRxErrors          uint64
-	NetTxBytes           uint64
-	NetTxErrors          uint64
-	FSAvailableBytes     uint64
-	FSCapacityBytes      uint64
-	FSUsedBytes          uint64
-	FSInodesFree         uint64
-	FSInodes             uint64
-	FSInodesUsed         uint64
-}
-
 func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary, error) {
 	var span trace.Span
 	ctx, span = trace.StartSpan(ctx, "GetStatsSummary")

@@ -45,8 +45,6 @@ import (
 
 // make this configurable
 const (
-	statusReplyTimeout          = 90 * time.Second
-	podUnboundTooLong           = 1 * time.Minute
 	PodControllerCleanPeriod    = 20 * time.Second
 	PodControllerControlPeriod  = 5 * time.Second
 	PodControllerFullSyncPeriod = 31 * time.Second

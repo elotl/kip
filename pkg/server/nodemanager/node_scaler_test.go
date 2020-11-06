@@ -30,16 +30,6 @@ func (f *FakeNodeStatusUpdater) UpdateStatus(n *api.Node) (*api.Node, error) {
 	return nil, nil
 }
 
-func MakeNodeScaler() (*BindingNodeScaler, func()) {
-	nodeRegistry, closer := registry.SetupTestNodeRegistry()
-	bootLimiter := NewInstanceBootLimiter()
-	return &BindingNodeScaler{
-		nodeRegistry:      nodeRegistry,
-		bootLimiter:       bootLimiter,
-		defaultVolumeSize: "2G",
-	}, closer
-}
-
 func TestSpotMatches(t *testing.T) {
 	ns := &BindingNodeScaler{}
 	tests := []struct {

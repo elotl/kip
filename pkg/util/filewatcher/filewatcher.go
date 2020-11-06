@@ -56,10 +56,9 @@ func (fw *File) Version() int {
 	return fw.version
 }
 
-func (fw *File) refresh() (changed bool) {
-	changed = false
+func (fw *File) refresh() {
 	if fw.path == "" {
-		return changed
+		return
 	}
 	now := time.Now()
 	if fw.statTime.Add(fw.CheckPeriod).Before(now) {
@@ -73,14 +72,13 @@ func (fw *File) refresh() (changed bool) {
 				klog.Warningf("Error reading contents of file at %s: %s", fw.path, err)
 				return
 			}
-			changed = true
 			fw.version += 1
 			fw.fileContents = string(c)
 			fw.modTime = info.ModTime()
 		}
 		fw.statTime = now
 	}
-	return changed
+	return
 }
 
 func (fw *File) Contents() string {

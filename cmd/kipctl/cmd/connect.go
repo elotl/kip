@@ -48,7 +48,7 @@ func getKipClient(flags *pflag.FlagSet, needsLeader bool) (clientapi.KipClient, 
 			client clientapi.KipClient
 			conn   *grpc.ClientConn
 		)
-		client, conn, err = connectToServer(context.Background(), address, flags)
+		client, conn, err = connectToServer(context.Background(), address)
 		if err != nil {
 			// If we got an error with that server, just continue
 			// trying other servers
@@ -81,7 +81,7 @@ func isLeader(ctx context.Context, client clientapi.KipClient) (bool, error) {
 	return reply.IsLeader, nil
 }
 
-func connectToServer(ctx context.Context, serverAddress string, flags *pflag.FlagSet) (clientapi.KipClient, *grpc.ClientConn, error) {
+func connectToServer(ctx context.Context, serverAddress string) (clientapi.KipClient, *grpc.ClientConn, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, grpcDialTimeout)
 	defer cancel()
 	conn, err := grpc.DialContext(

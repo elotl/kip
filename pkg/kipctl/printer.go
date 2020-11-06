@@ -184,10 +184,7 @@ func (h *PrettyPrinter) validatePrintHandlerFunc(printFunc reflect.Value) error 
 
 var podColumns = []string{"NAME", "UNITS", "RUNNING", "STATUS", "RESTARTS", "NODE", "IP", "AGE"}
 var nodeColumns = []string{"NAME", "STATUS", "INSTANCE-TYPE", "INSTANCE", "IP", "AGE"}
-var serviceColumns = []string{"NAME", "PORT(S)", "SOURCES", "INGRESS ADDRESS", "AGE"}
 var eventColumns = []string{"TIMESTAMP", "NAME", "KIND", "STATUS", "SOURCE", "MESSAGE"}
-var usageReportColumns = []string{"USAGE", "TYPE", "HOURS"}
-var usageColumns = []string{"CATEGORY", "TYPE", "HOURS"}
 var metricsColumns = []string{"NAME", "TIMESTAMP", "CPU", "MEMORY", "DISK", "WINDOW"}
 
 func (h *PrettyPrinter) addDefaultHandlers() {

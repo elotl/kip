@@ -27,8 +27,6 @@ import (
 
 var (
 	minPriority = 100
-	maxPriority = 4096
-	denyAllName = "deny-all"
 )
 
 func servicePortToString(port int, portRangeSize int) string {
@@ -69,20 +67,4 @@ func (rule *NSGRule) toAzureSecurityRule(priority int) network.SecurityRule {
 		},
 	}
 	return sr
-}
-
-func azureDenyAllRule() network.SecurityRule {
-	return network.SecurityRule{
-		Name: to.StringPtr(denyAllName),
-		SecurityRulePropertiesFormat: &network.SecurityRulePropertiesFormat{
-			Protocol:                 network.SecurityRuleProtocolAsterisk,
-			SourceAddressPrefix:      to.StringPtr("*"),
-			SourcePortRange:          to.StringPtr("*"),
-			DestinationAddressPrefix: to.StringPtr("*"),
-			DestinationPortRange:     to.StringPtr("*"),
-			Access:                   network.SecurityRuleAccessDeny,
-			Direction:                network.SecurityRuleDirectionInbound,
-			Priority:                 to.Int32Ptr(int32(maxPriority)),
-		},
-	}
 }

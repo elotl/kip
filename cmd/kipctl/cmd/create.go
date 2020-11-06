@@ -20,7 +20,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func create(cmd *cobra.Command, args []string) {
+func create(cmd *cobra.Command) {
 	appManifestFile, err := cmd.Flags().GetString("file")
 	dieIfError(err, "Error accessing 'file' flag for cmd %s", cmd.Name())
 	client, conn, err := getKipClient(cmd.InheritedFlags(), true)
@@ -38,7 +38,7 @@ func CreateCommand() *cobra.Command {
 		Short: "Create kip object",
 		Long:  `Create object specified in manifest on cloud of choice`,
 		Run: func(cmd *cobra.Command, args []string) {
-			create(cmd, args)
+			create(cmd)
 		},
 	}
 	createCmd.Flags().StringP("file", "f", "", "Fully qualified path to manifest file")

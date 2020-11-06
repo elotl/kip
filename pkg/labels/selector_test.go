@@ -140,12 +140,6 @@ func expectMatchDirect(t *testing.T, selector, ls Set) {
 	}
 }
 
-func expectNoMatchDirect(t *testing.T, selector, ls Set) {
-	if SelectorFromSet(selector).Matches(ls) {
-		t.Errorf("Wanted '%s' to not match '%s', but it did.", selector, ls)
-	}
-}
-
 func TestSetMatches(t *testing.T) {
 	labelset := Set{
 		"foo": "bar",

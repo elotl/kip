@@ -24,7 +24,6 @@ import (
 
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/server/cloud"
-	"github.com/elotl/kip/pkg/server/cloud/aws"
 	"github.com/elotl/kip/pkg/server/cloud/azure"
 	"github.com/elotl/kip/pkg/server/registry"
 	"github.com/elotl/kip/pkg/util/stats"
@@ -51,7 +50,6 @@ type GarbageController struct {
 	controllerID            string
 	timer                   stats.LoopTimer
 	lastOrphanedAzureGroups sets.String
-	lastOldTaskDefs         sets.String
 }
 
 func (c *GarbageController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
@@ -181,70 +179,6 @@ func (c *GarbageController) CleanAzureResourceGroups() {
 	if err != nil {
 		klog.Error(err)
 	}
-}
-
-func (c *GarbageController) cleanFargateTaskDefs() {
-	client, ok := c.cloudClient.(*aws.AwsEC2)
-	if !ok {
-		return
-	}
-	if c.lastOldTaskDefs == nil {
-		c.lastOldTaskDefs = sets.NewString()
-	}
-	taskDefARNs, err := client.ListTaskDefinitions()
-	if err != nil {
-		klog.Errorln("Error listing ECS Fargate task definitions for cleanup:", err)
-		return
-	}
-	if len(taskDefARNs) == 0 {
-		return
-	}
-	pods, err := c.podRegistry.ListPods(registry.MatchAllPods)
-	if err != nil {
-		klog.Errorln("Error listing pods when cleaning up fargate task definitions", err)
-	}
-	podNames := sets.NewString()
-	for i := range pods.Items {
-		podNames.Insert(pods.Items[i].Name)
-	}
-	oldTaskDefs := getOutdatedTaskDefinitions(taskDefARNs, podNames, c.controllerID)
-	doomedTaskDefARNs := c.lastOldTaskDefs.Intersection(oldTaskDefs)
-	for _, taskDefARN := range doomedTaskDefARNs.List() {
-		err := client.DeregisterTaskDefinition(taskDefARN)
-		if err != nil {
-			klog.Errorln("Error cleaning up old task definition", taskDefARN)
-		}
-	}
-	c.lastOldTaskDefs = oldTaskDefs
-}
-
-// Task definitions have a taskName and taskRevision in the form
-// taskname:revision.  We should be deactivating all but the most
-// recent task definions Here we find all the older task definition
-// revisions.
-func getOutdatedTaskDefinitions(taskDefARNs []string, podNames sets.String, controllerID string) sets.String {
-	oldTaskDefs := sets.NewString()
-	latestRevision := make(map[string]int)
-	for _, taskDef := range taskDefARNs {
-		name, revision := aws.SplitTaskDef(taskDef, controllerID)
-		if len(name) == 0 || revision == 0 {
-			continue
-		}
-		if revision > latestRevision[name] {
-			latestRevision[name] = revision
-		}
-	}
-	for _, taskDef := range taskDefARNs {
-		name, revision := aws.SplitTaskDef(taskDef, controllerID)
-		if !podNames.Has(name) {
-			oldTaskDefs.Insert(taskDef)
-		} else {
-			if revision < latestRevision[name] {
-				oldTaskDefs.Insert(taskDef)
-			}
-		}
-	}
-	return oldTaskDefs
 }
 
 type ResourceGrouper interface {

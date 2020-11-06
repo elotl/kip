@@ -66,7 +66,6 @@ const (
 	nameKey               = "name"
 	containerNameKey      = "containerName"
 	etcdClusterRegionPath = "milpa/cluster/region"
-	kubernetesPodKey      = "elotl.co/kubernetes-pod"
 	defaultPort           = 54555
 	defaultProtocol       = "tcp"
 )

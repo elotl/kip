@@ -45,18 +45,12 @@ var (
 	}
 )
 
-type StartStopFunc func(node *api.Node) error
-
 func StringStringReturnNil(cidr, iid string) error {
 	return nil
 }
 
 func ReturnNil(iid string) error {
 	return nil
-}
-
-func FakeLister() ([]cloud.CloudInstance, error) {
-	return nil, nil
 }
 
 func StartReturnsOK(node *api.Node, image cloud.Image, metadata string) (string, error) {
@@ -70,14 +64,6 @@ func StartFails(node *api.Node, image cloud.Image, metadata string) (string, err
 
 func ReturnAddresses(node *api.Node) ([]api.NetworkAddress, error) {
 	return api.NewNetworkAddresses("instIP", "instDNS"), nil
-}
-
-func ReturnError(node *api.Node) error {
-	return fmt.Errorf("Testing, purposefully returning error")
-}
-
-func Panics(node *api.Node) (string, error) {
-	return "instID", nil
 }
 
 func MakeNodeController() (*NodeController, func()) {
@@ -155,10 +141,6 @@ func makeTestNode(t *testing.T, ctl *NodeController, phase api.NodePhase, spot b
 
 func makeTestOndemandNode(t *testing.T, ctl *NodeController, phase api.NodePhase) *api.Node {
 	return makeTestNode(t, ctl, phase, false)
-}
-
-func makeTestSpotNode(t *testing.T, ctl *NodeController, phase api.NodePhase) *api.Node {
-	return makeTestNode(t, ctl, phase, true)
 }
 
 func TestStopSingleNode(t *testing.T) {

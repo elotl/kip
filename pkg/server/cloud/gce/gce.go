@@ -35,11 +35,8 @@ const (
 	defaultTimeout              = 20 * time.Second
 	waitForRunningTimeout       = 3 * time.Minute
 	controllerLabelKey          = "kip-controller-id"
-	nameLabelKey                = "name"
-	namespaceLabelKey           = "kip-namespace"
 	minimumDiskSize       int64 = 10
 	nametagLabelKey             = "kip-nametag"
-	podNameLabelKey             = "kip-pod-name"
 	statusOperationDone         = "DONE"
 	statusInstanceRunning       = "RUNNING"
 	apiRetries                  = 10
@@ -172,19 +169,6 @@ func (c *gceClient) getGlobalOperation(opName string) (*compute.Operation, error
 	}
 	if resp == nil {
 		return nil, nilResponseError("GlobalOperations.Get")
-	}
-	return resp, nil
-}
-
-func (c *gceClient) getRegionOperation(opName string) (*compute.Operation, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-	resp, err := c.service.RegionOperations.Get(c.projectID, c.region, opName).Context(ctx).Do()
-	if err != nil {
-		return nil, util.WrapError(err, "Error could not retrieve region operation")
-	}
-	if resp == nil {
-		return nil, nilResponseError("RegionOperations.Get")
 	}
 	return resp, nil
 }

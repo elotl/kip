@@ -29,7 +29,6 @@ import (
 // would go in it so I'm not creating the registry just for storing
 // the UUID of this server...
 const (
-	etcdClusterInfoPath string = "milpa/cluster"
 	etcdClusterUUIDPath string = "milpa/cluster/uuid"
 )
 

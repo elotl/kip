@@ -30,7 +30,6 @@ import (
 )
 
 const (
-	gceAuthAPIEndpoint    = "https://www.googleapis.com/auth/"
 	gceComputeAPIEndpoint = "https://www.googleapis.com/compute/v1/"
 )
 
@@ -84,23 +83,10 @@ func (c *gceClient) getSubnetworkURL() string {
 	)
 }
 
-func (c *gceClient) getProjectURL() string {
-	return gceComputeAPIEndpoint + strings.Join([]string{"projects", c.projectID},
-		"/",
-	)
-}
-
 // TOOD figure out better way to pull disk type
 func (c *gceClient) getDiskTypeURL() string {
 	return gceComputeAPIEndpoint + strings.Join(
 		[]string{"projects", c.projectID, "zones", c.zone, "diskTypes", "pd-standard"},
-		"/",
-	)
-}
-
-func (c *gceClient) getDiskImageURL(project, image string) string {
-	return gceComputeAPIEndpoint + strings.Join(
-		[]string{"projects", project, "global", "images", image},
 		"/",
 	)
 }
@@ -124,19 +110,6 @@ func (c *gceClient) getAcceleratorTypeURL(acceleratorType string) string {
 		[]string{"projects", c.projectID, "zones", c.zone, "acceleratorTypes", acceleratorType},
 		"/",
 	)
-}
-
-func getServiceAccountScopes(scopes []string) []string {
-	scopeLen := len(scopes)
-	if scopeLen == 1 {
-		return []string{gceAuthAPIEndpoint + scopes[0]}
-	}
-	scopeURLs := make([]string, scopeLen)
-	for _, scope := range scopes {
-		s := gceAuthAPIEndpoint + scope
-		scopeURLs = append(scopeURLs, s)
-	}
-	return scopeURLs
 }
 
 func makeInstanceID(controllerID, nodeName string) string {

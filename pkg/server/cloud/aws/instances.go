@@ -32,9 +32,7 @@ import (
 )
 
 const (
-	awsInstanceProduct    = "Linux/UNIX"
 	resizeTimeout         = 60 * time.Second
-	maxUserInstanceTags   = 45
 	awsCreationDateFormat = "2006-01-02T15:04:05.000Z"
 	elotlOwnerID          = "689494258501"
 	elotlImageNameFilter  = "elotl-kip-*"

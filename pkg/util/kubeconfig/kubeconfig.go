@@ -137,24 +137,3 @@ func (kc *Kubeconfig) toJSON() ([]byte, error) {
 	}
 	return data, nil
 }
-
-// Create kubeconfig from JSON data. This is intended for testing, since we
-// don't know the path of the token file the config has been created from.
-func fromJSON(data []byte) (*Kubeconfig, error) {
-	config := clientcmdapi.Config{}
-	err := json.Unmarshal(data, &config)
-	if err != nil {
-		return nil, err
-	}
-	userName := ""
-	for un, _ := range config.AuthInfos {
-		if un != "" {
-			userName = un
-		}
-	}
-	kc := Kubeconfig{
-		Config:   &config,
-		UserName: userName,
-	}
-	return &kc, nil
-}

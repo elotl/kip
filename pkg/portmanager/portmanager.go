@@ -127,11 +127,6 @@ func getProtoAndPorts(cp v1.ContainerPort) (string, string, string) {
 	return proto, srcport, dstport
 }
 
-type hostport struct {
-	port     int
-	protocol string
-}
-
 func filterPortMappings(cps []v1.ContainerPort) (ret []v1.ContainerPort) {
 	for _, cp := range cps {
 		if cp.HostPort > 0 && cp.ContainerPort > 0 {

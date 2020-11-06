@@ -18,8 +18,6 @@ package registry
 
 import (
 	"fmt"
-	"time"
-
 	"github.com/docker/libkv/store"
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/api/validation"
@@ -38,10 +36,6 @@ const (
 	PodTrashDirectoryPlaceholder string = "milpa/trash/pods/."
 )
 
-var (
-	terminatedPodTTL = 3 * time.Minute
-)
-
 type PodRegistry struct {
 	etcd.Storer
 	Codec             api.MilpaCodec
@@ -51,10 +45,6 @@ type PodRegistry struct {
 
 func makePodKey(id string) string {
 	return PodPath + "/" + id
-}
-
-func makeDeletedPodKey(id string) string {
-	return PodTrashPath + "/" + id
 }
 
 func NewPodRegistry(kvstore etcd.Storer, codec api.MilpaCodec, es *events.EventSystem, sv *validation.StatefulValidator) *PodRegistry {

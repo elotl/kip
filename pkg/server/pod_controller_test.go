@@ -72,20 +72,6 @@ func createPodController(c nodeclient.ItzoClientFactoryer) (*PodController, func
 	return controller, closer
 }
 
-func waitForPodInState(t *testing.T, ctl *PodController, podName string, state api.PodPhase) {
-	var pod *api.Pod
-	var err error
-	for i := 0; i < 30; i++ {
-		pod, err = ctl.podRegistry.GetPod(podName)
-		assert.NoError(t, err)
-		if pod.Status.Phase == state {
-			return
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	assert.Equal(t, string(state), string(pod.Status.Phase))
-}
-
 func TestDispatchPodToNodeHappy(t *testing.T) {
 	t.Parallel()
 	client := nodeclient.NewMockItzoClientFactory()
@@ -101,17 +87,6 @@ func TestDispatchPodToNodeHappy(t *testing.T) {
 	if pod.Status.Phase != api.PodRunning {
 		t.Errorf("Pod should be running it's phase is %s", pod.Status.Phase)
 	}
-}
-
-func schedulePodHelper(t *testing.T, ctl *PodController, pod *api.Pod) {
-	go func() {
-		node := api.GetFakeNode()
-		nodeReg := ctl.nodeLister.(*registry.NodeRegistry)
-		nodeReg.CreateNode(node)
-		req := <-ctl.nodeDispenser.NodeRequestChan
-		req.ReplyChan <- nodemanager.NodeReply{Node: node}
-	}()
-	ctl.schedulePod(pod)
 }
 
 func TestCheckClaimedNodesSimple(t *testing.T) {
@@ -174,8 +149,6 @@ type podPhaseInput struct {
 	restartPolicy api.RestartPolicy
 	units         []api.UnitStatus
 	phase         api.PodPhase
-	isValid       bool
-	failMsg       string
 }
 
 func TestUpdatePodStatus(t *testing.T) {

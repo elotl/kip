@@ -20,7 +20,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func update(cmd *cobra.Command, args []string) {
+func update(cmd *cobra.Command) {
 	appManifestFile, err := cmd.Flags().GetString("file")
 	dieIfError(err, "Error accessing 'file' flag for cmd %s", cmd.Name())
 	client, conn, err := getKipClient(cmd.InheritedFlags(), true)
@@ -40,7 +40,7 @@ func UpdateCommand() *cobra.Command {
 		Short: "Update kip object",
 		Long:  `Update object specified in manifest on cloud of choice`,
 		Run: func(cmd *cobra.Command, args []string) {
-			update(cmd, args)
+			update(cmd)
 		},
 	}
 	updateCmd.Flags().StringP("file", "f", "", "Fully qualified path to manifest file")

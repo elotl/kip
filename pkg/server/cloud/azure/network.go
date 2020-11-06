@@ -19,7 +19,6 @@ package azure
 import (
 	"context"
 	"fmt"
-	"net"
 	"regexp"
 	"strings"
 
@@ -420,18 +419,6 @@ func (az *AzureClient) AddRoute(destinationCIDR, instanceID string) error {
 	}
 	klog.V(2).Infof("created route %q via VM %q", destinationCIDR, instanceID)
 	return nil
-}
-
-// From the docs: Azure reserves some IP addresses within each
-// subnet. The first and last IP addresses of each subnet are reserved
-// for protocol conformance, along with the x.x.x.1-x.x.x.3 addresses
-// of each subnet, which are used for Azure services.
-func addressCount(ipnet *net.IPNet) int {
-	prefixLen, bits := ipnet.Mask.Size()
-	numAddresses := 1 << (uint64(bits) - uint64(prefixLen))
-	octets := int(numAddresses / 256)
-	unavailable := octets*3 + 2
-	return numAddresses - unavailable
 }
 
 func (az *AzureClient) getSubnet(resourceGroup, virtualNetworkName, subnetName string) (cloud.SubnetAttributes, error) {
