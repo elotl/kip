@@ -222,7 +222,7 @@ func TestCellCtlSyncAll(t *testing.T) {
 	n.Status.BoundPodName = p.Name
 	p, err = c.podLister.(*registry.PodRegistry).CreatePod(p)
 	assert.NoError(t, err)
-	n, err = c.nodeLister.(*registry.NodeRegistry).UpdateStatus(n)
+	_, err = c.nodeLister.(*registry.NodeRegistry).UpdateStatus(n)
 	assert.NoError(t, err)
 	updatedNodePod := p
 

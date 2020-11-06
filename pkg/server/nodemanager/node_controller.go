@@ -367,12 +367,8 @@ func (c *NodeController) runHeartbeatsLoop(quit <-chan struct{}, wg *sync.WaitGr
 					continue
 				}
 			}
-			if err := c.sendOutHeartbeats(allNodes, heartbeats); err != nil {
-				klog.Error(err.Error())
-			}
-			if err := c.markUnhealthyNodes(allNodes, LastHeartbeat); err != nil {
-				klog.Error(err.Error())
-			}
+			c.sendOutHeartbeats(allNodes, heartbeats)
+			c.markUnhealthyNodes(allNodes, LastHeartbeat)
 			pruneHeartbeats(allNodes, LastHeartbeat)
 		case nodeName := <-heartbeats:
 			LastHeartbeat[nodeName] = time.Now().UTC()
@@ -382,7 +378,7 @@ func (c *NodeController) runHeartbeatsLoop(quit <-chan struct{}, wg *sync.WaitGr
 	}
 }
 
-func (c *NodeController) sendOutHeartbeats(allNodes *api.NodeList, heartbeats chan string) error {
+func (c *NodeController) sendOutHeartbeats(allNodes *api.NodeList, heartbeats chan string) {
 	// Once a node is claimed, its status will be monitored by the pod
 	// controller.
 	nodes := filterNodes(allNodes, func(n *api.Node) bool {
@@ -397,7 +393,7 @@ func (c *NodeController) sendOutHeartbeats(allNodes *api.NodeList, heartbeats ch
 		// todo, add jitter here
 		go singleNodeHeartbeat(n, client, heartbeats)
 	}
-	return nil
+	return
 }
 
 // If the controller was shut down while creating a node, it will
@@ -458,7 +454,7 @@ func (c *NodeController) ResumeWaits() {
 	}
 }
 
-func (c *NodeController) markUnhealthyNodes(allNodes *api.NodeList, LastHeartbeat map[string]time.Time) error {
+func (c *NodeController) markUnhealthyNodes(allNodes *api.NodeList, LastHeartbeat map[string]time.Time) {
 	nodes := filterNodes(allNodes, func(n *api.Node) bool {
 		return n.Status.Phase == api.NodeAvailable
 	})
@@ -482,7 +478,7 @@ func (c *NodeController) markUnhealthyNodes(allNodes *api.NodeList, LastHeartbea
 			klog.Errorf("Error marking node %s for termination", node.Name)
 		}
 	}
-	return nil
+	return
 }
 
 // go through and remove any heartbeat records for nodes
@@ -521,7 +517,7 @@ func (c *NodeController) waitForAvailableOrTerminate(node *api.Node, timeout tim
 	}
 	klog.V(2).Infof("Waiting for available on node %s", node.Name)
 	client := c.NodeClientFactory.GetClient(node.Status.Addresses)
-	err := waitForHealthy(node, client, timeout)
+	err := waitForHealthy(client, timeout)
 	if err != nil {
 		klog.Errorf("Error in node start: node unresponsive for %s seconds", timeout)
 		klog.V(2).Infof("Terminating node: %s", node.Name)
@@ -539,7 +535,7 @@ func (c *NodeController) waitForAvailableOrTerminate(node *api.Node, timeout tim
 	return nil
 }
 
-func waitForHealthy(node *api.Node, client nodeclient.NodeClient, timeout time.Duration) error {
+func waitForHealthy(client nodeclient.NodeClient, timeout time.Duration) error {
 	success := false
 	giveUp := time.Now().UTC().Add(timeout)
 	for time.Now().UTC().Before(giveUp) {

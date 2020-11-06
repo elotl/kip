@@ -24,7 +24,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func getServerVersion(cmd *cobra.Command) {
+func getServerVersion(cmd *cobra.Command, flags []string) { //nolint:golint,unparam
 	client, conn, err := getKipClient(cmd.InheritedFlags(), false)
 	dieIfError(err, "Failed to create kip client")
 	defer conn.Close()

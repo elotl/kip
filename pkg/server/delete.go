@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog"
 )
 
-func (s InstanceProvider) deleteHelper(kind, name string, cascade bool) (api.MilpaObject, error) {
+func (s InstanceProvider) deleteHelper(kind, name string) (api.MilpaObject, error) {
 	store, exists := s.Registries[kind]
 	if !exists {
 		return nil, fmt.Errorf("Asked to delete unknown object kind: %s", kind)
@@ -50,7 +50,7 @@ func (s InstanceProvider) Delete(context context.Context, request *clientapi.Del
 	}
 	name := string(request.Name)
 	klog.V(2).Infof("Delete request for: %s - %s", kind, name)
-	replyObj, err := s.deleteHelper(kind, name, request.Cascade)
+	replyObj, err := s.deleteHelper(kind, name)
 
 	if err != nil {
 		return errToAPIReply(util.WrapError(err, "Error deleting resource")), nil

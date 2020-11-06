@@ -41,7 +41,7 @@ type WinSize struct {
 func (p *InstanceProvider) RunInContainer(ctx context.Context, namespace, podName, containerName string, cmd []string, attach vkapi.AttachIO) error {
 	ctx, span := trace.StartSpan(ctx, "RunInContainer")
 	defer span.End()
-	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
+	_ = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
 	klog.V(2).Infof("RunInContainer %q %v", podName, cmd)
 	tty := attach.TTY()
 	stdin := attach.Stdin()

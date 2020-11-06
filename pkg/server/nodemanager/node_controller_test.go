@@ -391,8 +391,7 @@ func TestSendOutHeartbeats(t *testing.T) {
 	n := makeTestOndemandNode(t, ctl, api.NodeAvailable)
 	nodes, err := ctl.NodeRegistry.ListNodes(registry.MatchAllNodes)
 	assert.Nil(t, err)
-	err = ctl.sendOutHeartbeats(nodes, heartbeats)
-	assert.Nil(t, err)
+	ctl.sendOutHeartbeats(nodes, heartbeats)
 	select {
 	case d := <-heartbeats:
 		assert.Equal(t, n.Name, d)
@@ -409,8 +408,7 @@ func TestNoHeartbeatsForClaimed(t *testing.T) {
 	_ = makeTestOndemandNode(t, ctl, api.NodeClaimed)
 	nodes, err := ctl.NodeRegistry.ListNodes(registry.MatchAllNodes)
 	assert.Nil(t, err)
-	err = ctl.sendOutHeartbeats(nodes, heartbeats)
-	assert.Nil(t, err)
+	ctl.sendOutHeartbeats(nodes, heartbeats)
 	select {
 	case _ = <-heartbeats:
 		assert.Fail(t, "Got heartbeat from claimed node")
@@ -430,8 +428,7 @@ func TestMarkUnhealthyNodesClaimedIgnored(t *testing.T) {
 	nodes, err := ctl.NodeRegistry.ListNodes(registry.MatchAllNodes)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(nodes.Items))
-	err = ctl.markUnhealthyNodes(nodes, lastHeartbeat)
-	assert.Nil(t, err)
+	ctl.markUnhealthyNodes(nodes, lastHeartbeat)
 	n, err := ctl.NodeRegistry.GetNode(n1.Name)
 	assert.Nil(t, err)
 	assert.False(t, n.Spec.Terminate)
@@ -449,7 +446,7 @@ func TestMarkUnhealthyNodesAllHealthy(t *testing.T) {
 	nodes, err := ctl.NodeRegistry.ListNodes(registry.MatchAllNodes)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(nodes.Items))
-	_ = ctl.markUnhealthyNodes(nodes, lastHeartbeat)
+	ctl.markUnhealthyNodes(nodes, lastHeartbeat)
 	assert.Nil(t, err)
 	n, _ = ctl.NodeRegistry.GetNode(n.Name)
 	assert.False(t, n.Spec.Terminate)
@@ -465,8 +462,7 @@ func TestMarkUnhealthyNodesUnhealthyAndMissing(t *testing.T) {
 	nodes, err := ctl.NodeRegistry.ListNodes(registry.MatchAllNodes)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(nodes.Items))
-	err = ctl.markUnhealthyNodes(nodes, lastHeartbeat)
-	assert.Nil(t, err)
+	ctl.markUnhealthyNodes(nodes, lastHeartbeat)
 	n1, _ = ctl.NodeRegistry.GetNode(n1.Name)
 	n2, _ = ctl.NodeRegistry.GetNode(n2.Name)
 	assert.True(t, n1.Spec.Terminate)

@@ -80,6 +80,9 @@ func (p *JSONPrinter) PrintObj(obj api.MilpaObject, w io.Writer) error {
 	}
 	dst := bytes.Buffer{}
 	err = json.Indent(&dst, data, "", "    ")
+	if err != nil {
+		return err
+	}
 	dst.WriteByte('\n')
 	_, err = w.Write(dst.Bytes())
 	return err

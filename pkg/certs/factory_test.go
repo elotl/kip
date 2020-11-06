@@ -56,6 +56,7 @@ func TestVerifyCertWorks(t *testing.T) {
 	fac, err := NewFake()
 	assert.NoError(t, err)
 	cert, _, err := fac.CreateNodeCertAndKey()
+	assert.NoError(t, err, "failed creating node cert and key")
 	roots := x509.NewCertPool()
 	roots.AddCert(&fac.Root)
 	opts := x509.VerifyOptions{

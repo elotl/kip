@@ -34,8 +34,8 @@ import (
 
 const (
 	ResourceLimitsGPU    v1.ResourceName = "nvidia.com/gpu"
-	resolvconfVolumeName                 = "resolvconf"
-	etchostsVolumeName                   = "etchosts"
+	resolvconfVolumeName string          = "resolvconf"
+	etchostsVolumeName   string          = "etchosts"
 )
 
 var (
@@ -512,7 +512,7 @@ func milpaToK8sVolume(vol api.Volume) *v1.Volume {
 	return nil
 }
 
-func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
+func k8sToMilpaPod(pod *v1.Pod) *api.Pod {
 	milpapod := api.NewPod()
 	milpapod.Name = util.WithNamespace(pod.Namespace, pod.Name)
 	milpapod.Namespace = pod.Namespace
@@ -626,7 +626,7 @@ func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 			[]string(nil), hostAlias.Hostnames...)
 	}
 	addAnnotationsToMilpaPod(milpapod)
-	return milpapod, nil
+	return milpapod
 }
 
 func addAnnotationsToMilpaPod(milpaPod *api.Pod) {
@@ -710,7 +710,7 @@ func aggregateResources(containers []v1.Container, nodeSelector map[string]strin
 	}
 }
 
-func milpaToK8sPod(nodeName, internalIP string, milpaPod *api.Pod) (*v1.Pod, error) {
+func milpaToK8sPod(nodeName, internalIP string, milpaPod *api.Pod) *v1.Pod {
 	namespace, name := util.SplitNamespaceAndName(milpaPod.Name)
 	pod := &v1.Pod{}
 	pod.Kind = "Pod"
@@ -822,7 +822,7 @@ func milpaToK8sPod(nodeName, internalIP string, milpaPod *api.Pod) (*v1.Pod, err
 		}
 	}
 	pod.Status = getStatus(internalIP, milpaPod, pod)
-	return pod, nil
+	return pod
 }
 
 func milpaProbeToK8sProbe(mp *api.Probe) *v1.Probe {

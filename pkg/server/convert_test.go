@@ -715,8 +715,7 @@ func TestMilpaToK8sPod(t *testing.T) {
 			},
 		},
 	}
-	pod, err := milpaToK8sPod(node, ip, milpaPod)
-	assert.NoError(t, err)
+	pod := milpaToK8sPod(node, ip, milpaPod)
 	assert.NotNil(t, pod)
 	assert.Equal(t, len(milpaPod.Spec.Units), len(pod.Spec.Containers))
 	for _, unit := range milpaPod.Spec.Units {
@@ -768,8 +767,7 @@ func TestMilpaToK8sPod(t *testing.T) {
 		}
 		assert.True(t, found, "volume %q is missing in k8s pod", volume.Name)
 	}
-	mPod, err := k8sToMilpaPod(pod)
-	assert.NoError(t, err)
+	mPod := k8sToMilpaPod(pod)
 	assert.NotNil(t, mPod)
 	removeVolume(mPod, resolvconfVolumeName)
 	removeVolume(mPod, etchostsVolumeName)

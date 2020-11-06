@@ -293,7 +293,7 @@ func isBlobNotFoundError(err error) bool {
 	return false
 }
 
-func (ic *ImageController) ensureContainer(accountName, containername string) error {
+func (ic *ImageController) ensureContainer(accountName string) error {
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, azureDefaultTimeout)
 	defer cancel()
@@ -366,7 +366,7 @@ func (ic *ImageController) imageParametersMatch(img compute.Image) bool {
 
 func (ic *ImageController) syncSingleBlob(blobName string) error {
 	ctx := context.Background()
-	err := ic.ensureContainer(accountName, containerName)
+	err := ic.ensureContainer(accountName)
 	if err != nil {
 		klog.Errorf("Error checking container %s: %v", containerName, err)
 		return err

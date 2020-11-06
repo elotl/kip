@@ -64,7 +64,7 @@ func setPodRunning(pod *api.Pod, nodeName string, podRegistry *registry.PodRegis
 	return err
 }
 
-func computePodPhase(policy api.RestartPolicy, unitstatus []api.UnitStatus, podName string) (phase api.PodPhase, failMsg string) {
+func computePodPhase(policy api.RestartPolicy, unitstatus []api.UnitStatus) (phase api.PodPhase, failMsg string) {
 	// Note: we need to treat the "created" unit state the same way as the
 	// "running" state. Itzo will set the status of units to "created" right
 	// after creating them, and only to "running" once the application is
@@ -166,12 +166,12 @@ func remedyFailedPod(pod *api.Pod, podRegistry *registry.PodRegistry) {
 
 func updatePodWithStatus(pod *api.Pod, reply FullPodStatus) (changed, startFailure bool, failMsg string) {
 	policy := pod.Spec.RestartPolicy
-	podPhase, unitFailMsg := computePodPhase(policy, reply.UnitStatuses, pod.Name)
+	podPhase, unitFailMsg := computePodPhase(policy, reply.UnitStatuses)
 
 	if policy == api.RestartPolicyAlways {
 		policy = api.RestartPolicyOnFailure
 	}
-	initPodPhase, initUnitFailMsg := computePodPhase(policy, reply.InitUnitStatuses, pod.Name)
+	initPodPhase, initUnitFailMsg := computePodPhase(policy, reply.InitUnitStatuses)
 	failMsg = initUnitFailMsg + unitFailMsg
 	if initPodPhase == api.PodFailed {
 		podPhase = api.PodFailed

@@ -34,7 +34,7 @@ import (
 func (p *InstanceProvider) GetContainerLogs(ctx context.Context, namespace, podName, containerName string, opts vkapi.ContainerLogOpts) (io.ReadCloser, error) {
 	ctx, span := trace.StartSpan(ctx, "GetContainerLogs")
 	defer span.End()
-	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
+	_ = addAttributes(ctx, span, namespaceKey, namespace, nameKey, podName, containerNameKey, containerName)
 	klog.V(5).Infof("GetContainerLogs %+v", opts)
 	follow := opts.Follow
 	podName = util.WithNamespace(namespace, podName)

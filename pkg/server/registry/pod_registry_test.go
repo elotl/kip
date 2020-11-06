@@ -177,7 +177,7 @@ func TestAtomicUpdateHappyPath(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, err = podRegistry.AtomicUpdate(p1.Name, func(p *api.Pod) error {
+	_, _ = podRegistry.AtomicUpdate(p1.Name, func(p *api.Pod) error {
 		p.Status.Phase = api.PodTerminated
 		return nil
 	})

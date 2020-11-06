@@ -350,7 +350,7 @@ func TestFailingToStartPod(t *testing.T) {
 			assert.Equal(t, api.PodWaiting, p.Status.Phase)
 		}
 		p.Status.Phase = api.PodDispatching
-		p, err = ctl.podRegistry.UpdatePodStatus(p, "")
+		_, err = ctl.podRegistry.UpdatePodStatus(p, "")
 		assert.NoError(t, err)
 	}
 }

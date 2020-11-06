@@ -155,7 +155,7 @@ func Invalid(field *Path, value interface{}, detail string) *Error {
 // valid values).
 func NotSupported(field *Path, value interface{}, validValues []string) *Error {
 	detail := ""
-	if validValues != nil && len(validValues) > 0 {
+	if len(validValues) > 0 {
 		detail = "supported values: " + strings.Join(validValues, ", ")
 	}
 	return &Error{ErrorTypeNotSupported, field.String(), value, detail}

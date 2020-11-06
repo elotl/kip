@@ -557,11 +557,7 @@ func (p *InstanceProvider) Handle(ev events.Event) error {
 	}
 	klog.V(4).Infof("kip pod %q (%v) event %v",
 		kipPod.Name, kipPod.Status.Phase, ev)
-	pod, err := milpaToK8sPod(p.nodeName, p.internalIP, kipPod)
-	if err != nil {
-		klog.Errorf("converting kip pod %s: %v", kipPod.Name, err)
-		return nil
-	}
+	pod := milpaToK8sPod(p.nodeName, p.internalIP, kipPod)
 	if ev.Status == events.PodUpdated &&
 		kipPod.Status.Phase == api.PodRunning &&
 		pod.Status.PodIP != "" {
@@ -641,15 +637,11 @@ func (p *InstanceProvider) getMetricsRegistry() *registry.MetricsRegistry {
 func (p *InstanceProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	ctx, span := trace.StartSpan(ctx, "CreatePod")
 	defer span.End()
-	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
+	_ = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
 	klog.V(5).Infof("CreatePod %q", pod.Name)
-	milpaPod, err := k8sToMilpaPod(pod)
-	if err != nil {
-		klog.Errorf("CreatePod %q: %v", pod.Name, err)
-		return err
-	}
+	milpaPod := k8sToMilpaPod(pod)
 	podRegistry := p.getPodRegistry()
-	_, err = podRegistry.CreatePod(milpaPod)
+	_, err := podRegistry.CreatePod(milpaPod)
 	if err != nil {
 		klog.Errorf("CreatePod %q: %v", pod.Name, err)
 		return err
@@ -660,15 +652,11 @@ func (p *InstanceProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 func (p *InstanceProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	ctx, span := trace.StartSpan(ctx, "UpdatePod")
 	defer span.End()
-	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
+	_ = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
 	klog.V(5).Infof("UpdatePod %q", pod.Name)
-	milpaPod, err := k8sToMilpaPod(pod)
-	if err != nil {
-		klog.Errorf("UpdatePod %q: %v", pod.Name, err)
-		return err
-	}
+	milpaPod := k8sToMilpaPod(pod)
 	podRegistry := p.getPodRegistry()
-	_, err = podRegistry.UpdatePodSpecAndLabels(milpaPod)
+	_, err := podRegistry.UpdatePodSpecAndLabels(milpaPod)
 	if err != nil {
 		if err == store.ErrKeyNotFound {
 			err = errdefs.NotFoundf("pod %s/%s is not found", pod.Namespace, pod.Name)
@@ -683,13 +671,9 @@ func (p *InstanceProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 func (p *InstanceProvider) DeletePod(ctx context.Context, pod *v1.Pod) (err error) {
 	ctx, span := trace.StartSpan(ctx, "DeletePod")
 	defer span.End()
-	ctx = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
+	_ = addAttributes(ctx, span, namespaceKey, pod.Namespace, nameKey, pod.Name)
 	klog.V(5).Infof("DeletePod %q", pod.Name)
-	milpaPod, err := k8sToMilpaPod(pod)
-	if err != nil {
-		klog.Errorf("DeletePod %q: %v", pod.Name, err)
-		return err
-	}
+	milpaPod := k8sToMilpaPod(pod)
 	podRegistry := p.getPodRegistry()
 	_, err = podRegistry.Delete(milpaPod.Name)
 	if err != nil {
@@ -706,7 +690,7 @@ func (p *InstanceProvider) DeletePod(ctx context.Context, pod *v1.Pod) (err erro
 func (p *InstanceProvider) GetPod(ctx context.Context, namespace, name string) (*v1.Pod, error) {
 	ctx, span := trace.StartSpan(ctx, "GetPod")
 	defer span.End()
-	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, name)
+	_ = addAttributes(ctx, span, namespaceKey, namespace, nameKey, name)
 	klog.V(5).Infof("GetPod %q", name)
 	podRegistry := p.getPodRegistry()
 	milpaPod, err := podRegistry.GetPod(util.WithNamespace(namespace, name))
@@ -717,18 +701,14 @@ func (p *InstanceProvider) GetPod(ctx context.Context, namespace, name string) (
 		klog.Errorf("GetPod %q: %v", name, err)
 		return nil, err
 	}
-	pod, err := milpaToK8sPod(p.nodeName, p.internalIP, milpaPod)
-	if err != nil {
-		klog.Errorf("GetPod %q: %v", name, err)
-		return nil, err
-	}
+	pod := milpaToK8sPod(p.nodeName, p.internalIP, milpaPod)
 	return pod, nil
 }
 
 func (p *InstanceProvider) GetPodStatus(ctx context.Context, namespace, name string) (*v1.PodStatus, error) {
-	ctx, span := trace.StartSpan(ctx, "GetPodStatus")
+	_, span := trace.StartSpan(ctx, "GetPodStatus")
 	defer span.End()
-	ctx = addAttributes(ctx, span, namespaceKey, namespace, nameKey, name)
+	_ = addAttributes(ctx, span, namespaceKey, namespace, nameKey, name)
 	klog.V(5).Infof("GetPodStatus %q", name)
 	podRegistry := p.getPodRegistry()
 	milpaPod, err := podRegistry.GetPod(util.WithNamespace(namespace, name))
@@ -736,16 +716,12 @@ func (p *InstanceProvider) GetPodStatus(ctx context.Context, namespace, name str
 		klog.Errorf("GetPodStatus %q: %v", name, err)
 		return nil, err
 	}
-	pod, err := milpaToK8sPod(p.nodeName, p.internalIP, milpaPod)
-	if err != nil {
-		klog.Errorf("GetPodStatus %q: %v", name, err)
-		return nil, err
-	}
+	pod := milpaToK8sPod(p.nodeName, p.internalIP, milpaPod)
 	return &pod.Status, nil
 }
 
 func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
-	ctx, span := trace.StartSpan(ctx, "GetPods")
+	_, span := trace.StartSpan(ctx, "GetPods")
 	defer span.End()
 	klog.V(5).Infof("GetPods")
 	podRegistry := p.getPodRegistry()
@@ -758,11 +734,7 @@ func (p *InstanceProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 	}
 	pods := make([]*v1.Pod, len(milpaPods.Items))
 	for i, milpaPod := range milpaPods.Items {
-		pods[i], err = milpaToK8sPod(p.nodeName, p.internalIP, milpaPod)
-		if err != nil {
-			klog.Errorf("GetPods: %v", err)
-			return nil, err
-		}
+		pods[i] = milpaToK8sPod(p.nodeName, p.internalIP, milpaPod)
 	}
 	return pods, nil
 }
@@ -773,7 +745,7 @@ func (p *InstanceProvider) getNodeStatusController() *nodestatus.NodeStatusContr
 }
 
 func (p *InstanceProvider) ConfigureNode(ctx context.Context, n *v1.Node) {
-	ctx, span := trace.StartSpan(ctx, "ConfigureNode")
+	_, span := trace.StartSpan(ctx, "ConfigureNode")
 	defer span.End()
 	klog.V(5).Infof("ConfigureNode")
 	ctrl := p.getNodeStatusController()

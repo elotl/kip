@@ -52,7 +52,7 @@ func Noop(obj interface{}) {
 
 func (m *TimeoutMap) Keys() []string {
 	keys := make([]string, 0, len(m.data))
-	for k, _ := range m.data {
+	for k := range m.data {
 		keys = append(keys, k)
 	}
 	return keys

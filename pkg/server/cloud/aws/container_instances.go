@@ -368,7 +368,7 @@ func SecurityContextToUserGroup(sc *api.SecurityContext) *string {
 	return user
 }
 
-func unitToContainerDef(podname string, unit *api.Unit, emptyDirVols sets.String) *ecs.ContainerDefinition {
+func unitToContainerDef(unit *api.Unit, emptyDirVols sets.String) *ecs.ContainerDefinition {
 	containerDef := &ecs.ContainerDefinition{
 		Name:       aws.String(unit.Name),
 		Image:      aws.String(unit.Image),
@@ -445,7 +445,7 @@ func (c *AwsEC2) StartContainerInstance(pod *api.Pod) (string, error) {
 		}
 	}
 	for _, unit := range pod.Spec.Units {
-		containerDef := unitToContainerDef(pod.Name, &unit, emptyDirVols)
+		containerDef := unitToContainerDef(&unit, emptyDirVols)
 		taskDef.ContainerDefinitions = append(taskDef.ContainerDefinitions, containerDef)
 	}
 	basicTags := c.getFargateTags(pod)

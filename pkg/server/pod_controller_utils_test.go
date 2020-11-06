@@ -251,7 +251,7 @@ func TestComputePodPhase(t *testing.T) {
 	}
 	for i, inp := range inputs {
 		msg := fmt.Sprintf("test %d", i)
-		phase, failMsg := computePodPhase(inp.restartPolicy, inp.units, "testpod")
+		phase, failMsg := computePodPhase(inp.restartPolicy, inp.units)
 		if inp.phase == api.PodFailed {
 			assert.NotEmpty(t, failMsg, msg)
 		} else {

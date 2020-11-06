@@ -40,10 +40,10 @@ type myStructV2 struct {
 
 func (myStructV2) IsMilpaObject() {}
 
-func createV1(a int, b string) myStructV1 {
+func createV1() myStructV1 {
 	s := myStructV1{
-		A: a,
-		B: b,
+		A: 1,
+		B: "foobar",
 	}
 	s.Create()
 	s.Kind = "myStructV1"
@@ -63,7 +63,7 @@ func createV2(a int, b string, c string) myStructV2 {
 
 func TestEncodeDecode(t *testing.T) {
 	addKnownTypes("v1", myStructV1{})
-	inp := createV1(1, "foobar")
+	inp := createV1()
 	json, err := Encode(inp)
 	assert.Nil(t, err)
 	outp, err := Decode(json)
@@ -73,7 +73,7 @@ func TestEncodeDecode(t *testing.T) {
 
 func TestDecodeInto(t *testing.T) {
 	addKnownTypes("v1", myStructV1{})
-	inp := createV1(1, "foobar")
+	inp := createV1()
 	json, err := Encode(inp)
 	assert.Nil(t, err)
 	var outp myStructV1
@@ -94,7 +94,7 @@ func TestUpgrade(t *testing.T) {
 		return &o2, nil
 	}
 	LatestAPIVersion = "v1"
-	v1 := createV1(1, "foobar")
+	v1 := createV1()
 	json, err := Encode(v1)
 	assert.Nil(t, err)
 	LatestAPIVersion = "v2"
@@ -118,7 +118,7 @@ func TestUpgradeFailure(t *testing.T) {
 		return nil, fmt.Errorf("testing upgrade failure")
 	}
 	LatestAPIVersion = "v1"
-	v1 := createV1(1, "foobar")
+	v1 := createV1()
 	json, err := Encode(v1)
 	assert.Nil(t, err)
 	LatestAPIVersion = "v2"
@@ -133,7 +133,7 @@ func TestUpgradeMissing(t *testing.T) {
 	// Upgrade function for v1 -> v2 conversion.
 	delete(upgradeFuncs, "v1")
 	LatestAPIVersion = "v1"
-	v1 := createV1(1, "foobar")
+	v1 := createV1()
 	json, err := Encode(v1)
 	assert.Nil(t, err)
 	LatestAPIVersion = "v2"

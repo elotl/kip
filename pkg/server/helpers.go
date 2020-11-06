@@ -46,6 +46,9 @@ func createDNSConfigurer(kubernetesNodeName, clusterDNS, clusterDomain string, c
 	}
 	klog.V(2).Infof("host nameservers %v searches %v", nameservers, searches)
 	resolverConfig, err := createResolverFile(nameservers, searches)
+	if err != nil {
+		return nil, util.WrapError(err, "creating resolver file")
+	}
 	ip := net.ParseIP(clusterDNS)
 	if ip == nil || ip.IsUnspecified() {
 		services, err := rm.ListServices()

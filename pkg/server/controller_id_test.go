@@ -36,6 +36,7 @@ func TestClusterID(t *testing.T) {
 	u, err := ensureClusterUUID(kvstore)
 	assert.NoError(t, err)
 	u2, err := ensureClusterUUID(kvstore)
+	assert.NoError(t, err)
 	assert.Equal(t, u, u2)
 	uu, err := uuid.FromString(u)
 	assert.NoError(t, err)

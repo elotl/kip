@@ -35,7 +35,7 @@ const (
 
 func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary, error) {
 	var span trace.Span
-	ctx, span = trace.StartSpan(ctx, "GetStatsSummary")
+	_, span = trace.StartSpan(ctx, "GetStatsSummary")
 	defer span.End()
 	klog.V(5).Infof("GetStatsSummary()")
 	zero := uint64(0)

@@ -322,10 +322,7 @@ func deployResolvconf(pod *api.Pod, node *api.Node, dnsConfigurer *dns.Configure
 		return fmt.Errorf("no DNS configurer")
 	}
 	client := nodeClientFactory.GetClient(node.Status.Addresses)
-	k8spod, err := milpaToK8sPod("", "", pod)
-	if err != nil {
-		return util.WrapError(err, "converting pod to generate DNS config")
-	}
+	k8spod := milpaToK8sPod("", "", pod)
 	dnsconf, err := dnsConfigurer.GetPodDNS(k8spod)
 	if err != nil {
 		return util.WrapError(err, "creating pod DNS config")
