@@ -34,8 +34,8 @@ import (
 
 const (
 	ResourceLimitsGPU    v1.ResourceName = "nvidia.com/gpu"
-	resolvconfVolumeName                 = "resolvconf"
-	etchostsVolumeName                   = "etchosts"
+	resolvconfVolumeName string          = "resolvconf"
+	etchostsVolumeName   string          = "etchosts"
 )
 
 var (
@@ -204,15 +204,18 @@ func containerToUnit(container v1.Container) api.Unit {
 		unit.VolumeMounts = append(unit.VolumeMounts, api.VolumeMount{
 			Name:      vm.Name,
 			MountPath: vm.MountPath,
+			SubPath:   vm.SubPath,
 		})
 	}
 	unit.VolumeMounts = append(unit.VolumeMounts, api.VolumeMount{
 		Name:      resolvconfVolumeName,
 		MountPath: "/etc/resolv.conf",
+		SubPath: "/etc/resolv.conf",
 	})
 	unit.VolumeMounts = append(unit.VolumeMounts, api.VolumeMount{
 		Name:      etchostsVolumeName,
 		MountPath: "/etc/hosts",
+		SubPath: "",
 	})
 	//container.EnvFrom,
 	unit.StartupProbe = k8sProbeToMilpaProbe(container.StartupProbe)
