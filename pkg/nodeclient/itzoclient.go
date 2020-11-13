@@ -423,21 +423,6 @@ func (c *ItzoClient) Deploy(pod, name string, data io.Reader) error {
 	return nil
 }
 
-func (c *ItzoClient) RunCmd(cmdParams api.RunCmdParams) (string, error) {
-	url := c.baseURL + "rest/v1/runcmd/"
-	b, err := json.Marshal(cmdParams)
-	if err != nil {
-		return "", util.WrapError(err, "Could not serialize command")
-	}
-	buf := bytes.NewBuffer(b)
-	resp, err := c.httpClient.Post(url, "application/json", buf)
-	output, err := handleResponse(resp, err)
-	if err != nil {
-		return "", util.WrapError(err, "Error running command on node")
-	}
-	return output, nil
-}
-
 func StreamLogsEndpoint(unitName string, withMetadata bool) string {
 	metadataflag := 0
 	if withMetadata {
