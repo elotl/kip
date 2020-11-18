@@ -30,5 +30,4 @@ type NodeClient interface {
 	GetStatus() (*api.PodStatusReply, error)
 	UpdateUnits(api.PodParameters) error
 	Deploy(pod, name string, data io.Reader) error
-	RunCmd(cmd api.RunCmdParams) (string, error)
 }

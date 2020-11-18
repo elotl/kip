@@ -100,10 +100,6 @@ func (a *MockItzoClientFactory) UpdateUnits(pp api.PodParameters) error {
 	return a.Update(pp)
 }
 
-func (a *MockItzoClientFactory) RunCmd(cmdParams api.RunCmdParams) (string, error) {
-	return "", nil
-}
-
 func (a *MockItzoClientFactory) Deploy(pod, name string, data io.Reader) error {
 	return a.DeployPackage(pod, name, data)
 }
