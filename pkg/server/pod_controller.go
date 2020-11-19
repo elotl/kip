@@ -368,6 +368,15 @@ func (c *PodController) loadRegistryCredentials(pod *api.Pod) (map[string]api.Re
 
 	// AWS is different, they require us to authenticate with IAM
 	// Do that auth and pass along the username and password
+	var err error
+	allCreds, err = c.updateCredsWithRegistryAuth(pod, allCreds)
+	if err != nil {
+		return nil, err
+	}
+	return allCreds, nil
+}
+
+func (c *PodController) updateCredsWithRegistryAuth(pod *api.Pod, allCreds map[string]api.RegistryCredentials) (map[string]api.RegistryCredentials, error) {
 	if err := api.ForAllUnitsWithError(pod, func(unit *api.Unit) error {
 		image := unit.Image
 		server, _, err := util.ParseImageSpec(image)
@@ -394,7 +403,7 @@ func (c *PodController) loadRegistryCredentials(pod *api.Pod) (map[string]api.Re
 		}
 		return nil
 	}); err != nil {
-		return nil, err
+		return allCreds, err
 	}
 	return allCreds, nil
 }
