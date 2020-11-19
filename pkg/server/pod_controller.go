@@ -368,29 +368,42 @@ func (c *PodController) loadRegistryCredentials(pod *api.Pod) (map[string]api.Re
 
 	// AWS is different, they require us to authenticate with IAM
 	// Do that auth and pass along the username and password
-	for i := 0; i < len(pod.Spec.Units); i++ {
-		server, _, err := util.ParseImageSpec(pod.Spec.Units[i].Image)
+	var err error
+	allCreds, err = c.updateCredsWithRegistryAuth(pod, allCreds)
+	if err != nil {
+		return nil, err
+	}
+	return allCreds, nil
+}
+
+func (c *PodController) updateCredsWithRegistryAuth(pod *api.Pod, allCreds map[string]api.RegistryCredentials) (map[string]api.RegistryCredentials, error) {
+	if err := api.ForAllUnitsWithError(pod, func(unit *api.Unit) error {
+		image := unit.Image
+		server, _, err := util.ParseImageSpec(image)
 		if err != nil {
-			return nil, util.WrapError(err, "Could not parse image spec")
+			return util.WrapError(err, "Could not parse image spec")
 		}
 		if strings.HasSuffix(server, "amazonaws.com") {
 			creds := allCreds[server]
 			if creds.Username != "" || creds.Password != "" {
 				// EKS provides a username and password for pulling system
 				// container images.
-				continue
+				return nil
 			}
-			username, password, err := c.cloudClient.GetRegistryAuth(pod.Spec.Units[i].Image)
+			username, password, err := c.cloudClient.GetRegistryAuth(image)
 			if err != nil {
-				return nil, util.WrapError(err, "Could not get container auth")
+				return util.WrapError(err, "Could not get container auth")
 			}
 			allCreds[server] = api.RegistryCredentials{
-				Server:   string(server),
-				Username: string(username),
-				Password: string(password),
+				Server:   server,
+				Username: username,
+				Password: password,
 			}
-			break
+			klog.V(4).Infof("adding AWS credentials to pull image %s", image)
 		}
+		return nil
+	}); err != nil {
+		return allCreds, err
 	}
 	return allCreds, nil
 }

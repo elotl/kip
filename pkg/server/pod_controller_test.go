@@ -18,6 +18,7 @@ package server
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -571,5 +572,140 @@ func TestParseDockerConfigCreds(t *testing.T) {
 		assert.Equal(t, tc.server, regCreds.Server)
 		assert.Equal(t, tc.username, regCreds.Username)
 		assert.Equal(t, tc.password, regCreds.Password)
+	}
+}
+
+//updateCredsWithRegistryAuth(pod *api.Pod, allCreds map[string]api.RegistryCredentials) error
+func TestUpdateCredsWithRegistryAuth(t *testing.T) {
+	serverWithAuth := "image.amazonaws.com"
+	imageWithAuth := serverWithAuth + "/repo"
+	imageWithNoAuth := "image-no-auth.amazonaws.com/repo"
+	imageFail := "image-err.amazonaws.com/repo"
+	tokenPrefix := "my-password"
+	cloudClient := &cloud.MockCloudClient{
+		ContainerAuthorizer: func(image string) (string, string, error) {
+			if strings.HasSuffix(image, imageWithAuth) {
+				return "AWS", tokenPrefix + "-" + image[:1], nil
+			} else if strings.HasSuffix(image, imageWithNoAuth) {
+				return "", "", nil
+			} else {
+				return "", "", fmt.Errorf("testing GetRegistryAuth() error")
+			}
+		},
+	}
+	testCases := []struct {
+		initUnits []api.Unit
+		units     []api.Unit
+		failure   bool
+		keys      []string
+	}{
+		{
+			units: []api.Unit{},
+			keys:  []string{},
+		},
+		{
+			initUnits: []api.Unit{},
+			units:     []api.Unit{},
+			keys:      []string{},
+		},
+		{
+			units: []api.Unit{
+				{
+					Image: imageFail,
+				},
+			},
+			failure: true,
+			keys:    []string{},
+		},
+		{
+			units: []api.Unit{},
+			initUnits: []api.Unit{
+				{
+					Image: imageFail,
+				},
+			},
+			failure: true,
+			keys:    []string{},
+		},
+		{
+			units: []api.Unit{
+				{
+					Image: imageWithNoAuth,
+				},
+			},
+			keys: []string{},
+		},
+		{
+			units: []api.Unit{
+				{
+					Image: "1." + imageWithAuth,
+				},
+				{
+					Image: imageWithNoAuth,
+				},
+			},
+			keys: []string{
+				"1." + serverWithAuth,
+			},
+		},
+		{
+			units: []api.Unit{
+				{
+					Image: "1." + imageWithAuth,
+				},
+				{
+					Image: "2." + imageWithAuth,
+				},
+			},
+			keys: []string{
+				"1." + serverWithAuth,
+				"2." + serverWithAuth,
+			},
+		},
+		{
+			initUnits: []api.Unit{
+				{
+					Image: "1." + imageWithAuth,
+				},
+				{
+					Image: imageWithNoAuth,
+				},
+			},
+			units: []api.Unit{
+				{
+					Image: "2." + imageWithAuth,
+				},
+				{
+					Image: "3." + imageWithAuth,
+				},
+			},
+			keys: []string{
+				"1." + serverWithAuth,
+				"2." + serverWithAuth,
+				"3." + serverWithAuth,
+			},
+		},
+	}
+	pc := PodController{
+		cloudClient: cloudClient,
+	}
+	for i, tc := range testCases {
+		allCreds := make(map[string]api.RegistryCredentials)
+		pod := api.NewPod()
+		pod.Spec.InitUnits = tc.initUnits
+		pod.Spec.Units = tc.units
+		var err error
+		allCreds, err = pc.updateCredsWithRegistryAuth(pod, allCreds)
+		if tc.failure {
+			msg := fmt.Sprintf("test case #%d %+v should have failed", i, tc)
+			assert.Error(t, err, msg)
+		} else {
+			msg := fmt.Sprintf("test case #%d %+v failed: %v", i, tc, err)
+			assert.NoError(t, err, msg)
+		}
+		for _, key := range tc.keys {
+			msg := fmt.Sprintf("test case #%d %+v key %s failed", i, tc, key)
+			assert.Contains(t, allCreds, key, msg)
+		}
 	}
 }
