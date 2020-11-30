@@ -17,8 +17,7 @@ limitations under the License.
 package api
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
 
 	uuid "github.com/satori/go.uuid"
@@ -77,101 +76,6 @@ type ObjectMeta struct {
 	// https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#metadata
 	// see also vendor/k8s.io/api/core/v1 and
 	// pkg/api/types.go
-
-	// NOT SUPPORTED YET, ADDED FOR CONFORMANCE
-	// GenerateName is an optional prefix, used by the server, to generate a unique
-	// name ONLY IF the Name field has not been provided.
-	// If this field is used, the name returned to the client will be different
-	// than the name passed. This value will also be combined with a unique suffix.
-	// The provided value has the same validation rules as the Name field,
-	// and may be truncated by the length of the suffix required to make the value
-	// unique on the server.
-	//
-	// If this field is specified and the generated name exists, the server will
-	// NOT return a 409 - instead, it will either return 201 Created or 500 with Reason
-	// ServerTimeout indicating a unique name could not be found in the time allotted, and the client
-	// should retry (optionally after the time indicated in the Retry-After header).
-	//
-	// Applied only if Name is not specified.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency
-	// +optional
-	GenerateName string `json:"generateName,omitempty"`
-	// SelfLink is a URL representing this object.
-	// Populated by the system.
-	// Read-only.
-	//
-	// DEPRECATED
-	// Kubernetes will stop propagating this field in 1.20 release and the field is planned
-	// to be removed in 1.21 release.
-	// +optional
-	SelfLink string `json:"selfLink,omitempty"`
-	// An opaque value that represents the internal version of this object that can
-	// be used by clients to determine when objects have changed. May be used for optimistic
-	// concurrency, change detection, and the watch operation on a resource or set of resources.
-	// Clients must treat these values as opaque and passed unmodified back to the server.
-	// They may only be valid for a particular resource or set of resources.
-	//
-	// Populated by the system.
-	// Read-only.
-	// Value must be treated as opaque by clients and .
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
-	// +optional
-	ResourceVersion string `json:"resourceVersion,omitempty"`
-
-	// A sequence number representing a specific generation of the desired state.
-	// Populated by the system. Read-only.
-	// +optional
-	Generation int64 `json:"generation,omitempty"`
-
-	// Number of seconds allowed for this object to gracefully terminate before
-	// it will be removed from the system. Only set when deletionTimestamp is also set.
-	// May only be shortened.
-	// Read-only.
-	// +optional
-	DeletionGracePeriodSeconds *int64 `json:"deletionGracePeriodSeconds,omitempty"`
-
-	// List of objects depended by this object. If ALL objects in the list have
-	// been deleted, this object will be garbage collected. If this object is managed by a controller,
-	// then an entry in this list will point to this controller, with the controller field set to true.
-	// There cannot be more than one managing controller.
-	// +optional
-	// +patchMergeKey=uid
-	// +patchStrategy=merge
-	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty"`
-
-	// Must be empty before the object is deleted from the registry. Each entry
-	// is an identifier for the responsible component that will remove the entry
-	// from the list. If the deletionTimestamp of the object is non-nil, entries
-	// in this list can only be removed.
-	// Finalizers may be processed and removed in any order.  Order is NOT enforced
-	// because it introduces significant risk of stuck finalizers.
-	// finalizers is a shared field, any actor with permission can reorder it.
-	// If the finalizer list is processed in order, then this can lead to a situation
-	// in which the component responsible for the first finalizer in the list is
-	// waiting for a signal (field value, external system, or other) produced by a
-	// component responsible for a finalizer later in the list, resulting in a deadlock.
-	// Without enforced ordering finalizers are free to order amongst themselves and
-	// are not vulnerable to ordering changes in the list.
-	// +optional
-	// +patchStrategy=merge
-	Finalizers []string `json:"finalizers,omitempty"`
-
-	// The name of the cluster which the object belongs to.
-	// This is used to distinguish resources with same name and namespace in different clusters.
-	// This field is not set anywhere right now and apiserver is going to ignore it if set in create or update request.
-	// +optional
-	ClusterName string `json:"clusterName,omitempty"`
-
-	// ManagedFields maps workflow-id and version to the set of fields
-	// that are managed by that workflow. This is mostly for internal
-	// housekeeping, and users typically shouldn't need to set or
-	// understand this field. A workflow can be the user's name, a
-	// controller's name, or the name of a specific apply path like
-	// "ci-cd". The set of fields is always in the version that the
-	// workflow used when modifying the object.
-	//
-	// +optional
-	ManagedFields []metav1.ManagedFieldsEntry `json:"managedFields,omitempty"`
 
 }
 
@@ -264,7 +168,7 @@ type PodSpec struct {
 	// +optional
 	// +patchMergeKey=name
 	// +patchStrategy=merge
-	EphemeralContainers []core.EphemeralContainer `json:"ephemeralContainers,omitempty"`
+	EphemeralContainers []Unit `json:"ephemeralContainers,omitempty"`
 	// Optional duration in seconds the pod needs to terminate gracefully. May be decreased in delete request.
 	// Value must be non-negative integer. The value zero indicates delete immediately.
 	// If this value is nil, the default grace period will be used instead.
@@ -323,14 +227,14 @@ type PodSpec struct {
 	ShareProcessNamespace *bool `json:"shareProcessNamespace,omitempty"`
 	// If specified, the pod's scheduling constraints
 	// +optional
-	Affinity *core.Affinity `json:"affinity,omitempty"`
+	//Affinity *core.Affinity `json:"affinity,omitempty"`
 	// If specified, the pod will be dispatched by specified scheduler.
 	// If not specified, the pod will be dispatched by default scheduler.
 	// +optional
 	SchedulerName string `json:"schedulerName,omitempty"`
 	// If specified, the pod's tolerations.
 	// +optional
-	Tolerations []core.Toleration `json:"tolerations,omitempty"`
+	//Tolerations []core.Toleration `json:"tolerations,omitempty"`
 	// If specified, indicates the pod's priority. "system-node-critical" and
 	// "system-cluster-critical" are two special keywords which indicate the
 	// highest priorities with the former being the highest priority. Any other
@@ -351,7 +255,7 @@ type PodSpec struct {
 	// all conditions specified in the readiness gates have status equal to "True"
 	// More info: https://git.k8s.io/enhancements/keps/sig-network/0007-pod-ready%2B%2B.md
 	// +optional
-	ReadinessGates []core.PodReadinessGate `json:"readinessGates,omitempty"`
+	ReadinessGates []PodReadinessGate `json:"readinessGates,omitempty"`
 	// RuntimeClassName refers to a RuntimeClass object in the node.k8s.io group, which should be used
 	// to run this pod.  If no RuntimeClass resource matches the named class, the pod will not be run.
 	// If unset or empty, the "legacy" RuntimeClass will be used, which is an implicit class with an
@@ -370,7 +274,7 @@ type PodSpec struct {
 	// Defaults to PreemptLowerPriority if unset.
 	// This field is beta-level, gated by the NonPreemptingPriority feature-gate.
 	// +optional
-	PreemptionPolicy *core.PreemptionPolicy `json:"preemptionPolicy,omitempty"`
+	PreemptionPolicy *PreemptionPolicy `json:"preemptionPolicy,omitempty"`
 	// Overhead represents the resource overhead associated with running a pod for a given RuntimeClass.
 	// This field will be autopopulated at admission time by the RuntimeClass admission controller. If
 	// the RuntimeClass admission controller is enabled, overhead must not be set in Pod create requests.
@@ -380,7 +284,7 @@ type PodSpec struct {
 	// More info: https://git.k8s.io/enhancements/keps/sig-node/20190226-pod-overhead.md
 	// This field is alpha-level as of Kubernetes v1.16, and is only honored by servers that enable the PodOverhead feature.
 	// +optional
-	Overhead core.ResourceList `json:"overhead,omitempty"`
+	Overhead ResourceList `json:"overhead,omitempty"`
 	// TopologySpreadConstraints describes how a group of pods ought to spread across topology
 	// domains. Scheduler will schedule pods in a way which abides by the constraints.
 	// All topologySpreadConstraints are ANDed.
@@ -390,7 +294,7 @@ type PodSpec struct {
 	// +listType=map
 	// +listMapKey=topologyKey
 	// +listMapKey=whenUnsatisfiable
-	TopologySpreadConstraints []core.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+	//TopologySpreadConstraints []core.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
 	// If true the pod's hostname will be configured as the pod's FQDN, rather than the leaf name (the default).
 	// In Linux containers, this means setting the FQDN in the hostname field of the kernel (the nodename field of struct utsname).
 	// In Windows containers, this means setting the registry value of hostname for the registry key HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters to FQDN.
@@ -400,6 +304,24 @@ type PodSpec struct {
 	SetHostnameAsFQDN *bool `json:"setHostnameAsFQDN,omitempty"`
 
 }
+
+// PreemptionPolicy describes a policy for if/when to preempt a pod.
+type PreemptionPolicy string
+
+// PodConditionType defines the condition of pod
+type PodConditionType string
+
+// PodReadinessGate contains the reference to a pod condition
+type PodReadinessGate struct {
+	// ConditionType refers to a condition in the pod's condition list with matching type.
+	ConditionType PodConditionType
+}
+
+// ResourceName is the name identifying various resources in a ResourceList.
+type ResourceName string
+
+// ResourceList is a set of (resource name, quantity) pairs.
+type ResourceList map[ResourceName]resource.Quantity
 
 // HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the
 // pod's hosts file.
@@ -463,6 +385,42 @@ type PodDNSConfigOption struct {
 	Value *string `json:"value,omitempty" protobuf:"bytes,2,opt,name=value"`
 }
 
+// SELinuxOptions are the labels to be applied to the container.
+type SELinuxOptions struct {
+	// SELinux user label
+	// +optional
+	User string
+	// SELinux role label
+	// +optional
+	Role string
+	// SELinux type label
+	// +optional
+	Type string
+	// SELinux level label.
+	// +optional
+	Level string
+}
+
+// WindowsSecurityContextOptions contain Windows-specific options and credentials.
+type WindowsSecurityContextOptions struct {
+	// GMSACredentialSpecName is the name of the GMSA credential spec to use.
+	// +optional
+	GMSACredentialSpecName *string
+
+	// GMSACredentialSpec is where the GMSA admission webhook
+	// (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the
+	// GMSA credential spec named by the GMSACredentialSpecName field.
+	// +optional
+	GMSACredentialSpec *string
+
+	// The UserName in Windows to run the entrypoint of the container process.
+	// Defaults to the user specified in image metadata if unspecified.
+	// May also be set in PodSecurityContext. If set in both SecurityContext and
+	// PodSecurityContext, the value specified in SecurityContext takes precedence.
+	// +optional
+	RunAsUserName *string
+}
+
 type PodSecurityContext struct {
 	// PID, IPC and network namespace sharing options.
 	NamespaceOptions *NamespaceOption `json:"namespaceOptions,omitempty"`
@@ -483,12 +441,12 @@ type PodSecurityContext struct {
 	// both SecurityContext and PodSecurityContext, the value specified in SecurityContext
 	// takes precedence for that container.
 	// +optional
-	SELinuxOptions *core.SELinuxOptions `json:"seLinuxOptions,omitempty"`
+	SELinuxOptions *SELinuxOptions `json:"seLinuxOptions,omitempty"`
 	// The Windows specific settings applied to all containers.
 	// If unspecified, the options within a container's SecurityContext will be used.
 	// If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
 	// +optional
-	WindowsOptions *core.WindowsSecurityContextOptions `json:"windowsOptions,omitempty"`
+	WindowsOptions *WindowsSecurityContextOptions `json:"windowsOptions,omitempty"`
 	// Indicates that the container must run as a non-root user.
 	// If true, the Kubelet will validate the image at runtime to ensure that it
 	// does not run as UID 0 (root) and fail to start the container if it does.
@@ -515,13 +473,17 @@ type PodSecurityContext struct {
 	// and emptydir.
 	// Valid values are "OnRootMismatch" and "Always". If not specified defaults to "Always".
 	// +optional
-	FSGroupChangePolicy *core.PodFSGroupChangePolicy `json:"fsGroupChangePolicy,omitempty"`
+	FSGroupChangePolicy *PodFSGroupChangePolicy `json:"fsGroupChangePolicy,omitempty"`
 	// The seccomp options to use by the containers in this pod.
 	// +optional
 	// TODO - update core
 	//SeccompProfile *core.SeccompProfile `json:"seccompProfile,omitempty"`
 
 }
+
+// PodFSGroupChangePolicy holds policies that will be used for applying fsGroup to a volume
+// when volume is mounted.
+type PodFSGroupChangePolicy string
 
 // NamespaceOption provides options for Linux namespaces.
 type NamespaceOption struct {
@@ -766,10 +728,10 @@ type VolumeProjection struct {
 	// NOT SUPPORTED YET, ADDED FOR CONFORMANCE
 	// // information about the downwardAPI data to project
 	// // +optional
-	DownwardAPI *core.DownwardAPIProjection `json:"downwardAPI,omitempty"`
+	//DownwardAPI *core.DownwardAPIProjection `json:"downwardAPI,omitempty"`
 	// information about the serviceAccountToken data to project
 	// +optional
-	ServiceAccountToken *core.ServiceAccountTokenProjection `json:"serviceAccountToken,omitempty"`
+	//ServiceAccountToken *core.ServiceAccountTokenProjection `json:"serviceAccountToken,omitempty"`
 }
 
 const (
@@ -909,6 +871,53 @@ type ResourceSpec struct {
 	ContainerInstance *bool `json:"containerInstance,omitempty"`
 }
 
+// ResourceRequirements describes the compute resource requirements.
+type ResourceRequirements struct {
+	// Limits describes the maximum amount of compute resources allowed.
+	// +optional
+	Limits ResourceList
+	// Requests describes the minimum amount of compute resources required.
+	// If Request is omitted for a container, it defaults to Limits if that is explicitly specified,
+	// otherwise to an implementation-defined value
+	// +optional
+	Requests ResourceList
+}
+
+// VolumeDevice describes a mapping of a raw block device within a container.
+type VolumeDevice struct {
+	// name must match the name of a persistentVolumeClaim in the pod
+	Name string
+	// devicePath is the path inside of the container that the device will be mapped to.
+	DevicePath string
+}
+
+// Lifecycle describes actions that the management system should take in response to container lifecycle
+// events.  For the PostStart and PreStop lifecycle handlers, management of the container blocks
+// until the action is complete, unless the container process fails, in which case the handler is aborted.
+type Lifecycle struct {
+	// PostStart is called immediately after a container is created.  If the handler fails, the container
+	// is terminated and restarted.
+	// +optional
+	PostStart *Handler
+	// PreStop is called immediately before a container is terminated due to an
+	// API request or management event such as liveness/startup probe failure,
+	// preemption, resource contention, etc. The handler is not called if the
+	// container crashes or exits. The reason for termination is passed to the
+	// handler. The Pod's termination grace period countdown begins before the
+	// PreStop hooked is executed. Regardless of the outcome of the handler, the
+	// container will eventually terminate within the Pod's termination grace
+	// period. Other management of the container blocks until the hook completes
+	// or until the termination grace period is reached.
+	// +optional
+	PreStop *Handler
+}
+
+// TerminationMessagePolicy describes how termination messages are retrieved from a container.
+type TerminationMessagePolicy string
+
+// PullPolicy describes a policy for if/when to pull a container image
+type PullPolicy string
+
 // Units run applications. A Pod consists of one or more Units.
 type Unit struct {
 	// Name of the Unit.
@@ -965,21 +974,21 @@ type Unit struct {
 	// Values defined by an Env with a duplicate key will take precedence.
 	// Cannot be updated.
 	// +optional
-	EnvFrom []core.EnvFromSource `json:"envFrom,omitempty"`
+	//EnvFrom []core.EnvFromSource `json:"envFrom,omitempty"`
 	// Compute Resources required by this container.
 	// Cannot be updated.
 	// More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
 	// +optional
-	Resources core.ResourceRequirements `json:"resources,omitempty"`
+	Resources ResourceRequirements `json:"resources,omitempty"`
 	// volumeDevices is the list of block devices to be used by the container.
 	// +patchMergeKey=devicePath
 	// +patchStrategy=merge
 	// +optional
-	VolumeDevices []core.VolumeDevice `json:"volumeDevices,omitempty"`
+	VolumeDevices []VolumeDevice `json:"volumeDevices,omitempty"`
 	// Actions that the management system should take in response to container lifecycle events.
 	// Cannot be updated.
 	// +optional
-	Lifecycle *core.Lifecycle `json:"lifecycle,omitempty"`
+	Lifecycle *Lifecycle `json:"lifecycle,omitempty"`
 	// Optional: Path at which the file to which the container's termination message
 	// will be written is mounted into the container's filesystem.
 	// Message written is intended to be brief final status, such as an assertion failure message.
@@ -997,14 +1006,14 @@ type Unit struct {
 	// Defaults to File.
 	// Cannot be updated.
 	// +optional
-	TerminationMessagePolicy core.TerminationMessagePolicy `json:"terminationMessagePolicy,omitempty"`
+	TerminationMessagePolicy TerminationMessagePolicy `json:"terminationMessagePolicy,omitempty"`
 	// Image pull policy.
 	// One of Always, Never, IfNotPresent.
 	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
 	// Cannot be updated.
 	// More info: https://kubernetes.io/docs/concepts/containers/images#updating-images
 	// +optional
-	ImagePullPolicy core.PullPolicy `json:"imagePullPolicy,omitempty"`
+	ImagePullPolicy PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Variables for interactive containers, these have very specialized use-cases (e.g. debugging)
 	// and shouldn't be used for general purpose containers.
 
@@ -1058,12 +1067,12 @@ type SecurityContext struct {
 	// container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
 	// PodSecurityContext, the value specified in SecurityContext takes precedence.
 	// +optional
-	SELinuxOptions *core.SELinuxOptions
+	SELinuxOptions *SELinuxOptions
 	// The Windows specific settings applied to all containers.
 	// If unspecified, the options from the PodSecurityContext will be used.
 	// If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
 	// +optional
-	WindowsOptions *core.WindowsSecurityContextOptions
+	WindowsOptions *WindowsSecurityContextOptions
 	// Indicates that the container must run as a non-root user.
 	// If true, the Kubelet will validate the image at runtime to ensure that it
 	// does not run as UID 0 (root) and fail to start the container if it does.
@@ -1085,13 +1094,16 @@ type SecurityContext struct {
 	// The default is DefaultProcMount which uses the container runtime defaults for
 	// readonly paths and masked paths.
 	// +optional
-	ProcMount *core.ProcMountType
+	ProcMount *ProcMountType
 	// The seccomp options to use by this container. If seccomp options are
 	// provided at both the pod & container level, the container options
 	// override the pod options.
 	// +optional
 	//SeccompProfile *core.SeccompProfile
 }
+
+// ProcMountType defines the type of proc mount
+type ProcMountType string
 
 // Capability contains the capabilities to add or drop.
 type Capabilities struct {
@@ -1220,7 +1232,7 @@ type VolumeMount struct {
 	// When not set, MountPropagationNone is used.
 	// This field is beta in 1.10.
 	// +optional
-	MountPropagation *core.MountPropagationMode `json:"mountPropagation,omitempty"`
+	MountPropagation *MountPropagationMode `json:"mountPropagation,omitempty"`
 	// Expanded path within the volume from which the container's volume should be mounted.
 	// Behaves similarly to SubPath but environment variable references $(VAR_NAME) are expanded using the container's environment.
 	// Defaults to "" (volume's root).
@@ -1228,6 +1240,9 @@ type VolumeMount struct {
 	// +optional
 	SubPathExpr string `json:"subPathExpr,omitempty"`
 }
+
+// MountPropagationMode describes mount propagation.
+type MountPropagationMode string
 
 // Environment variables.
 type EnvVar struct {
@@ -1239,7 +1254,7 @@ type EnvVar struct {
 	// NOT YET SUPPORTED, ADDED FOR CONFORMANCE
 	// Optional: Specifies a source the value of this var should come from.
 	// +optional
-	ValueFrom *core.EnvVarSource
+	//ValueFrom *core.EnvVarSource
 }
 
 // LocalObjectReference contains enough information to let you locate the referenced object inside the same namespace.
@@ -1303,6 +1318,23 @@ type NetworkAddress struct {
 	Address string             `json:"address"`
 }
 
+// ConditionStatus defines conditions of resources
+type ConditionStatus string
+
+// PodCondition represents pod's condition
+type PodCondition struct {
+	Type   PodConditionType
+	Status ConditionStatus
+	// +optional
+	LastProbeTime Time
+	// +optional
+	LastTransitionTime Time
+	// +optional
+	Reason string
+	// +optional
+	Message string
+}
+
 // Last observed status of the Pod. This is maintained by the system.
 type PodStatus struct {
 	// Phase is the last observed phase of the Pod. Can be "creating",
@@ -1327,7 +1359,7 @@ type PodStatus struct {
 
 	// NOT SUPPORTED YET, ADDED FOR CONFORMANCE
 	// +optional
-	Conditions []core.PodCondition `json:"conditions,omitempty"`
+	Conditions []PodCondition `json:"conditions,omitempty"`
 	// A human readable message indicating details about why the pod is in this state.
 	// +optional
 	Message string `json:"message,omitempty"`
@@ -1347,19 +1379,23 @@ type PodStatus struct {
 	// PodIPs holds all of the known IP addresses allocated to the pod. Pods may be assigned AT MOST
 	// one value for each of IPv4 and IPv6.
 	// +optional
-	PodIPs []core.PodIP `json:"podIPs,omitempty"`
+	// we use []NetworkAddress, check Addresses above
+	//PodIPs []core.PodIP `json:"podIPs,omitempty"`
 
 	// Date and time at which the object was acknowledged by the Kubelet.
 	// This is before the Kubelet pulled the container image(s) for the pod.
 	// +optional
-	StartTime *metav1.Time `json:"startTime,omitempty"`
+	StartTime *Time `json:"startTime,omitempty"`
 	// +optional
-	QOSClass core.PodQOSClass `json:"QOSClass,omitempty"`
+	QOSClass PodQOSClass `json:"QOSClass,omitempty"`
 	// Status for any ephemeral containers that have run in this pod.
 	// This field is alpha-level and is only honored by servers that enable the EphemeralContainers feature.
 	// +optional
-	EphemeralContainerStatuses []core.ContainerStatus `json:"ephemeralContainerStatuses,omitempty"`
+	EphemeralContainerStatuses []UnitStatus `json:"ephemeralContainerStatuses,omitempty"`
 }
+
+// PodQOSClass defines the supported qos classes of Pods.
+type PodQOSClass string
 
 // Phase is the last observed phase of the Pod. Can be "creating",
 // "dispatching", "running", "succeeded", "failed" or "terminated".
@@ -1407,12 +1443,6 @@ const (
 type PodList struct {
 	TypeMeta `json:",inline"`
 	Items    []*Pod `json:"items"`
-
-	// NOT SUPPORTED YET, ADDED FOR CONFORMANCE
-	// Standard list metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
 }
 
 // Node is a cloud instance that can run a Pod.
@@ -1487,12 +1517,6 @@ const (
 type NodeList struct {
 	TypeMeta `json:",inline"`
 	Items    []*Node `json:"items"`
-
-	// NOT SUPPORTED YET, ADDED FOR CONFORMANCE
-	// Standard list metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
 }
 
 // ContainerPort represents a network port in a single container.
@@ -1638,25 +1662,6 @@ type ObjectReference struct {
 	Kind string `json:"kind,omitempty"`
 	Name string `json:"name,omitempty"`
 	UID  string `json:"uid,omitempty"`
-
-	// NOT SUPPORTED YET, ADDED FOR CONFORMANCE
-	// +optional
-	Namespace string
-	// +optional
-	APIVersion string
-	// +optional
-	ResourceVersion string
-
-	// Optional. If referring to a piece of an object instead of an entire object, this string
-	// should contain information to identify the sub-object. For example, if the object
-	// reference is to a container within a pod, this would take on a value like:
-	// "spec.containers{name}" (where "name" refers to the name of the container that triggered
-	// the event) or if no container name is specified "spec.containers[2]" (container with
-	// index 2 in this pod). This syntax is chosen only to have some well-defined way of
-	// referencing a part of an object.
-	// TODO: this design is not final and this field is subject to change in the future.
-	// +optional
-	FieldPath string
 }
 
 // Event is a report of an event that happened in Milpa. They are stored
@@ -1683,59 +1688,12 @@ type Event struct {
 
 	// Human readable message about what happened.
 	Message string `json:"message,omitempty"`
-
-	// NOT SUPPORTED YET, ADDED FOR CONFORMANCE
-	// The time at which the event was first recorded. (Time of server receipt is in TypeMeta.)
-	// +optional
-	FirstTimestamp metav1.Time `json:"firstTimestamp,omitempty" protobuf:"bytes,6,opt,name=firstTimestamp"`
-
-	// The time at which the most recent occurrence of this event was recorded.
-	// +optional
-	LastTimestamp metav1.Time `json:"lastTimestamp,omitempty" protobuf:"bytes,7,opt,name=lastTimestamp"`
-
-	// The number of times this event has occurred.
-	// +optional
-	Count int32 `json:"count,omitempty" protobuf:"varint,8,opt,name=count"`
-
-	// Type of this event (Normal, Warning), new types could be added in the future
-	// +optional
-	Type string `json:"type,omitempty" protobuf:"bytes,9,opt,name=type"`
-
-	// Time when this Event was first observed.
-	// +optional
-	EventTime metav1.MicroTime `json:"eventTime,omitempty" protobuf:"bytes,10,opt,name=eventTime"`
-
-	// Data about the Event series this event represents or nil if it's a singleton Event.
-	// +optional
-	Series *core.EventSeries `json:"series,omitempty" protobuf:"bytes,11,opt,name=series"`
-
-	// What action was taken/failed regarding to the Regarding object.
-	// +optional
-	Action string `json:"action,omitempty" protobuf:"bytes,12,opt,name=action"`
-
-	// Optional secondary object for more complex actions.
-	// +optional
-	Related *ObjectReference `json:"related,omitempty" protobuf:"bytes,13,opt,name=related"`
-
-	// Name of the controller that emitted this Event, e.g. `kubernetes.io/kubelet`.
-	// +optional
-	ReportingController string `json:"reportingComponent" protobuf:"bytes,14,opt,name=reportingComponent"`
-
-	// ID of the controller instance, e.g. `kubelet-xyzf`.
-	// +optional
-	ReportingInstance string `json:"reportingInstance" protobuf:"bytes,15,opt,name=reportingInstance"`
 }
 
 // A list of Events.
 type EventList struct {
 	TypeMeta `json:",inline"`
 	Items    []*Event `json:"items"`
-
-	// NOT SUPPORTED YET, ADDED FOR CONFORMANCE
-	// Standard list metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
 }
 
 // LogFile holds the log data created by a Pod Unit or a Node.
