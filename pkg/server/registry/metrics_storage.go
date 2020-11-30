@@ -130,7 +130,7 @@ func (h *PodMetrics) insert(t api.Time, r api.ResourceMetrics) {
 	var window api.Duration
 	if h.count > 0 {
 		prev := (h.count - 1) % int64(len(h.metrics))
-		window = api.Duration{t.Sub(h.metrics[prev].Timestamp)}
+		window = api.Duration{Duration: t.Sub(h.metrics[prev].Timestamp)}
 	}
 	idx := h.count % int64(len(h.metrics))
 	h.metrics[idx] = timestampedMetrics{

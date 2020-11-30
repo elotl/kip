@@ -97,7 +97,7 @@ func SetAPIVersion(version string) {
 // Pod is a collection of Units that run on the same Node.
 type Pod struct {
 	// "squash" tag is used by mapstructure instead of inline
-	TypeMeta `json:",inline,squash"`
+	TypeMeta `json:",inline,squash"`//nolint
 	// Object metadata.
 	ObjectMeta `json:"metadata"`
 	// Spec is the desired behavior of the pod.
@@ -123,7 +123,7 @@ type PodSpec struct {
 	InitUnits []Unit `json:"initUnits"`
 	// List of Secrets that will be used for authenticating when pulling
 	// images.
-	ImagePullSecrets []string `json:"imagePullSecrets,omitemtpy"`
+	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
 	// Type of cloud instance type that will be used to run this Pod.
 	InstanceType string `json:"instanceType,omitempty"`
 	// PodSpot is the policy that determines if a spot instance may be used for
@@ -281,7 +281,7 @@ type Volume struct {
 	// Name of the Volume. This is used when referencing a Volume from a Unit
 	// definition.
 	Name         string `json:"name"`
-	VolumeSource `json:",inline,omitempty,squash"`
+	VolumeSource `json:",inline,omitempty,squash"`//nolint
 }
 
 type VolumeSource struct {
@@ -938,7 +938,7 @@ type PodList struct {
 
 // Node is a cloud instance that can run a Pod.
 type Node struct {
-	TypeMeta `json:",inline,squash"`
+	TypeMeta `json:",inline,squash"`//nolint
 	// Object metadata.
 	ObjectMeta `json:"metadata"`
 	// Spec is the desired behavior of the Node.
@@ -1154,7 +1154,7 @@ type ObjectReference struct {
 // Event is a report of an event that happened in Milpa. They are stored
 // separately from the objects they apply to.
 type Event struct {
-	TypeMeta `json:",inline,squash"`
+	TypeMeta `json:",inline,squash"`//nolint
 
 	ObjectMeta `json:"metadata"`
 
@@ -1185,7 +1185,7 @@ type EventList struct {
 
 // LogFile holds the log data created by a Pod Unit or a Node.
 type LogFile struct {
-	TypeMeta `json:",inline,squash"`
+	TypeMeta `json:",inline,squash"`//nolint
 
 	ObjectMeta `json:"metadata"`
 
@@ -1240,7 +1240,7 @@ type UnitStatus struct {
 }
 
 type Metrics struct {
-	TypeMeta   `json:",inline,squash"`
+	TypeMeta   `json:",inline,squash"`//nolint
 	ObjectMeta `json:"metadata"`
 
 	// The time at the end of the metrics collection window.

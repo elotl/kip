@@ -45,7 +45,7 @@ func TestPodMetrics(t *testing.T) {
 	assert.Len(t, allMetrics.Items, numDatapoints)
 	startMetric := allMetrics.Items[0]
 	for i, m := range allMetrics.Items {
-		assert.Equal(t, api.Duration{1 * time.Second}, m.Window)
+		assert.Equal(t, api.Duration{Duration: 1 * time.Second}, m.Window)
 		assert.InEpsilon(t, startMetric.ResourceUsage["cpu"]+factor*float64(i), m.ResourceUsage["cpu"], 0.000001)
 	}
 }

@@ -81,7 +81,7 @@ func TestDispatchPodToNodeHappy(t *testing.T) {
 	pod, err := ctl.podRegistry.CreatePod(pod)
 	assert.NoError(t, err)
 	pod.Status.Phase = api.PodDispatching
-	ctl.podRegistry.UpdatePodStatus(pod, "")
+	_, _ = ctl.podRegistry.UpdatePodStatus(pod, "")
 	node := bindPodToANode(t, pod, ctl)
 	ctl.dispatchPodToNode(pod, node)
 	if pod.Status.Phase != api.PodRunning {
@@ -98,7 +98,8 @@ func TestCheckClaimedNodesSimple(t *testing.T) {
 	n.Status.BoundPodName = ""
 	n.Status.Phase = api.NodeClaimed
 	nodeReg := ctl.nodeLister.(*registry.NodeRegistry)
-	nodeReg.CreateNode(n)
+	_, err := nodeReg.CreateNode(n)
+	assert.NoError(t, err)
 	ctl.checkClaimedNodes()
 	assert.Equal(t, 0, len(ctl.nodeDispenser.NodeReturnChan))
 	ctl.checkClaimedNodes()

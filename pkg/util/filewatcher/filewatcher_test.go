@@ -30,13 +30,15 @@ func TestStatPeriodRefresh(t *testing.T) {
 	defer closer()
 
 	c1 := "contents1\n"
-	f.Write([]byte(c1))
+	_, err := f.Write([]byte(c1))
+	assert.NoError(t, err)
 	fw := New(f.Name())
 	assert.Equal(t, c1, fw.Contents())
 	c2 := "more data\n"
 	// Filesystem time is only accurate to 1s
 	time.Sleep(1250 * time.Millisecond)
-	f.Write([]byte(c2))
+	_, err = f.Write([]byte(c2))
+	assert.NoError(t, err)
 	assert.Equal(t, c1, fw.Contents())
 	fw.CheckPeriod = 1 * time.Nanosecond
 	assert.Equal(t, c1+c2, fw.Contents())

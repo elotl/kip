@@ -175,7 +175,7 @@ func (e *AwsEC2) getSubnetAttributes(subnetID string) (snAttrs cloud.SubnetAttri
 	if len(snResp.Subnets) == 0 || snResp.Subnets[0] == nil {
 		return snAttrs, fmt.Errorf("Could not find subnet %s in in VPC", subnetID)
 	}
-	rt, err := e.getSubnetRouteTable(subnetID)
+	rt, _ := e.getSubnetRouteTable(subnetID)
 	snAttrs, err = makeSubnetAttrs(snResp.Subnets[0], rt)
 	return snAttrs, err
 }

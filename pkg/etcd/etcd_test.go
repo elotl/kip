@@ -130,7 +130,7 @@ func TestEtcdOperations(t *testing.T) {
 		err = c.Put(k, []byte(k), nil)
 		assert.NoError(t, err)
 	}
-	c.DeleteTree("milpa/")
+	_ = c.DeleteTree("milpa/")
 	for _, k := range keepValues {
 		kv, err := c.Get(k)
 		assert.NoError(t, err)

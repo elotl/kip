@@ -176,15 +176,15 @@ func (pm *PortManager) RemovePodPortMappings(podIp string) {
 			listener.Close()
 		}
 	}
-	pm.ensureHostPortChains(podIp)
+	_ = pm.ensureHostPortChains(podIp)
 	dnat := podDnatChain(podIp)
 	masq := podMasqChain(podIp)
-	pm.iptables.DeleteRule(iptables.TableNAT, hostPortsDnatChain, "-j", string(dnat))
-	pm.iptables.FlushChain(iptables.TableNAT, dnat)
-	pm.iptables.DeleteChain(iptables.TableNAT, dnat)
-	pm.iptables.DeleteRule(iptables.TableNAT, hostPortsMasqChain, "-j", string(masq))
-	pm.iptables.FlushChain(iptables.TableNAT, masq)
-	pm.iptables.DeleteChain(iptables.TableNAT, masq)
+	_ = pm.iptables.DeleteRule(iptables.TableNAT, hostPortsDnatChain, "-j", string(dnat))
+	_ = pm.iptables.FlushChain(iptables.TableNAT, dnat)
+	_ = pm.iptables.DeleteChain(iptables.TableNAT, dnat)
+	_ = pm.iptables.DeleteRule(iptables.TableNAT, hostPortsMasqChain, "-j", string(masq))
+	_ = pm.iptables.FlushChain(iptables.TableNAT, masq)
+	_ = pm.iptables.DeleteChain(iptables.TableNAT, masq)
 }
 
 func (pm *PortManager) addHostPort(ip, proto, srcport, dstport string) error {

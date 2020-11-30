@@ -23,11 +23,11 @@ func createResolverFile(nameservers, searches []string) (string, error) {
 	}
 	defer tmpf.Close()
 	for _, ns := range nameservers {
-		tmpf.Write([]byte(fmt.Sprintf("nameserver %s\n", ns)))
+		_, _ = tmpf.Write([]byte(fmt.Sprintf("nameserver %s\n", ns)))
 	}
 	if len(searches) > 0 {
 		searchList := strings.Join(searches, " ")
-		tmpf.Write([]byte(fmt.Sprintf("search %s\n", searchList)))
+		_, _ = tmpf.Write([]byte(fmt.Sprintf("search %s\n", searchList)))
 	}
 	resolverConfig := tmpf.Name()
 	return resolverConfig, nil

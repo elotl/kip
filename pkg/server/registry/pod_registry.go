@@ -51,8 +51,8 @@ func NewPodRegistry(kvstore etcd.Storer, codec api.MilpaCodec, es *events.EventS
 	// empty directories create problems and pain the butt errors
 	// lets avoid them
 	reg := &PodRegistry{kvstore, codec, es, sv}
-	reg.Put(PodDirectoryPlaceholder, []byte("."), &store.WriteOptions{IsDir: true})
-	reg.Put(PodTrashDirectoryPlaceholder, []byte("."), &store.WriteOptions{IsDir: true})
+	_ = reg.Put(PodDirectoryPlaceholder, []byte("."), &store.WriteOptions{IsDir: true})
+	_ = reg.Put(PodTrashDirectoryPlaceholder, []byte("."), &store.WriteOptions{IsDir: true})
 	return reg
 }
 
@@ -238,7 +238,7 @@ func (reg *PodRegistry) MarkPodForTermination(pod *api.Pod) (*api.Pod, error) {
 		return nil
 	})
 	if err == nil {
-		eventMsg := fmt.Sprintf("Pod marked for deletion")
+		eventMsg := "Pod marked for deletion"
 		reg.eventSystem.Emit(events.PodShouldDelete, "pod-registry", p, eventMsg)
 	}
 	return p, err

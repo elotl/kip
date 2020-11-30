@@ -110,7 +110,7 @@ func (ic *ImageController) CreateStorageAccount() (storage.Account, error) {
 		return s, fmt.Errorf(
 			"Storage account check-name-availability failed: %v\n", err)
 	}
-	if *result.NameAvailable != true {
+	if !*result.NameAvailable {
 		return s, fmt.Errorf(
 			"Storage account name %s not available: %v\nserver message: %v\n",
 			accountName, err, *result.Message)

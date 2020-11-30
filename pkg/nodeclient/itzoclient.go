@@ -447,13 +447,13 @@ func StreamLogsEndpoint(unitName string, withMetadata bool) string {
 }
 
 func PortForwardEndpoint() string {
-	return fmt.Sprintf("rest/v1/portforward/")
+	return "rest/v1/portforward/"
 }
 
 func ExecEndpoint() string {
-	return fmt.Sprintf("rest/v1/exec/")
+	return "rest/v1/exec/"
 }
 
 func AttachEndpoint() string {
-	return fmt.Sprintf("rest/v1/attach/")
+	return "rest/v1/attach/"
 }

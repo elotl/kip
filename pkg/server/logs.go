@@ -240,7 +240,7 @@ func (s InstanceProvider) StreamLogs(slr *clientapi.StreamLogsRequest, stream cl
 		return util.WrapError(
 			err, "Could not get logs client for pod %s", podName)
 	}
-	defer ws.CloseAndCleanup()
+	defer ws.CloseAndCleanup() //nolint
 	for {
 		select {
 		case <-ws.Closed():

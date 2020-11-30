@@ -65,7 +65,7 @@ func syncImage(controllerID string, bootImageSpec cloud.BootImageSpec, az *Azure
 	ic.WaitForAvailable()
 	close(quit)
 	wg.Wait()
-	fmt.Printf("Image synchronization finished in %v\n", time.Now().Sub(start))
+	fmt.Printf("Image synchronization finished in %v\n", time.Since(start))
 }
 
 func TestAzureCloud(t *testing.T) {
@@ -87,7 +87,7 @@ func TestAzureCloud(t *testing.T) {
 	az, err := NewAzureClient(controllerID, controllerID, testSubscriptionID, testRegion, testVNetName, testSubnetName)
 	if executorNStr == "" {
 		// When not running on Jenkins, clean up resources.
-		defer cleanupFromTest(az)
+		defer cleanupFromTest(az) //nolint
 	}
 	assert.Nil(t, err)
 	if err != nil {

@@ -243,7 +243,7 @@ func TestLexerSequence(t *testing.T) {
 				break
 			}
 			tokens = append(tokens, token)
-			literals = append(literals, lit)
+			_ = append(literals, lit)
 		}
 		if len(tokens) != len(v.t) {
 			t.Errorf("Bad number of tokens for '%s %d, %d", v.s, len(tokens), len(v.t))

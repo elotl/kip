@@ -565,7 +565,7 @@ func TestProjectedVolumeConversion(t *testing.T) {
 			sources: []api.VolumeProjection{
 				{
 					Secret: &api.SecretProjection{
-						LocalObjectReference: api.LocalObjectReference{"sec1"},
+						LocalObjectReference: api.LocalObjectReference{Name: "sec1"},
 						Items: []api.KeyToPath{
 							{
 								Key:  "sec1Key1",
@@ -583,7 +583,7 @@ func TestProjectedVolumeConversion(t *testing.T) {
 				},
 				{
 					Secret: &api.SecretProjection{
-						LocalObjectReference: api.LocalObjectReference{"sec2"},
+						LocalObjectReference: api.LocalObjectReference{Name: "sec2"},
 						Items: []api.KeyToPath{
 							{
 								Key:  "sec2Key1",
@@ -601,7 +601,7 @@ func TestProjectedVolumeConversion(t *testing.T) {
 				},
 				{
 					ConfigMap: &api.ConfigMapProjection{
-						LocalObjectReference: api.LocalObjectReference{"cm1"},
+						LocalObjectReference: api.LocalObjectReference{Name: "cm1"},
 						Items: []api.KeyToPath{
 							{
 								Key:  "cm1Key1",

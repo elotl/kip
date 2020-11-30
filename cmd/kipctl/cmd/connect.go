@@ -42,7 +42,7 @@ func getKipClient(flags *pflag.FlagSet, needsLeader bool) (clientapi.KipClient, 
 	// We shuffle endpoints to do some weak loadbalancing
 	rand.Seed(time.Now().UTC().UnixNano())
 	order := rand.Perm(len(endpoints))
-	for i, _ := range order {
+	for i := range order {
 		address := endpoints[i]
 		var (
 			client clientapi.KipClient

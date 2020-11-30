@@ -69,7 +69,7 @@ func attach(cmd *cobra.Command, args []string) {
 
 	// Read from local stdin
 	go func() {
-		defer stream.CloseSend()
+		defer stream.CloseSend()//nolint
 		// We read based on newlines. Using scanner won't work for
 		// interactive programs but lets not worry about that now.
 		scanner := bufio.NewScanner(os.Stdin)

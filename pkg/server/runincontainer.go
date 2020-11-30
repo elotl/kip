@@ -59,12 +59,12 @@ func (p *InstanceProvider) RunInContainer(ctx context.Context, namespace, podNam
 	if err != nil {
 		return err
 	}
-	defer ws.CloseAndCleanup()
+	defer ws.CloseAndCleanup() //nolint
 	err = sendParams(ws, params)
 	if err != nil {
 		return err
 	}
-	sendWinSize(ws, WinSize{
+	_ = sendWinSize(ws, WinSize{
 		Cols: 80,
 		Rows: 25,
 	})

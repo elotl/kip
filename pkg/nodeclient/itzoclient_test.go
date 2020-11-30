@@ -26,7 +26,7 @@ import (
 const okResponseBody = "123"
 
 func OKResponse(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(okResponseBody))
+	_, _ = w.Write([]byte(okResponseBody))
 }
 
 func ErrorResponse(w http.ResponseWriter, r *http.Request) {

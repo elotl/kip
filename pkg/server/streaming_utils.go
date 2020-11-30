@@ -105,7 +105,7 @@ func (s InstanceProvider) grpcToWSPump(stream SendRecver, addresses []api.Networ
 	if err != nil {
 		return util.WrapError(err, "Could not create websocket stream")
 	}
-	defer ws.CloseAndCleanup()
+	defer ws.CloseAndCleanup() //nolint
 
 	//forward first packet to client
 	err = ws.WriteRaw(paramsMsg.Data)

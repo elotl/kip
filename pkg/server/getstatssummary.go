@@ -56,10 +56,7 @@ func (p *InstanceProvider) GetStatsSummary(ctx context.Context) (*stats.Summary,
 	}
 	podRegistry := p.getPodRegistry()
 	pods, err := podRegistry.ListPods(func(pod *api.Pod) bool {
-		if pod.Status.Phase == api.PodRunning {
-			return true
-		}
-		return false
+		return pod.Status.Phase == api.PodRunning
 	})
 	if err != nil {
 		klog.Errorf("listing pods for stats: %v", err)

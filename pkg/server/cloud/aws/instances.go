@@ -402,7 +402,7 @@ func (e *AwsEC2) StartSpotNode(node *api.Node, image cloud.Image, metadata strin
 				OriginalError: err.Error(),
 			}
 		} else if isUnsupportedInstanceError(err) {
-			return "", &cloud.UnsupportedInstanceError{err.Error()}
+			return "", &cloud.UnsupportedInstanceError{OriginalError: err.Error()}
 		}
 		return "", util.WrapError(err, "Could not run instance")
 	}

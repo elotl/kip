@@ -118,7 +118,7 @@ func exec(cmd *cobra.Command, args []string) {
 				}
 				f := wsstream.PackMessage(wsTTYControlChan, b)
 				controlMsg := &clientapi.StreamMsg{Data: f}
-				stream.Send(controlMsg)
+				_ = stream.Send(controlMsg)
 			}
 		}()
 		ch <- syscall.SIGWINCH // Initial resize.
@@ -126,7 +126,7 @@ func exec(cmd *cobra.Command, args []string) {
 
 	if execInteractive {
 		go func() {
-			defer stream.CloseSend()
+			defer stream.CloseSend()//nolint
 			if execTTY {
 				// put local terminal in raw mode so that we are basically a pass-through for the remote terminal
 				oldTerminalState, _ = terminal.MakeRaw(int(os.Stdin.Fd()))

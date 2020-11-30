@@ -40,11 +40,11 @@ func mkin(vals ...interface{}) ScalingTestEntryInput {
 	pods := make([]*api.Pod, 0)
 	nodes := make([]*api.Node, 0)
 	for _, v := range vals {
-		switch v.(type) {
+		switch vType := v.(type) {
 		case *api.Pod:
-			pods = append(pods, v.(*api.Pod))
+			pods = append(pods, vType)
 		case *api.Node:
-			nodes = append(nodes, v.(*api.Node))
+			nodes = append(nodes, vType)
 		}
 	}
 	return ScalingTestEntryInput{

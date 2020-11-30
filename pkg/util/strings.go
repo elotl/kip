@@ -94,7 +94,7 @@ func StringSliceUnion(a, b []string) []string {
 	for _, v := range b {
 		d[v] = struct{}{}
 	}
-	for k, _ := range d {
+	for k := range d {
 		c = append(c, k)
 	}
 	sort.Strings(c)
@@ -130,7 +130,7 @@ func StringSliceEqual(a, b []string) bool {
 func StringMapKeys(a map[string]string) []string {
 	c := make([]string, len(a))
 	i := 0
-	for k, _ := range a {
+	for k := range a {
 		c[i] = k
 		i++
 	}
@@ -140,7 +140,7 @@ func StringMapKeys(a map[string]string) []string {
 func StringSliceMapKeys(a map[string][]string) []string {
 	c := make([]string, len(a))
 	i := 0
-	for k, _ := range a {
+	for k := range a {
 		c[i] = k
 		i++
 	}
@@ -163,7 +163,7 @@ func StringSliceUnique(a []string) []string {
 	for _, v := range a {
 		d[v] = struct{}{}
 	}
-	for k, _ := range d {
+	for k := range d {
 		c = append(c, k)
 	}
 	sort.Strings(c)
@@ -173,7 +173,7 @@ func StringSliceUnique(a []string) []string {
 func StringSetKeys(a map[string]struct{}) []string {
 	c := make([]string, len(a))
 	i := 0
-	for k, _ := range a {
+	for k := range a {
 		c[i] = k
 		i++
 	}

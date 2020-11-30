@@ -527,7 +527,7 @@ func getStartVMError(err error, subnetID, az string) error {
 			OriginalError: err.Error(),
 		}
 	} else if isUnsupportedInstanceError(err) {
-		return &cloud.UnsupportedInstanceError{err.Error()}
+		return &cloud.UnsupportedInstanceError{OriginalError: err.Error()}
 	}
 	return util.WrapError(err, "Could not run instance")
 }

@@ -58,7 +58,7 @@ func (c *GarbageController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
 }
 
 func (c *GarbageController) Dump() []byte {
-	b, err := json.MarshalIndent(c.timer, "", "    ")
+	b, err := json.MarshalIndent(c.timer.Copy(), "", "    ")
 	if err != nil {
 		klog.Errorln("Error dumping data from GarbageController", err)
 		return nil
@@ -156,7 +156,7 @@ func (c *GarbageController) CleanInstances() {
 			unknownInstances[inst.ID] = true
 		}
 	}
-	for iid, _ := range unknownInstances {
+	for iid := range unknownInstances {
 		if lastUnknownInstances[iid] {
 			klog.Errorf("Stopping unknown cloud instance %s", iid)
 			go func() {

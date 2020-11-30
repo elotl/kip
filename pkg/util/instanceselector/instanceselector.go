@@ -369,7 +369,7 @@ func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, i
 			return !inst.Burstable
 		})
 		cheapestInstance = findCheapestInstance(matches)
-	} else if (rs.SustainedCPU != nil && *rs.SustainedCPU == false) ||
+	} else if (rs.SustainedCPU != nil && !*rs.SustainedCPU) ||
 		!instSel.sustainedCPUSupport {
 		// In this case, we don't have to worry about T2.unlimited so
 		// we just match the CPU requirements

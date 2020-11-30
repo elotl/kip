@@ -188,10 +188,7 @@ func (reg *EventRegistry) ListEventsByObject(obj *api.ObjectReference) (*api.Eve
 
 func (reg *EventRegistry) Get(name string) (api.MilpaObject, error) {
 	evs, err := reg.ListEvents(func(e *api.Event) bool {
-		if e.Name == name {
-			return true
-		}
-		return false
+		return e.Name == name
 	})
 	if err != nil {
 		return nil, err

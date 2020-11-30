@@ -549,9 +549,9 @@ func k8sToMilpaPod(pod *v1.Pod) *api.Pod {
 		if pod.Spec.HostIPC {
 			mpsc.NamespaceOptions.Ipc = api.NamespaceModeNode
 		}
-		if pod.Spec.ShareProcessNamespace != nil {
-			// TODO: containers share pid namespace in the pod.
-		}
+		//if pod.Spec.ShareProcessNamespace != nil {
+		//	// TODO: containers share pid namespace in the pod.
+		//}
 		mpsc.Sysctls = make([]api.Sysctl, len(podsc.Sysctls))
 		for i, sysctl := range podsc.Sysctls {
 			mpsc.Sysctls[i] = api.Sysctl{

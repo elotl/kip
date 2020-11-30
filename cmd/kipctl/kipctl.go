@@ -39,7 +39,7 @@ var (
 		Short:      cliDescription,
 		SuggestFor: []string{"kipctl"},
 		Run: func(cmd *cobra.Command, args []string) {
-			goflag.CommandLine.Parse([]string{})
+			_ = goflag.CommandLine.Parse([]string{})
 			if version {
 				fmt.Printf("%s version %s\n", cliName, util.Version())
 				os.Exit(0)

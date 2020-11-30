@@ -349,7 +349,7 @@ func TestCreateResolvconf(t *testing.T) {
 		defaultSearch,
 		defaultOptions,
 	)
-	ioutil.WriteFile(
+	_ = ioutil.WriteFile(
 		resolvconfPath,
 		[]byte(defaultResolver),
 		0644,

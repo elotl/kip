@@ -78,7 +78,6 @@ func (fw *File) refresh() {
 		}
 		fw.statTime = now
 	}
-	return
 }
 
 func (fw *File) Contents() string {

@@ -156,10 +156,10 @@ func remedyFailedPod(pod *api.Pod, podRegistry *registry.PodRegistry) {
 		}
 		klog.Warningf("%s", msg)
 		cleanFailedPodStatus(pod)
-		podRegistry.UpdatePodStatus(pod, msg)
+		_, _ = podRegistry.UpdatePodStatus(pod, msg)
 	} else {
 		klog.Errorf("pod %s has failed to start %d times. Not trying again, pod has failed", pod.Name, pod.Status.StartFailures)
-		podRegistry.TerminatePod(pod, api.PodFailed,
+		_ = podRegistry.TerminatePod(pod, api.PodFailed,
 			"Pod failed: too many start failures")
 	}
 }

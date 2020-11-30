@@ -229,7 +229,7 @@ func TestStartNodeFails(t *testing.T) {
 }
 
 func OKResponse(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("pong"))
+	_, _ = w.Write([]byte("pong"))
 }
 
 func TestSingleHeartbeat(t *testing.T) {
@@ -410,7 +410,7 @@ func TestNoHeartbeatsForClaimed(t *testing.T) {
 	assert.Nil(t, err)
 	ctl.sendOutHeartbeats(nodes, heartbeats)
 	select {
-	case _ = <-heartbeats:
+	case <-heartbeats:
 		assert.Fail(t, "Got heartbeat from claimed node")
 	case <-time.After(time.Second * 1):
 		// No heartbeats for claimed nodes.

@@ -31,7 +31,7 @@ func ciTmpFile(t *testing.T, contents string) (string, func()) {
 	if err != nil {
 		t.FailNow()
 	}
-	tempFile.Write([]byte(contents))
+	_, _ = tempFile.Write([]byte(contents))
 	return tempFile.Name(), func() { os.Remove(tempFile.Name()) }
 }
 

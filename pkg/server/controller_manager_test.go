@@ -32,7 +32,7 @@ func (c *FakeController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
 	c.StartCalled += 1
 	wg.Add(1)
 	defer wg.Done()
-	select {
+	select {//nolint
 	case <-quit:
 		return
 	}

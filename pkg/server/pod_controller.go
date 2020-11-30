@@ -140,10 +140,10 @@ func (c *PodController) Dump() []byte {
 		ControlLoopTimer stats.LoopTimer
 		CleanTimer       stats.LoopTimer
 	}{
-		ControlLoopTimer: c.controlLoopTimer,
-		CleanTimer:       c.cleanTimer,
+		ControlLoopTimer: *c.controlLoopTimer.Copy(),
+		CleanTimer:       *c.cleanTimer.Copy(),
 	}
-	b, err := json.MarshalIndent(dumpStruct, "", "    ")
+	b, err := json.MarshalIndent(dumpStruct, "", "    ")//nolint
 	if err != nil {
 		klog.Errorln("Error dumping data from PodController", err)
 		return nil
@@ -863,12 +863,12 @@ func (c *PodController) schedulePod(pod *api.Pod) {
 }
 
 func (c *PodController) terminateUnboundPod(pod *api.Pod) {
-	c.podRegistry.TerminatePod(pod, api.PodTerminated, "Terminating unbound pod")
+	_ = c.podRegistry.TerminatePod(pod, api.PodTerminated, "Terminating unbound pod")
 }
 
 func (c *PodController) terminateBoundPod(pod *api.Pod) {
 	c.savePodLogs(pod)
-	c.podRegistry.TerminatePod(pod, api.PodTerminated, "Terminating bound pod")
+	_ = c.podRegistry.TerminatePod(pod, api.PodTerminated, "Terminating bound pod")
 
 	go func() {
 		// Return node.

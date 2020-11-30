@@ -95,7 +95,7 @@ func (cm *ControllerManager) WaitForShutdown(systemShutdown <-chan struct{}, sys
 	systemWG.Add(1)
 	defer systemWG.Done()
 
-	select {
+	select {//nolint
 	case <-systemShutdown:
 		klog.V(2).Infof("Shutting down controllers")
 		cm.StopControllers()

@@ -47,7 +47,7 @@ func (v *Error) ErrorBody() string {
 	var s string
 	switch v.Type {
 	case ErrorTypeRequired, ErrorTypeForbidden, ErrorTypeTooLong, ErrorTypeInternal:
-		s = fmt.Sprintf("%s", v.Type)
+		s = string(v.Type)
 	default:
 		var bad string
 		badBytes, err := json.Marshal(v.BadValue)

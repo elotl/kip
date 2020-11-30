@@ -98,8 +98,7 @@ func (c *NodeController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
 }
 
 func (c *NodeController) Dump() []byte {
-	t := c.PoolLoopTimer.Copy()
-	b, err := json.MarshalIndent(*t, "", "    ")
+	b, err := json.MarshalIndent(c.PoolLoopTimer.Copy(), "", "    ")
 	if err != nil {
 		klog.Errorln("Error dumping data from NodeController", err)
 		return nil
@@ -256,7 +255,7 @@ func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
 			klog.Errorf("Error creating node in registry: %v", err)
 			continue
 		}
-		go c.startSingleNode(newNode, image, metadata)
+		go c.startSingleNode(newNode, image, metadata) //nolint
 	}
 }
 
@@ -393,7 +392,6 @@ func (c *NodeController) sendOutHeartbeats(allNodes *api.NodeList, heartbeats ch
 		// todo, add jitter here
 		go singleNodeHeartbeat(n, client, heartbeats)
 	}
-	return
 }
 
 // If the controller was shut down while creating a node, it will
@@ -450,7 +448,7 @@ func (c *NodeController) ResumeWaits() {
 				}
 			}
 			return c.waitForAvailableOrTerminate(node, BootTimeout)
-		}(node)
+		}(node) //nolint
 	}
 }
 
@@ -478,7 +476,6 @@ func (c *NodeController) markUnhealthyNodes(allNodes *api.NodeList, LastHeartbea
 			klog.Errorf("Error marking node %s for termination", node.Name)
 		}
 	}
-	return
 }
 
 // go through and remove any heartbeat records for nodes
@@ -492,7 +489,7 @@ func pruneHeartbeats(allNodes *api.NodeList, lastHeartbeat map[string]time.Time)
 	}
 	// According to the internet, deletes over range is safe
 	// Also, dogs can't look up.
-	for nodeName, _ := range lastHeartbeat {
+	for nodeName := range lastHeartbeat {
 		if !nodeSet[nodeName] {
 			delete(lastHeartbeat, nodeName)
 		}
@@ -583,7 +580,7 @@ func (c NodeController) reaperLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 				if node.Status.BoundPodName != "" {
 					c.removePodFromNode(node)
 				}
-				go c.stopSingleNode(node)
+				go c.stopSingleNode(node) //nolint
 			}
 		case <-quit:
 			ticker.Stop()
@@ -646,7 +643,7 @@ func (c *NodeController) dispatchNodesLoop(quit <-chan struct{}, wg *sync.WaitGr
 				if returnedNodeMsg.Unused {
 					go c.cleanUnusedNode(returnedNodeMsg.NodeName)
 				} else {
-					go c.cleanUsedNode(returnedNodeMsg.NodeName)
+					go c.cleanUsedNode(returnedNodeMsg.NodeName) //nolint
 				}
 			case <-quit:
 				return
@@ -673,7 +670,7 @@ func (c *NodeController) cleanUnusedNode(name string) {
 			name, err)
 		// if things went wrong when putting it back into available, try to
 		// clean it.
-		go c.cleanUsedNode(name)
+		go c.cleanUsedNode(name) //nolint
 	}
 }
 

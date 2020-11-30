@@ -31,7 +31,7 @@ func MapUserDiff(spec, status map[string]interface{}, differ func(a, b interface
 	add := make([]string, 0)
 	update := make([]string, 0)
 	delete := make([]string, 0)
-	for k, _ := range status {
+	for k := range status {
 		_, exists := spec[k]
 		if !exists {
 			delete = append(delete, k)
