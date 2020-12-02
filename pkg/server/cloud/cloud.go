@@ -38,12 +38,15 @@ const NameTagKey = "Name"
 const NamespaceTagKey = "KipNamespace"
 const NametagTagKey = "KipNametag"
 const PodNameTagKey = "KipPodName"
+const AWSUserIDTagKey = "AWSUserID"
+
+const InstanceParameterCertificate = "certificate"
 
 type CloudClient interface {
 	SetBootSecurityGroupIDs([]string)
 	GetBootSecurityGroupIDs() []string
-	StartNode(*api.Node, Image, string) (string, error)
-	StartSpotNode(*api.Node, Image, string) (string, error)
+	StartNode(*api.Node, Image, string, string) (string, error)
+	StartSpotNode(*api.Node, Image, string, string) (string, error)
 	// This should always be called from a goroutine as it can take a while
 	StopInstance(instanceID string) error
 	WaitForRunning(node *api.Node) ([]api.NetworkAddress, error)
@@ -65,6 +68,8 @@ type CloudClient interface {
 	GetDNSInfo() ([]string, []string, error)
 	GetAttributes() CloudAttributes
 	IsAvailable() (bool, error)
+	AddInstanceParameter(instanceID, key, value string, isSecret bool) error
+	DeleteInstanceParameter(instanceID, key string) error
 }
 
 type CloudAttributes struct {
@@ -105,10 +110,10 @@ type SubnetAttributes struct {
 }
 
 type Image struct {
-	ID           string
-	Name         string
-	RootDevice   string
-	CreationTime *time.Time
+	ID             string
+	Name           string
+	RootDevice     string
+	CreationTime   *time.Time
 	VolumeDiskSize int32 // in GiB
 }
 

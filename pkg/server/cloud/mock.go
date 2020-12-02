@@ -33,8 +33,8 @@ type MockCloudClient struct {
 	VPCCIDRs     []string
 	Subnet       SubnetAttributes
 
-	Starter             func(node *api.Node, image Image, metadata string) (string, error)
-	SpotStarter         func(node *api.Node, image Image, metadata string) (string, error)
+	Starter             func(node *api.Node, image Image, metadata, iamPermissions string) (string, error)
+	SpotStarter         func(node *api.Node, image Image, metadata, iamPermissions string) (string, error)
 	Stopper             func(instanceID string) error
 	Waiter              func(node *api.Node) ([]api.NetworkAddress, error)
 	Lister              func() ([]CloudInstance, error)
@@ -60,6 +60,17 @@ type MockCloudClient struct {
 	ContainerInstanceRunner          func(*api.Pod) (string, error)
 	ContainerInstanceStopper         func(string) error
 	ContainerInstanceWaiter          func(*api.Pod) (*api.Pod, error)
+
+	InstanceParameterAdder   func(instanceID, key, value string, isSecret bool) error
+	InstanceParameterRemover func(instanceID, key string) error
+}
+
+func (m *MockCloudClient) AddInstanceParameter(instanceID, key, value string, isSecret bool) error {
+	return m.InstanceParameterAdder(instanceID, key, value, isSecret)
+}
+
+func (m *MockCloudClient) DeleteInstanceParameter(instanceID, key string) error {
+	return m.InstanceParameterRemover(instanceID, key)
 }
 
 func (m *MockCloudClient) SetBootSecurityGroupIDs([]string) {
@@ -69,12 +80,12 @@ func (m *MockCloudClient) GetBootSecurityGroupIDs() []string {
 	return nil
 }
 
-func (m *MockCloudClient) StartNode(node *api.Node, image Image, metadata string) (string, error) {
-	return m.Starter(node, image, metadata)
+func (m *MockCloudClient) StartNode(node *api.Node, image Image, metadata, iamPermissions string) (string, error) {
+	return m.Starter(node, image, metadata, iamPermissions)
 }
 
-func (m *MockCloudClient) StartSpotNode(node *api.Node, image Image, metadata string) (string, error) {
-	return m.SpotStarter(node, image, metadata)
+func (m *MockCloudClient) StartSpotNode(node *api.Node, image Image, metadata, iamPermissions string) (string, error) {
+	return m.SpotStarter(node, image, metadata, iamPermissions)
 }
 
 func (m *MockCloudClient) StopInstance(instanceID string) error {
@@ -301,7 +312,7 @@ func NewMockClient() *MockCloudClient {
 		return []string{"cloud.internal"}, []string{"1.1.1.1"}, nil
 	}
 
-	net.Starter = func(node *api.Node, image Image, metadata string) (string, error) {
+	net.Starter = func(node *api.Node, image Image, metadata, iamPermissions string) (string, error) {
 		inst := CloudInstance{
 			ID:       node.Status.InstanceID,
 			NodeName: node.Name,
@@ -315,6 +326,23 @@ func NewMockClient() *MockCloudClient {
 			return fmt.Errorf("Instance %s does not exist", instID)
 		}
 		delete(net.Instances, instID)
+		return nil
+	}
+
+	instanceParameters := make(map[string]string)
+
+	net.InstanceParameterAdder = func(instanceID, key, value string, isSecret bool) error {
+		instanceParameters[fmt.Sprintf("%s/%s", instanceID, key)] = value
+		return nil
+	}
+
+	net.InstanceParameterRemover = func(instanceID, key string) error {
+		fullKey := fmt.Sprintf("%s/%s", instanceID, key)
+		_, ok := instanceParameters[fullKey]
+		if !ok {
+			return fmt.Errorf("mock InstanceParameterRemove() no such parameter %s", fullKey)
+		}
+		delete(instanceParameters, fullKey)
 		return nil
 	}
 

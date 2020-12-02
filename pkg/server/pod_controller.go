@@ -501,11 +501,6 @@ func (c *PodController) dispatchPodToNode(pod *api.Pod, node *api.Node) {
 	}
 
 	permissions := pod.Annotations[annotations.PodInstanceProfile]
-	if len(permissions) == 0 {
-		// This is called defaultIAMPermissions, and the semantics are
-		// cloud-specific. For example, on AWS this is an IAM instance profile.
-		permissions = c.defaultIAMPermissions
-	}
 	if len(permissions) != 0 {
 		err := c.cloudClient.AddIAMPermissions(node, permissions)
 		if err != nil {

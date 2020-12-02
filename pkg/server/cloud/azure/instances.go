@@ -150,7 +150,7 @@ func (az *AzureClient) createNIC(instanceID string, ipID string) (string, error)
 	return to.String(nic.ID), nil
 }
 
-func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
+func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	instanceID := makeInstanceID(az.controllerID, node.Name)
 	err := az.createResourceGroup(instanceID)
@@ -260,8 +260,8 @@ func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata str
 	return instanceID, nil
 }
 
-func (az *AzureClient) StartSpotNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
-	return az.StartNode(node, image, metadata)
+func (az *AzureClient) StartSpotNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+	return az.StartNode(node, image, metadata, iamPermissions)
 }
 
 func (az *AzureClient) getNodeTags(node *api.Node) map[string]*string {

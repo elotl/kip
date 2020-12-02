@@ -304,10 +304,10 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 		}
 		rootDiskSize := getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
 		images[i] = cloud.Image{
-			Name:         aws.StringValue(img.Name),
-			RootDevice:   aws.StringValue(img.RootDeviceName),
-			ID:           aws.StringValue(img.ImageId),
-			CreationTime: creationTime,
+			Name:           aws.StringValue(img.Name),
+			RootDevice:     aws.StringValue(img.RootDeviceName),
+			ID:             aws.StringValue(img.ImageId),
+			CreationTime:   creationTime,
 			VolumeDiskSize: rootDiskSize,
 		}
 	}
@@ -315,7 +315,7 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	return images[len(images)-1], nil
 }
 
-func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
+func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	tags := e.getNodeTags(node)
 	tagSpec := ec2.TagSpecification{
@@ -336,6 +336,7 @@ func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata string) (
 		NetworkInterfaces:   networkSpec,
 		BlockDeviceMappings: devices,
 		UserData:            aws.String(metadata),
+		IamInstanceProfile:  getIAMInstanceProfileSpecification(iamPermissions),
 	})
 	if err != nil {
 		if isSubnetConstrainedError(err) {
@@ -358,9 +359,22 @@ func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata string) (
 	return cloudID, nil
 }
 
+func getIAMInstanceProfileSpecification(iamPermissions string) *ec2.IamInstanceProfileSpecification {
+	if iamPermissions == "" {
+		return nil
+	}
+	profile := &ec2.IamInstanceProfileSpecification{}
+	if strings.Contains(iamPermissions, ":") {
+		profile.Arn = aws.String(iamPermissions)
+	} else {
+		profile.Name = aws.String(iamPermissions)
+	}
+	return profile
+}
+
 // This isn't terribly different from Start node but there are
 // some minor differences.  We'll capture errors correctly here and there
-func (e *AwsEC2) StartSpotNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
+func (e *AwsEC2) StartSpotNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	tags := e.getNodeTags(node)
 	tagSpec := ec2.TagSpecification{
@@ -391,6 +405,7 @@ func (e *AwsEC2) StartSpotNode(node *api.Node, image cloud.Image, metadata strin
 				SpotInstanceType:             aws.String("one-time"),
 			},
 		},
+		IamInstanceProfile: getIAMInstanceProfileSpecification(iamPermissions),
 	})
 
 	if err != nil {
@@ -647,12 +662,59 @@ func isUnsupportedInstanceError(err error) bool {
 // InvalidAvailabilityZone
 
 func (e *AwsEC2) AddIAMPermissions(node *api.Node, instanceProfile string) error {
-	_, err := e.client.AssociateIamInstanceProfile(
-		&ec2.AssociateIamInstanceProfileInput{
-			IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
-				Arn: aws.String(instanceProfile),
+	instanceID := node.Status.InstanceID
+	out, err := e.client.DescribeIamInstanceProfileAssociations(
+		&ec2.DescribeIamInstanceProfileAssociationsInput{
+			Filters: []*ec2.Filter{
+				{
+					Name:   aws.String("instance-id"),
+					Values: aws.StringSlice([]string{instanceID}),
+				},
 			},
-			InstanceId: aws.String(node.Status.InstanceID),
 		})
-	return err
+	if err != nil {
+		return util.WrapError(err, "DescribeIamInstanceProfileAssociations() "+instanceID)
+	}
+
+	if out == nil || len(out.IamInstanceProfileAssociations) == 0 {
+		klog.V(5).Infof("adding IAM instance profile %s to instance %s", instanceProfile, instanceID)
+		_, err = e.client.AssociateIamInstanceProfile(
+			&ec2.AssociateIamInstanceProfileInput{
+				IamInstanceProfile: getIAMInstanceProfileSpecification(instanceProfile),
+				InstanceId:         aws.String(instanceID),
+			})
+		if err != nil {
+			return util.WrapError(err, "AssociateIamInstanceProfile() "+instanceID)
+		}
+		klog.V(5).Infof("added IAM instance profile %s to %s", instanceProfile, instanceID)
+		return nil
+	}
+
+	n := len(out.IamInstanceProfileAssociations)
+	if n > 1 {
+		klog.Warningf("DescribeIamInstanceProfileAssociations() %s: got %d results", instanceID, n)
+	}
+
+	for _, association := range out.IamInstanceProfileAssociations {
+		if association == nil {
+			return fmt.Errorf("DescribeIamInstanceProfileAssociations() %s: nil association", instanceID)
+		}
+		klog.V(5).Infof("replacing current IAM instance profile %s on %s association ID %s state %s",
+			aws.StringValue(out.IamInstanceProfileAssociations[0].IamInstanceProfile.Arn),
+			aws.StringValue(out.IamInstanceProfileAssociations[0].InstanceId),
+			aws.StringValue(out.IamInstanceProfileAssociations[0].AssociationId),
+			aws.StringValue(out.IamInstanceProfileAssociations[0].State))
+		_, err = e.client.ReplaceIamInstanceProfileAssociation(
+			&ec2.ReplaceIamInstanceProfileAssociationInput{
+				AssociationId:      association.AssociationId,
+				IamInstanceProfile: getIAMInstanceProfileSpecification(instanceProfile),
+			})
+		if err != nil {
+			return util.WrapError(err, "ReplaceIamInstanceProfileAssociation() "+instanceID)
+		}
+		klog.V(5).Infof("replaced IAM instance profile association %s to %s for %s",
+			aws.StringValue(association.AssociationId), instanceProfile, instanceID)
+	}
+
+	return nil
 }

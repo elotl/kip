@@ -22,24 +22,17 @@ package cloudinitfile
 import (
 	"fmt"
 	"io/ioutil"
-	"regexp"
+	"path/filepath"
+	"strings"
 
 	"github.com/elotl/kip/pkg/util"
 	"github.com/go-yaml/yaml"
 )
 
-const semverRegexFmt string = `v?([0-9]+)(\.[0-9]+)(\.[0-9]+)?` +
-	`(-([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?` +
-	`(\+([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?`
-
 var (
 	itzoDir          = "/tmp/itzo"
-	ItzoVersionPath  = itzoDir + "/itzo_version"
-	ItzoURLPath      = itzoDir + "/itzo_url"
-	CellConfigPath   = itzoDir + "/cell_config.yaml"
 	cloudInitHeader  = []byte("#cloud-config\n")
 	maxCloudInitSize = 16000
-	semverRegex      = regexp.MustCompile("^" + semverRegexFmt + "$")
 )
 
 type File struct {
@@ -68,6 +61,9 @@ func (f *File) ResetInstanceData() {
 }
 
 func (f *File) AddKipFile(content, path, permissions string) {
+	if !strings.Contains(path, string(filepath.Separator)) {
+		path = filepath.Join(itzoDir, path)
+	}
 	f.kipFiles[path] = CloudInitFile{
 		Content:            content,
 		Path:               path,
@@ -83,38 +79,6 @@ func loadUserCloudConfig(path string) (ucc CloudConfig, err error) {
 	}
 	err = yaml.Unmarshal([]byte(contents), &ucc)
 	return ucc, err
-}
-
-// Adds an itzo version number to cloud-init file.  If the user
-// didn't specify "latest" but they left off the leading 'v'
-// then add it on (itzo files are named like: itzo-v1.2.3)
-func (f *File) AddItzoVersion(version string) {
-	if version == "" {
-		return
-	} else if version != "latest" &&
-		version[0] != 'v' &&
-		semverRegex.MatchString(version) {
-		version = "v" + version
-	}
-	f.AddKipFile(version, ItzoVersionPath, "0444")
-}
-
-func (f *File) AddItzoURL(url string) {
-	if url == "" {
-		return
-	}
-	f.AddKipFile(url, ItzoURLPath, "0444")
-}
-
-func (f *File) AddCellConfig(cfg map[string]string) {
-	if len(cfg) == 0 {
-		return
-	}
-	buf, err := yaml.Marshal(cfg)
-	if err != nil {
-		return
-	}
-	f.AddKipFile(string(buf), CellConfigPath, "0444")
 }
 
 func (f *File) Contents() ([]byte, error) {

@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"path"
 	"reflect"
 	"sync"
 	"time"
@@ -59,12 +58,14 @@ var (
 // 2. The heartbeat interval should be longer than the heartbeat
 // client timeout.
 type NodeControllerConfig struct {
-	PoolInterval      time.Duration
-	HeartbeatInterval time.Duration
-	ReaperInterval    time.Duration
-	ItzoVersion       string
-	ItzoURL           string
-	CellConfig        map[string]string
+	PoolInterval           time.Duration
+	HeartbeatInterval      time.Duration
+	ReaperInterval         time.Duration
+	ItzoVersion            string
+	ItzoURL                string
+	CellConfig             map[string]string
+	UseCloudParameterStore bool
+	DefaultIAMPermissions  string
 }
 
 type NodeController struct {
@@ -183,34 +184,21 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 }
 
 func (c *NodeController) getInstanceCloudInit() error {
-	cert, key, err := c.CertificateFactory.CreateNodeCertAndKey()
-	if err != nil {
-		return util.WrapError(err, "Error creating node cert")
-	}
-	certBytes, err := certs.MarshalCert(cert)
-	if err != nil {
-		return util.WrapError(err, "Error serializing node cert")
-	}
-	keyBytes, err := certs.MarshalKey(key)
-	if err != nil {
-		return util.WrapError(err, "Error serializing node key")
-	}
-	rootCertBytes, err := certs.MarshalCert(&c.CertificateFactory.Root)
-	if err != nil {
-		return util.WrapError(err, "Error serializing root cert")
-	}
-
 	c.CloudInitFile.ResetInstanceData()
-	c.CloudInitFile.AddKipFile(
-		string(rootCertBytes), path.Join(itzoDir, "ca.crt"), "0644")
-	c.CloudInitFile.AddKipFile(
-		string(certBytes), path.Join(itzoDir, "server.crt"), "0644")
-	c.CloudInitFile.AddKipFile(
-		string(keyBytes), path.Join(itzoDir, "server.key"), "0600")
-	c.CloudInitFile.AddItzoVersion(c.Config.ItzoVersion)
-	c.CloudInitFile.AddItzoURL(c.Config.ItzoURL)
-	if len(c.Config.CellConfig) > 0 {
-		c.CloudInitFile.AddCellConfig(c.Config.CellConfig)
+	if !c.Config.UseCloudParameterStore {
+		// Use instance metadata to distribute parameters and configuration to
+		// instances.
+		params, err := getInstanceParameters(c.CertificateFactory, InstanceConfig{
+			ItzoURL:     c.Config.ItzoURL,
+			ItzoVersion: c.Config.ItzoVersion,
+			CellConfig:  c.Config.CellConfig,
+		})
+		if err != nil {
+			return util.WrapError(err, "getInstanceParameters() for instance metadata failed")
+		}
+		for key, value := range params {
+			c.CloudInitFile.AddKipFile(value, key, "0400")
+		}
 	}
 	return nil
 }
@@ -278,9 +266,9 @@ func (c *NodeController) startSingleNode(node *api.Node, image cloud.Image, clou
 		err        error
 	)
 	if node.Spec.Spot {
-		instanceID, err = c.CloudClient.StartSpotNode(node, image, cloudInitData)
+		instanceID, err = c.CloudClient.StartSpotNode(node, image, cloudInitData, c.Config.DefaultIAMPermissions)
 	} else {
-		instanceID, err = c.CloudClient.StartNode(node, image, cloudInitData)
+		instanceID, err = c.CloudClient.StartNode(node, image, cloudInitData, c.Config.DefaultIAMPermissions)
 	}
 	if err != nil {
 		c.handleStartNodeError(node, err, false)
@@ -297,6 +285,33 @@ func (c *NodeController) startSingleNode(node *api.Node, image cloud.Image, clou
 }
 
 func (c *NodeController) finishNodeStart(node *api.Node) error {
+	instanceID := node.Status.InstanceID
+
+	if c.Config.UseCloudParameterStore {
+		params, err := getMarshalledInstanceParameters(c.CertificateFactory, InstanceConfig{
+			ItzoURL:     c.Config.ItzoURL,
+			ItzoVersion: c.Config.ItzoVersion,
+			CellConfig:  c.Config.CellConfig,
+		})
+		if err != nil {
+			_ = c.stopSingleNode(node)
+			wrapErr := fmt.Errorf("createMarshalledNodeCertAndKey() for %s: %v", instanceID, err)
+			klog.Errorf("%v", wrapErr)
+			return wrapErr
+		}
+		// We could add parameters one by one, but there are limits on the
+		// number of parameters per account in AWS. Let's keep it compact, and
+		// pass everything in one go, letting the cloud backend split it into
+		// chunks if necessary.
+		err = c.CloudClient.AddInstanceParameter(instanceID, "config", params, true)
+		if err != nil {
+			_ = c.stopSingleNode(node)
+			wrapErr := fmt.Errorf("AddInstanceParameter() for %s: %v", instanceID, err)
+			klog.Errorf("%v", wrapErr)
+			return wrapErr
+		}
+	}
+
 	node.Status.Phase = api.NodeCreated
 	_, _ = c.NodeRegistry.UpdateStatus(node)
 	c.Events.Emit(events.NodeCreated, "node-created", node, "")
@@ -327,7 +342,14 @@ func (c *NodeController) stopSingleNode(node *api.Node) error {
 	}
 	c.NodeClientFactory.DeleteClient(node.Status.Addresses)
 	go func(n *api.Node) {
-		_ = c.CloudClient.StopInstance(n.Status.InstanceID)
+		err = c.CloudClient.StopInstance(n.Status.InstanceID)
+		if err != nil {
+			klog.Warningf("stopping instance %s: %v", n.Status.InstanceID, err)
+		}
+		err = c.CloudClient.DeleteInstanceParameter(n.Status.InstanceID, "")
+		if err != nil {
+			klog.Warningf("deleting parameters for instance %s: %v", n.Status.InstanceID, err)
+		}
 		_, err := c.NodeRegistry.PurgeNode(node)
 		if err != nil {
 			klog.Errorf("Could not mark node %s as terminated: %v", n.Name, err)
