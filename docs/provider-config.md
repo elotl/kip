@@ -245,6 +245,4 @@ cells:
   #   imageCacheEndpoint: 10.20.0.2:/data
   #   imageCacheMountDir: /var/cache/images
   #   imageCacheMountOpts: -o ro
-  #   # this will switch itzo runtime to use podman.io
-  #   usePodman: true
 ```
