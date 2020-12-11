@@ -700,10 +700,10 @@ func (e *AwsEC2) AddIAMPermissions(node *api.Node, instanceProfile string) error
 			return fmt.Errorf("DescribeIamInstanceProfileAssociations() %s: nil association", instanceID)
 		}
 		klog.V(5).Infof("replacing current IAM instance profile %s on %s association ID %s state %s",
-			aws.StringValue(out.IamInstanceProfileAssociations[0].IamInstanceProfile.Arn),
-			aws.StringValue(out.IamInstanceProfileAssociations[0].InstanceId),
-			aws.StringValue(out.IamInstanceProfileAssociations[0].AssociationId),
-			aws.StringValue(out.IamInstanceProfileAssociations[0].State))
+			aws.StringValue(association.IamInstanceProfile.Arn),
+			aws.StringValue(association.InstanceId),
+			aws.StringValue(association.AssociationId),
+			aws.StringValue(association.State))
 		_, err = e.client.ReplaceIamInstanceProfileAssociation(
 			&ec2.ReplaceIamInstanceProfileAssociationInput{
 				AssociationId:      association.AssociationId,
@@ -714,6 +714,7 @@ func (e *AwsEC2) AddIAMPermissions(node *api.Node, instanceProfile string) error
 		}
 		klog.V(5).Infof("replaced IAM instance profile association %s to %s for %s",
 			aws.StringValue(association.AssociationId), instanceProfile, instanceID)
+		break
 	}
 
 	return nil
