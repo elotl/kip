@@ -295,7 +295,7 @@ func (c *NodeController) finishNodeStart(node *api.Node) error {
 		})
 		if err != nil {
 			_ = c.stopSingleNode(node)
-			wrapErr := fmt.Errorf("createMarshalledNodeCertAndKey() for %s: %v", instanceID, err)
+			wrapErr := fmt.Errorf("getMarshalledInstanceParameters() for %s: %v", instanceID, err)
 			klog.Errorf("%v", wrapErr)
 			return wrapErr
 		}
