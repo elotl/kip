@@ -1,6 +1,6 @@
 # Pricing updater
 
-This app gets pricing data for given region and provider from cloudinfo, converts it to format that KIP understands and creates ConfigMap, which KIP can use.
+This tool gets pricing data for given region and provider from cloudinfo, converts it to format that KIP understands and creates ConfigMap (or dumps to json), which KIP can use.
 
 ## Data format:
 ```json
@@ -21,3 +21,6 @@ This app gets pricing data for given region and provider from cloudinfo, convert
     ]
 }
 ```
+
+## Refresh data
+To override KIP instance data, run `make update-pricing-data` from kip root dir.
