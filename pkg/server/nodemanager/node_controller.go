@@ -185,20 +185,22 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 
 func (c *NodeController) getInstanceCloudInit() error {
 	c.CloudInitFile.ResetInstanceData()
-	if !c.Config.UseCloudParameterStore {
-		// Use instance metadata to distribute parameters and configuration to
-		// instances.
-		params, err := getInstanceParameters(c.CertificateFactory, InstanceConfig{
-			ItzoURL:     c.Config.ItzoURL,
-			ItzoVersion: c.Config.ItzoVersion,
-			CellConfig:  c.Config.CellConfig,
-		})
-		if err != nil {
-			return util.WrapError(err, "getInstanceParameters() for instance metadata failed")
-		}
-		for key, value := range params {
-			c.CloudInitFile.AddKipFile(value, key, "0400")
-		}
+	if c.Config.UseCloudParameterStore {
+		return nil
+	}
+
+	// Use instance metadata to distribute parameters and configuration to
+	// instances.
+	params, err := getInstanceParameters(c.CertificateFactory, InstanceConfig{
+		ItzoURL:     c.Config.ItzoURL,
+		ItzoVersion: c.Config.ItzoVersion,
+		CellConfig:  c.Config.CellConfig,
+	})
+	if err != nil {
+		return util.WrapError(err, "getInstanceParameters() for instance metadata failed")
+	}
+	for key, value := range params {
+		c.CloudInitFile.AddKipFile(value, key, "0400")
 	}
 	return nil
 }
