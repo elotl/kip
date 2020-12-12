@@ -260,7 +260,7 @@ EOF
 
 // this function handles the starting of both regular and spot type instances
 // it is called in the exported StartNode and StartSpotNode functions
-func (c *gceClient) startNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
+func (c *gceClient) startNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	spec, err := c.createInstanceSpec(node, image, metadata)
 	if err != nil {
@@ -283,15 +283,15 @@ func (c *gceClient) startNode(node *api.Node, image cloud.Image, metadata string
 	return spec.Name, nil
 }
 
-func (c *gceClient) StartNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
-	return c.startNode(node, image, metadata)
+func (c *gceClient) StartNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+	return c.startNode(node, image, metadata, iamPermissions)
 }
 
 // In we dictate whether the node is a spot based on the node passed in
 // this is decided in createInstanceSpec which is called in the unexported
 // startNode function. StartSpotNode is necessary to fullfil the interface.
-func (c *gceClient) StartSpotNode(node *api.Node, image cloud.Image, metadata string) (string, error) {
-	return c.startNode(node, image, metadata)
+func (c *gceClient) StartSpotNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+	return c.startNode(node, image, metadata, iamPermissions)
 }
 
 func (c *gceClient) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
@@ -531,10 +531,10 @@ func (c *gceClient) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	diskSize := int32(resp.DiskSizeGb)
 	// TODO: these values seem to be reversed?
 	return cloud.Image{
-		ID:           resp.Name,
-		Name:         resp.SelfLink,
-		RootDevice:   "",
-		CreationTime: creationTime,
+		ID:             resp.Name,
+		Name:           resp.SelfLink,
+		RootDevice:     "",
+		CreationTime:   creationTime,
 		VolumeDiskSize: diskSize,
 	}, nil
 }

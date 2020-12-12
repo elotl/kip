@@ -252,6 +252,8 @@ resource "aws_iam_policy" "k8s_node_k8s_policy" {
         "ecs:DescribeTasks",
         "ec2:CreateNetworkInterface",
         "ec2:RequestSpotInstances",
+        "ec2:DescribeIamInstanceProfileAssociations",
+        "ec2:ReplaceIamInstanceProfileAssociation",
         "ecs:StopTask",
         "elasticloadbalancing:AddTags",
         "elasticloadbalancing:AddTags",
@@ -284,6 +286,12 @@ resource "aws_iam_policy" "k8s_node_k8s_policy" {
         "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
         "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
         "iam:CreateServiceLinkedRole",
+        "ssm:AddTagsToResource",
+        "ssm:DeleteParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath",
+        "ssm:PutParameter",
         "kms:DescribeKey"
       ],
       "Resource": [
@@ -318,6 +326,7 @@ resource "aws_iam_policy" "k8s_node_kip_policy" {
         "ec2:DeleteSecurityGroup",
         "ec2:DescribeAvailabilityZones",
         "ec2:DescribeDhcpOptions",
+        "ec2:DescribeIamInstanceProfileAssociations",
         "ec2:DescribeImages",
         "ec2:DescribeInstances",
         "ec2:DescribeNetworkInterfaces",
@@ -330,13 +339,21 @@ resource "aws_iam_policy" "k8s_node_kip_policy" {
         "ec2:ModifyInstanceAttribute",
         "ec2:ModifyInstanceCreditSpecification",
         "ec2:ModifyVolume",
+        "ec2:ReplaceIamInstanceProfileAssociation",
         "ec2:RevokeSecurityGroupIngress",
         "ec2:RunInstances",
         "ec2:TerminateInstances",
         "ecr:BatchGetImage",
         "ecr:GetAuthorizationToken",
         "ecr:GetDownloadUrlForLayer",
-        "iam:PassRole"
+        "iam:GetInstanceProfile",
+        "iam:PassRole",
+        "ssm:AddTagsToResource",
+        "ssm:DeleteParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath",
+        "ssm:PutParameter"
       ],
       "Resource": [
         "*"

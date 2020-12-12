@@ -43,3 +43,61 @@ If you build your custom image or use cloud-init to bootstrap cell instances, yo
 On our default images this is done when the image is built, but on custom images you might have take extra steps. Please refer to your cloud provider and operating system documentation on the exact steps.
 
 You can find more information on networking [here](networking.md).
+
+### Cell Configuration via Cloud Parameters
+
+By default, cell configuration (agent certificate and key, cell config yaml, etc) will be sent to cells by Kip via user data in cloud-init.
+
+To use a more secure channel instead, set `cells.useCloudParameterStore` in your provider config:
+
+    cells:
+      ...
+      useCloudParameterStore: true
+
+This is currently only supported on AWS.
+
+Make sure that Kip has the necessary IAM permissions to use SSM. The [default IAM policy](docs/kip-iam-permissions.md) has this.
+
+You can also limit cells to ensure they are only able to read their own parameters, for example:
+
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "",
+                "Effect": "Deny",
+                "Action": "ssm:GetParametersByPath",
+                "Resource": "arn:aws:ssm:<region>:<account ID>:parameter/kip/cells/*"
+            },
+            {
+                "Sid": "",
+                "Effect": "Allow",
+                "Action": [
+                    "ssm:GetParameters",
+                    "ssm:GetParameter"
+                ],
+                "Resource": "arn:aws:ssm:<region>:<account ID>:parameter/kip/cells/*",
+                "Condition": {
+                    "StringEquals": {
+                        "aws:ResourceTag/AWSUserID": "${aws:userid}"
+                    }
+                }
+            },
+            {
+                "Sid": "",
+                "Effect": "Deny",
+                "Action": [
+                    "ssm:GetParameters",
+                    "ssm:GetParameter"
+                ],
+                "Resource": "arn:aws:ssm:<region>:<account ID>:parameter/kip/cells/*",
+                "Condition": {
+                    "StringNotEquals": {
+                        "aws:ResourceTag/AWSUserID": "${aws:userid}"
+                    }
+                }
+            }
+        ]
+    }
+
+This policy needs to be attached to the role used by the instance profile cells use via `cells.defaultIAMPermissions`. Kip tags parameters in SSM with the AWS user ID (which is <role ID from instance profile>:<instance ID>), so cells will only be able to read parameters that are tagged with their user ID.

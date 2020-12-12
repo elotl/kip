@@ -356,12 +356,14 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 	klog.V(5).Infof("creating node controller")
 	nodeController := &nodemanager.NodeController{
 		Config: nodemanager.NodeControllerConfig{
-			PoolInterval:      7 * time.Second,
-			HeartbeatInterval: 10 * time.Second,
-			ReaperInterval:    10 * time.Second,
-			ItzoVersion:       serverConfigFile.Cells.Itzo.Version,
-			ItzoURL:           serverConfigFile.Cells.Itzo.URL,
-			CellConfig:        serverConfigFile.Cells.CellConfig,
+			PoolInterval:           7 * time.Second,
+			HeartbeatInterval:      10 * time.Second,
+			ReaperInterval:         10 * time.Second,
+			ItzoVersion:            serverConfigFile.Cells.Itzo.Version,
+			ItzoURL:                serverConfigFile.Cells.Itzo.URL,
+			CellConfig:             serverConfigFile.Cells.CellConfig,
+			UseCloudParameterStore: serverConfigFile.Cells.UseCloudParameterStore,
+			DefaultIAMPermissions:  serverConfigFile.Cells.DefaultIAMPermissions,
 		},
 		NodeRegistry:  nodeRegistry,
 		LogRegistry:   logRegistry,
