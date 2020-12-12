@@ -17,7 +17,7 @@ const (
 	ParameterServerKey         = "server.key"
 	ParameterItzoVersion       = "itzo_version"
 	ParameterItzoURL           = "itzo_url"
-	ParameterCellConfig        = "cell_config"
+	ParameterCellConfig        = "cell_config.yaml"
 )
 
 var (
