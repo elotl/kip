@@ -14,7 +14,11 @@ const (
 )
 
 var (
-	SupportedProviders = []string{convert.ProviderAWS, convert.ProviderGCE, convert.ProviderAzure}
+	SupportedProviders = []string{
+		convert.ProviderAWS,
+		//convert.ProviderGCE,
+		//convert.ProviderAzure,
+	}
 )
 
 
@@ -31,7 +35,7 @@ func GetResponseBody(url string) ([]byte, error) {
 	return body, nil
 }
 
-func GetSupportedRegions(provider string) ([]string, error) {
+func GetSupportedRegions(provider string) (convert.RegionResp, error) {
 	url := fmt.Sprintf(RegionsUrlPattern, provider)
 	var respStruct convert.RegionResp
 	respBody, err := GetResponseBody(url)
@@ -43,11 +47,7 @@ func GetSupportedRegions(provider string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot unmarshal response: %v", err)
 	}
-	var supportedRegions []string
-	for _, regionObj := range respStruct {
-		supportedRegions = append(supportedRegions, regionObj.Id)
-	}
-	return supportedRegions, nil
+	return respStruct, nil
 
 }
 
@@ -73,7 +73,7 @@ func ValidateURL(provider, region string, skipRegionValidation bool) (string, er
 	// validate region
 	regionIsValid := false
 	for _, regionName := range supportedRegions {
-		if regionName == region {
+		if regionName.Id == region || regionName.Name == region {
 			regionIsValid = true
 			break
 		}

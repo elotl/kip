@@ -1,5 +1,9 @@
 package convert
 
+import (
+	"fmt"
+)
+
 var (
 	customBaselines = map[string]float64{
 		"t2.2xlarge": 1.359,
@@ -18,15 +22,13 @@ var (
 		"t3.micro": 0.2,
 		"t3.nano": 0.1,
 	}
+	// https://cloud.google.com/compute/docs/machine-types#cpu-bursting
+	gceBurstableTypes = []string{"f1-micro", "g1-small", "e2-micro", "e2-small", "e2-medium"}
 )
 
 func CloudInfoRespToKipFormat(resp CloudinfoResponse) ([]TargetInstanceInfo, error)  {
 	var regionPricing []TargetInstanceInfo
 	for _, product := range resp.Products {
-		burstable := product.Burstable
-		if !product.Burstable {
-			burstable = false
-		}
 		generation := "previous"
 		if product.CurrentGeneration {
 			generation = "current"
@@ -38,7 +40,7 @@ func CloudInfoRespToKipFormat(resp CloudinfoResponse) ([]TargetInstanceInfo, err
 			SpotPrice:     getLowestSpotPrice(product),
 			Memory:        product.Memory,
 			InstanceType:  product.Type,
-			Burstable:     burstable,
+			Burstable:     getBurstable(product),
 			CPU:           product.Cpu,
 			GPU:           product.GPU,
 		})
@@ -52,6 +54,20 @@ func getBaseline(instance InstanceInfo) float64 {
 		return baseline
 	}
 	return float64(instance.Cpu)
+}
+
+func getBurstable(instance InstanceInfo) bool {
+	burstable := instance.Burstable
+	if !instance.Burstable {
+		burstable = false
+	}
+	for _, instanceName := range gceBurstableTypes {
+		if instance.Type == instanceName {
+			burstable = true
+			fmt.Printf("set %s as burstable\n", instance.Type)
+		}
+	}
+	return burstable
 }
 
 func getLowestSpotPrice(instance InstanceInfo) float64 {

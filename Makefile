@@ -61,4 +61,3 @@ update-pricing-data: pricing-updater
 	echo "scraping data for all providers"
 	cd scripts/update_instance_data/pricing-updater/ && ./pricing-updater -scrape-all
 	cd scripts/update_instance_data/pricing-updater/scripts && pwd && TOP_KIP_DIR=$(TOP_DIR) go generate
-	echo "kip/pkg/util/instanceselector/instance_data.go updated."

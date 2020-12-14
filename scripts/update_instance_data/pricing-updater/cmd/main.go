@@ -41,11 +41,17 @@ func scrapeAllProvidersAndRegions() {
 		}
 		providerData := make(map[string][]convert.TargetInstanceInfo, 0)
 		for _, region := range providerRegions {
-			regionData, err := scrapeAndConvert(provider, region, true)
+			var regionKey string
+			if provider == convert.ProviderAzure {
+				regionKey = region.Name
+			} else {
+				regionKey = region.Id
+			}
+			regionData, err := scrapeAndConvert(provider, region.Id, true)
 			if err != nil {
 				log.Printf("error getting region %s data for provider %s: %v", region, provider, err)
 			}
-			providerData[region] = regionData
+			providerData[regionKey] = regionData
 		}
 		err = store.SaveAllRegions(providerData, provider)
 		if err != nil {
