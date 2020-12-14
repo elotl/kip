@@ -21,6 +21,14 @@ var (
 		"t3.small": 0.4,
 		"t3.micro": 0.2,
 		"t3.nano": 0.1,
+
+		"t3a.2xlarge": 3.2,
+		"t3a.xlarge": 1.6,
+		"t3a.large": 0.6,
+		"t3a.medium": 0.4,
+		"t3a.small": 0.4,
+		"t3a.micro": 0.2,
+		"t3a.nano": 0.1,
 	}
 	// https://cloud.google.com/compute/docs/machine-types#cpu-bursting
 	gceBurstableTypes = []string{"f1-micro", "g1-small", "e2-micro", "e2-small", "e2-medium"}
@@ -29,10 +37,12 @@ var (
 func CloudInfoRespToKipFormat(resp CloudinfoResponse) ([]TargetInstanceInfo, error)  {
 	var regionPricing []TargetInstanceInfo
 	for _, product := range resp.Products {
-		generation := "previous"
-		if product.CurrentGeneration {
-			generation = "current"
-		}
+		generation := "current"
+		//if !product.CurrentGeneration {
+		//	// TODO - do we want to support previous generation instances?
+		//  // this actually
+		//	continue
+		//}
 		regionPricing = append(regionPricing, TargetInstanceInfo{
 			Baseline:      getBaseline(product),
 			Generation:    generation,

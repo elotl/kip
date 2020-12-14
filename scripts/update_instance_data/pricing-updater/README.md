@@ -2,6 +2,14 @@
 
 This tool gets pricing data for given region and provider from cloudinfo, converts it to format that KIP understands and creates ConfigMap (or dumps to json), which KIP can use.
 
+
+## Supported providers
+[x] AWS
+[x] Azure
+
+
+Warning: GCE is not supported, because cloudinfo doesn't have data about custom instances.
+
 ## Data format:
 ```json
 {

@@ -39,7 +39,7 @@ func TestHappy(t *testing.T) {
 	ps.Resources.DedicatedCPU = true
 	inst, sustainedCPU, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
-	assert.Equal(t, "c5.large", inst)
+	assert.Equal(t, "a1.medium", inst)
 	assert.False(t, *sustainedCPU)
 	ps.Resources = api.ResourceSpec{}
 	inst, sustainedCPU, err = ResourcesToInstanceType(&ps)
@@ -56,7 +56,7 @@ func TestAWSGPUInstance(t *testing.T) {
 	inst, _, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
 	fmt.Println(inst)
-	assert.Equal(t, "p2.xlarge", inst)
+	assert.Equal(t, "g4dn.xlarge", inst)
 }
 
 func TestGCEDefaultGPUInstance(t *testing.T) {
@@ -147,59 +147,59 @@ func TestAWSResourcesToInstanceType(t *testing.T) {
 	testCases := []instanceTypeSpec{
 		{
 			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "0.5"},
-			instanceType: "t3.nano",
+			instanceType: "t3a.small",
 			sustainedCPU: true,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "1.0"},
-			instanceType: "t3.nano",
-			sustainedCPU: true,
+			instanceType: "a1.medium",
+			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "2.0Gi", CPU: "1.0"},
-			instanceType: "t3.small",
-			sustainedCPU: true,
+			instanceType: "a1.medium",
+			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "1.0"},
-			instanceType: "t3.medium",
-			sustainedCPU: true,
+			instanceType: "m6g.medium",
+			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "1.5Gi", CPU: "1.5"},
-			instanceType: "t3.small",
-			sustainedCPU: true,
+			instanceType: "a1.large",
+			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "1.0", GPU: "1"},
-			instanceType: "p2.xlarge",
+			instanceType: "g4dn.xlarge",
 			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "180.0Gi", CPU: "48.0"},
-			instanceType: "m5.12xlarge",
+			instanceType: "m6g.12xlarge",
 			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "15.0Gi", CPU: "32.0"},
-			instanceType: "c5.9xlarge",
+			instanceType: "c6g.8xlarge",
 			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "1Gi", CPU: "1.0", SustainedCPU: &f},
-			instanceType: "c5.large",
+			instanceType: "a1.medium",
 			sustainedCPU: false,
 		},
 		{
 			Resources:        api.ResourceSpec{Memory: "0.5Gi", CPU: "0.5"},
 			instanceTypeGlob: "c5*",
-			instanceType:     "c5.large",
+			instanceType:     "c5a.large",
 			sustainedCPU:     false,
 		},
 		{
 			Resources:        api.ResourceSpec{Memory: "15Gi", CPU: "32.0"},
 			instanceTypeGlob: "m5.*",
-			instanceType:     "m5.12xlarge",
+			instanceType:     "m5.8xlarge",
 			sustainedCPU:     false,
 		},
 	}
@@ -421,7 +421,7 @@ func TestAzureResourcesToInstanceType(t *testing.T) {
 	testCases := []instanceTypeSpec{
 		{
 			Resources:    api.ResourceSpec{Memory: "3Gi", CPU: "1.0"},
-			instanceType: "Standard_DS1_v2",
+			instanceType: "Standard_B2s",
 		},
 		{
 			Resources:        api.ResourceSpec{Memory: "1Gi", CPU: "1.0"},
@@ -430,7 +430,7 @@ func TestAzureResourcesToInstanceType(t *testing.T) {
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "1Gi", CPU: "0.2"},
-			instanceType: "Standard_B1ms",
+			instanceType: "Standard_B1s",
 		},
 	}
 	runInstanceTypeTests(t, testCases)
