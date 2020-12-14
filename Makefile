@@ -18,7 +18,7 @@ KIPCTL_SRC=$(shell find $(TOP_DIR)cmd/kipctl -type f -name '*.go')
 GENERATED_SRC=$(TOP_DIR)pkg/clientapi/clientapi.pb.go \
 			  $(TOP_DIR)pkg/api/deepcopy_generated.go
 
-all: update-pricing-data $(BINARIES)
+all: $(BINARIES)
 
 kip: $(PKG_SRC) $(CMD_SRC) $(GENERATED_SRC) $(MODULE_FILES)
 	CGO_ENABLED=0 go build $(LDFLAGS) -o $(TOP_DIR)$@ $(TOP_DIR)cmd/kip
