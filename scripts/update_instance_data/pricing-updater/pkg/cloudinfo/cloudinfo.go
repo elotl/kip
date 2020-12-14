@@ -17,7 +17,7 @@ var (
 	SupportedProviders = []string{
 		convert.ProviderAWS,
 		//convert.ProviderGCE,
-		//convert.ProviderAzure,
+		convert.ProviderAzure,
 	}
 )
 
