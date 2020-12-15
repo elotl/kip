@@ -1,0 +1,15 @@
+{
+  "test-region": [
+    {
+      "baseline": 32,
+      "generation": "current",
+      "price": 2.032,
+      "spotPrice": 0.5746,
+      "memory": 128,
+      "instanceType": "from.test.file",
+      "burstable": false,
+      "cpu": 32,
+      "gpu": 0
+    }
+  ],
+}

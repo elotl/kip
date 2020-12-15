@@ -18,6 +18,7 @@ package instanceselector
 
 import (
 	"fmt"
+	"path/filepath"
 	"testing"
 
 	"github.com/elotl/kip/pkg/api"
@@ -26,13 +27,13 @@ import (
 
 func TestSetupInstanceSelector(t *testing.T) {
 	defaultInstanceType := "t2.nano"
-	err := Setup("aws", "us-east-1", "", defaultInstanceType)
+	err := Setup("aws", "us-east-1", "", defaultInstanceType, "")
 	assert.NoError(t, err)
 }
 
 func TestHappy(t *testing.T) {
 	defaultInstanceType := "t2.nano"
-	_ = Setup("aws", "us-east-1", "", defaultInstanceType)
+	_ = Setup("aws", "us-east-1", "", defaultInstanceType, "")
 	ps := api.PodSpec{}
 	ps.Resources.CPU = "1"
 	ps.Resources.Memory = "1Gi"
@@ -50,7 +51,7 @@ func TestHappy(t *testing.T) {
 
 func TestAWSGPUInstance(t *testing.T) {
 	defaultInstanceType := "t2.nano"
-	_ = Setup("aws", "us-east-1", "", defaultInstanceType)
+	_ = Setup("aws", "us-east-1", "", defaultInstanceType, "")
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1"
 	inst, _, err := ResourcesToInstanceType(&ps)
@@ -60,7 +61,7 @@ func TestAWSGPUInstance(t *testing.T) {
 }
 
 func TestGCEDefaultGPUInstance(t *testing.T) {
-	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro")
+	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro", "")
 	assert.NoError(t, err)
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1"
@@ -71,7 +72,7 @@ func TestGCEDefaultGPUInstance(t *testing.T) {
 }
 
 func TestGCESpecificGPUInstance(t *testing.T) {
-	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro")
+	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro", "")
 	assert.NoError(t, err)
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1 nvidia-tesla-p100"
@@ -82,7 +83,7 @@ func TestGCESpecificGPUInstance(t *testing.T) {
 }
 
 func TestHasInstanceType(t *testing.T) {
-	_ = Setup("aws", "us-east-1", "", "t2.nano")
+	_ = Setup("aws", "us-east-1", "", "t2.nano", "")
 	ps := api.PodSpec{}
 	specType := "m4.xlarge"
 	ps.InstanceType = specType
@@ -105,14 +106,14 @@ func TestHasInstanceType(t *testing.T) {
 }
 
 func TestIsUnsupportedInstance(t *testing.T) {
-	_ = Setup("aws", "us-east-1", "", "t2.nano")
+	_ = Setup("aws", "us-east-1", "", "t2.nano", "")
 	selector.unsupportedInstances.Insert("ZZ")
 	v := IsUnsupportedInstance("ZZ.top")
 	assert.True(t, v)
 }
 
 func TestNoMatch(t *testing.T) {
-	_ = Setup("aws", "us-east-1", "", "t2.nano")
+	_ = Setup("aws", "us-east-1", "", "t2.nano", "")
 	ps := api.PodSpec{}
 	ps.Resources.CPU = "1000"
 	ps.Resources.Memory = "1"
@@ -142,7 +143,7 @@ func runInstanceTypeTests(t *testing.T, testCases []instanceTypeSpec) {
 }
 
 func TestAWSResourcesToInstanceType(t *testing.T) {
-	_ = Setup("aws", "us-east-1", "", "t2.nano")
+	_ = Setup("aws", "us-east-1", "", "t2.nano", "")
 	f := false
 	testCases := []instanceTypeSpec{
 		{
@@ -341,7 +342,7 @@ func TestCheapestCustomInstanceSizeForCPUAndMemory(t *testing.T) {
 }
 
 func TestGCEResourcesToInstanceType(t *testing.T) {
-	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro")
+	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro", "")
 	assert.NoError(t, err)
 	f := false
 	testCases := []instanceTypeSpec{
@@ -417,7 +418,7 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 }
 
 func TestAzureResourcesToInstanceType(t *testing.T) {
-	_ = Setup("azure", "East US", "", "Standard_B1s")
+	_ = Setup("azure", "East US", "", "Standard_B1s", "")
 	testCases := []instanceTypeSpec{
 		{
 			Resources:    api.ResourceSpec{Memory: "3Gi", CPU: "1.0"},
@@ -441,4 +442,26 @@ func TestNoSetup(t *testing.T) {
 	ps := api.PodSpec{}
 	_, _, err := ResourcesToInstanceType(&ps)
 	assert.NotNil(t, err)
+}
+
+func TestGetSelectorData(t *testing.T)  {
+	// happy path: loading from local variable
+	_, err := getSelectorData(awsInstanceJson, "af-south-1", "")
+	assert.NoError(t, err)
+	path := filepath.Join("testdata", "valid_test_data.json")
+	invalidPath := filepath.Join("tesdata", "invalid_test_data.json")
+
+	// happy path: loading from local file
+	data, err := getSelectorData(awsInstanceJson, "test-region", path)
+	assert.NoError(t, err)
+	assert.Len(t, data, 1)
+	assert.Equal(t, "from.test.file", data[0].InstanceType)
+
+	// happy path: loading from local file failed, but fallback to local variable worked
+	_, err = getSelectorData(awsInstanceJson, "af-south-1", path)
+	assert.NoError(t, err)
+
+	// happy path: loading from local file failed, but fallback to local variable worked
+	_, err = getSelectorData(awsInstanceJson, "af-south-1", invalidPath)
+	assert.NoError(t, err)
 }

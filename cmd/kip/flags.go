@@ -23,6 +23,8 @@ type ServerConfig struct {
 	NetworkAgentSecret     string
 	NetworkAgentKubeConfig string
 	ClusterDNS             string
+	OverrideInstanceData   bool
+	InstanceDataPath       string
 }
 
 func (c *ServerConfig) FlagSet() *pflag.FlagSet {
@@ -31,5 +33,7 @@ func (c *ServerConfig) FlagSet() *pflag.FlagSet {
 	flags.StringVar(&c.NetworkAgentSecret, "network-agent-secret", c.NetworkAgentSecret, "Service account secret for the cell network agent, in the form of <namespace>/<name>")
 	flags.StringVar(&c.NetworkAgentKubeConfig, "network-agent-kubeconfig", c.NetworkAgentKubeConfig, "Network agent kubeconfig file, mutually exclusive with --network-agent-secret")
 	flags.StringVar(&c.ClusterDNS, "cluster-dns", c.ClusterDNS, "Default cluster DNS server to use; if not specified, the kube-system/kube-dns service IP will be used")
+	flags.BoolVar(&c.OverrideInstanceData, "override-instance-data", c.OverrideInstanceData, "set this to true to specify custom instance-data path")
+	flags.StringVar(&c.InstanceDataPath, "instance-data-path", c.InstanceDataPath, "instance-data path; ignored if override-instance-data isn't set to true")
 	return flags
 }

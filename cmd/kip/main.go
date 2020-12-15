@@ -104,6 +104,10 @@ func main() {
 					// Unable to continue without network agent kubeconfig.
 					log.G(ctx).Fatalf("%v", err)
 				}
+				instanceDataPath := ""
+				if serverConfig.OverrideInstanceData {
+					instanceDataPath = serverConfig.InstanceDataPath
+				}
 				return server.NewInstanceProvider(
 					cfg.ConfigPath,
 					cfg.NodeName,
@@ -115,6 +119,7 @@ func main() {
 					cfg.ResourceManager,
 					kubeConfig,
 					networkAgentKubeConfig,
+					instanceDataPath,
 					ctx.Done(),
 				)
 			}),
