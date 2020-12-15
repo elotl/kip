@@ -30,5 +30,7 @@ Warning: GCE is not supported, because cloudinfo doesn't have data about custom 
 }
 ```
 
-## Refresh data
+## Updating instance data locally
 To override KIP instance data, run `make update-pricing-data` from kip root dir.
+This will generate new literals in `kip/pkg/util/instanceselect/<provider>_instance_data.go`.
+You can commit those updates to repository later.

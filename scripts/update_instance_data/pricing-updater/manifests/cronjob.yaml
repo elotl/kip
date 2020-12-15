@@ -16,6 +16,6 @@ spec:
             - name: updater
               image: 689494258501.dkr.ecr.us-east-1.amazonaws.com/elotl/pricing-updater:94a3992
               # specify your provider and region here
-              command: ["./pricing-updater", "-provider", "amazon", "-region", "us-east-1"]
+              command: ["./pricing-updater", "-provider", "amazon", "-region", "us-east-1", "-update-configmap"]
               imagePullPolicy: IfNotPresent
           restartPolicy: OnFailure

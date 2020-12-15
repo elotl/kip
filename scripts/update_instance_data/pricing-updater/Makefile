@@ -24,8 +24,6 @@ test: $(NAME)
 DKR=docker
 AWS_PROFILE ?= "elotl"
 AWS_REGION ?= "us-east-1"
-CMD_ECR_LOGIN="eval $$\(aws --profile $(AWS_PROFILE) ecr get-login \
-	--region $(AWS_REGION) --no-include-email\)"
 REGISTRY_PROTOCOL=https://
 REGISTRY_DOMAIN=689494258501.dkr.ecr.us-east-1.amazonaws.com
 REGISTRY_REPO_NAME=/elotl/$(NAME)
@@ -40,17 +38,13 @@ endif
 
 img: $(BINARIES)
 	@echo "Checking if IMAGE_TAG is set" && test -n "$(IMAGE_TAG)"
-	$(DKR) build -t $(REGISTRY_REPO):$(IMAGE_TAG) .
-#		-t $(REGISTRY_REPO):$(IMAGE_DEV_OR_LATEST) .
+	$(DKR) build -t $(REGISTRY_REPO):$(IMAGE_TAG) \
+		-t $(REGISTRY_REPO):$(IMAGE_DEV_OR_LATEST) .
 
 login-img:
 	@echo "Checking if REGISTRY_USER is set" && test -n "$(REGISTRY_USER)"
 	@echo "Checking if REGISTRY_PASSWORD is set" && test -n "$(REGISTRY_PASSWORD)"
 	@$(DKR) login -u "$(REGISTRY_USER)" -p "$(REGISTRY_PASSWORD)" "$(REGISTRY_SERVER)"
-
-login-img-local:
-	@echo "Checking login to docker"
-	@eval $(CMD_ECR_LOGIN)
 
 push-img: img
 	@echo "Checking if IMAGE_TAG is set" && test -n "$(IMAGE_TAG)"

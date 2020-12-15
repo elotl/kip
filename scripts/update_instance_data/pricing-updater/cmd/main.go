@@ -66,8 +66,10 @@ func main() {
 	// those flags can be used if pricing-updater runs as a CronJob in cluster
 	provider := flag.String("provider", convert.ProviderAWS, fmt.Sprintf("provider name. Supported: %v", cloudinfo.SupportedProviders))
 	region := flag.String("region", "", "region for a given provider")
-	configmap := flag.String("configmap", "kip-instance-data", "target config map name which will be created and populated with instance pricing data")
+	updateConfigMap := flag.Bool("update-configmap", false, "")
+	configMapName := flag.String("configmap-name", "kip-instance-data", "target config map name which will be created and populated with instance pricing data")
 	namespace := flag.String("namespace", "default", "target config map namespace")
+
 	// this flag is used if pricing-updater need to generate .go files with instance data on KIP build.
 	scrapeAll := flag.Bool("scrape-all", false, "setting this flag will scrape all supported providers and regions (and ignore provider and region flags)")
 
@@ -85,8 +87,12 @@ func main() {
 		log.Fatalf("cannot save data to json: %v", err)
 	}
 	log.Printf("Data saved to: %s", fileName)
-	err = store.CreateConfigMap(*configmap, *namespace, outputData)
-	if err != nil {
-		log.Fatal(err)
+
+	if *updateConfigMap {
+		err = store.CreateConfigMap(*configMapName, *namespace, outputData)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
+
 }
