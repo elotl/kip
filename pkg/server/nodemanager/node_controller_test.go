@@ -652,7 +652,7 @@ func TestDoPoolsCalculation(t *testing.T) {
 	// doesn't match, make sure the pod gets a new node and that the
 	// node we started with is marked for termination.
 	pod := api.GetFakePod()
-	pod.Spec.InstanceType = "t1000.nano"
+	pod.Spec.InstanceType = "t2000.nano"
 	podReg := ctl.PodReader.(*registry.PodRegistry)
 	pod, err := podReg.CreatePod(pod)
 	assert.NoError(t, err)

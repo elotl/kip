@@ -84,6 +84,7 @@ func Setup(cloud, region, zone, defaultInstanceType string) error {
 			defaultInstanceType:  defaultInstanceType,
 			instanceData:         data,
 			unsupportedInstances: sets.NewString([]string{
+				"t1", // TODO: should we support previous generation families?
 				// "c5",
 				// "i3",
 				// "m5",
