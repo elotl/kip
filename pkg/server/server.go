@@ -253,7 +253,9 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 	klog.V(5).Infof("setting up instance selector")
 	if instanceDataPath != "" {
 		_, err = os.Stat(instanceDataPath)
-		return nil, fmt.Errorf("cannot load custom instance data from path %s: %v", instanceDataPath, err)
+		if err != nil {
+			return nil, fmt.Errorf("cannot load custom instance data from path %s: %v", instanceDataPath, err)
+		}
 	}
 	err = instanceselector.Setup(
 		cloudClient.GetAttributes().Provider,

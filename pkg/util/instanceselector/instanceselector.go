@@ -146,6 +146,8 @@ func getSelectorData(data, regionOrZone, filepath string) ([]InstanceData, error
 		// If loading from file is successful, return data from there,
 		// if not, fallback to data from instanceselector package
 		return fileData, nil
+	} else {
+		klog.Warningf("failed to load instance data from path %s: %v , falling back to data baked in binary", filepath, err)
 	}
 	err = json.Unmarshal([]byte(data), &d)
 	if err != nil {
