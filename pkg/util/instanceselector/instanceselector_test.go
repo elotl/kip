@@ -39,7 +39,7 @@ func TestHappy(t *testing.T) {
 	ps.Resources.DedicatedCPU = true
 	inst, sustainedCPU, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
-	assert.Equal(t, "a1.medium", inst)
+	assert.Equal(t, "m1.small", inst)
 	assert.False(t, *sustainedCPU)
 	ps.Resources = api.ResourceSpec{}
 	inst, sustainedCPU, err = ResourcesToInstanceType(&ps)
@@ -152,23 +152,23 @@ func TestAWSResourcesToInstanceType(t *testing.T) {
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "1.0"},
-			instanceType: "a1.medium",
+			instanceType: "m1.small",
 			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "2.0Gi", CPU: "1.0"},
-			instanceType: "a1.medium",
-			sustainedCPU: false,
+			instanceType: "t3a.small",
+			sustainedCPU: true,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "1.0"},
-			instanceType: "m6g.medium",
-			sustainedCPU: false,
+			instanceType: "t3a.medium",
+			sustainedCPU: true,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "1.5Gi", CPU: "1.5"},
-			instanceType: "a1.large",
-			sustainedCPU: false,
+			instanceType: "t3a.small",
+			sustainedCPU: true,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "1.0", GPU: "1"},
@@ -177,17 +177,17 @@ func TestAWSResourcesToInstanceType(t *testing.T) {
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "180.0Gi", CPU: "48.0"},
-			instanceType: "m6g.12xlarge",
+			instanceType: "m5a.12xlarge",
 			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "15.0Gi", CPU: "32.0"},
-			instanceType: "c6g.8xlarge",
+			instanceType: "c5a.8xlarge",
 			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "1Gi", CPU: "1.0", SustainedCPU: &f},
-			instanceType: "a1.medium",
+			instanceType: "m1.small",
 			sustainedCPU: false,
 		},
 		{
