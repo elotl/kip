@@ -143,7 +143,15 @@ func TestIsUnsupportedInstanceType(t *testing.T) {
 			result:       true,
 		},
 		{
-			instanceType: "a1.2xlarge",
+			instanceType: "m6g.2xlarge",
+			result:       true,
+		},
+		{
+			instanceType: "r6g.large",
+			result:       true,
+		},
+		{
+			instanceType: "c6g.metal",
 			result:       true,
 		},
 		{
@@ -155,7 +163,7 @@ func TestIsUnsupportedInstanceType(t *testing.T) {
 			result:       false,
 		},
 		{
-			instanceType: "m6d.4xlarge.large",
+			instanceType: "m6d.4xlarge",
 			result:       false,
 		},
 	}

@@ -36,6 +36,9 @@ var (
 	gceBurstableTypes        = []string{"f1-micro", "g1-small", "e2-micro", "e2-small", "e2-medium"}
 	unsupportedInstanceTypes = []glob.Glob{
 		glob.MustCompile("a1.*"),
+		glob.MustCompile("c6g.*"),
+		glob.MustCompile("m6g.*"),
+		glob.MustCompile("r6g.*"),
 	}
 )
 
