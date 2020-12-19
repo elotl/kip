@@ -1,8 +1,9 @@
 package convert
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCloudInfoRespToKipFormat(t *testing.T) {
@@ -31,7 +32,7 @@ func TestCloudInfoRespToKipFormat(t *testing.T) {
 					Cpu:               1,
 					Memory:            2,
 					CurrentGeneration: true,
-					Burstable: false,
+					Burstable:         false,
 				},
 			}},
 			region: "us-east-1",
@@ -70,7 +71,7 @@ func TestCloudInfoRespToKipFormat(t *testing.T) {
 					Cpu:               1,
 					Memory:            2,
 					CurrentGeneration: true,
-					Burstable: true,
+					Burstable:         true,
 				},
 			}},
 			region: "us-east-1",
@@ -94,13 +95,13 @@ func TestCloudInfoRespToKipFormat(t *testing.T) {
 			name: "no spot price",
 			response: CloudinfoResponse{Products: []InstanceInfo{
 				{
-					Type:          "dummy",
-					OnDemandPrice: 0.01,
-					SpotPrices: []ZonePriceInfo{}, // in such case, spotPrice == onDemand.
+					Type:              "dummy",
+					OnDemandPrice:     0.01,
+					SpotPrices:        []ZonePriceInfo{}, // in such case, spotPrice == onDemand.
 					Cpu:               1,
 					Memory:            2,
 					CurrentGeneration: true,
-					Burstable: false,
+					Burstable:         false,
 				},
 			}},
 			region: "us-east-1",
@@ -129,5 +130,38 @@ func TestCloudInfoRespToKipFormat(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedData, got)
 		})
+	}
+}
+
+func TestIsUnsupportedInstanceType(t *testing.T) {
+	testCases := []struct {
+		instanceType string
+		result       bool
+	}{
+		{
+			instanceType: "a1.medium",
+			result:       true,
+		},
+		{
+			instanceType: "a1.2xlarge",
+			result:       true,
+		},
+		{
+			instanceType: "a1x.small",
+			result:       false,
+		},
+		{
+			instanceType: "t3a.large",
+			result:       false,
+		},
+		{
+			instanceType: "m6d.4xlarge.large",
+			result:       false,
+		},
+	}
+
+	for _, tc := range testCases {
+		result := isUnsupportedInstanceType(tc.instanceType)
+		assert.Equal(t, tc.result, result)
 	}
 }
