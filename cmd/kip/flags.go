@@ -23,6 +23,7 @@ type ServerConfig struct {
 	NetworkAgentSecret     string
 	NetworkAgentKubeConfig string
 	ClusterDNS             string
+	InstanceDataPath       string
 }
 
 func (c *ServerConfig) FlagSet() *pflag.FlagSet {
@@ -31,5 +32,6 @@ func (c *ServerConfig) FlagSet() *pflag.FlagSet {
 	flags.StringVar(&c.NetworkAgentSecret, "network-agent-secret", c.NetworkAgentSecret, "Service account secret for the cell network agent, in the form of <namespace>/<name>")
 	flags.StringVar(&c.NetworkAgentKubeConfig, "network-agent-kubeconfig", c.NetworkAgentKubeConfig, "Network agent kubeconfig file, mutually exclusive with --network-agent-secret")
 	flags.StringVar(&c.ClusterDNS, "cluster-dns", c.ClusterDNS, "Default cluster DNS server to use; if not specified, the kube-system/kube-dns service IP will be used")
+	flags.StringVar(&c.InstanceDataPath, "instance-data-path", c.InstanceDataPath, "instance-data path; instanceselector will try to load json file in this path and use it as pricing data")
 	return flags
 }

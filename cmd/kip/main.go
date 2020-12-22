@@ -115,6 +115,7 @@ func main() {
 					cfg.ResourceManager,
 					kubeConfig,
 					networkAgentKubeConfig,
+					serverConfig.InstanceDataPath,
 					ctx.Done(),
 				)
 			}),

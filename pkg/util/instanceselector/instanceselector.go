@@ -19,6 +19,7 @@ package instanceselector
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"strconv"
 	"strings"
@@ -73,10 +74,10 @@ type instanceSelector struct {
 
 var selector *instanceSelector
 
-func Setup(cloud, region, zone, defaultInstanceType string) error {
+func Setup(cloud, region, zone, defaultInstanceType, instanceDataPath string) error {
 	switch cloud {
 	case "aws":
-		data, err := getSelectorData(awsInstanceJson, region)
+		data, err := getSelectorData(awsInstanceJson, region, instanceDataPath)
 		if err != nil {
 			return err
 		}
@@ -97,7 +98,7 @@ func Setup(cloud, region, zone, defaultInstanceType string) error {
 			containerInstanceSelector: FargateInstanceSelector,
 		}
 	case "azure":
-		data, err := getSelectorData(azureInstanceJson, region)
+		data, err := getSelectorData(azureInstanceJson, region, instanceDataPath)
 		if err != nil {
 			return err
 		}
@@ -112,7 +113,7 @@ func Setup(cloud, region, zone, defaultInstanceType string) error {
 			containerInstanceSelector: AzureContainenrInstanceSelector,
 		}
 	case "gce":
-		data, err := getSelectorData(gceInstanceJson, zone)
+		data, err := getSelectorData(gceInstanceJson, zone, instanceDataPath)
 		if err != nil {
 			return err
 		}
@@ -138,9 +139,17 @@ func Setup(cloud, region, zone, defaultInstanceType string) error {
 	return nil
 }
 
-func getSelectorData(data, regionOrZone string) ([]InstanceData, error) {
+func getSelectorData(data, regionOrZone, filepath string) ([]InstanceData, error) {
 	d := make(map[string][]InstanceData)
-	err := json.Unmarshal([]byte(data), &d)
+	fileData, err := getSelectorDataFromFile(filepath, regionOrZone)
+	if err == nil {
+		// If loading from file is successful, return data from there,
+		// if not, fallback to data from instanceselector package
+		return fileData, nil
+	} else {
+		klog.Warningf("failed to load instance data from path %s: %v , falling back to data baked in binary", filepath, err)
+	}
+	err = json.Unmarshal([]byte(data), &d)
 	if err != nil {
 		return nil, err
 	}
@@ -149,6 +158,21 @@ func getSelectorData(data, regionOrZone string) ([]InstanceData, error) {
 		return nil, fmt.Errorf("could not find instance data for cloud region/zone: %s", regionOrZone)
 	}
 	return regionData, nil
+}
+
+func getSelectorDataFromFile(filepath, regionOrZone string) ([]InstanceData, error) {
+	data, err := ioutil.ReadFile(filepath)
+	d := make(map[string][]InstanceData)
+	err = json.Unmarshal(data, &d)
+	if err != nil {
+		return nil, err
+	}
+	regionData, exists := d[regionOrZone]
+	if !exists {
+		return nil, fmt.Errorf("could not load instance data for cloud region/zone: %s from file %s", regionOrZone, filepath)
+	}
+	return regionData, nil
+
 }
 
 func getSelectorCustomData(data, regionOrZone string) ([]CustomInstanceData, error) {
