@@ -35,6 +35,7 @@ type MockCloudClient struct {
 
 	Starter             func(node *api.Node, image Image, metadata, iamPermissions string) (string, error)
 	SpotStarter         func(node *api.Node, image Image, metadata, iamPermissions string) (string, error)
+	DedicatedStarter    func(node *api.Node, image Image, metadata, iamPermissions string) (string, error)
 	Stopper             func(instanceID string) error
 	Waiter              func(node *api.Node) ([]api.NetworkAddress, error)
 	Lister              func() ([]CloudInstance, error)
@@ -86,6 +87,10 @@ func (m *MockCloudClient) StartNode(node *api.Node, image Image, metadata, iamPe
 
 func (m *MockCloudClient) StartSpotNode(node *api.Node, image Image, metadata, iamPermissions string) (string, error) {
 	return m.SpotStarter(node, image, metadata, iamPermissions)
+}
+
+func (m *MockCloudClient) StartDedicatedNode(node *api.Node, image Image, metadata, iamPermissions string) (string, error) {
+	return m.DedicatedStarter(node, image, metadata, iamPermissions)
 }
 
 func (m *MockCloudClient) StopInstance(instanceID string) error {
