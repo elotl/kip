@@ -269,6 +269,10 @@ func (c *NodeController) startSingleNode(node *api.Node, image cloud.Image, clou
 	)
 	if node.Spec.Spot {
 		instanceID, err = c.CloudClient.StartSpotNode(node, image, cloudInitData, c.Config.DefaultIAMPermissions)
+	} else if node.Spec.Dedicated {
+		// TODO
+		// handle start of dedicated host here
+		instanceID, err = c.CloudClent.StartDedicatedNode(node, image, cloudInitData, c.Config.DefaultIAMPermissions)
 	} else {
 		instanceID, err = c.CloudClient.StartNode(node, image, cloudInitData, c.Config.DefaultIAMPermissions)
 	}

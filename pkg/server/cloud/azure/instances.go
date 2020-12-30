@@ -260,6 +260,12 @@ func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata, ia
 	return instanceID, nil
 }
 
+func (az *AzureClient) StartDedicatedNode(node *api.Node, image cloud.image, metadata, iamPermissions string) (string, error) {
+	// TOOD
+	// fill in
+	return "", nil
+}
+
 func (az *AzureClient) StartSpotNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
 	return az.StartNode(node, image, metadata, iamPermissions)
 }

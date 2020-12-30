@@ -340,6 +340,7 @@ func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata, iamPermi
 	})
 	if err != nil {
 		if isSubnetConstrainedError(err) {
+
 			return "", &cloud.NoCapacityError{
 				OriginalError: err.Error(),
 				SubnetID:      e.subnetID,
@@ -357,6 +358,12 @@ func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata, iamPermi
 	cloudID := aws.StringValue(result.Instances[0].InstanceId)
 	klog.V(2).Infof("Started instance: %s", cloudID)
 	return cloudID, nil
+}
+
+func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+	// TODO
+	// Fill in
+	return "", nil
 }
 
 func getIAMInstanceProfileSpecification(iamPermissions string) *ec2.IamInstanceProfileSpecification {
