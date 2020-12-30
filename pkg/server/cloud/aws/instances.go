@@ -340,7 +340,6 @@ func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata, iamPermi
 	})
 	if err != nil {
 		if isSubnetConstrainedError(err) {
-
 			return "", &cloud.NoCapacityError{
 				OriginalError: err.Error(),
 				SubnetID:      e.subnetID,
