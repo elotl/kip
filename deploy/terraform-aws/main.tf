@@ -1,31 +1,33 @@
 terraform {
-  required_version = "~> 0.12.0"
-}
-
-provider "external" {
-  version = "~> 1.2"
-}
-
-provider "random" {
-  version = "~> 2.3"
-}
-
-provider "template" {
-  version = "~> 2.1"
-}
-
-provider "tls" {
-  version = "~> 2.2"
+  # XXX henry: I only tested these changes with Terraform 0.14.3, and 0.12
+  # should work too.
+  required_version = ">= 0.12.0"
+  required_providers {
+    external = {
+        version = "~> 1.2"
+    }
+    random = {
+        version = "~> 2.3"
+    }
+    template = {
+        version = "~> 2.1"
+    }
+    tls = {
+      version = "~> 2.2"
+    }
+    aws = {
+      version = "~> 3.0"
+    }
+  }
 }
 
 provider "aws" {
-  version = "~> 3.0"
-  region  = var.region
+  region = var.region
 }
 
 locals {
   k8s_cluster_tags = {
-    "Name"                                      = "${var.cluster_name}"
+    "Name"                                      = var.cluster_name
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   }
 }
@@ -52,33 +54,51 @@ resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
 
-  provisioner "local-exec" {
-    when        = destroy
-    command     = "${path.module}/cleanup-vpc.sh ${self.id} ${var.cluster_name}"
-    interpreter = ["/bin/bash", "-c"]
-    environment = {
-      "AWS_REGION"         = var.region
-      "AWS_DEFAULT_REGION" = var.region
-    }
+  tags = local.k8s_cluster_tags
+}
+
+resource "null_resource" "main" {
+  triggers = {
+    cluster_name = var.cluster_name
+    vpc_id = aws_vpc.main.id
+    region = var.region
   }
 
-  tags = local.k8s_cluster_tags
+  provisioner "local-exec" {
+    when        = destroy
+    command     = "./cleanup-vpc.sh ${self.triggers.vpc_id} ${self.triggers.cluster_name}"
+    working_dir = path.module
+    interpreter = ["/bin/bash", "-c"]
+    environment = {
+      "AWS_REGION"         = self.triggers.region
+      "AWS_DEFAULT_REGION" = self.triggers.region
+    }
+  }
 }
 
 resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
 
-  provisioner "local-exec" {
-    when        = destroy
-    command     = "${path.module}/cleanup-vpc.sh ${self.vpc_id} ${var.cluster_name}"
-    interpreter = ["/bin/bash", "-c"]
-    environment = {
-      "AWS_REGION"         = var.region
-      "AWS_DEFAULT_REGION" = var.region
-    }
+  tags = local.k8s_cluster_tags
+}
+
+resource "null_resource" "gw" {
+  triggers = {
+    cluster_name = var.cluster_name
+    vpc_id = aws_vpc.main.id
+    region = var.region
   }
 
-  tags = local.k8s_cluster_tags
+  provisioner "local-exec" {
+    when        = destroy
+    command     = "./cleanup-vpc.sh ${self.triggers.vpc_id} ${self.triggers.cluster_name}"
+    working_dir = path.module
+    interpreter = ["/bin/bash", "-c"]
+    environment = {
+      "AWS_REGION"         = self.triggers.region
+      "AWS_DEFAULT_REGION" = self.triggers.region
+    }
+  }
 }
 
 resource "aws_subnet" "subnet" {
@@ -118,7 +138,7 @@ resource "aws_efs_file_system" "efs" {
   provisioned_throughput_in_mibps = var.efs_provisioned_throughput_in_mibps
   throughput_mode = var.efs_throughput_mode
   tags = {
-    "Name" = "${var.cluster_name}"
+    "Name" = var.cluster_name
   }
 }
 
