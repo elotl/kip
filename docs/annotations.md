@@ -28,7 +28,7 @@ annotations:
   pod.elotl.co/launch-type: spot
 ```
 
-** pod.elotl.co/private-ip-only
+**pod.elotl.co/private-ip-only**
 
 In AWS, Kip cells will get a public IP address if the cell is run in a subnet connected to an internet gateway.  Set the private-ip-only annotation to "true" instruct kip to run the pod on a cell without a public IP address.  The subnet must be configured to allow downloading the itzo binary and container images without a public IP on the cell.
 
@@ -80,4 +80,13 @@ PodVolumeSize is an annotation tells kip to resize the root partition of the pod
 ```yaml
 annotations:
   pod.elotl.co/volume-size: "12G"
+```
+
+**pod.elotl.co/image-overlay-rootfs**
+
+Use this annotation to inform kip whether to use an overlayfs when setting up container images within Itzo. Set this annotation to a truthy value to denote the use of overlayfs, and to a falsy value to have the image layers extracted for the rootfs without using overlayfs.
+
+```yaml
+annotations:
+  pod.elotl.co/image-overlay-rootfs: "false"
 ```
