@@ -50,6 +50,7 @@ const (
 	PodControllerCleanPeriod    = 20 * time.Second
 	PodControllerControlPeriod  = 5 * time.Second
 	PodControllerFullSyncPeriod = 31 * time.Second
+	elotlAnnotationPrefix       = "pod.elotl.co/"
 )
 
 var lastWrongPod map[string]string
@@ -447,6 +448,7 @@ func (c *PodController) updatePodUnits(pod *api.Pod) error {
 			"unable to sync pod %s: generating hostname: %v", pod.Name, err)
 	}
 	podParams := api.PodParameters{
+		Annotations: getCellAnnotations(pod.Annotations),
 		Credentials: podCreds,
 		Spec:        util.ExpandCommandAndArgs(pod.Spec),
 		PodName:     pod.Name,
@@ -455,6 +457,16 @@ func (c *PodController) updatePodUnits(pod *api.Pod) error {
 		PodHostname: podHostname,
 	}
 	return client.UpdateUnits(podParams)
+}
+
+func getCellAnnotations(podAnnotations map[string]string) map[string]string {
+	annotations := make(map[string]string)
+	for k, v := range podAnnotations {
+		if strings.HasPrefix(k, elotlAnnotationPrefix) {
+			annotations[k] = v
+		}
+	}
+	return annotations
 }
 
 func isBurstableMachine(machine string) bool {
