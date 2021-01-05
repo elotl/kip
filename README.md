@@ -20,31 +20,13 @@ When workloads run on Kip, your cluster size naturally scales with the cluster w
 
 There are two ways to get Kip up and running.
 
-* Option 1: Use the provided terraform scripts to create a new Kubernetes cluster with a single Kip node on AWS or GKE.
-* Option 2: Add Kip to an existing kubernetes cluster.
+1. Use the provided Terraform scripts to create a new Kubernetes cluster
+   with a single Kip node. There are instructions for
+   [AWS](deploy/terraform-aws/README.md) and
+   [GCP](deploy/terraform-gcp/README.md).
+2. Add Kip to an existing kubernetes cluster. This option is documented below.
 
-### Installation Option 1: Create a Minimal K8s Cluster
-
-Prequisites:
-- An AWS or Google Cloud account
-- [Terraform](https://www.terraform.io/downloads.html) >= 0.12
-- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) >= 1.14
-- [kustomize](https://github.com/kubernetes-sigs/kustomize) >= 3.0.0
-- [jq](https://github.com/stedolan/jq) and [aws-cli](https://aws.amazon.com/cli/) if using AWS
-
-In [deploy/terraform-aws](deploy/terraform-aws), you will find a terraform config that creates a simple one master, one worker cluster and starts Kip on AWS.
-
-``` bash
-cd deploy/terraform-aws
-terraform init
-cp env.tfvars.example myenv.tfvars
-vi myenv.tfvars  # customize variables as necessary
-terraform apply -var-file myenv.tfvars
-```
-
-On Google Cloud, the config under `deploy/terraform-gcp` works in a similar way, but uses a GKE base cluster.
-
-### Installation Option 2: Using an Existing Cluster
+### Install Kip using an existing cluster
 
 To deploy Kip into an existing cluster, you'll need to setup cloud credentials that allow the Kip provider to manipulate cloud instances, networking and other cloud resources.
 
