@@ -246,3 +246,8 @@ cells:
   #   imageCacheMountDir: /var/cache/images
   #   imageCacheMountOpts: -o ro
 ```
+  # Instead of using user data in cloud-init, use a cloud provider specific way
+  # to distribute cell configuration data, like cell config, agent certificate
+  # and private key, etc. Currently this is only implemented on AWS, and disabled
+  # by default.
+  # useCloudParameterStore: false

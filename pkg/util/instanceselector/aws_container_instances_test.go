@@ -90,7 +90,7 @@ func TestFargateInstanceSelector(t *testing.T) {
 		},
 	}
 
-	err := Setup("aws", "us-east-1", "", "t3.nano")
+	err := Setup("aws", "us-east-1", "", "t3.nano", "")
 	if err != nil {
 		assert.Fail(t, "Failed to setup instanceselector")
 		return

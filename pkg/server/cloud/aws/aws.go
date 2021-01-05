@@ -28,6 +28,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/elotl/kip/pkg/api"
 	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
@@ -46,6 +48,8 @@ var (
 type AwsEC2 struct {
 	client               *ec2.EC2
 	ecs                  *ecs.ECS
+	iam                  *iam.IAM
+	ssm                  *ssm.SSM
 	ecsClusterName       string
 	controllerID         string
 	nametag              string
@@ -95,6 +99,26 @@ func getECSClient(endpointURL string, insecureSkipSSLVerify bool) (*ecs.ECS, err
 	}
 	config := getAWSConfig(endpointURL, insecureSkipSSLVerify)
 	client := ecs.New(sess, config)
+	return client, nil
+}
+
+func getSSMClient(endpointURL string, insecureSkipSSLVerify bool) (*ssm.SSM, error) {
+	sess, err := session.NewSession()
+	if err != nil {
+		return nil, err
+	}
+	config := getAWSConfig(endpointURL, insecureSkipSSLVerify)
+	client := ssm.New(sess, config)
+	return client, nil
+}
+
+func getIAMClient(endpointURL string, insecureSkipSSLVerify bool) (*iam.IAM, error) {
+	sess, err := session.NewSession()
+	if err != nil {
+		return nil, err
+	}
+	config := getAWSConfig(endpointURL, insecureSkipSSLVerify)
+	client := iam.New(sess, config)
 	return client, nil
 }
 
@@ -166,9 +190,19 @@ func NewEC2Client(config EC2ClientConfig) (*AwsEC2, error) {
 			return nil, util.WrapError(err, "Error creating ECS client")
 		}
 	}
+	ssmClient, err := getSSMClient(config.EndpointURL, config.InsecureTLSSkipVerify)
+	if err != nil {
+		return nil, util.WrapError(err, "creating SSM client")
+	}
+	iamClient, err := getIAMClient(config.EndpointURL, config.InsecureTLSSkipVerify)
+	if err != nil {
+		return nil, util.WrapError(err, "creating IAM client")
+	}
 	client := &AwsEC2{
 		client:         ec2Client,
 		ecs:            ecsClient,
+		ssm:            ssmClient,
+		iam:            iamClient,
 		ecsClusterName: config.ECSClusterName,
 		controllerID:   config.ControllerID,
 		nametag:        config.Nametag,

@@ -53,3 +53,11 @@ clean:
 	rm -f $(BINARIES)
 
 .PHONY: all clean
+
+pricing-updater:
+	cd scripts/update_instance_data/pricing-updater/cmd  && go build $(LDFLAGS) -o $(TOP_DIR)scripts/update_instance_data/pricing-updater/pricing-updater
+
+update-pricing-data: pricing-updater
+	echo "scraping data for all providers"
+	cd scripts/update_instance_data/pricing-updater/ && ./pricing-updater -scrape-all
+	cd scripts/update_instance_data/pricing-updater/scripts && pwd && TOP_KIP_DIR=$(TOP_DIR) go generate

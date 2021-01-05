@@ -217,10 +217,12 @@ func TestUnitToContainer(t *testing.T) {
 					{
 						Name:      "myvolume",
 						MountPath: "/my/path",
+						SubPath:   "",
 					},
 					{
 						Name:      "foo-volume",
 						MountPath: "/var/run/bar",
+						SubPath:   "",
 					},
 				},
 			},

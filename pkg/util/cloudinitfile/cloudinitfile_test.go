@@ -92,69 +92,45 @@ func TestWriteContent(t *testing.T) {
 	assert.Equal(t, expected, string(cloudInitContent))
 }
 
-func TestAddItzoFuncs(t *testing.T) {
+func TestAddKipFile(t *testing.T) {
 	cif, err := New("")
 	assert.NoError(t, err)
-	cif.AddItzoVersion("")
-	cif.AddItzoURL("")
 	cloudInitContent, err := cif.Contents()
 	assert.NoError(t, err)
 	expected := string(cloudInitHeader) + "{}\n"
 	assert.Equal(t, expected, string(cloudInitContent))
 
-	versionString := "v1.0.0"
-	cif.AddItzoVersion(versionString)
+	cif.AddKipFile("content1", "/tmp/itzo/path1", "0321")
 	cloudInitContent, err = cif.Contents()
 	assert.NoError(t, err)
 	expected = string(cloudInitHeader) + fmt.Sprintf(`write_files:
-- content: %s
+- content: content1
   owner: root
-  path: %s
-  permissions: "0444"
-`, versionString, ItzoVersionPath)
+  path: /tmp/itzo/path1
+  permissions: "0321"
+`)
 	assert.Equal(t, expected, string(cloudInitContent))
 
-	cif.AddItzoVersion("1.0.0")
+	cif.AddKipFile("content1", "path1", "0123")
+	cif.AddKipFile("content2", "path2", "0124")
+	cif.AddKipFile("content3", "path3", "0125")
 	cloudInitContent, err = cif.Contents()
 	assert.NoError(t, err)
-	assert.Equal(t, expected, string(cloudInitContent))
-
-	cif.ResetInstanceData()
-	versionString = "dev"
-	cif.AddItzoVersion(versionString)
-	expected = string(cloudInitHeader) + fmt.Sprintf(`write_files:
-- content: %s
+	assert.Contains(t, string(cloudInitContent), `write_files:
+`)
+	assert.Contains(t, string(cloudInitContent), `- content: content1
   owner: root
-  path: %s
-  permissions: "0444"
-`, versionString, ItzoVersionPath)
-	cloudInitContent, err = cif.Contents()
-	assert.NoError(t, err)
-	assert.Equal(t, expected, string(cloudInitContent))
-
-	cif.ResetInstanceData()
-	versionString = "314"
-	cif.AddItzoVersion(versionString)
-	expected = string(cloudInitHeader) + fmt.Sprintf(`write_files:
-- content: "%s"
+  path: /tmp/itzo/path1
+  permissions: "0123"
+`)
+	assert.Contains(t, string(cloudInitContent), `- content: content2
   owner: root
-  path: %s
-  permissions: "0444"
-`, versionString, ItzoVersionPath)
-	cloudInitContent, err = cif.Contents()
-	assert.NoError(t, err)
-	assert.Equal(t, expected, string(cloudInitContent))
-
-	cif.ResetInstanceData()
-	urlString := "http://my-bucket.s3.com"
-	cif.AddItzoURL(urlString)
-	expected = string(cloudInitHeader) + fmt.Sprintf(`write_files:
-- content: %s
+  path: /tmp/itzo/path2
+  permissions: "0124"
+`)
+	assert.Contains(t, string(cloudInitContent), `- content: content3
   owner: root
-  path: %s
-  permissions: "0444"
-`, urlString, ItzoURLPath)
-	cloudInitContent, err = cif.Contents()
-	assert.NoError(t, err)
-	assert.Equal(t, expected, string(cloudInitContent))
+  path: /tmp/itzo/path3
+  permissions: "0125"
+`)
 }

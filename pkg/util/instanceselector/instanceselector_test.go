@@ -18,6 +18,7 @@ package instanceselector
 
 import (
 	"fmt"
+	"path/filepath"
 	"testing"
 
 	"github.com/elotl/kip/pkg/api"
@@ -26,20 +27,20 @@ import (
 
 func TestSetupInstanceSelector(t *testing.T) {
 	defaultInstanceType := "t2.nano"
-	err := Setup("aws", "us-east-1", "", defaultInstanceType)
+	err := Setup("aws", "us-east-1", "", defaultInstanceType, "")
 	assert.NoError(t, err)
 }
 
 func TestHappy(t *testing.T) {
 	defaultInstanceType := "t2.nano"
-	_ = Setup("aws", "us-east-1", "", defaultInstanceType)
+	_ = Setup("aws", "us-east-1", "", defaultInstanceType, "")
 	ps := api.PodSpec{}
 	ps.Resources.CPU = "1"
 	ps.Resources.Memory = "1Gi"
 	ps.Resources.DedicatedCPU = true
 	inst, sustainedCPU, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
-	assert.Equal(t, "c5.large", inst)
+	assert.Equal(t, "m1.small", inst)
 	assert.False(t, *sustainedCPU)
 	ps.Resources = api.ResourceSpec{}
 	inst, sustainedCPU, err = ResourcesToInstanceType(&ps)
@@ -50,17 +51,17 @@ func TestHappy(t *testing.T) {
 
 func TestAWSGPUInstance(t *testing.T) {
 	defaultInstanceType := "t2.nano"
-	_ = Setup("aws", "us-east-1", "", defaultInstanceType)
+	_ = Setup("aws", "us-east-1", "", defaultInstanceType, "")
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1"
 	inst, _, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
 	fmt.Println(inst)
-	assert.Equal(t, "p2.xlarge", inst)
+	assert.Equal(t, "g4dn.xlarge", inst)
 }
 
 func TestGCEDefaultGPUInstance(t *testing.T) {
-	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro")
+	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro", "")
 	assert.NoError(t, err)
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1"
@@ -71,7 +72,7 @@ func TestGCEDefaultGPUInstance(t *testing.T) {
 }
 
 func TestGCESpecificGPUInstance(t *testing.T) {
-	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro")
+	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro", "")
 	assert.NoError(t, err)
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1 nvidia-tesla-p100"
@@ -82,7 +83,7 @@ func TestGCESpecificGPUInstance(t *testing.T) {
 }
 
 func TestHasInstanceType(t *testing.T) {
-	_ = Setup("aws", "us-east-1", "", "t2.nano")
+	_ = Setup("aws", "us-east-1", "", "t2.nano", "")
 	ps := api.PodSpec{}
 	specType := "m4.xlarge"
 	ps.InstanceType = specType
@@ -105,14 +106,14 @@ func TestHasInstanceType(t *testing.T) {
 }
 
 func TestIsUnsupportedInstance(t *testing.T) {
-	_ = Setup("aws", "us-east-1", "", "t2.nano")
+	_ = Setup("aws", "us-east-1", "", "t2.nano", "")
 	selector.unsupportedInstances.Insert("ZZ")
 	v := IsUnsupportedInstance("ZZ.top")
 	assert.True(t, v)
 }
 
 func TestNoMatch(t *testing.T) {
-	_ = Setup("aws", "us-east-1", "", "t2.nano")
+	_ = Setup("aws", "us-east-1", "", "t2.nano", "")
 	ps := api.PodSpec{}
 	ps.Resources.CPU = "1000"
 	ps.Resources.Memory = "1"
@@ -142,64 +143,64 @@ func runInstanceTypeTests(t *testing.T, testCases []instanceTypeSpec) {
 }
 
 func TestAWSResourcesToInstanceType(t *testing.T) {
-	_ = Setup("aws", "us-east-1", "", "t2.nano")
+	_ = Setup("aws", "us-east-1", "", "t2.nano", "")
 	f := false
 	testCases := []instanceTypeSpec{
 		{
 			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "0.5"},
-			instanceType: "t3.nano",
+			instanceType: "t3a.small",
 			sustainedCPU: true,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "0.5Gi", CPU: "1.0"},
-			instanceType: "t3.nano",
-			sustainedCPU: true,
+			instanceType: "m1.small",
+			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "2.0Gi", CPU: "1.0"},
-			instanceType: "t3.small",
+			instanceType: "t3a.small",
 			sustainedCPU: true,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "1.0"},
-			instanceType: "t3.medium",
+			instanceType: "t3a.medium",
 			sustainedCPU: true,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "1.5Gi", CPU: "1.5"},
-			instanceType: "t3.small",
+			instanceType: "t3a.small",
 			sustainedCPU: true,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "4.0Gi", CPU: "1.0", GPU: "1"},
-			instanceType: "p2.xlarge",
+			instanceType: "g4dn.xlarge",
 			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "180.0Gi", CPU: "48.0"},
-			instanceType: "m5.12xlarge",
+			instanceType: "m5a.12xlarge",
 			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "15.0Gi", CPU: "32.0"},
-			instanceType: "c5.9xlarge",
+			instanceType: "c5a.8xlarge",
 			sustainedCPU: false,
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "1Gi", CPU: "1.0", SustainedCPU: &f},
-			instanceType: "c5.large",
+			instanceType: "m1.small",
 			sustainedCPU: false,
 		},
 		{
 			Resources:        api.ResourceSpec{Memory: "0.5Gi", CPU: "0.5"},
 			instanceTypeGlob: "c5*",
-			instanceType:     "c5.large",
+			instanceType:     "c5a.large",
 			sustainedCPU:     false,
 		},
 		{
 			Resources:        api.ResourceSpec{Memory: "15Gi", CPU: "32.0"},
 			instanceTypeGlob: "m5.*",
-			instanceType:     "m5.12xlarge",
+			instanceType:     "m5.8xlarge",
 			sustainedCPU:     false,
 		},
 	}
@@ -341,7 +342,7 @@ func TestCheapestCustomInstanceSizeForCPUAndMemory(t *testing.T) {
 }
 
 func TestGCEResourcesToInstanceType(t *testing.T) {
-	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro")
+	err := Setup("gce", "us-west-1", "us-west1-a", "f1-micro", "")
 	assert.NoError(t, err)
 	f := false
 	testCases := []instanceTypeSpec{
@@ -417,11 +418,11 @@ func TestGCEResourcesToInstanceType(t *testing.T) {
 }
 
 func TestAzureResourcesToInstanceType(t *testing.T) {
-	_ = Setup("azure", "East US", "", "Standard_B1s")
+	_ = Setup("azure", "East US", "", "Standard_B1s", "")
 	testCases := []instanceTypeSpec{
 		{
 			Resources:    api.ResourceSpec{Memory: "3Gi", CPU: "1.0"},
-			instanceType: "Standard_DS1_v2",
+			instanceType: "Standard_B2s",
 		},
 		{
 			Resources:        api.ResourceSpec{Memory: "1Gi", CPU: "1.0"},
@@ -430,7 +431,7 @@ func TestAzureResourcesToInstanceType(t *testing.T) {
 		},
 		{
 			Resources:    api.ResourceSpec{Memory: "1Gi", CPU: "0.2"},
-			instanceType: "Standard_B1ms",
+			instanceType: "Standard_B1s",
 		},
 	}
 	runInstanceTypeTests(t, testCases)
@@ -441,4 +442,26 @@ func TestNoSetup(t *testing.T) {
 	ps := api.PodSpec{}
 	_, _, err := ResourcesToInstanceType(&ps)
 	assert.NotNil(t, err)
+}
+
+func TestGetSelectorData(t *testing.T)  {
+	// happy path: loading from local variable
+	_, err := getSelectorData(awsInstanceJson, "af-south-1", "")
+	assert.NoError(t, err)
+	path := filepath.Join("testdata", "valid_test_data.json")
+	invalidPath := filepath.Join("tesdata", "invalid_test_data.json")
+
+	// happy path: loading from local file
+	data, err := getSelectorData(awsInstanceJson, "test-region", path)
+	assert.NoError(t, err)
+	assert.Len(t, data, 1)
+	assert.Equal(t, "from.test.file", data[0].InstanceType)
+
+	// happy path: loading from local file failed, but fallback to local variable worked
+	_, err = getSelectorData(awsInstanceJson, "af-south-1", path)
+	assert.NoError(t, err)
+
+	// happy path: loading from local file failed, but fallback to local variable worked
+	_, err = getSelectorData(awsInstanceJson, "af-south-1", invalidPath)
+	assert.NoError(t, err)
 }

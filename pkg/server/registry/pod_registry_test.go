@@ -146,7 +146,7 @@ func TestCreatePodInstanceFromResources(t *testing.T) {
 	assert.Nil(t, err)
 	p2, err := podRegistry.GetPod(p1.Name)
 	assert.Nil(t, err)
-	assert.Equal(t, "c5.large", p2.Spec.InstanceType)
+	assert.Equal(t, "m1.small", p2.Spec.InstanceType)
 }
 
 func TestPodPhaseUpdateUpdatesTime(t *testing.T) {

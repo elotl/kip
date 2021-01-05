@@ -180,7 +180,7 @@ func ensureRegionUnchanged(etcdClient *etcd.SimpleEtcd, region string) error {
 }
 
 // InstanceProvider should implement node.PodLifecycleHandler
-func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clusterDomain string, daemonEndpointPort int32, debugServer bool, rm *manager.ResourceManager, kubeConfig, networkAgentKubeConfig *clientcmdapi.Config, systemQuit <-chan struct{}) (*InstanceProvider, error) {
+func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clusterDomain string, daemonEndpointPort int32, debugServer bool, rm *manager.ResourceManager, kubeConfig, networkAgentKubeConfig *clientcmdapi.Config, instanceDataPath string, systemQuit <-chan struct{}) (*InstanceProvider, error) {
 	systemWG := &sync.WaitGroup{}
 
 	execer := utilexec.New()
@@ -251,11 +251,19 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 	)
 
 	klog.V(5).Infof("setting up instance selector")
+	if instanceDataPath != "" {
+		_, err = os.Stat(instanceDataPath)
+		if err != nil {
+			return nil, fmt.Errorf("cannot load custom instance data from path %s: %v", instanceDataPath, err)
+		}
+	}
 	err = instanceselector.Setup(
 		cloudClient.GetAttributes().Provider,
 		cloudClient.GetAttributes().Region,
 		cloudClient.GetAttributes().Zone,
-		serverConfigFile.Cells.DefaultInstanceType)
+		serverConfigFile.Cells.DefaultInstanceType,
+		instanceDataPath,
+		)
 	if err != nil {
 		return nil, fmt.Errorf("error setting up instance selector %s", err)
 	}
@@ -356,12 +364,14 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 	klog.V(5).Infof("creating node controller")
 	nodeController := &nodemanager.NodeController{
 		Config: nodemanager.NodeControllerConfig{
-			PoolInterval:      7 * time.Second,
-			HeartbeatInterval: 10 * time.Second,
-			ReaperInterval:    10 * time.Second,
-			ItzoVersion:       serverConfigFile.Cells.Itzo.Version,
-			ItzoURL:           serverConfigFile.Cells.Itzo.URL,
-			CellConfig:        serverConfigFile.Cells.CellConfig,
+			PoolInterval:           7 * time.Second,
+			HeartbeatInterval:      10 * time.Second,
+			ReaperInterval:         10 * time.Second,
+			ItzoVersion:            serverConfigFile.Cells.Itzo.Version,
+			ItzoURL:                serverConfigFile.Cells.Itzo.URL,
+			CellConfig:             serverConfigFile.Cells.CellConfig,
+			UseCloudParameterStore: serverConfigFile.Cells.UseCloudParameterStore,
+			DefaultIAMPermissions:  serverConfigFile.Cells.DefaultIAMPermissions,
 		},
 		NodeRegistry:  nodeRegistry,
 		LogRegistry:   logRegistry,

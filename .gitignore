@@ -34,3 +34,6 @@ deploy/manifests/virtual-kubelet/overlays/local-*
 deploy/manifests/kip/overlays/local-*
 deploy/terraform-vpn/kustomization/aws-vpn-client.env
 deploy/terraform-vpn/kustomization/*.yaml
+
+scripts/update_instance_data/pricing-updater/pricing-updater
+scripts/update_instance_data/pricing-updater/*InstanceJson.json

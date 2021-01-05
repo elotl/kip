@@ -59,12 +59,12 @@ func FakeLister() ([]cloud.CloudInstance, error) {
 	return nil, nil
 }
 
-func StartReturnsOK(node *api.Node, image cloud.Image, metadata string) (string, error) {
+func StartReturnsOK(node *api.Node, image cloud.Image, metadata, iamProfile string) (string, error) {
 	result := "instID"
 	return result, nil
 }
 
-func StartFails(node *api.Node, image cloud.Image, metadata string) (string, error) {
+func StartFails(node *api.Node, image cloud.Image, metadata, iamProfile string) (string, error) {
 	return "", fmt.Errorf("Testing, purposefully returning error")
 }
 
@@ -80,6 +80,22 @@ func Panics(node *api.Node) (string, error) {
 	return "instID", nil
 }
 
+func AddInstanceParameterReturnsOK(instanceID, key, value string, isSecret bool) error {
+	return nil
+}
+
+func AddInstanceParameterFails(instanceID, key, value string, isSecret bool) error {
+	return fmt.Errorf("testing AddInstanceParameter() failure path")
+}
+
+func DeleteInstanceParameterReturnsOK(instanceID, key string) error {
+	return nil
+}
+
+func DeleteInstanceParameterFails(instanceID, key string) error {
+	return fmt.Errorf("testing DeleteInstanceParameter() failure path")
+}
+
 func MakeNodeController() (*NodeController, func()) {
 	quit := make(chan struct{})
 	wg := &sync.WaitGroup{}
@@ -88,11 +104,13 @@ func MakeNodeController() (*NodeController, func()) {
 	podRegistry, closer3 := registry.SetupTestPodRegistry()
 	closer := func() { closer1(); closer2(); closer3() }
 	cloudClient := &cloud.MockCloudClient{
-		Starter:      StartReturnsOK,
-		SpotStarter:  StartReturnsOK,
-		Stopper:      ReturnNil,
-		Waiter:       ReturnAddresses,
-		RouteRemover: StringStringReturnNil,
+		Starter:                  StartReturnsOK,
+		SpotStarter:              StartReturnsOK,
+		Stopper:                  ReturnNil,
+		Waiter:                   ReturnAddresses,
+		RouteRemover:             StringStringReturnNil,
+		InstanceParameterAdder:   AddInstanceParameterReturnsOK,
+		InstanceParameterRemover: DeleteInstanceParameterReturnsOK,
 	}
 	defaultBootImage := cloud.Image{
 		ID: defaultBootImageID,
@@ -628,12 +646,13 @@ func TestDoPoolsCalculation(t *testing.T) {
 		ImageGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
 			return cloud.Image{}, nil
 		},
+		InstanceParameterRemover: DeleteInstanceParameterReturnsOK,
 	}
 	// we create a new pod that needs a node and a node that
 	// doesn't match, make sure the pod gets a new node and that the
 	// node we started with is marked for termination.
 	pod := api.GetFakePod()
-	pod.Spec.InstanceType = "t1000.nano"
+	pod.Spec.InstanceType = "t2000.nano"
 	podReg := ctl.PodReader.(*registry.PodRegistry)
 	pod, err := podReg.CreatePod(pod)
 	assert.NoError(t, err)
@@ -688,4 +707,100 @@ func TestDoPoolsCalculationComputeFails(t *testing.T) {
 	ctl.NodeScaler = &ErroringNodeScaler{}
 	_, err := ctl.doPoolsCalculation()
 	assert.Error(t, err)
+}
+
+func TestAddInstanceParameter(t *testing.T) {
+	t.Parallel()
+	ctl, closer := MakeNodeController()
+	defer closer()
+	ctl.Config.UseCloudParameterStore = true
+	called := false
+	ctl.CloudClient = &cloud.MockCloudClient{
+		Starter: StartReturnsOK,
+		Waiter:  ReturnAddresses,
+		InstanceParameterAdder: func(instanceID, key, value string, isSecret bool) error {
+			called = true
+			return nil
+		},
+	}
+	node := api.GetFakeNode()
+	ctl.startNodes([]*api.Node{node}, cloud.Image{})
+	time.Sleep(1 * time.Second)
+	nodes, err := ctl.NodeRegistry.ListNodes(registry.MatchAllNodes)
+	assert.Nil(t, err)
+	assert.Equal(t, len(nodes.Items), 1)
+	assert.Equal(t, api.NodeAvailable, nodes.Items[0].Status.Phase)
+	assert.True(t, called)
+}
+
+func TestAddInstanceParameterFails(t *testing.T) {
+	t.Parallel()
+	HealthyTimeout = 500 * time.Millisecond
+	HealthcheckPause = 100 * time.Millisecond
+	ctl, closer := MakeNodeController()
+	defer closer()
+	ctl.Config.UseCloudParameterStore = true
+	ctl.CloudClient = &cloud.MockCloudClient{
+		Starter:                  StartReturnsOK,
+		Stopper:                  ReturnNil,
+		Waiter:                   ReturnAddresses,
+		InstanceParameterAdder:   AddInstanceParameterFails,
+		InstanceParameterRemover: DeleteInstanceParameterReturnsOK,
+	}
+	ctl.startNodes([]*api.Node{api.GetFakeNode()}, cloud.Image{})
+	time.Sleep(1 * time.Second)
+	nodes, err := ctl.NodeRegistry.ListAllNodes(registry.MatchAllNodes)
+	assert.Nil(t, err)
+	assert.Equal(t, len(nodes.Items), 1)
+	assert.Equal(t, api.NodeTerminated, nodes.Items[0].Status.Phase)
+}
+
+func TestDeleteInstanceParameter(t *testing.T) {
+	t.Parallel()
+	ctl, closer := MakeNodeController()
+	defer closer()
+	called := false
+	ctl.CloudClient = &cloud.MockCloudClient{
+		Stopper: ReturnNil,
+		InstanceParameterRemover: func(instanceID, key string) error {
+			called = true
+			return nil
+		},
+	}
+	n := api.GetFakeNode()
+	n, err := ctl.NodeRegistry.CreateNode(n)
+	assert.Nil(t, err)
+	err = ctl.stopSingleNode(n)
+	assert.Nil(t, err)
+	time.Sleep(1 * time.Second)
+	nodes, err := ctl.NodeRegistry.ListAllNodes(registry.MatchAllNodes)
+	assert.Nil(t, err)
+	assert.Len(t, nodes.Items, 1)
+	assert.Equal(t, api.NodeTerminated, nodes.Items[0].Status.Phase)
+	assert.True(t, called)
+}
+
+func TestDeleteInstanceParameterFails(t *testing.T) {
+	t.Parallel()
+	ctl, closer := MakeNodeController()
+	defer closer()
+	called := false
+	ctl.CloudClient = &cloud.MockCloudClient{
+		Stopper: ReturnNil,
+		InstanceParameterRemover: func(instanceID, key string) error {
+			called = true
+			return fmt.Errorf("testing DeleteInstanceParameter() failure path")
+		},
+	}
+	n := api.GetFakeNode()
+	n, err := ctl.NodeRegistry.CreateNode(n)
+	assert.Nil(t, err)
+	err = ctl.stopSingleNode(n)
+	assert.Nil(t, err)
+	time.Sleep(1 * time.Second)
+	nodes, err := ctl.NodeRegistry.ListAllNodes(registry.MatchAllNodes)
+	assert.Nil(t, err)
+	assert.Len(t, nodes.Items, 1)
+	assert.Equal(t, api.NodeTerminated, nodes.Items[0].Status.Phase)
+	assert.True(t, called)
 }
