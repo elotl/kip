@@ -57,6 +57,15 @@ func (s *BindingNodeScaler) spotMatches(pod *api.Pod, node *api.Node) bool {
 	return false
 }
 
+// we try test to see if Dedicated is set true for pod.Spec.Dedicated and
+// ensure that pod.Spec.Spot is not also set to true.
+func (s *BindingNodeScaler) dedicatedMatches(pod *api.Pod, node *api.Node) bool {
+	if pod.Spec.Dedicated == true && pod.Spec.Spot.Policy == api.SpotNever) {
+		return true
+	}
+	return false
+}
+
 func (s *BindingNodeScaler) podMatchesNode(pod *api.Pod, node *api.Node) bool {
 	return node.Spec.InstanceType == pod.Spec.InstanceType &&
 		node.Spec.Resources.PrivateIPOnly == pod.Spec.Resources.PrivateIPOnly &&
@@ -81,6 +90,12 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	if pod.Spec.Spot.Policy == api.SpotAlways {
 		isSpotPod = true
 	}
+	// we may potentially need to add a check here to make sure we are not trying
+	// to allocate a spot and a dedicated node
+	isDedicatedPod := false
+	if pod.Spec.Dedicated {
+		isDedicatedPod = true
+	}
 	if s.bootLimiter.IsUnavailableInstance(pod.Spec.InstanceType, isSpotPod) {
 		return nil
 	}
@@ -89,6 +104,7 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	node.Spec.InstanceType = pod.Spec.InstanceType
 	node.Spec.BootImage = BootImage.ID
 	node.Spec.Spot = isSpotPod
+	node.Spec.Dedicated = isDedicatedPod
 	node.Spec.Resources = pod.Spec.Resources
 	// If we can resize, keep things simple and never enlarge the disk
 	// until dispatch (just launch with the default size), otherwise,
@@ -107,6 +123,7 @@ func (s *BindingNodeScaler) createNodeForStandbySpec(spec *StandbyNodeSpec) *api
 	node.Spec.InstanceType = spec.InstanceType
 	node.Spec.BootImage = BootImage.ID
 	node.Spec.Spot = spec.Spot
+	node.Spec.Dedicated = spec.Dedicated
 	node.Spec.Resources.VolumeSize = s.defaultVolumeSize
 	return node
 }

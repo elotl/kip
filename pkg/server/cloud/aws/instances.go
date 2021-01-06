@@ -360,9 +360,76 @@ func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata, iamPermi
 }
 
 func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
-	// TODO
-	// Fill in
-	return "", nil
+	klog.V(2).Infof("Starting instance for node: %v", node)
+	hostOutput, err := e.client.DescribeHosts(&ec2.DescribeHostInput{
+		Filter: [{
+			Name: "state",
+			Values: ["available"],
+		}],
+	})
+	if err != nil {
+		// TODO handle error
+	}
+	// if there was no available host returned we need to allocate a new host for the instance
+	var hostId &ec2.Host{}
+	if !hostOutput {
+		allocateHostOutput, err := e.client.AllocateHosts(&ec2.AllocateHostsInput{
+			AutoPlacement: "on",
+			InstanceFamily: "mac1",
+			InstanceType: "mac1.metal",
+			Quantity: 1,
+		})
+		if err != nil {
+			// TODO handle error
+		}
+		hostId = allocateHostOutput.HostIds[0]
+	} else {
+		hostId = hostOutput.HostIds[0]
+	}
+	tags := e.getNodeTags(node)
+	tagSpec := ec2.TagSpecification{
+		ResourceType: aws.String("instance"),
+		Tags:         tags,
+	}
+	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
+	devices := e.getBlockDeviceMapping(image, volSizeGiB)
+	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
+	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
+		e.bootSecurityGroupIDs, e.subnetID)
+	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
+		ImageId:             aws.String(node.Spec.BootImage),
+		InstanceType:        aws.String(node.Spec.InstanceType),
+		MinCount:            aws.Int64(1),
+		MaxCount:            aws.Int64(1),
+		TagSpecifications:   []*ec2.TagSpecification{&tagSpec},
+		NetworkInterfaces:   networkSpec,
+		BlockDeviceMappings: devices,
+		UserData:            aws.String(metadata),
+		IamInstanceProfile:  getIAMInstanceProfileSpecification(iamPermissions),
+		Placement: &ec2.Placement {
+			HostId: hostId,
+			Tenancy: "dedicated",
+		},
+	})
+	if err != nil {
+		if isSubnetConstrainedError(err) {
+			return "", &cloud.NoCapacityError{
+				OriginalError: err.Error(),
+				SubnetID:      e.subnetID,
+			}
+		} else if isAZConstrainedError(err) || isInstanceConstrainedError(err) {
+			return "", &cloud.NoCapacityError{
+				OriginalError: err.Error(),
+			}
+		}
+		return "", util.WrapError(err, "Could not run instance")
+	}
+	if len(result.Instances) == 0 {
+		return "", fmt.Errorf("Could not get instance info at result.Instances")
+	}
+	cloudID := aws.StringValue(result.Instances[0].InstanceId)
+	klog.V(2).Infof("Started instance: %s", cloudID)
+	return cloudID, nil
 }
 
 func getIAMInstanceProfileSpecification(iamPermissions string) *ec2.IamInstanceProfileSpecification {

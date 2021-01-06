@@ -32,5 +32,6 @@ type StandbyNodeSpec struct {
 	InstanceType string `json:"instanceType"`
 	Count        int    `json:"count"`
 	Spot         bool   `json:"spot"`
+	Dedicated    bool   `json:"dedicated"`
 	// for now, standby nodes don't get public IPs and can't have GPUs
 }
