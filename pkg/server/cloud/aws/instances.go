@@ -378,6 +378,7 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 	if !hostOutput {
 		allocateHostOutput, err := e.client.AllocateHosts(&ec2.AllocateHostsInput{
 			AutoPlacement: "on",
+			AvailabilityZone: e.availabilityZone,
 			InstanceFamily: "mac1",
 			InstanceType: "mac1.metal",
 			Quantity: 1,
