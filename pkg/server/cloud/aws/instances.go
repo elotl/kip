@@ -459,7 +459,7 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 		IamInstanceProfile:  getIAMInstanceProfileSpecification(iamPermissions),
 		Placement: &ec2.Placement{
 			HostId:  hostId,
-			Tenancy: aws.String("dedicated"),
+			Tenancy: aws.String("host"),
 		},
 	})
 	if err != nil {
