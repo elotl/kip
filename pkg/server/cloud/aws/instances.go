@@ -359,15 +359,54 @@ func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata, iamPermi
 	return cloudID, nil
 }
 
-func (e *AwsEC2) retrieveOrAllocateHost() (*string, error) {
-	describeResult, err := e.client.DescribeHosts(&ec2.DescribeHostsInput{
+// We need to ensure the dedicated host fulfills two constraints
+// 1) in a state of "available"
+// 2) no tenant is currently occupying the host
+func (e *AwsEC2) ReleaseDedicatedHosts() error {
+	hosts, err := e.listAvailableDedicatedHosts()
+	if err != nil {
+		return err
+	}
+	var hostIdsForRelease []*string
+	for _, host := range hosts {
+		if len(host.Instances) > 0 {
+			continue
+		}
+		hostIdsForRelease = append(hostIdsForRelease, host.HostId)
+	}
+	// TODO do we need to know which hosts were successfully released vs which
+	// were unsuccessful? this runs within the gcLoop so it should clean up
+	// anything not cleaned on a next iteration
+	_, err = e.client.ReleaseHosts(&ec2.ReleaseHostsInput{
+		HostIds: hostIdsForRelease,
+	})
+	return err
+}
+
+func (e *AwsEC2) listAvailableDedicatedHosts() ([]*ec2.Host, error) {
+	describeOutput, err := e.client.DescribeHosts(&ec2.DescribeHostsInput{
+		Filter: []*ec2.Filter{
+			{
+				Name:   aws.String("state"),
+				Values: []*string{aws.String("available")},
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return describeOutput.Hosts, nil
+}
+
+func (e *AwsEC2) retrieveOrAllocateHost(node *api.Node) (*string, error) {
+	describeOutput, err := e.client.DescribeHosts(&ec2.DescribeHostsInput{
 		Filter: []*ec2.Filter{
 			{
 				Name:   aws.String("state"),
 				Values: []*string{aws.String("available")},
 			}, {
 				Name:   aws.String("instance-type"),
-				Values: []*string{aws.String("mac1.metal")},
+				Values: []*string{aws.String(node.Spec.InstanceType)},
 			},
 		},
 	})
@@ -375,27 +414,26 @@ func (e *AwsEC2) retrieveOrAllocateHost() (*string, error) {
 		return nil, err
 	}
 	// if there is a host available to accept a new tentant return the host id
-	if len(describeResult.Hosts) > 0 {
-		return describeResult.Hosts[0].HostId, nil
+	if len(describeOutput.Hosts) > 0 {
+		return describeOutput.Hosts[0].HostId, nil
 	}
 	// if no host has availability we will allocate a new host to the account
 	// and return the id of the newly allocated host
-	allocateHostOutput, err := e.client.AllocateHosts(&ec2.AllocateHostsInput{
+	allocateOutput, err := e.client.AllocateHosts(&ec2.AllocateHostsInput{
 		AutoPlacement:    aws.String("on"),
 		AvailabilityZone: aws.String(e.availabilityZone),
-		InstanceFamily:   aws.String("mac1"),
-		InstanceType:     aws.String("mac1.metal"),
+		InstanceType:     aws.String(node.Spec.InstanceType),
 		Quantity:         aws.Int64(1),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return allocateHostOutput.HostIds[0], nil
+	return allocateOutput.HostIds[0], nil
 }
 
 func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
-	hostId, err := e.retrieveOrAllocateHost()
+	hostId, err := e.retrieveOrAllocateHost(node)
 	if err != nil {
 		return "", fmt.Errorf("Could not retrieve or allocate dedicated host: %v", err)
 	}
