@@ -131,6 +131,9 @@ type PodSpec struct {
 	// PodSpot is the policy that determines if a spot instance may be used for
 	// a Pod.
 	Spot PodSpot `json:"spot,omitempty"`
+	// PodDedicated is a policy that determines if a dedicated host instance may
+	// be used for a pod
+	Dedicated bool `json:"dedicated:omitempty"`
 	// Resource requirements for the Node that will run this Pod. If both
 	// instanceType and resources are specified, instanceType will take
 	// precedence.
@@ -1299,6 +1302,14 @@ type PodSpot struct {
 	// instance for running a Pod.
 	Policy SpotPolicy `json:"policy"`
 	// Notify string     `json:"notify"`
+}
+
+// PodDedicated is the policy that determines if a dedicated host instance may
+// be used for a pod this is currently unimplemented but could be useful for
+// future use in dedicated host support it can more or less mimic the way that
+// PodSpot works with a custom type and "enum" like characteristics
+type PodDedicated struct {
+	// TODO
 }
 
 type NetworkAddressType string

@@ -359,8 +359,8 @@ func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata, iamPermi
 	return cloudID, nil
 }
 
-func (e *AwsEC2) retrieveOrAllocateHost() (string, error) {
-	describeOutput, err := e.client.DescribeHosts(&ec2.DescribeHostInput{
+func (e *AwsEC2) retrieveOrAllocateHost() (*string, error) {
+	describeResult, err := e.client.DescribeHosts(&ec2.DescribeHostsInput{
 		Filter: []*ec2.Filter{
 			{
 				Name:   aws.String("state"),
@@ -372,11 +372,11 @@ func (e *AwsEC2) retrieveOrAllocateHost() (string, error) {
 		},
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	// if there is a host available to accept a new tentant return the host id
-	if len(hostOutput.Hosts) > 0 {
-		return hostOutput.Host[0].HostId, nil
+	if len(describeResult.Hosts) > 0 {
+		return describeResult.Hosts[0].HostId, nil
 	}
 	// if no host has availability we will allocate a new host to the account
 	// and return the id of the newly allocated host
@@ -388,7 +388,7 @@ func (e *AwsEC2) retrieveOrAllocateHost() (string, error) {
 		Quantity:         aws.Int64(1),
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	return allocateHostOutput.HostIds[0], nil
 }
@@ -421,7 +421,7 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 		IamInstanceProfile:  getIAMInstanceProfileSpecification(iamPermissions),
 		Placement: &ec2.Placement{
 			HostId:  hostId,
-			Tenancy: "dedicated",
+			Tenancy: aws.String("dedicated"),
 		},
 	})
 	if err != nil {

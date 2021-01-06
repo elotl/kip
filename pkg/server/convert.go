@@ -642,7 +642,7 @@ func addAnnotationsToMilpaPod(milpaPod *api.Pod) {
 	if strings.ToLower(a) != "" {
 		milpaPod.Spec.InstanceType = a
 	}
-	if strings.ToLower(a).HasPrefix == "mac1" {
+	if strings.HasPrefix(strings.ToLower(a), "mac1") {
 		milpaPod.Spec.Dedicated = true
 	}
 	a = milpaPod.Annotations[annotations.PodResourcesPrivateIPOnly]
