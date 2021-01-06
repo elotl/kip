@@ -359,36 +359,45 @@ func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata, iamPermi
 	return cloudID, nil
 }
 
-func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
-	klog.V(2).Infof("Starting instance for node: %v", node)
-	hostOutput, err := e.client.DescribeHosts(&ec2.DescribeHostInput{
-		Filter: [{
-			Name: "state",
-			Values: ["available"],
-		},{
-			Name: "instance-type",
-			Values: ["mac1.metal"],
-		}],
+func (e *AwsEC2) retrieveOrAllocateHost() (string, error) {
+	describeOutput, err := e.client.DescribeHosts(&ec2.DescribeHostInput{
+		Filter: []*ec2.Filter{
+			{
+				Name:   aws.String("state"),
+				Values: []*string{aws.String("available")},
+			}, {
+				Name:   aws.String("instance-type"),
+				Values: []*string{aws.String("mac1.metal")},
+			},
+		},
 	})
 	if err != nil {
-		// TODO handle error
+		return "", err
 	}
-	// if there was no available host returned we need to allocate a new host for the instance
-	var hostId &ec2.Host{}
-	if !hostOutput {
-		allocateHostOutput, err := e.client.AllocateHosts(&ec2.AllocateHostsInput{
-			AutoPlacement: "on",
-			AvailabilityZone: e.availabilityZone,
-			InstanceFamily: "mac1",
-			InstanceType: "mac1.metal",
-			Quantity: 1,
-		})
-		if err != nil {
-			// TODO handle error
-		}
-		hostId = allocateHostOutput.HostIds[0]
-	} else {
-		hostId = hostOutput.HostIds[0]
+	// if there is a host available to accept a new tentant return the host id
+	if len(hostOutput.Hosts) > 0 {
+		return hostOutput.Host[0].HostId, nil
+	}
+	// if no host has availability we will allocate a new host to the account
+	// and return the id of the newly allocated host
+	allocateHostOutput, err := e.client.AllocateHosts(&ec2.AllocateHostsInput{
+		AutoPlacement:    aws.String("on"),
+		AvailabilityZone: aws.String(e.availabilityZone),
+		InstanceFamily:   aws.String("mac1"),
+		InstanceType:     aws.String("mac1.metal"),
+		Quantity:         aws.Int64(1),
+	})
+	if err != nil {
+		return "", err
+	}
+	return allocateHostOutput.HostIds[0], nil
+}
+
+func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+	klog.V(2).Infof("Starting instance for node: %v", node)
+	hostId, err := e.retrieveOrAllocateHost()
+	if err != nil {
+		return "", fmt.Errorf("Could not retrieve or allocate dedicated host: %v", err)
 	}
 	tags := e.getNodeTags(node)
 	tagSpec := ec2.TagSpecification{
@@ -410,8 +419,8 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 		BlockDeviceMappings: devices,
 		UserData:            aws.String(metadata),
 		IamInstanceProfile:  getIAMInstanceProfileSpecification(iamPermissions),
-		Placement: &ec2.Placement {
-			HostId: hostId,
+		Placement: &ec2.Placement{
+			HostId:  hostId,
 			Tenancy: "dedicated",
 		},
 	})
