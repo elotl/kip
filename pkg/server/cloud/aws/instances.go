@@ -365,6 +365,9 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 		Filter: [{
 			Name: "state",
 			Values: ["available"],
+		},{
+			Name: "instance-type",
+			Values: ["mac1.metal"],
 		}],
 	})
 	if err != nil {
