@@ -50,7 +50,7 @@ while true; do
     if [[ -n "$instances" ]]; then
         echo "Terminating instances:"
         echo "$instances"
-        aws ec2 terminate-instances --instance-ids $instances > /dev/null 2>&1
+        aws ec2 terminate-instances --instance-ids $instances
     else
         break
     fi
@@ -62,7 +62,7 @@ if [[ -n "$lbs" ]]; then
     echo "Removing LBs:"
     echo "$lbs"
     for lb in $lbs; do
-        aws elb delete-load-balancer --load-balancer-name $lb > /dev/null 2>&1
+        aws elb delete-load-balancer --load-balancer-name $lb
     done
 fi
 v2lbs=$(aws elbv2 describe-load-balancers | jq -r ".LoadBalancers | .[] | select(.VpcId==\"$VPC_ID\") | .LoadBalancerArn")
@@ -70,7 +70,7 @@ if [[ -n "$v2lbs" ]]; then
     echo "Removing v2 LBs:"
     echo "$v2lbs"
     for lb in $v2lbs; do
-        aws elbv2 delete-load-balancer --load-balancer-arn $lb > /dev/null 2>&1
+        aws elbv2 delete-load-balancer --load-balancer-arn $lb
     done
 fi
 
@@ -80,7 +80,7 @@ if [[ -n "$sgs" ]]; then
     echo "Removing SGs:"
     echo "$sgs"
     for sg in $sgs; do
-        aws ec2 delete-security-group --group-id $sg > /dev/null 2>&1
+        aws ec2 delete-security-group --group-id $sg
     done
 fi
 
@@ -90,7 +90,7 @@ if [[ -n "$vols" ]]; then
     echo "Removing volumes:"
     echo "$vols"
     for vol in $vols; do
-        aws ec2 delete-volume --volume-id $vol > /dev/null 2>&1
+        aws ec2 delete-volume --volume-id $vol
     done
 fi
 
