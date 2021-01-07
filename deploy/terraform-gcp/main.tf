@@ -1,17 +1,19 @@
 terraform {
   required_version = ">= 0.12.0"
-}
-
-provider "null" {
-  version =  "~> 2.1"
-}
-
-provider "random" {
-  version =  "~> 2.2"
+  required_providers {
+    null = {
+      version = "~> 2.1"
+    }
+    random = {
+      version = "~> 2.2"
+    }
+    google = {
+      version = "~> 3.21"
+    }
+  }
 }
 
 provider "google" {
-  version = "~> 3.21"
   project = var.project
   region  = var.region
   zone    = var.zone

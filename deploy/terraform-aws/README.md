@@ -7,15 +7,36 @@ The Terraform config here can be used to provision a simple test cluster with ki
 ## Getting Started
 
 You need:
+
 * an AWS account configured (check that e.g. `aws iam get-user` works)
 * Terraform >= 0.12
 * aws-cli
 * jq
 
-You can then apply your config:
+Initialize Terraform and verify the configuration:
 
-    cp env.tfvars.example myenv.tfvars
-    vi myenv.tfvars # You can change settings for your cluster here.
+    $ terraform init
+    [... lots of output ...]
+    $ terraform plan
+    [... lots of output ...]
+
+[Upload][0] your SSH public key to AWS, and remember its name. Make
+sure the private key for this public key is your default SSH key:
+`$HOME/.ssh/id_rsa`. Alternatively you can use an SSH key pair generated from
+AWS. In this example we’ll name our key-pair “alice-key”. Come up with
+a unique cluster name like “alice-cluster”. Finally put these values
+into a tfvars file:
+
+[0]: https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#KeyPairs:
+
+    $ cat > myenv.tfvars <<EOF
+    ssh_key_name = "alice-key"
+    cluster_name = "alice-cluster"
+    EOF
+
+There are other configuration variables available, there’s an example tfvars
+file env.tfvars.example. You can then apply your config:
+
     terraform apply -var-file myenv.tfvars
 
 This will create a new VPC and a one-node Kubernetes cluster in it with kip, and show the public IP address of the node when done:
@@ -35,7 +56,8 @@ You can now ssh into the instance using the username "ubuntu", and the ssh key y
     ip-10-0-26-113.ec2.internal   Ready    master   67s   v1.17.3
     kip-provider-0                Ready    agent    13s   v1.14.0-vk-v0.0.1-125-g3b2cc98
 
-If you haven't set an existing ssh key in your configuration, a new ssh key has been created. You can extract and use it via:
+If you haven't set an existing ssh key in your configuration, a new ssh key has been created.
+You can extract and use it via:
 
     $ terraform show -json | jq -r '.values.root_module.resources | .[] | select(.address=="tls_private_key.ssh-key") | .values.private_key_pem' > /tmp/id_rsa
     $ ssh -i /tmp/id_rsa ubuntu@<public IP of node>
