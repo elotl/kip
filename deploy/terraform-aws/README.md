@@ -22,10 +22,10 @@ Initialize Terraform and verify the configuration:
 
 [Upload][0] your SSH public key to AWS, and remember its name. Make
 sure the private key for this public key is your default SSH key:
-`$HOME/.ssh/id_rsa` (NB: investigate the SSH key situation to see if
-there’s an easier way to get this set-up correctly.) In this example
-we’ll name our key-pair “alice-key”. Come up with a unique cluster
-name like “alice-cluster”. Finally put these values into a tfvars file:
+`$HOME/.ssh/id_rsa`. Alternatively you can use an SSH key pair generated from
+AWS. In this example we’ll name our key-pair “alice-key”. Come up with
+a unique cluster name like “alice-cluster”. Finally put these values
+into a tfvars file:
 
 [0]: https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#KeyPairs:
 
