@@ -39,8 +39,10 @@ func init() {
 }
 
 type GarbageControllerConfig struct {
-	CleanTerminatedInterval time.Duration
-	CleanInstancesInterval  time.Duration
+	CleanTerminatedInterval     time.Duration
+	CleanInstancesInterval      time.Duration
+	CleanResourceGroupsInterval time.Duration
+	CleanDedicatedHostsInterval time.Duration
 }
 
 type GarbageController struct {
@@ -73,8 +75,8 @@ func (c *GarbageController) GCLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 	cleanTermiantedTicker := time.NewTicker(c.config.CleanTerminatedInterval)
 	instancesTicker := time.NewTicker(c.config.CleanInstancesInterval)
-	cleanResourceGroupsTicker := time.NewTicker(3 * time.Minute)
-	cleanDedicatedHostsTicker := time.NewTicker(15 * time.Minute)
+	cleanResourceGroupsTicker := time.NewTicker(c.config.CleanResourceGroupsInterval)
+	cleanDedicatedHostsTicker := time.NewTicker(c.config.CleanDedicatedHostsInterval)
 	defer cleanTermiantedTicker.Stop()
 	defer instancesTicker.Stop()
 	defer cleanResourceGroupsTicker.Stop()

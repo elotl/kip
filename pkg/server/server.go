@@ -263,7 +263,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 		cloudClient.GetAttributes().Zone,
 		serverConfigFile.Cells.DefaultInstanceType,
 		instanceDataPath,
-		)
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error setting up instance selector %s", err)
 	}
@@ -397,8 +397,10 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 	klog.V(5).Infof("creating garbage controller")
 	garbageController := &GarbageController{
 		config: GarbageControllerConfig{
-			CleanInstancesInterval:  60 * time.Second,
-			CleanTerminatedInterval: 10 * time.Second,
+			CleanInstancesInterval:      60 * time.Second,
+			CleanTerminatedInterval:     10 * time.Second,
+			CleanResourceGroupsInterval: 3 * time.Minute,
+			CleanDedicatedHostsInterval: 15 * time.Minute,
 		},
 		podRegistry:  podRegistry,
 		nodeRegistry: nodeRegistry,
