@@ -60,7 +60,7 @@ func (s *BindingNodeScaler) spotMatches(pod *api.Pod, node *api.Node) bool {
 // we try test to see if Dedicated is set true for pod.Spec.Dedicated and
 // ensure that pod.Spec.Spot is not also set to true.
 func (s *BindingNodeScaler) dedicatedMatches(pod *api.Pod, node *api.Node) bool {
-	if node.Spec.Dedicated == true && pod.Spec.Spot.Policy == api.SpotNever {
+	if node.Spec.Dedicated && pod.Spec.Spot.Policy == api.SpotNever {
 		return true
 	}
 	return false
