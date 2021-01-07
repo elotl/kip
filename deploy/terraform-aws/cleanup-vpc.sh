@@ -45,15 +45,23 @@ check_prg aws
 check_prg jq
 
 # Delete instances in VPC.
-while true; do
-    instances=$(aws ec2 describe-instances | jq -r ".Reservations | .[] | .Instances | .[] | select(.State.Name!=\"shutting-down\") | select(.State.Name!=\"terminated\") | select(.VpcId==\"$VPC_ID\") | .InstanceId")
-    if [[ -n "$instances" ]]; then
-        echo "Terminating instances:"
-        echo "$instances"
-        aws ec2 terminate-instances --instance-ids $instances > /dev/null 2>&1
-    else
-        break
-    fi
+get_pending_and_running_instance_ids_by_vpc_id() {
+    aws ec2 describe-instances --filters \
+        'Name=instance-state-name,Values=pending,running' \
+        "Name=vpc-id,Values=${1}" |
+    jq -r '.Reservations | .[] | .Instances | .[] | .InstanceId'
+}
+
+instance_ids=$(get_pending_and_running_instance_ids_by_vpc_id "$VPC_ID")
+while [[ -n "$instance_ids" ]]
+do
+    echo "Terminating instances: $instance_ids"
+    aws ec2 terminate-instances --instance-ids "$instance_ids"
+    aws ec2 wait instance-terminated --instance-ids "$instance_ids"
+
+    # Update the list to ensure nothing else came up in the VPC that would
+    # block the destruction of the security group.
+    instance_ids=$(get_pending_and_running_instance_ids_by_vpc_id "$VPC_ID")
 done
 
 # Delete LBs.
@@ -62,7 +70,7 @@ if [[ -n "$lbs" ]]; then
     echo "Removing LBs:"
     echo "$lbs"
     for lb in $lbs; do
-        aws elb delete-load-balancer --load-balancer-name $lb > /dev/null 2>&1
+        aws elb delete-load-balancer --load-balancer-name $lb
     done
 fi
 v2lbs=$(aws elbv2 describe-load-balancers | jq -r ".LoadBalancers | .[] | select(.VpcId==\"$VPC_ID\") | .LoadBalancerArn")
@@ -70,19 +78,31 @@ if [[ -n "$v2lbs" ]]; then
     echo "Removing v2 LBs:"
     echo "$v2lbs"
     for lb in $v2lbs; do
-        aws elbv2 delete-load-balancer --load-balancer-arn $lb > /dev/null 2>&1
+        aws elbv2 delete-load-balancer --load-balancer-arn $lb
     done
 fi
 
-# Delete security groups in VPC.
-sgs=$(aws ec2 describe-security-groups | jq -r ".SecurityGroups | .[] | select(.VpcId == \"$VPC_ID\") | .GroupId")
-if [[ -n "$sgs" ]]; then
-    echo "Removing SGs:"
-    echo "$sgs"
-    for sg in $sgs; do
-        aws ec2 delete-security-group --group-id $sg > /dev/null 2>&1
+# Delete security groups in VPC. This doesn't include the default security
+# group that we can't delete. It will be deleted when the VPC gets deleted.
+get_security_group_ids_by_vpc_id() {
+    aws ec2 describe-security-groups \
+        --filters 'Name=vpc-id,Values='"$1" \
+        --query 'SecurityGroups[?GroupName != `default`].GroupId' \
+        --output text
+}
+
+security_group_ids=$(get_security_group_ids_by_vpc_id "$VPC_ID")
+while [[ -n "$security_group_ids" ]]
+do
+    for sg_id in $security_group_ids
+    do
+        echo "Deleting security group: $sg_id"
+        aws ec2 delete-security-group --group-id "$sg_id"
     done
-fi
+    # There may be dependant resources preventing some security groups from
+    # being deleted. We retry the loop if that's the case.
+    security_group_ids=$(get_security_group_ids_by_vpc_id "$VPC_ID")
+done
 
 # Delete volumes created by this cluster.
 vols=$(aws ec2 describe-volumes --filters "Name=tag:kubernetes.io/cluster/$CLUSTER_NAME,Values=owned" "Name=status,Values=creating,available" | jq -r ".Volumes | .[] | .VolumeId")
@@ -90,8 +110,9 @@ if [[ -n "$vols" ]]; then
     echo "Removing volumes:"
     echo "$vols"
     for vol in $vols; do
-        aws ec2 delete-volume --volume-id $vol > /dev/null 2>&1
+        aws ec2 delete-volume --volume-id $vol
     done
 fi
 
+# This is needed just in case the last command executed failed
 exit 0
