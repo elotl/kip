@@ -643,6 +643,11 @@ func addAnnotationsToMilpaPod(milpaPod *api.Pod) {
 		milpaPod.Spec.InstanceType = a
 	}
 	if strings.HasPrefix(strings.ToLower(a), "mac1") {
+		if milpaPod.Spec.Spot.Policy == api.SpotAlways {
+			klog.Warningf(
+				"%s instance types are only availabe on dedicated hosts", a)
+			milpaPod.Spec.Spot.Policy = api.SpotNever
+		}
 		milpaPod.Spec.Dedicated = true
 	}
 	a = milpaPod.Annotations[annotations.PodResourcesPrivateIPOnly]
