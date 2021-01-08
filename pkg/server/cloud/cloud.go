@@ -110,6 +110,7 @@ type SubnetAttributes struct {
 }
 
 type Image struct {
+	Architecture   string
 	ID             string
 	Name           string
 	RootDevice     string
@@ -132,6 +133,26 @@ func SortImagesByCreationTime(images []Image) {
 }
 
 type BootImageSpec map[string]string
+
+// since we support multiple filters for images we need to
+// create individual bootspecs for each image filter
+func (bis *BootImageSpec) Specs() []BootImageSpec {
+	owners, ok := (*bis)["owners"]
+	if !ok {
+		return nil
+	}
+	specs := make([]BootImageSpec, len((*bis))-1)
+	for k, v := range *bis {
+		if k == "owners" {
+			continue
+		}
+		specs = append(specs, BootImageSpec{
+			"owners": owners,
+			k:        v,
+		})
+	}
+	return specs
+}
 
 func (bis *BootImageSpec) String() string {
 	data, err := json.Marshal(bis)

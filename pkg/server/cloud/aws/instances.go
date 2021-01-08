@@ -243,7 +243,7 @@ func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeI
 		case "imageIDs":
 			imageIDs := strings.Fields(value)
 			input.ImageIds = aws.StringSlice(imageIDs)
-		case "filters":
+		case "filters", "macfilters", "armfilters":
 			filters := strings.Fields(value)
 			ec2Filters := make([]*ec2.Filter, len(filters))
 			for i, filter := range filters {
@@ -304,6 +304,7 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 		}
 		rootDiskSize := getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
 		images[i] = cloud.Image{
+			Architecture:   aws.StringValue(img.Architecture),
 			Name:           aws.StringValue(img.Name),
 			RootDevice:     aws.StringValue(img.RootDeviceName),
 			ID:             aws.StringValue(img.ImageId),

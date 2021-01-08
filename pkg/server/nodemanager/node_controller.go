@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -46,7 +47,7 @@ var (
 	HealthyTimeout      time.Duration = 90 * time.Second
 	HealthcheckPause    time.Duration = 5 * time.Second
 	SpotRequestPause    time.Duration = 60 * time.Second
-	BootImage           cloud.Image   = cloud.Image{}
+	BootImages          []cloud.Image = []cloud.Image{}
 	MaxBootPerIteration int           = 10
 	itzoDir             string        = "/tmp/itzo"
 )
@@ -154,25 +155,34 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 	}
 
 	// If we can't get the boot image, just use the old value for the image
-	newBootImage, err := c.imageSpecToImage(c.BootImageSpec)
+	// need to update this function first so we start returning a slice of
+	// images based on the number of image filters within the bootspec
+	newBootImages, err := c.imageSpecToImage(c.BootImageSpec)
 	if err != nil {
-		if BootImage.ID == "" {
-			return nil, util.WrapError(err, "Could not get latest boot image")
-		} else {
-			klog.Warningf("Could not get latest boot image: %s, using stored value for boot image: %v", err, BootImage)
-			newBootImage = BootImage
+		if len(newBootImages) < len(c.BootImageSpec)-1 {
+			return nil, util.WrapError(err, "Could not get latest boot images")
+		}
+		for _, bootImg := range BootImages {
+			if bootImg.ID == "" {
+				return nil, util.WrapError(err, "Could not get latest boot image")
+			} else {
+				klog.Warningf("Could not get latest boot image: %s, using stored value for boot image: %v", err, bootImg)
+				newBootImages = append(newBootImages, bootImg)
+			}
 		}
 	}
-	BootImage = newBootImage
+	BootImages = newBootImages
 
-	if BootImage.ID == "" {
-		return nil, fmt.Errorf("can not create create new nodes: empty value for machine image.  Please ensure boot image spec maps to a machine image: %v", c.BootImageSpec)
+	for _, bootImg := range BootImages {
+		if bootImg.ID == "" {
+			return nil, fmt.Errorf("can not create create new nodes: empty value for machine image.  Please ensure boot image spec maps to a machine image: %v", c.BootImageSpec)
+		}
 	}
 	startNodes, stopNodes, podNodeMap := c.NodeScaler.Compute(nodes.Items, pods.Items)
 	if podNodeMap == nil {
 		return nil, fmt.Errorf("Error computing new node pools, this is likely a problem with the DB. Not updating pod-node bindings")
 	}
-	c.startNodes(startNodes, BootImage)
+	c.startNodes(startNodes, BootImages)
 	for _, node := range stopNodes {
 		err := c.stopSingleNode(node)
 		if err != nil {
@@ -219,7 +229,7 @@ func (c *NodeController) getCloudInitContents() (string, error) {
 	return metadata, nil
 }
 
-func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
+func (c *NodeController) startNodes(nodes []*api.Node, images []cloud.Image) {
 	if len(nodes) <= 0 {
 		return
 	}
@@ -246,8 +256,25 @@ func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
 			klog.Errorf("Error creating node in registry: %v", err)
 			continue
 		}
+		image := getImageForInstance(newNode.Spec.InstanceType, images)
 		go c.startSingleNode(newNode, image, metadata)
 	}
+}
+
+func getImageForInstance(instType string, images []cloud.Image) cloud.Image {
+	var image cloud.Image
+	for _, img := range images {
+		isMacInst := strings.HasPrefix(instType, "mac")
+		isMacImg := strings.Contains(img.Name, "elotl-kipmac-")
+		isDefaultImg := strings.Contains(img.Name, "elotl-kip-")
+		if isMacInst && isMacImg {
+			image = img
+		}
+		if !isMacInst && isDefaultImg {
+			image = img
+		}
+	}
+	return image
 }
 
 func (c *NodeController) handleStartNodeError(node *api.Node, err error, isSpot bool) {
@@ -731,27 +758,33 @@ func (c *NodeController) requestNode(nodeReq NodeRequest, podNodeMapping map[str
 	}
 }
 
-func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (cloud.Image, error) {
-	var img cloud.Image
-	obj, exists := c.ImageIdCache.Get(spec.String())
-	if obj != nil {
-		img = obj.(cloud.Image)
-	}
-	if !exists || img.ID == "" {
-		var err error
-		img, err = c.CloudClient.GetImage(spec)
-		if err != nil {
-			klog.Errorf("resolving image spec %v to image ID: %v",
-				spec, err)
-			return img, err
+// Since we are supporting multiple cpu architectures now this function must return
+// a slice of images based on the number of filters we have within the bootspec
+func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) ([]cloud.Image, error) {
+	var images []cloud.Image
+	for _, ispec := range spec.Specs() {
+		var img cloud.Image
+		obj, exists := c.ImageIdCache.Get(ispec.String())
+		if obj != nil {
+			img = obj.(cloud.Image)
+			images = append(images, img)
 		}
-		c.ImageIdCache.Add(spec.String(), img, 5*time.Minute,
-			func(obj interface{}) {
-				_, _ = c.imageSpecToImage(spec)
-			})
-		klog.V(2).Infof("latest image for spec %v: %v", spec, img)
+		if !exists || img.ID == "" {
+			var err error
+			img, err = c.CloudClient.GetImage(ispec)
+			if err != nil {
+				klog.Errorf("resolving image spec %v to image ID: %v",
+					ispec, err)
+				return images, err
+			}
+			c.ImageIdCache.Add(ispec.String(), img, 5*time.Minute,
+				func(obj interface{}) {
+					_, _ = c.imageSpecToImage(ispec)
+				})
+			klog.V(2).Infof("latest image for spec %v: %v", ispec, img)
+		}
 	}
-	return img, nil
+	return images, nil
 }
 
 func (c *NodeController) bindNodeToPod(pod *api.Pod, node *api.Node) error {
