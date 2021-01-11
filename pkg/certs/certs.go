@@ -93,6 +93,7 @@ func CreateCert(rootCert *x509.Certificate, rootPrivateKey *ecdsa.PrivateKey, se
 			Country:            []string{"United States"},
 			CommonName:         commonName, // used for client verification
 		},
+		DNSNames:     []string{commonName},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(10, 0, 0),
 		SubjectKeyId: []byte{1, 2, 3, 4, 6},
