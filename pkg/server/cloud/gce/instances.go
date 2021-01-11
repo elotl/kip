@@ -289,12 +289,12 @@ func (c *gceClient) StartNode(node *api.Node, image cloud.Image, metadata, iamPe
 
 func (c *gceClient) ReleaseDedicatedHosts() error {
 	// TODO stubbed not implemented yet
-	return nil
+	return fmt.Errorf("GCP: %s", "release dedicated hosts not implemented yet")
 }
 
 func (c *gceClient) StartDedicatedNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
 	// TODO stubbed not implemented yet
-	return "", nil
+	return "", fmt.Errorf("GCP: %s", "start dedicated node not implemented yet")
 }
 
 // In we dictate whether the node is a spot based on the node passed in

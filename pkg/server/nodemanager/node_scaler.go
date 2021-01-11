@@ -87,10 +87,7 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	if pod.Spec.Spot.Policy == api.SpotAlways {
 		isSpotPod = true
 	}
-	isDedicatedPod := false
-	if pod.Spec.Dedicated {
-		isDedicatedPod = true
-	}
+
 	if s.bootLimiter.IsUnavailableInstance(pod.Spec.InstanceType, isSpotPod) {
 		return nil
 	}
@@ -99,7 +96,7 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	node.Spec.InstanceType = pod.Spec.InstanceType
 	node.Spec.BootImage = BootImage.ID
 	node.Spec.Spot = isSpotPod
-	node.Spec.Dedicated = isDedicatedPod
+	node.Spec.Dedicated = pod.Spec.Dedicated
 	node.Spec.Resources = pod.Spec.Resources
 	// If we can resize, keep things simple and never enlarge the disk
 	// until dispatch (just launch with the default size), otherwise,

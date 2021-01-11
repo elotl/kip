@@ -383,11 +383,9 @@ func (e *AwsEC2) ReleaseDedicatedHosts() error {
 	// We do not want to return these as actual errors since in many cases such
 	// as mac1.metal hosts there is a 24 hour limit before you are allow to release
 	// the associated host.
-	if len(resp.Unsuccessful) > 0 {
-		for _, host := range resp.Unsuccessful {
-			klog.Warningf("unable to release host: %s, error: %v",
-				aws.StringValue(host.ResourceId), aws.StringValue(host.Error.Message))
-		}
+	for _, host := range resp.Unsuccessful {
+		klog.Warningf("unable to release host: %s, error: %v",
+			aws.StringValue(host.ResourceId), aws.StringValue(host.Error.Message))
 	}
 	return nil
 }

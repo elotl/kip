@@ -262,12 +262,13 @@ func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata, ia
 
 func (az *AzureClient) ReleaseDedicatedHosts() error {
 	// TODO stubbed not implemented yet
-	return nil
+	return fmt.Errorf("Azure: %s", "release dedicated hosts not implemented yet")
 }
 
 func (az *AzureClient) StartDedicatedNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
 	// TODO stubbed not implemented yet
-	return "", nil
+	return "", fmt.Errorf("Azure: %s", "start dedicated node not implemented yet")
+
 }
 
 func (az *AzureClient) StartSpotNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
