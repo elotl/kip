@@ -57,13 +57,9 @@ func (s *BindingNodeScaler) spotMatches(pod *api.Pod, node *api.Node) bool {
 	return false
 }
 
-// we try test to see if Dedicated is set true for pod.Spec.Dedicated and
-// ensure that pod.Spec.Spot is not also set to true.
+// We test to ensure that the pod.Spec and node.Spec both denote the same value
 func (s *BindingNodeScaler) dedicatedMatches(pod *api.Pod, node *api.Node) bool {
-	if node.Spec.Dedicated && pod.Spec.Spot.Policy == api.SpotNever {
-		return true
-	}
-	return false
+	return node.Spec.Dedicated == pod.Spec.Dedicated
 }
 
 func (s *BindingNodeScaler) podMatchesNode(pod *api.Pod, node *api.Node) bool {
@@ -71,6 +67,7 @@ func (s *BindingNodeScaler) podMatchesNode(pod *api.Pod, node *api.Node) bool {
 		node.Spec.Resources.PrivateIPOnly == pod.Spec.Resources.PrivateIPOnly &&
 		node.Spec.Resources.GPU == pod.Spec.Resources.GPU &&
 		s.spotMatches(pod, node) &&
+		s.dedicatedMatches(pod, node) &&
 		s.diskMatches(pod, node)
 }
 
@@ -90,8 +87,6 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	if pod.Spec.Spot.Policy == api.SpotAlways {
 		isSpotPod = true
 	}
-	// we may potentially need to add a check here to make sure we are not trying
-	// to allocate a spot and a dedicated node
 	isDedicatedPod := false
 	if pod.Spec.Dedicated {
 		isDedicatedPod = true

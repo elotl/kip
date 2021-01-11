@@ -374,13 +374,22 @@ func (e *AwsEC2) ReleaseDedicatedHosts() error {
 		}
 		hostIdsForRelease = append(hostIdsForRelease, host.HostId)
 	}
-	// TODO do we need to know which hosts were successfully released vs which
-	// were unsuccessful? this runs within the gcLoop so it should clean up
-	// anything not cleaned on a next iteration
-	_, err = e.client.ReleaseHosts(&ec2.ReleaseHostsInput{
+	resp, err := e.client.ReleaseHosts(&ec2.ReleaseHostsInput{
 		HostIds: hostIdsForRelease,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	// We do not want to return these as actual errors since in many cases such
+	// as mac1.metal hosts there is a 24 hour limit before you are allow to release
+	// the associated host.
+	if len(resp.Unsuccessful) > 0 {
+		for _, host := range resp.Unsuccessful {
+			klog.Warningf("unable to release host: %s, error: %v",
+				aws.StringValue(host.ResourceId), aws.StringValue(host.Error.Message))
+		}
+	}
+	return nil
 }
 
 func (e *AwsEC2) listAvailableDedicatedHosts() ([]*ec2.Host, error) {
@@ -403,10 +412,10 @@ func (e *AwsEC2) retrieveOrAllocateHost(node *api.Node) (*string, error) {
 		Filter: []*ec2.Filter{
 			{
 				Name:   aws.String("state"),
-				Values: []*string{aws.String("available")},
+				Values: aws.StringSlice([]string{"available"}),
 			}, {
 				Name:   aws.String("instance-type"),
-				Values: []*string{aws.String(node.Spec.InstanceType)},
+				Values: aws.StringSlice([]string{node.Spec.InstanceType}),
 			},
 		},
 	})
