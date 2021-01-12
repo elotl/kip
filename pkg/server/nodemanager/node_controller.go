@@ -256,7 +256,11 @@ func (c *NodeController) startNodes(nodes []*api.Node, images []cloud.Image) {
 			klog.Errorf("Error creating node in registry: %v", err)
 			continue
 		}
-		image := getImageForInstance(newNode.Spec.InstanceType, images)
+		image, found := getImageForInstance(newNode.Spec.InstanceType, images)
+		if !found {
+			klog.Errorf("Error finding image for instance type: %s", newNode.Spec.InstanceType)
+			return
+		}
 		go c.startSingleNode(newNode, image, metadata)
 	}
 }
@@ -264,18 +268,17 @@ func (c *NodeController) startNodes(nodes []*api.Node, images []cloud.Image) {
 // TODO create a map[string]string of instances where the key will be the instance
 // type and the value will be its corresponding architecture. This will allow us
 // to match the instance with the proper image for instantiation
-func getImageForInstance(instType string, images []cloud.Image) cloud.Image {
-	var image cloud.Image
+func getImageForInstance(instType string, images []cloud.Image) (cloud.Image, bool) {
 	for _, img := range images {
 		isMacInst := strings.HasPrefix(instType, "mac")
 		if isMacInst && img.Architecture == "x86_64_mac" {
-			image = img
+			return img, true
 		}
 		if !isMacInst && img.Architecture == "x86_64" {
-			image = img
+			return img, true
 		}
 	}
-	return image
+	return cloud.Image{}, false
 }
 
 func (c *NodeController) handleStartNodeError(node *api.Node, err error, isSpot bool) {

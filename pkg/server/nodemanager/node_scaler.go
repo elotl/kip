@@ -84,7 +84,11 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	if s.bootLimiter.IsUnavailableInstance(pod.Spec.InstanceType, isSpotPod) {
 		return nil
 	}
-	image := getImageForInstance(pod.Spec.InstanceType, BootImages)
+	image, found := getImageForInstance(pod.Spec.InstanceType, BootImages)
+	if !found {
+		klog.Errorf("Error could not find image for instance type: %s", pod.Spec.InstanceType)
+		return nil
+	}
 	node := api.NewNode()
 	node.Spec.InstanceType = pod.Spec.InstanceType
 	node.Spec.BootImage = image.ID
@@ -103,7 +107,11 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 }
 
 func (s *BindingNodeScaler) createNodeForStandbySpec(spec *StandbyNodeSpec) *api.Node {
-	image := getImageForInstance(spec.InstanceType, BootImages)
+	image, found := getImageForInstance(pod.Spec.InstanceType, BootImages)
+	if !found {
+		klog.Errorf("Error could not find image for instance type: %s", pod.Spec.InstanceType)
+		return nil
+	}
 	node := api.NewNode()
 	node.Spec.InstanceType = spec.InstanceType
 	node.Spec.BootImage = image.ID
