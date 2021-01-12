@@ -10,6 +10,7 @@ cells:
   bootImageSpec:
     owners: 689494258501
     filters: name=elotl-kip-*
+    macfilters: name=elotl-kipmac-*
   defaultInstanceType: "t3.nano"
   defaultVolumeSize: "20G"
   nametag: kip
@@ -20,8 +21,8 @@ cells:
   cellConfig:
     itzoFlag-use-anka: true
   itzo:
-    url: https://itzo-kip-download.s3.amazonaws.com
-    version: latest
+    url: http://itzo-kip-dev-download.s3.amazonaws.com
+    version: mac-803
 kubelet:
   cpu: "100"
   memory: "512Gi"
