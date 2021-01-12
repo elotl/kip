@@ -1,3 +1,6 @@
+# Override the GO variable to test with a different version of Golang:
+#     $ make GO=/usr/lib/go-1.15/bin/go
+GO=go
 DKR=docker
 GIT_VERSION=$(shell git describe --dirty)
 CURRENT_TIME=$(shell date +%Y%m%d%H%M%S)
@@ -21,7 +24,7 @@ GENERATED_SRC=$(TOP_DIR)pkg/clientapi/clientapi.pb.go \
 all: $(BINARIES)
 
 kip: $(PKG_SRC) $(CMD_SRC) $(GENERATED_SRC) $(MODULE_FILES)
-	CGO_ENABLED=0 go build $(LDFLAGS) -o $(TOP_DIR)$@ $(TOP_DIR)cmd/kip
+	CGO_ENABLED=0 $(GO) build $(LDFLAGS) -o $(TOP_DIR)$@ $(TOP_DIR)cmd/kip
 
 
 $(TOP_DIR)pkg/clientapi/clientapi.pb.go: $(TOP_DIR)pkg/clientapi/clientapi.proto
@@ -34,7 +37,7 @@ $(TOP_DIR)pkg/api/deepcopy_generated.go: $(TOP_DIR)pkg/api/types.go
 
 # kipctl is compiled staticly so it'll run on pods
 kipctl: $(PKG_SRC) $(KIPCTL_SRC) $(MODULE_FILES)
-	cd cmd/kipctl && CGO_ENABLED=0 GOOS=linux go build $(LDFLAGS) -o $(TOP_DIR)kipctl
+	cd cmd/kipctl && CGO_ENABLED=0 GOOS=linux $(GO) build $(LDFLAGS) -o $(TOP_DIR)kipctl
 
 img: $(BINARIES)
 	@echo "Checking if IMAGE_TAG is set" && test -n "$(IMAGE_TAG)"
@@ -55,9 +58,9 @@ clean:
 .PHONY: all clean
 
 pricing-updater:
-	cd scripts/update_instance_data/pricing-updater/cmd  && go build $(LDFLAGS) -o $(TOP_DIR)scripts/update_instance_data/pricing-updater/pricing-updater
+	cd scripts/update_instance_data/pricing-updater/cmd  && $(GO) build $(LDFLAGS) -o $(TOP_DIR)scripts/update_instance_data/pricing-updater/pricing-updater
 
 update-pricing-data: pricing-updater
 	echo "scraping data for all providers"
 	cd scripts/update_instance_data/pricing-updater/ && ./pricing-updater -scrape-all
-	cd scripts/update_instance_data/pricing-updater/scripts && pwd && TOP_KIP_DIR=$(TOP_DIR) go generate
+	cd scripts/update_instance_data/pricing-updater/scripts && pwd && TOP_KIP_DIR=$(TOP_DIR) $(GO) generate
