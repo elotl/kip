@@ -17,10 +17,10 @@ limitations under the License.
 package api
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
 
 	uuid "github.com/satori/go.uuid"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -131,6 +131,9 @@ type PodSpec struct {
 	// PodSpot is the policy that determines if a spot instance may be used for
 	// a Pod.
 	Spot PodSpot `json:"spot,omitempty"`
+	// Dedicated is a policy that determines if a dedicated host instance may
+	// be used for a pod
+	Dedicated bool `json:"dedicated,omitempty"`
 	// Resource requirements for the Node that will run this Pod. If both
 	// instanceType and resources are specified, instanceType will take
 	// precedence.
@@ -302,7 +305,6 @@ type PodSpec struct {
 	// Default to false.
 	// +optional
 	SetHostnameAsFQDN *bool `json:"setHostnameAsFQDN,omitempty"`
-
 }
 
 // PreemptionPolicy describes a policy for if/when to preempt a pod.
@@ -723,7 +725,6 @@ type VolumeProjection struct {
 	// information about the configMap data to project
 	// +optional
 	ConfigMap *ConfigMapProjection `json:"configMap,omitempty"`
-
 
 	// NOT SUPPORTED YET, ADDED FOR CONFORMANCE
 	// // information about the downwardAPI data to project
@@ -1467,6 +1468,8 @@ type NodeSpec struct {
 	Terminate bool `json:"terminate,omitempty"`
 	// This is a spot cloud instance.
 	Spot bool `json:"spot"`
+	// This is a dedicated cloud instance
+	Dedicated bool `json:"dedicated"`
 	// Resource requirements necessary for booting this Node. If both
 	// instanceType and memory and cpu resources are specified,
 	// instanceType will take precedence.  If the cloud provider
@@ -1494,10 +1497,10 @@ type NodeStatus struct {
 	// If a Pod is bound to this Node, this is the name of that Pod.
 	BoundPodName string `json:"boundPodName"`
 }
+
 // TODO - think about syncing with NodeStatus from
 // https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/api/core/v1/types.go#L4581
 // as those structs are almost completely different
-
 
 // NodePhase is the last observed phase of the Node. Can be "creating",
 // "created", "available", "claimed", "cleaning", "terminating" or
@@ -1765,9 +1768,9 @@ type UnitStatus struct {
 	Started              *bool     `json:"started"`
 
 	// NOT SUPPORTED YET, ADDED FOR CONFORMANCE
-	ImageID 			 string		`json:"imageID,omitempty"`
+	ImageID string `json:"imageID,omitempty"`
 	// +optional
-	ContainerID 		 string		`json:"containerID,omitempty"`
+	ContainerID string `json:"containerID,omitempty"`
 }
 
 type Metrics struct {

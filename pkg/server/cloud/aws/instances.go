@@ -359,6 +359,137 @@ func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata, iamPermi
 	return cloudID, nil
 }
 
+// We need to ensure the dedicated host fulfills two constraints
+// 1) in a state of "available"
+// 2) no tenant is currently occupying the host
+func (e *AwsEC2) ReleaseDedicatedHosts() error {
+	hosts, err := e.listAvailableDedicatedHosts()
+	if err != nil {
+		return err
+	}
+	var hostIdsForRelease []*string
+	for _, host := range hosts {
+		if len(host.Instances) > 0 {
+			continue
+		}
+		hostIdsForRelease = append(hostIdsForRelease, host.HostId)
+	}
+	resp, err := e.client.ReleaseHosts(&ec2.ReleaseHostsInput{
+		HostIds: hostIdsForRelease,
+	})
+	if err != nil {
+		return err
+	}
+	// We do not want to return these as actual errors since in many cases such
+	// as mac1.metal hosts there is a 24 hour limit before you are allow to release
+	// the associated host.
+	for _, host := range resp.Unsuccessful {
+		klog.Warningf("unable to release host: %s, error: %v",
+			aws.StringValue(host.ResourceId), aws.StringValue(host.Error.Message))
+	}
+	return nil
+}
+
+func (e *AwsEC2) listAvailableDedicatedHosts() ([]*ec2.Host, error) {
+	describeOutput, err := e.client.DescribeHosts(&ec2.DescribeHostsInput{
+		Filter: []*ec2.Filter{
+			{
+				Name:   aws.String("state"),
+				Values: []*string{aws.String("available")},
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return describeOutput.Hosts, nil
+}
+
+func (e *AwsEC2) retrieveOrAllocateHost(node *api.Node) (*string, error) {
+	describeOutput, err := e.client.DescribeHosts(&ec2.DescribeHostsInput{
+		Filter: []*ec2.Filter{
+			{
+				Name:   aws.String("state"),
+				Values: aws.StringSlice([]string{"available"}),
+			}, {
+				Name:   aws.String("instance-type"),
+				Values: aws.StringSlice([]string{node.Spec.InstanceType}),
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	// if there is a host available to accept a new tentant return the host id
+	if len(describeOutput.Hosts) > 0 {
+		return describeOutput.Hosts[0].HostId, nil
+	}
+	// if no host has availability we will allocate a new host to the account
+	// and return the id of the newly allocated host
+	allocateOutput, err := e.client.AllocateHosts(&ec2.AllocateHostsInput{
+		AutoPlacement:    aws.String("on"),
+		AvailabilityZone: aws.String(e.availabilityZone),
+		InstanceType:     aws.String(node.Spec.InstanceType),
+		Quantity:         aws.Int64(1),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return allocateOutput.HostIds[0], nil
+}
+
+func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+	klog.V(2).Infof("Starting instance for node: %v", node)
+	hostId, err := e.retrieveOrAllocateHost(node)
+	if err != nil {
+		return "", fmt.Errorf("Could not retrieve or allocate dedicated host: %v", err)
+	}
+	tags := e.getNodeTags(node)
+	tagSpec := ec2.TagSpecification{
+		ResourceType: aws.String("instance"),
+		Tags:         tags,
+	}
+	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
+	devices := e.getBlockDeviceMapping(image, volSizeGiB)
+	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
+	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
+		e.bootSecurityGroupIDs, e.subnetID)
+	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
+		ImageId:             aws.String(node.Spec.BootImage),
+		InstanceType:        aws.String(node.Spec.InstanceType),
+		MinCount:            aws.Int64(1),
+		MaxCount:            aws.Int64(1),
+		TagSpecifications:   []*ec2.TagSpecification{&tagSpec},
+		NetworkInterfaces:   networkSpec,
+		BlockDeviceMappings: devices,
+		UserData:            aws.String(metadata),
+		IamInstanceProfile:  getIAMInstanceProfileSpecification(iamPermissions),
+		Placement: &ec2.Placement{
+			HostId:  hostId,
+			Tenancy: aws.String("host"),
+		},
+	})
+	if err != nil {
+		if isSubnetConstrainedError(err) {
+			return "", &cloud.NoCapacityError{
+				OriginalError: err.Error(),
+				SubnetID:      e.subnetID,
+			}
+		} else if isAZConstrainedError(err) || isInstanceConstrainedError(err) {
+			return "", &cloud.NoCapacityError{
+				OriginalError: err.Error(),
+			}
+		}
+		return "", util.WrapError(err, "Could not run instance")
+	}
+	if len(result.Instances) == 0 {
+		return "", fmt.Errorf("Could not get instance info at result.Instances")
+	}
+	cloudID := aws.StringValue(result.Instances[0].InstanceId)
+	klog.V(2).Infof("Started instance: %s", cloudID)
+	return cloudID, nil
+}
+
 func getIAMInstanceProfileSpecification(iamPermissions string) *ec2.IamInstanceProfileSpecification {
 	if iamPermissions == "" {
 		return nil
