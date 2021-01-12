@@ -149,11 +149,12 @@ func MakeNodeController() (*NodeController, func()) {
 	return nc, closer
 }
 
-func makeTestNode(t *testing.T, ctl *NodeController, phase api.NodePhase, spot bool) *api.Node {
+func makeTestNode(t *testing.T, ctl *NodeController, phase api.NodePhase, spot, dedicated bool) *api.Node {
 	n := api.GetFakeNode()
 	n.Spec.BootImage = defaultBootImageID
 	n.Spec.InstanceType = defaultInstanceType
 	n.Spec.Spot = spot
+	n.Spec.Dedicated = dedicated
 	n, err := ctl.NodeRegistry.CreateNode(n)
 	assert.Nil(t, err)
 	switch phase {
@@ -173,11 +174,15 @@ func makeTestNode(t *testing.T, ctl *NodeController, phase api.NodePhase, spot b
 }
 
 func makeTestOndemandNode(t *testing.T, ctl *NodeController, phase api.NodePhase) *api.Node {
-	return makeTestNode(t, ctl, phase, false)
+	return makeTestNode(t, ctl, phase, false, false)
 }
 
 func makeTestSpotNode(t *testing.T, ctl *NodeController, phase api.NodePhase) *api.Node {
-	return makeTestNode(t, ctl, phase, true)
+	return makeTestNode(t, ctl, phase, true, false)
+}
+
+func makeTestDedicatedNode(t *testing.T, ctl *NodeController, phase api.NodePhase) *api.Node {
+	return makeTestNode(t, ctl, phase, false, true)
 }
 
 func TestStopSingleNode(t *testing.T) {
