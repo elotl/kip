@@ -1,0 +1,11 @@
+bases:
+  - ../../base
+resources:
+  - anka_pvc.yaml
+  - anka_svc.yaml
+  - anka_statefulset.yaml
+configMapGenerator:
+  - name: config
+    behavior: merge
+    files:
+      - provider.yaml
