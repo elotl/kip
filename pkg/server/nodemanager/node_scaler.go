@@ -122,6 +122,7 @@ func (s *BindingNodeScaler) createNodeForStandbySpec(spec *StandbyNodeSpec) *api
 
 func (s *BindingNodeScaler) nodeMatchesStandbySpec(node *api.Node, spec *StandbyNodeSpec) bool {
 	return node.Spec.Spot == spec.Spot &&
+		node.Spec.Dedicated == spec.Dedicated &&
 		node.Spec.InstanceType == spec.InstanceType &&
 		node.Spec.Resources.VolumeSize == s.defaultVolumeSize
 }
