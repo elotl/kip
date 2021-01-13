@@ -8,4 +8,5 @@ configMapGenerator:
   - name: config
     behavior: merge
     files:
+      - cloudinit.yaml
       - provider.yaml

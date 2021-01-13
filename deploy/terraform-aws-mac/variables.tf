@@ -41,7 +41,7 @@ variable "node_ami" {
 
 variable "kustomize_dir" {
   # TODO change after merging to master
-  default = "https://github.com/elotl/kip/tree/terraform-for-mac-cluster/deploy/manifests/kip/overlays/mac"
+  default = "github.com/elotl/kip/deploy/manifests/kip/overlays/mac?ref=ab92af28bfeb5d5a05eb6c15c016459409b96639"
 }
 
 variable "efs_enable" {

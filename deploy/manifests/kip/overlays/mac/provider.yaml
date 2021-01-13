@@ -22,7 +22,7 @@ cells:
     itzoFlag-use-anka: true
   itzo:
     url: http://itzo-kip-dev-download.s3.amazonaws.com
-    version: mac-803
+    version: darwin-817
 kubelet:
   cpu: "100"
   memory: "512Gi"

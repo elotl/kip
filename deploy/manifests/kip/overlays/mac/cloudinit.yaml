@@ -1,0 +1,2 @@
+runcmd:
+- wget -O /usr/local/bin/itzo http://itzo-kip-dev-download.s3.amazonaws.com/itzo-darwin-817
