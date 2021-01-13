@@ -41,7 +41,7 @@ variable "node_ami" {
 
 variable "kustomize_dir" {
   # TODO change after merging to master
-  default = "github.com/elotl/kip/deploy/manifests/kip/overlays/mac?ref=ab92af28bfeb5d5a05eb6c15c016459409b96639"
+  default = "github.com/elotl/kip/deploy/manifests/kip/overlays/mac?ref=af1a227407e29184987d3c73c12686521a465dd4"
 }
 
 variable "efs_enable" {
