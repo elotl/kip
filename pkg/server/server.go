@@ -358,6 +358,10 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 	if err != nil {
 		return nil, fmt.Errorf("error in user supplied cloud-init file: %v", err)
 	}
+	macCloudInitFile, err := cloudinitfile.NewMac(serverConfigFile.Cells.MacCloudInitFile)
+	if err != nil {
+		return nil, fmt.Errorf("error in user supplied cloud-init file: %v", err)
+	}
 	fixedSizeVolume := cloudClient.GetAttributes().FixedSizeVolume
 	bootLimiter := nodemanager.NewInstanceBootLimiter()
 	bootLimiter.Start()
@@ -389,6 +393,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 		Events:             eventSystem,
 		ImageIdCache:       imageIdCache,
 		CloudInitFile:      cloudInitFile,
+		MacCloudInitFile:   macCloudInitFile,
 		CertificateFactory: certFactory,
 		BootLimiter:        bootLimiter,
 		BootImageSpec:      serverConfigFile.Cells.BootImageSpec,

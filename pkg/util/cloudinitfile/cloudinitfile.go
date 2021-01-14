@@ -35,6 +35,12 @@ var (
 	maxCloudInitSize = 16000
 )
 
+type CloudInitFileInterface interface {
+	Contents() ([]byte, error)
+	ResetInstanceData()
+	AddKipFile(content, path, permissions string)
+}
+
 type File struct {
 	userData CloudConfig
 	kipFiles map[string]CloudInitFile

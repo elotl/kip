@@ -143,6 +143,7 @@ type CellsConfig struct {
 	DefaultVolumeSize      string                        `json:"defaultVolumeSize"`
 	StandbyCells           []nodemanager.StandbyNodeSpec `json:"standbyCells"`
 	CloudInitFile          string                        `json:"cloudInitFile"`
+	MacCloudInitFile       string                        `json:"macCloudInitFile"`
 	Itzo                   ItzoConfig                    `json:"itzo"`
 	ExtraCIDRs             []string                      `json:"extraCIDRs"`
 	ExtraSecurityGroups    []string                      `json:"extraSecurityGroups"`
