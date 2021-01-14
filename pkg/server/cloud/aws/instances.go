@@ -414,6 +414,9 @@ func (e *AwsEC2) retrieveOrAllocateHost(node *api.Node) (*string, error) {
 			}, {
 				Name:   aws.String("instance-type"),
 				Values: aws.StringSlice([]string{node.Spec.InstanceType}),
+			}, {
+				Name:   aws.String("availability-zone"),
+				Values: aws.StringSlice([]string{e.availabilityZone}),
 			},
 		},
 	})
