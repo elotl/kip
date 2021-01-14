@@ -55,11 +55,11 @@ func createCertHelper(certTemplate, parentCert *x509.Certificate, pubKey, privKe
 func CreateRootCert(privateKey *ecdsa.PrivateKey) (*x509.Certificate, error) {
 	name := pkix.Name{CommonName: "Milpa Server CA"}
 	certTemplate := x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject:      name,
-		NotBefore:    time.Now().Add(-600 * time.Second).UTC(),
-		NotAfter:     time.Now().Add(time.Duration(10*24*365) * time.Hour).UTC(),
-		IsCA:         true,
+		SerialNumber:          big.NewInt(1),
+		Subject:               name,
+		NotBefore:             time.Now().Add(-600 * time.Second).UTC(),
+		NotAfter:              time.Now().Add(time.Duration(10*24*365) * time.Hour).UTC(),
+		IsCA:                  true,
 		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageKeyEncipherment |
 			x509.KeyUsageDataEncipherment |
@@ -93,6 +93,7 @@ func CreateCert(rootCert *x509.Certificate, rootPrivateKey *ecdsa.PrivateKey, se
 			Country:            []string{"United States"},
 			CommonName:         commonName, // used for client verification
 		},
+		DNSNames:     []string{commonName},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(10, 0, 0),
 		SubjectKeyId: []byte{1, 2, 3, 4, 6},
