@@ -152,7 +152,7 @@ func CheckConnection(endpointURL string, insecureSkipSSLVerify bool) error {
 	// Validate that region is set. I'm pretty sure that all our
 	// authentication methods need this to be set.
 	if client.Config.Region == nil || *client.Config.Region == "" {
-		return fmt.Errorf("Empty region in AWS configuraiton, please specify a region in the config file or environment")
+		return fmt.Errorf("Empty region in AWS configuration, please specify a region in the config file or environment")
 	}
 	klog.V(2).Infof("Validating read access")
 	_, err = client.DescribeInstances(nil)

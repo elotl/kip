@@ -248,7 +248,7 @@ func setupAwsEnvVars(c *AWSConfig) error {
 	}
 	klog.V(2).Infof("Validating connection to AWS")
 	if err := aws.CheckConnection(c.EndpointURL, c.InsecureTLSSkipVerify); err != nil {
-		return util.WrapError(err, "Error validationg connection to AWS")
+		return util.WrapError(err, "Error validating connection to AWS")
 	}
 	klog.V(2).Infof("Validated access to AWS")
 	return nil
@@ -269,7 +269,7 @@ func setupAzureEnvVars(c *AzureConfig) error {
 	}
 	klog.V(2).Infof("Validating connection to Azure")
 	if err := azure.CheckConnection(c.SubscriptionID); err != nil {
-		return util.WrapError(err, "Error validationg connection to Azure")
+		return util.WrapError(err, "Error validating connection to Azure")
 	}
 	klog.V(2).Infof("Validated access to Azure")
 	return nil
