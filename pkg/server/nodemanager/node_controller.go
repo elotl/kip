@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -80,7 +81,8 @@ type NodeController struct {
 	Events             *events.EventSystem
 	PoolLoopTimer      *stats.LoopTimer
 	ImageIdCache       *timeoutmap.TimeoutMap
-	CloudInitFile      *cloudinitfile.File
+	CloudInitFile      cloudinitfile.CloudInitFileInterface
+	MacCloudInitFile   cloudinitfile.CloudInitFileInterface
 	CertificateFactory *certs.CertificateFactory
 	BootLimiter        *InstanceBootLimiter
 	BootImageSpec      cloud.BootImageSpec
@@ -219,6 +221,15 @@ func (c *NodeController) getCloudInitContents() (string, error) {
 	return metadata, nil
 }
 
+func (c *NodeController) getMacCloudInitContents() (string, error) {
+	cloudInitData, err := c.CloudInitFile.Contents()
+	if err != nil {
+		return "", util.WrapError(err, "Error creating Kip Mac cloud-init contents")
+	}
+	metadata := base64.StdEncoding.EncodeToString(cloudInitData)
+	return metadata, nil
+}
+
 func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
 	if len(nodes) <= 0 {
 		return
@@ -226,6 +237,11 @@ func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
 	metadata, err := c.getCloudInitContents()
 	if err != nil {
 		klog.Errorf("Error creating node metadata: %s", err)
+		return
+	}
+	macMetadata, err := c.getMacCloudInitContents()
+	if err != nil {
+		klog.Errorf("Error creating mac node metadata: %s", err)
 		return
 	}
 	// Randomize boot order to prevent getting stuck with 10 nodes at
@@ -246,7 +262,11 @@ func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
 			klog.Errorf("Error creating node in registry: %v", err)
 			continue
 		}
-		go c.startSingleNode(newNode, image, metadata)
+		md := metadata
+		if strings.HasPrefix(newNode.Spec.InstanceType, "mac1") {
+			md = macMetadata
+		}
+		go c.startSingleNode(newNode, image, md)
 	}
 }
 
