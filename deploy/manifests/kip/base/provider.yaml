@@ -3,19 +3,22 @@ cloud:
   aws:
     accessKeyID: ""
     secretAccessKey: ""
+    vpcID: "vpc-ed61238a"
+    subnetID: "subnet-2769f140"
 etcd:
   internal:
     dataDir: /opt/kip/data
 cells:
   bootImageSpec:
-    owners: 689494258501
-    filters: name=elotl-kip-*
+    imageIDs: ami-00666c5ddbbaf849a
+  macCloudInitFile: /usr/local/bin/cloudinit.sh
   defaultInstanceType: "t3.nano"
   defaultVolumeSize: "20G"
+  defaultIAMPermissions: "kip-mac-ssm"
   nametag: kip
   itzo:
-    url: https://itzo-kip-download.s3.amazonaws.com
-    version: latest
+    url: https://itzo-kip-dev-download.s3.amazonaws.com
+    version: itzo-darwin-818
 kubelet:
   cpu: "100"
   memory: "512Gi"

@@ -83,7 +83,7 @@ spec:
         - --klog.v=2
         - --metrics-addr=:10255
         - --nodename=$(VKUBELET_NODE_NAME)
-        image: elotl/kip:latest
+        image: elotl/kip:v1.0.6-34-gcd02f60-dirty
         imagePullPolicy: Always
         name: kip
         env:
@@ -112,6 +112,8 @@ spec:
           mountPath: /opt/kip/data
         - name: provider-yaml
           mountPath: /etc/kip
+        - name: macos-init-sh
+          mountPath: /usr/local/bin
         - name: xtables-lock
           mountPath: /run/xtables.lock
         - name: lib-modules
@@ -156,6 +158,13 @@ spec:
           - key: provider.yaml
             path: provider.yaml
             mode: 0600
+      - name: macos-init-sh
+        configMap:
+          name: cloudinit
+          items:
+          - key: cloudinit.sh
+            path: cloudinit.sh
+            mode: 0755
       - name: xtables-lock
         hostPath:
           path: /run/kip-xtables.lock

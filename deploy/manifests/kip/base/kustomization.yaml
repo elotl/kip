@@ -9,6 +9,9 @@ configMapGenerator:
 - name: config
   files:
   - provider.yaml
+- name: cloudinit
+  files:
+  - cloudinit.sh
 vars:
 - name: NETWORK_AGENT_SERVICE_ACCOUNT
   objref:
