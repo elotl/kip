@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: provider
+spec:
+  template:
+    spec:
+      containers:
+        - name: kip
+          image: elotl/kip:v1.0.6-46-g3afa1d8-dirty
+      volumes:
+      - name: provider-yaml
+        configMap:
+          name: config
+          items:
+          - key: cloudinit.yaml
+            path: cloudinit.yaml
+            mode: 0600
+          - key: provider.yaml
+            path: provider.yaml
+            mode: 0600

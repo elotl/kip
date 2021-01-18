@@ -1,24 +1,18 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  annotations:
-    kompose.cmd: kompose convert -o registry-manifests
-    kompose.version: 1.22.0 (955b78124)
   labels:
-    io.kompose.service: anka-registry
+    app.kubernetes.io/name: anka-registry
   name: anka-registry
 spec:
   replicas: 1
   selector:
     matchLabels:
-      io.kompose.service: anka-registry
+      app.kubernetes.io/name: anka-registry
   template:
     metadata:
-      annotations:
-        kompose.cmd: kompose convert -o registry-manifests
-        kompose.version: 1.22.0 (955b78124)
       labels:
-        io.kompose.service: anka-registry
+        app.kubernetes.io/name: anka-registry
     spec:
       containers:
         - image: veertu/anka-build-cloud-registry:v1.13.0

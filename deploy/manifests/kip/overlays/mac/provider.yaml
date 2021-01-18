@@ -1,28 +1,24 @@
 apiVersion: v1
 cloud:
   aws:
-    accessKeyID: ""
-    secretAccessKey: ""
+    vpcID: "vpc-ed61238a"
+    region: "us-west-2"
+    subnetID: "subnet-2769f140"
 etcd:
   internal:
     dataDir: /opt/kip/data
 cells:
-  bootImageSpec:
-    owners: 689494258501
-    filters: name=elotl-kip-*
-    macfilters: name=elotl-kipmac-*
   defaultInstanceType: "t3.nano"
   defaultVolumeSize: "20G"
+  defaultIAMPermissions: "kip-mac-ssm"
   nametag: kip
-  standbyCells:
-    - instanceType: "mac1.metal"
-      count: 1
-      spot: false
+  bootImageSpec:
+    imageIDs: ami-0d61ab55a6b3203d6
   cellConfig:
     itzoFlag-use-anka: true
   itzo:
-    url: http://itzo-kip-dev-download.s3.amazonaws.com
-    version: darwin-latest
+    url: https://itzo-kip-dev-download.s3.amazonaws.com
+    version: darwin-831
 kubelet:
   cpu: "100"
   memory: "512Gi"

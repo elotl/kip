@@ -1,0 +1,3 @@
+runcmd:
+  - sudo anka license activate -f 1285-8122-3227-7282
+  - sudo anka license accept-eula || true

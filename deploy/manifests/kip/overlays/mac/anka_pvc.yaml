@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   labels:
-    io.kompose.service: anka-registry-claim0
+    app.kubernetes.io/name: anka-registry
   name: anka-registry-claim0
 spec:
   accessModes:

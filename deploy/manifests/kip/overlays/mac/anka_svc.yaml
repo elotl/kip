@@ -1,11 +1,8 @@
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    kompose.cmd: kompose convert -o registry-manifests
-    kompose.version: 1.22.0 (955b78124)
   labels:
-    io.kompose.service: anka-registry
+    app.kubernetes.io/name: anka-registry
   name: anka-registry
 spec:
   ports:
@@ -13,4 +10,4 @@ spec:
       port: 8089
       targetPort: 8089
   selector:
-    io.kompose.service: anka-registry
+    app.kubernetes.io/name: anka-registry
