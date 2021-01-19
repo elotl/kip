@@ -16,6 +16,13 @@ When workloads run on Kip, your cluster size naturally scales with the cluster w
 * [FAQ](#faq)
 * [How it Works](#how-it-works)
 
+## Requirements
+
+To build Kip you need:
+
+- golang 1.14+ (older versions may work)
+- deepcopy-gen: go install k8s.io/code-generator/cmd/deepcopy-gen
+
 ## Installation
 
 There are two ways to get Kip up and running.
