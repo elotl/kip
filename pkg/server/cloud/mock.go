@@ -213,6 +213,14 @@ func (m *MockCloudClient) AddIAMPermissions(node *api.Node, permissions string) 
 	return nil
 }
 
+func (_ *MockCloudClient) Extend(spec BootImageSpec) []BootImageSpec {
+	return []BootImageSpec{spec}
+}
+
+func (_ *MockCloudClient) GetArchitecture(_ string) Architecture {
+	return Arch_x86_64
+}
+
 func NewMockClient() *MockCloudClient {
 	net := &MockCloudClient{
 		Instances:          make(map[string]CloudInstance),

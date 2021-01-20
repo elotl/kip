@@ -244,3 +244,11 @@ func (az *AzureClient) GetRegistryAuth(image string) (string, string, error) {
 func (az *AzureClient) locationName() string {
 	return strings.ToLower(strings.Replace(az.region, " ", "", -1))
 }
+
+func (_ *AzureClient) Extend(spec cloud.BootImageSpec) []cloud.BootImageSpec {
+	return []cloud.BootImageSpec{spec}
+}
+
+func (_ *AzureClient) GetArchitecture(_ string) cloud.Architecture {
+	return cloud.Arch_x86_64
+}

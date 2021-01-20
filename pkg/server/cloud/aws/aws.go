@@ -318,3 +318,39 @@ func ec2TagsFromLabels(resource string, labels map[string]string) ([]*ec2.Tag, e
 	}
 	return awsTags, err
 }
+
+func (_ *AwsEC2) Extend(spec cloud.BootImageSpec) []cloud.BootImageSpec {
+	var (
+		owners       = spec["owners"]
+		owners_id    = spec["owners-id"]
+		owners_alias = spec["owners-alias"]
+	)
+	specs := make([]cloud.BootImageSpec, len(spec)-1)
+	for k, v := range spec {
+		switch k {
+		case "owners", "owners-id", "owners-alias":
+			continue
+		}
+		var value = cloud.BootImageSpec{k: v}
+		if owners != "" {
+			value["owners"] = owners
+		}
+		if owners_id != "" {
+			value["owners-id"] = owners_id
+		}
+		if owners_alias != "" {
+			value["owners_alias"] = owners_alias
+		}
+		specs = append(specs, value)
+	}
+	return specs
+}
+
+func (_ *AwsEC2) GetArchitecture(type_ string) cloud.Architecture {
+	// XXX: This assumes all mac1.* instance are x86_64_mac and the rest is x84_64
+	if strings.HasPrefix(type_, "mac1") {
+		return cloud.Arch_x86_64_mac
+	} else {
+		return cloud.Arch_x86_64
+	}
+}

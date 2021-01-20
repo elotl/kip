@@ -240,3 +240,11 @@ func waitOnOperation(opName string, getOperation func(string) (*compute.Operatio
 	}
 	return nil
 }
+
+func (_ *gceClient) Extend(spec cloud.BootImageSpec) []cloud.BootImageSpec {
+	return []cloud.BootImageSpec{spec}
+}
+
+func (_ *gceClient) GetArchitecture(_ string) cloud.Architecture {
+	return cloud.Arch_x86_64
+}

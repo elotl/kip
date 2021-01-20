@@ -80,6 +80,14 @@ type CloudClient interface {
 	IsAvailable() (bool, error)
 	AddInstanceParameter(instanceID, key, value string, isSecret bool) error
 	DeleteInstanceParameter(instanceID, key string) error
+
+	// Because a boot image spec can match multiple architectures we turn it into
+	// a list. Refactor for later: we should probably use different types.
+	Extend(spec BootImageSpec) []BootImageSpec
+
+	// Return the architecture of the specified instance type. This is required
+	// to look-up the right image in the map returned by GetImage().
+	GetArchitecture(type_ string) Architecture
 }
 
 type CloudAttributes struct {
@@ -143,26 +151,6 @@ func SortImagesByCreationTime(images []Image) {
 }
 
 type BootImageSpec map[string]string
-
-// since we support multiple filters for images we need to
-// create individual bootspecs for each image filter
-func (bis *BootImageSpec) Specs() []BootImageSpec {
-	owners, ok := (*bis)["owners"]
-	if !ok {
-		return nil
-	}
-	specs := make([]BootImageSpec, len((*bis))-1)
-	for k, v := range *bis {
-		if k == "owners" {
-			continue
-		}
-		specs = append(specs, BootImageSpec{
-			"owners": owners,
-			k:        v,
-		})
-	}
-	return specs
-}
 
 func (bis *BootImageSpec) String() string {
 	data, err := json.Marshal(bis)
