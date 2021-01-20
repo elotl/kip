@@ -152,7 +152,7 @@ type CellsConfig struct {
 	PrivateIPOnly          *bool                         `json:"privateIPOnly"`
 	CellConfig             map[string]string             `json:"cellConfig"`
 	DefaultIAMPermissions  string                        `json:"defaultIAMPermissions"`
-	UseCloudParameterStore bool                          `json:"useCloudParamaterStore"`
+	UseCloudParameterStore bool                          `json:"useCloudParameterStore"`
 }
 
 type HealthCheckConfig struct {
