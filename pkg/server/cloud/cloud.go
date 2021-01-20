@@ -42,6 +42,16 @@ const AWSUserIDTagKey = "AWSUserID"
 
 const InstanceParameterCertificate = "certificate"
 
+type Architecture int
+
+// Architectures aren’t represented as strings since the naming across the
+// industry isn’t uniform.
+const (
+	Arch_x86_64 Architecture = iota
+	// Macs in AWS
+	Arch_x86_64_mac
+)
+
 type CloudClient interface {
 	SetBootSecurityGroupIDs([]string)
 	GetBootSecurityGroupIDs() []string
@@ -110,7 +120,7 @@ type SubnetAttributes struct {
 }
 
 type Image struct {
-	Architecture   string
+	Architecture   Architecture
 	ID             string
 	Name           string
 	RootDevice     string

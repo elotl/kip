@@ -303,8 +303,21 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 			klog.Warningf("cannot get root device name from image: %v", img.Name)
 		}
 		rootDiskSize := getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
+
+		var arch cloud.Architecture
+		switch aws.StringValue(img.Architecture) {
+		case "x86_64":
+			arch = cloud.Arch_x86_64
+		case "x86_64_mac":
+			arch = cloud.Arch_x86_64_mac
+		default:
+			klog.Errorf(
+				"Unknown architecture: %v, assuming x86_64",
+				aws.StringValue(img.Architecture))
+		}
+
 		images[i] = cloud.Image{
-			Architecture:   aws.StringValue(img.Architecture),
+			Architecture:   arch,
 			Name:           aws.StringValue(img.Name),
 			RootDevice:     aws.StringValue(img.RootDeviceName),
 			ID:             aws.StringValue(img.ImageId),
