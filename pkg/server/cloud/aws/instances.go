@@ -243,7 +243,7 @@ func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeI
 		case "imageIDs":
 			imageIDs := strings.Fields(value)
 			input.ImageIds = aws.StringSlice(imageIDs)
-		case "filters", "macfilters", "armfilters":
+		case "filters", "x86_64_mac_filters":
 			filters := strings.Fields(value)
 			ec2Filters := make([]*ec2.Filter, len(filters))
 			for i, filter := range filters {
