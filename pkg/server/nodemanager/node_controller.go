@@ -163,7 +163,6 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 			if bootImg.ID == "" {
 				return nil, util.WrapError(err, "Could not get latest boot image")
 			} else {
-				klog.Warningf("Could not get latest boot image: %s, using stored value for boot image: %v", err, bootImg)
 				newBootImages[arch] = bootImg
 			}
 		}
