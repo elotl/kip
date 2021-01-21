@@ -47,9 +47,9 @@ var (
 	HealthyTimeout      time.Duration = 90 * time.Second
 	HealthcheckPause    time.Duration = 5 * time.Second
 	SpotRequestPause    time.Duration = 60 * time.Second
-	BootImages          []cloud.Image = []cloud.Image{}
-	MaxBootPerIteration int           = 10
-	itzoDir             string        = "/tmp/itzo"
+	BootImages          map[cloud.Architecture]cloud.Image
+	MaxBootPerIteration int    = 10
+	itzoDir             string = "/tmp/itzo"
 )
 
 // when configuring these intervals we want the following constraints
@@ -159,15 +159,12 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 	// images based on the number of image filters within the bootspec
 	newBootImages, err := c.imageSpecToImage(c.BootImageSpec)
 	if err != nil {
-		if len(newBootImages) < len(c.BootImageSpec)-1 {
-			return nil, util.WrapError(err, "Could not get latest boot images")
-		}
-		for _, bootImg := range BootImages {
+		for arch, bootImg := range BootImages {
 			if bootImg.ID == "" {
 				return nil, util.WrapError(err, "Could not get latest boot image")
 			} else {
 				klog.Warningf("Could not get latest boot image: %s, using stored value for boot image: %v", err, bootImg)
-				newBootImages = append(newBootImages, bootImg)
+				newBootImages[arch] = bootImg
 			}
 		}
 	}
@@ -229,7 +226,7 @@ func (c *NodeController) getCloudInitContents() (string, error) {
 	return metadata, nil
 }
 
-func (c *NodeController) startNodes(nodes []*api.Node, images []cloud.Image) {
+func (c *NodeController) startNodes(nodes []*api.Node, images map[cloud.Architecture]cloud.Image) {
 	if len(nodes) <= 0 {
 		return
 	}
@@ -256,7 +253,8 @@ func (c *NodeController) startNodes(nodes []*api.Node, images []cloud.Image) {
 			klog.Errorf("Error creating node in registry: %v", err)
 			continue
 		}
-		image, found := getImageForInstance(newNode.Spec.InstanceType, images)
+		var arch = c.CloudClient.GetArchitecture(newNode.Spec.InstanceType)
+		image, found := images[arch]
 		if !found {
 			klog.Errorf("Error finding image for instance type: %s", newNode.Spec.InstanceType)
 			return
@@ -764,24 +762,27 @@ func (c *NodeController) requestNode(nodeReq NodeRequest, podNodeMapping map[str
 
 // Since we are supporting multiple cpu architectures now this function must return
 // a slice of images based on the number of filters we have within the bootspec
-func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) ([]cloud.Image, error) {
-	var images []cloud.Image
+func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (map[cloud.Architecture]cloud.Image, error) {
+	var (
+		specs  = c.CloudClient.Extend(spec)
+		images = make(map[cloud.Architecture]cloud.Image, len(specs))
+	)
+
 	for _, ispec := range c.CloudClient.Extend(spec) {
 		var img cloud.Image
 		obj, exists := c.ImageIdCache.Get(ispec.String())
 		if obj != nil {
 			img = obj.(cloud.Image)
-			images = append(images, img)
+			images[img.Architecture] = img
 		}
 		if !exists || img.ID == "" {
-			var err error
-			img, err = c.CloudClient.GetImage(ispec)
+			var newImage, err = c.CloudClient.GetImage(ispec)
 			if err != nil {
 				klog.Errorf("resolving image spec %v to image ID: %v",
 					ispec, err)
 				return images, err
 			}
-			c.ImageIdCache.Add(ispec.String(), img, 5*time.Minute,
+			c.ImageIdCache.Add(ispec.String(), newImage, 5*time.Minute,
 				func(obj interface{}) {
 					_, _ = c.imageSpecToImage(ispec)
 				})

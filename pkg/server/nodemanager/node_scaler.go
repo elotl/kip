@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/elotl/kip/pkg/api"
+	"github.com/elotl/kip/pkg/server/cloud"
 	"github.com/elotl/kip/pkg/util"
 	"k8s.io/klog"
 )
@@ -84,7 +85,10 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	if s.bootLimiter.IsUnavailableInstance(pod.Spec.InstanceType, isSpotPod) {
 		return nil
 	}
-	image, found := getImageForInstance(pod.Spec.InstanceType, BootImages)
+	// XXX henry: we need the instance’s architecture to be able to pick the right image.
+	// This is currently handled by CloudClient, which isn’t accessible from this object.
+	// We assume x84_64 because everybody still uses it.
+	image, found := BootImages[cloud.Arch_x86_64]
 	if !found {
 		klog.Errorf("Error could not find image for instance type: %s", pod.Spec.InstanceType)
 		return nil
@@ -107,7 +111,10 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 }
 
 func (s *BindingNodeScaler) createNodeForStandbySpec(spec *StandbyNodeSpec) *api.Node {
-	image, found := getImageForInstance(spec.InstanceType, BootImages)
+	// XXX henry: we need the instance’s architecture to be able to pick the right image.
+	// This is currently handled by CloudClient, which isn’t accessible from this object.
+	// We assume x84_64 because everybody still uses it.
+	image, found := BootImages[cloud.Arch_x86_64]
 	if !found {
 		klog.Errorf("Error could not find image for instance type: %s", spec.InstanceType)
 		return nil
