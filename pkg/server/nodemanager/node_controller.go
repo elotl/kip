@@ -782,6 +782,7 @@ func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (map[cloud.A
 					ispec, err)
 				return images, err
 			}
+			images[img.Architecture] = newImage
 			c.ImageIdCache.Add(ispec.String(), newImage, 5*time.Minute,
 				func(obj interface{}) {
 					_, _ = c.imageSpecToImage(ispec)
