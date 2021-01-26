@@ -17,6 +17,7 @@ limitations under the License.
 package aws
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -441,6 +442,38 @@ func (e *AwsEC2) retrieveOrAllocateHost(node *api.Node) (*string, error) {
 	return allocateOutput.HostIds[0], nil
 }
 
+func (e *AwsEC2) isHostAvailable(hostId *string) bool {
+	describeOutput, err := e.client.DescribeHosts(&ec2.DescribeHostsInput{
+		HostIds:    []*string{hostId},
+	})
+	if err != nil {
+		klog.Errorf("cannot describe host %s: %v", *hostId, err)
+		return false
+	}
+	if len(describeOutput.Hosts) != 1 {
+		return false
+	}
+	host := describeOutput.Hosts[0]
+	return *host.State == "available"
+}
+
+func (e *AwsEC2) waitForHostAvailable(ctx context.Context, hostId *string) error {
+	hostAvailable := false
+	for {
+		select {
+		case <-ctx.Done():
+			if !hostAvailable {
+				return fmt.Errorf("")
+			} else {
+				return nil
+			}
+		default:
+			hostAvailable = e.isHostAvailable(hostId)
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
 func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	hostId, err := e.retrieveOrAllocateHost(node)
@@ -455,6 +488,12 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
 	devices := e.getBlockDeviceMapping(image, volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
+	ctx, _ := context.WithTimeout(context.Background(), 30 * time.Second)
+	err = e.waitForHostAvailable(ctx, hostId)
+	if err != nil {
+		return "", util.WrapError(err, "Could not run instance")
+	}
+
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)
 	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
