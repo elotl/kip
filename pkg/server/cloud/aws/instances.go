@@ -424,9 +424,16 @@ func (e *AwsEC2) retrieveOrAllocateHost(node *api.Node) (*string, error) {
 	if err != nil {
 		return nil, err
 	}
-	// if there is a host available to accept a new tentant return the host id
+
+	// if there is a host available check if it has capacity
 	if len(describeOutput.Hosts) > 0 {
-		return describeOutput.Hosts[0].HostId, nil
+		// check if host has enough capacity to run instance
+		for _, host := range describeOutput.Hosts {
+			if aws.Int64Value(host.AvailableCapacity.AvailableVCpus) > 0 {
+				// should we check resource requirements here?
+				return host.HostId, nil
+			}
+		}
 	}
 	// if no host has availability we will allocate a new host to the account
 	// and return the id of the newly allocated host
