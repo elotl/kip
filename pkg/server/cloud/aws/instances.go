@@ -307,9 +307,9 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 		var arch cloud.Architecture
 		switch aws.StringValue(img.Architecture) {
 		case "x86_64":
-			arch = cloud.Arch_x86_64
+			arch = cloud.ArchX8664
 		case "x86_64_mac":
-			arch = cloud.Arch_x86_64_mac
+			arch = cloud.ArchX8664Mac
 		default:
 			klog.Errorf(
 				"Unknown architecture: %v, assuming x86_64",

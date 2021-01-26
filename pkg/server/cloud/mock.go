@@ -218,7 +218,7 @@ func (_ *MockCloudClient) Extend(spec BootImageSpec) []BootImageSpec {
 }
 
 func (_ *MockCloudClient) GetArchitecture(_ string) Architecture {
-	return Arch_x86_64
+	return ArchX8664
 }
 
 func NewMockClient() *MockCloudClient {

@@ -250,5 +250,5 @@ func (_ *AzureClient) Extend(spec cloud.BootImageSpec) []cloud.BootImageSpec {
 }
 
 func (_ *AzureClient) GetArchitecture(_ string) cloud.Architecture {
-	return cloud.Arch_x86_64
+	return cloud.ArchX8664
 }

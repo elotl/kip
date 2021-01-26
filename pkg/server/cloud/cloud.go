@@ -47,9 +47,9 @@ type Architecture int
 // Architectures aren’t represented as strings since the naming across the
 // industry isn’t uniform.
 const (
-	Arch_x86_64 Architecture = iota
+	ArchX8664 Architecture = iota
 	// Macs in AWS
-	Arch_x86_64_mac
+	ArchX8664Mac
 )
 
 type CloudClient interface {

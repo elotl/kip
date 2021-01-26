@@ -349,8 +349,8 @@ func (_ *AwsEC2) Extend(spec cloud.BootImageSpec) []cloud.BootImageSpec {
 func (_ *AwsEC2) GetArchitecture(type_ string) cloud.Architecture {
 	// XXX: This assumes all mac1.* instance are x86_64_mac and the rest is x84_64
 	if strings.HasPrefix(type_, "mac1") {
-		return cloud.Arch_x86_64_mac
+		return cloud.ArchX8664Mac
 	} else {
-		return cloud.Arch_x86_64
+		return cloud.ArchX8664
 	}
 }

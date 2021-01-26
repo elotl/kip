@@ -211,7 +211,7 @@ func StartAFewNodes(t *testing.T, numNodes int, spotNode bool) {
 	}
 	ctl.startNodes(
 		startNodes,
-		map[cloud.Architecture]cloud.Image{cloud.Arch_x86_64: cloud.Image{}},
+		map[cloud.Architecture]cloud.Image{cloud.ArchX8664: cloud.Image{}},
 	)
 	// starting happens in a goroutine so we'll sleep here
 	time.Sleep(1 * time.Second)
@@ -244,7 +244,7 @@ func TestStartNodeHealthcheckFails(t *testing.T) {
 	}
 	ctl.startNodes(
 		[]*api.Node{api.GetFakeNode()},
-		map[cloud.Architecture]cloud.Image{cloud.Arch_x86_64: cloud.Image{}},
+		map[cloud.Architecture]cloud.Image{cloud.ArchX8664: cloud.Image{}},
 	)
 	time.Sleep(1 * time.Second)
 	nodes, err := ctl.NodeRegistry.ListAllNodes(registry.MatchAllNodes)
@@ -264,7 +264,7 @@ func TestStartNodeFails(t *testing.T) {
 	}
 	ctl.startNodes(
 		[]*api.Node{api.GetFakeNode()},
-		map[cloud.Architecture]cloud.Image{cloud.Arch_x86_64: cloud.Image{}},
+		map[cloud.Architecture]cloud.Image{cloud.ArchX8664: cloud.Image{}},
 	)
 	time.Sleep(1 * time.Second)
 	nodes, err := ctl.NodeRegistry.ListAllNodes(registry.MatchAllNodes)
@@ -574,7 +574,7 @@ func TestImageSpecToImage(t *testing.T) {
 		Waiter:      ReturnAddresses,
 		ImageGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
 			return cloud.Image{
-				Architecture: cloud.Arch_x86_64,
+				Architecture: cloud.ArchX8664,
 				ID:           "my-image-id",
 				Name:         "my-image-name",
 				RootDevice:   "/dev/rootdev0",
@@ -583,13 +583,13 @@ func TestImageSpecToImage(t *testing.T) {
 	}
 	img, err := ctl.imageSpecToImage(defaultBootImageSpec)
 	assert.Nil(t, err)
-	assert.Equal(t, defaultBootImageID, img[cloud.Arch_x86_64].ID)
+	assert.Equal(t, defaultBootImageID, img[cloud.ArchX8664].ID)
 	spec := cloud.BootImageSpec{
 		"name": "my-image-*",
 	}
 	img, err = ctl.imageSpecToImage(spec)
 	assert.Nil(t, err)
-	assert.Equal(t, "my-image-id", img[cloud.Arch_x86_64].ID)
+	assert.Equal(t, "my-image-id", img[cloud.ArchX8664].ID)
 }
 
 func TestImageSpecToImageFailure(t *testing.T) {
@@ -735,7 +735,7 @@ func TestAddInstanceParameter(t *testing.T) {
 	}
 	ctl.startNodes(
 		[]*api.Node{api.GetFakeNode()},
-		map[cloud.Architecture]cloud.Image{cloud.Arch_x86_64: cloud.Image{}},
+		map[cloud.Architecture]cloud.Image{cloud.ArchX8664: cloud.Image{}},
 	)
 	time.Sleep(1 * time.Second)
 	nodes, err := ctl.NodeRegistry.ListNodes(registry.MatchAllNodes)
@@ -761,7 +761,7 @@ func TestAddInstanceParameterFails(t *testing.T) {
 	}
 	ctl.startNodes(
 		[]*api.Node{api.GetFakeNode()},
-		map[cloud.Architecture]cloud.Image{cloud.Arch_x86_64: cloud.Image{}},
+		map[cloud.Architecture]cloud.Image{cloud.ArchX8664: cloud.Image{}},
 	)
 	time.Sleep(1 * time.Second)
 	nodes, err := ctl.NodeRegistry.ListAllNodes(registry.MatchAllNodes)

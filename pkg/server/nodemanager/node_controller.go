@@ -268,10 +268,10 @@ func (c *NodeController) startNodes(nodes []*api.Node, images map[cloud.Architec
 func getImageForInstance(instType string, images []cloud.Image) (cloud.Image, bool) {
 	for _, img := range images {
 		isMacInst := strings.HasPrefix(instType, "mac")
-		if isMacInst && img.Architecture == cloud.Arch_x86_64_mac {
+		if isMacInst && img.Architecture == cloud.ArchX8664Mac {
 			return img, true
 		}
-		if !isMacInst && img.Architecture == cloud.Arch_x86_64 {
+		if !isMacInst && img.Architecture == cloud.ArchX8664 {
 			return img, true
 		}
 	}

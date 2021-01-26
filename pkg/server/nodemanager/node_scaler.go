@@ -88,7 +88,7 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	// XXX henry: we need the instance’s architecture to be able to pick the right image.
 	// This is currently handled by CloudClient, which isn’t accessible from this object.
 	// We assume x84_64 because everybody still uses it.
-	image, found := BootImages[cloud.Arch_x86_64]
+	image, found := BootImages[cloud.ArchX8664]
 	if !found {
 		klog.Errorf("Error could not find image for instance type: %s", pod.Spec.InstanceType)
 		return nil
@@ -114,7 +114,7 @@ func (s *BindingNodeScaler) createNodeForStandbySpec(spec *StandbyNodeSpec) *api
 	// XXX henry: we need the instance’s architecture to be able to pick the right image.
 	// This is currently handled by CloudClient, which isn’t accessible from this object.
 	// We assume x84_64 because everybody still uses it.
-	image, found := BootImages[cloud.Arch_x86_64]
+	image, found := BootImages[cloud.ArchX8664]
 	if !found {
 		klog.Errorf("Error could not find image for instance type: %s", spec.InstanceType)
 		return nil
