@@ -463,7 +463,7 @@ func (e *AwsEC2) waitForHostAvailable(ctx context.Context, hostId *string) error
 		select {
 		case <-ctx.Done():
 			if !hostAvailable {
-				return fmt.Errorf("")
+				return fmt.Errorf("host not available")
 			} else {
 				return nil
 			}
