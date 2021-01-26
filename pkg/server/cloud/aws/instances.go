@@ -19,6 +19,7 @@ package aws
 import (
 	"context"
 	"fmt"
+	"github.com/elotl/kip/pkg/server/nodemanager"
 	"strings"
 	"time"
 
@@ -618,7 +619,7 @@ func (e *AwsEC2) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
 	// get its instanceID back from RunInstances, the rest of AWS
 	// might not know about that instanceID yet.
 	err := util.Retry(
-		30*time.Second,
+		nodemanager.BootTimeout,
 		func() error {
 			waitErr := e.client.WaitUntilInstanceRunning(dii)
 			return waitErr
