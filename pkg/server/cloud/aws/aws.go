@@ -322,24 +322,24 @@ func ec2TagsFromLabels(resource string, labels map[string]string) ([]*ec2.Tag, e
 func (_ *AwsEC2) SplitBootImageSpec(spec cloud.BootImageSpec) []cloud.BootImageSpec {
 	var (
 		owners       = spec["owners"]
-		owners_id    = spec["owners-id"]
-		owners_alias = spec["owners-alias"]
+		executableUsers = spec["executableUsers"]
+		imageIDs = spec["imageIDs"]
 	)
 	specs := make([]cloud.BootImageSpec, len(spec)-1)
 	for k, v := range spec {
 		switch k {
-		case "owners", "owners-id", "owners-alias":
+		case "owners", "executableUsers", "imageIDs":
 			continue
 		}
 		var value = cloud.BootImageSpec{k: v}
 		if owners != "" {
 			value["owners"] = owners
 		}
-		if owners_id != "" {
-			value["owners-id"] = owners_id
+		if executableUsers != "" {
+			value["executableUsers"] = executableUsers
 		}
-		if owners_alias != "" {
-			value["owners_alias"] = owners_alias
+		if imageIDs != "" {
+			value["imageIDs"] = imageIDs
 		}
 		specs = append(specs, value)
 	}
