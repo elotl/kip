@@ -19,7 +19,6 @@ package aws
 import (
 	"context"
 	"fmt"
-	"github.com/elotl/kip/pkg/server/nodemanager"
 	"strings"
 	"time"
 
@@ -34,12 +33,17 @@ import (
 )
 
 const (
-	awsInstanceProduct    = "Linux/UNIX"
-	resizeTimeout         = 60 * time.Second
-	maxUserInstanceTags   = 45
-	awsCreationDateFormat = "2006-01-02T15:04:05.000Z"
-	elotlOwnerID          = "689494258501"
-	elotlImageNameFilter  = "elotl-kip-*"
+	awsInstanceProduct                  = "Linux/UNIX"
+	resizeTimeout                       = 60 * time.Second
+	maxUserInstanceTags                 = 45
+	awsCreationDateFormat               = "2006-01-02T15:04:05.000Z"
+	elotlOwnerID                        = "689494258501"
+	elotlImageNameFilter                = "elotl-kip-*"
+)
+
+var (
+	BootTimeout time.Duration = 15 * time.Minute
+	AwsInstanceAvailableState = "available"
 )
 
 func (e *AwsEC2) StopInstance(instanceID string) error {
@@ -397,7 +401,7 @@ func (e *AwsEC2) listAvailableDedicatedHosts() ([]*ec2.Host, error) {
 		Filter: []*ec2.Filter{
 			{
 				Name:   aws.String("state"),
-				Values: []*string{aws.String("available")},
+				Values: []*string{aws.String(AwsInstanceAvailableState)},
 			},
 		},
 	})
@@ -412,7 +416,7 @@ func (e *AwsEC2) retrieveOrAllocateHost(node *api.Node) (*string, error) {
 		Filter: []*ec2.Filter{
 			{
 				Name:   aws.String("state"),
-				Values: aws.StringSlice([]string{"available"}),
+				Values: aws.StringSlice([]string{AwsInstanceAvailableState}),
 			}, {
 				Name:   aws.String("instance-type"),
 				Values: aws.StringSlice([]string{node.Spec.InstanceType}),
@@ -452,7 +456,7 @@ func (e *AwsEC2) retrieveOrAllocateHost(node *api.Node) (*string, error) {
 
 func (e *AwsEC2) isHostAvailable(hostId *string) bool {
 	describeOutput, err := e.client.DescribeHosts(&ec2.DescribeHostsInput{
-		HostIds:    []*string{hostId},
+		HostIds: aws.StringSlice([]string{aws.StringValue(hostId)}),
 	})
 	if err != nil {
 		klog.Errorf("cannot describe host %s: %v", *hostId, err)
@@ -462,23 +466,25 @@ func (e *AwsEC2) isHostAvailable(hostId *string) bool {
 		return false
 	}
 	host := describeOutput.Hosts[0]
-	return *host.State == "available"
+	return aws.StringValue(host.State) == AwsInstanceAvailableState
 }
 
-func (e *AwsEC2) waitForHostAvailable(ctx context.Context, hostId *string) error {
+func (e *AwsEC2) waitForHostAvailable(ctx context.Context, hostId *string) bool {
 	hostAvailable := false
+	ticker := time.NewTicker(1*time.Second)
+	quit := make(chan bool)
 	for {
 		select {
 		case <-ctx.Done():
-			if !hostAvailable {
-				return fmt.Errorf("host not available")
-			} else {
-				return nil
-			}
-		default:
+			return hostAvailable
+		case <-ticker.C:
 			hostAvailable = e.isHostAvailable(hostId)
+			if hostAvailable {
+				quit <- true
+			}
+		case <-quit:
+			return hostAvailable
 		}
-		time.Sleep(500 * time.Millisecond)
 	}
 }
 
@@ -496,10 +502,11 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
 	devices := e.getBlockDeviceMapping(image, volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
-	ctx, _ := context.WithTimeout(context.Background(), 30 * time.Second)
-	err = e.waitForHostAvailable(ctx, hostId)
-	if err != nil {
-		return "", util.WrapError(err, "Could not run instance")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	hostAvailable := e.waitForHostAvailable(ctx, hostId)
+	if !hostAvailable {
+		return "", util.WrapError(err, "Could not run instance: host %s not available", *hostId)
 	}
 
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
@@ -619,7 +626,7 @@ func (e *AwsEC2) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
 	// get its instanceID back from RunInstances, the rest of AWS
 	// might not know about that instanceID yet.
 	err := util.Retry(
-		nodemanager.BootTimeout,
+		BootTimeout,
 		func() error {
 			waitErr := e.client.WaitUntilInstanceRunning(dii)
 			return waitErr
