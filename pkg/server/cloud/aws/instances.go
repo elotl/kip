@@ -472,18 +472,19 @@ func (e *AwsEC2) isHostAvailable(hostId *string) bool {
 func (e *AwsEC2) waitForHostAvailable(ctx context.Context, hostId *string) bool {
 	hostAvailable := false
 	ticker := time.NewTicker(1*time.Second)
-	quit := make(chan bool)
 	for {
 		select {
 		case <-ctx.Done():
 			return hostAvailable
 		case <-ticker.C:
+			klog.V(2).Infof("checking host %s availability...", *hostId)
 			hostAvailable = e.isHostAvailable(hostId)
 			if hostAvailable {
-				quit <- true
+				return hostAvailable
 			}
-		case <-quit:
-			return hostAvailable
+			klog.V(2).Infof("host not available yet")
+		default:
+			//
 		}
 	}
 }
