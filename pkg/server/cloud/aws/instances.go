@@ -501,6 +501,7 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 		Tags:         tags,
 	}
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
+	klog.V(2).Infof("calculated volume size for node: %v", volSizeGiB)
 	devices := e.getBlockDeviceMapping(image, volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -512,6 +513,10 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)
+	klog.V(2).Infof("Block devices for a node: %")
+	for _, device := range devices {
+		klog.V(2).Infof("Device: %s volume size: %d", device.DeviceName, device.Ebs.VolumeSize)
+	}
 	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
 		ImageId:             aws.String(node.Spec.BootImage),
 		InstanceType:        aws.String(node.Spec.InstanceType),
