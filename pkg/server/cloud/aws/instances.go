@@ -633,7 +633,9 @@ func (e *AwsEC2) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
 			return waitErr
 		},
 		func(err error) bool {
-			return strings.HasPrefix(err.Error(), "InvalidInstanceID.NotFound")
+			// TODO: remove this log line
+			klog.V(2).Infof("retrying err: %s", err.Error())
+			return strings.HasPrefix(err.Error(), "InvalidInstanceID.NotFound") || strings.Contains(err.Error(), "ResourceNotReady")
 		})
 	if err != nil {
 		return nil, fmt.Errorf("waiting for instance to start: %v", err)
