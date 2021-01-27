@@ -245,7 +245,7 @@ func (az *AzureClient) locationName() string {
 	return strings.ToLower(strings.Replace(az.region, " ", "", -1))
 }
 
-func (_ *AzureClient) Extend(spec cloud.BootImageSpec) []cloud.BootImageSpec {
+func (_ *AzureClient) SplitBootImageSpec(spec cloud.BootImageSpec) []cloud.BootImageSpec {
 	return []cloud.BootImageSpec{spec}
 }
 

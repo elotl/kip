@@ -83,7 +83,7 @@ type CloudClient interface {
 
 	// Because a boot image spec can match multiple architectures we turn it into
 	// a list. Refactor for later: we should probably use different types.
-	Extend(spec BootImageSpec) []BootImageSpec
+	SplitBootImageSpec(spec BootImageSpec) []BootImageSpec
 
 	// Return the architecture of the specified instance type. This is required
 	// to look-up the right image in the map returned by GetImage().

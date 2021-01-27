@@ -763,11 +763,11 @@ func (c *NodeController) requestNode(nodeReq NodeRequest, podNodeMapping map[str
 // a slice of images based on the number of filters we have within the bootspec
 func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (map[cloud.Architecture]cloud.Image, error) {
 	var (
-		specs  = c.CloudClient.Extend(spec)
+		specs  = c.CloudClient.SplitBootImageSpec(spec)
 		images = make(map[cloud.Architecture]cloud.Image, len(specs))
 	)
 
-	for _, ispec := range c.CloudClient.Extend(spec) {
+	for _, ispec := range c.CloudClient.SplitBootImageSpec(spec) {
 		var img cloud.Image
 		obj, exists := c.ImageIdCache.Get(ispec.String())
 		if obj != nil {

@@ -241,7 +241,7 @@ func waitOnOperation(opName string, getOperation func(string) (*compute.Operatio
 	return nil
 }
 
-func (_ *gceClient) Extend(spec cloud.BootImageSpec) []cloud.BootImageSpec {
+func (_ *gceClient) SplitBootImageSpec(spec cloud.BootImageSpec) []cloud.BootImageSpec {
 	return []cloud.BootImageSpec{spec}
 }
 

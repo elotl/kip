@@ -213,7 +213,7 @@ func (m *MockCloudClient) AddIAMPermissions(node *api.Node, permissions string) 
 	return nil
 }
 
-func (_ *MockCloudClient) Extend(spec BootImageSpec) []BootImageSpec {
+func (_ *MockCloudClient) SplitBootImageSpec(spec BootImageSpec) []BootImageSpec {
 	return []BootImageSpec{spec}
 }
 

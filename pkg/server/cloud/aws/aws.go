@@ -319,7 +319,7 @@ func ec2TagsFromLabels(resource string, labels map[string]string) ([]*ec2.Tag, e
 	return awsTags, err
 }
 
-func (_ *AwsEC2) Extend(spec cloud.BootImageSpec) []cloud.BootImageSpec {
+func (_ *AwsEC2) SplitBootImageSpec(spec cloud.BootImageSpec) []cloud.BootImageSpec {
 	var (
 		owners       = spec["owners"]
 		owners_id    = spec["owners-id"]
