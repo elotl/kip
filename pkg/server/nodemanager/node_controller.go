@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
-	"strings"
 	"sync"
 	"time"
 
@@ -260,22 +259,6 @@ func (c *NodeController) startNodes(nodes []*api.Node, images map[cloud.Architec
 		}
 		go c.startSingleNode(newNode, image, metadata)
 	}
-}
-
-// TODO create a map[string]string of instances where the key will be the instance
-// type and the value will be its corresponding architecture. This will allow us
-// to match the instance with the proper image for instantiation
-func getImageForInstance(instType string, images []cloud.Image) (cloud.Image, bool) {
-	for _, img := range images {
-		isMacInst := strings.HasPrefix(instType, "mac")
-		if isMacInst && img.Architecture == cloud.ArchX8664Mac {
-			return img, true
-		}
-		if !isMacInst && img.Architecture == cloud.ArchX8664 {
-			return img, true
-		}
-	}
-	return cloud.Image{}, false
 }
 
 func (c *NodeController) handleStartNodeError(node *api.Node, err error, isSpot bool) {
