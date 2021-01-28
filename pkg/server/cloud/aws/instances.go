@@ -515,7 +515,7 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 		e.bootSecurityGroupIDs, e.subnetID)
 	klog.V(2).Info("Block devices for a node")
 	for _, device := range devices {
-		klog.V(2).Infof("Device: %s volume size: %d", *device.DeviceName, device.Ebs.VolumeSize)
+		klog.V(2).Infof("Device: %s volume size: %d", *device.DeviceName, *device.Ebs.VolumeSize)
 	}
 	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
 		ImageId:             aws.String(node.Spec.BootImage),
