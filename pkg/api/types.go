@@ -1792,12 +1792,11 @@ type MetricsList struct {
 	Items    []*Metrics
 }
 
-type Architecture int
+type Architecture string
 
-// Architectures aren’t represented as strings since the naming across the
-// industry isn’t uniform.
 const (
-	ArchX8664 Architecture = iota
+	ArchUndefined Architecture = "undefined"
+	ArchX8664 = "x86_64"
 	// x86_64 mac. like mac1.* instances in AWS
-	ArchX8664Mac
+	ArchX8664Mac = "x86_64_mac"
 )
