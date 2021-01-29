@@ -303,6 +303,7 @@ type PodSpec struct {
 	// +optional
 	SetHostnameAsFQDN *bool `json:"setHostnameAsFQDN,omitempty"`
 
+	Architecture Architecture `json:"architecture"`
 }
 
 // PreemptionPolicy describes a policy for if/when to preempt a pod.
@@ -723,7 +724,6 @@ type VolumeProjection struct {
 	// information about the configMap data to project
 	// +optional
 	ConfigMap *ConfigMapProjection `json:"configMap,omitempty"`
-
 
 	// NOT SUPPORTED YET, ADDED FOR CONFORMANCE
 	// // information about the downwardAPI data to project
@@ -1494,10 +1494,10 @@ type NodeStatus struct {
 	// If a Pod is bound to this Node, this is the name of that Pod.
 	BoundPodName string `json:"boundPodName"`
 }
+
 // TODO - think about syncing with NodeStatus from
 // https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/api/core/v1/types.go#L4581
 // as those structs are almost completely different
-
 
 // NodePhase is the last observed phase of the Node. Can be "creating",
 // "created", "available", "claimed", "cleaning", "terminating" or
@@ -1765,9 +1765,9 @@ type UnitStatus struct {
 	Started              *bool     `json:"started"`
 
 	// NOT SUPPORTED YET, ADDED FOR CONFORMANCE
-	ImageID 			 string		`json:"imageID,omitempty"`
+	ImageID string `json:"imageID,omitempty"`
 	// +optional
-	ContainerID 		 string		`json:"containerID,omitempty"`
+	ContainerID string `json:"containerID,omitempty"`
 }
 
 type Metrics struct {
