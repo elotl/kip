@@ -72,7 +72,7 @@ func TestSpotMatches(t *testing.T) {
 func TestPodMatchesNode(t *testing.T) {
 	// XXX: BootImages is a global variable. We should certainely find a
 	// a more elegant way to test this.
-	BootImages = map[cloud.Architecture]cloud.Image{cloud.ArchX8664: cloud.Image{}}
+	BootImages = map[api.Architecture]cloud.Image{api.ArchX8664: cloud.Image{}}
 	bootLimiter := NewInstanceBootLimiter()
 	ns := BindingNodeScaler{
 		bootLimiter:       bootLimiter,

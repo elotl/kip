@@ -249,6 +249,6 @@ func (_ *AzureClient) SplitBootImageSpec(spec cloud.BootImageSpec) []cloud.BootI
 	return []cloud.BootImageSpec{spec}
 }
 
-func (_ *AzureClient) GetArchitecture(_ string) cloud.Architecture {
-	return cloud.ArchX8664
+func (_ *AzureClient) GetArchitecture(_ string) api.Architecture {
+	return api.ArchX8664
 }

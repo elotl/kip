@@ -42,16 +42,6 @@ const AWSUserIDTagKey = "AWSUserID"
 
 const InstanceParameterCertificate = "certificate"
 
-type Architecture int
-
-// Architectures aren’t represented as strings since the naming across the
-// industry isn’t uniform.
-const (
-	ArchX8664 Architecture = iota
-	// Macs in AWS
-	ArchX8664Mac
-)
-
 type CloudClient interface {
 	SetBootSecurityGroupIDs([]string)
 	GetBootSecurityGroupIDs() []string
@@ -87,7 +77,7 @@ type CloudClient interface {
 
 	// Return the architecture of the specified instance type. This is required
 	// to look-up the right image in the map returned by GetImage().
-	GetArchitecture(type_ string) Architecture
+	GetArchitecture(type_ string) api.Architecture
 }
 
 type CloudAttributes struct {
@@ -128,7 +118,7 @@ type SubnetAttributes struct {
 }
 
 type Image struct {
-	Architecture   Architecture
+	Architecture   api.Architecture
 	ID             string
 	Name           string
 	RootDevice     string

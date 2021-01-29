@@ -304,12 +304,12 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 		}
 		rootDiskSize := getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
 
-		var arch cloud.Architecture
+		var arch api.Architecture
 		switch aws.StringValue(img.Architecture) {
 		case "x86_64":
-			arch = cloud.ArchX8664
+			arch = api.ArchX8664
 		case "x86_64_mac":
-			arch = cloud.ArchX8664Mac
+			arch = api.ArchX8664Mac
 		default:
 			klog.Errorf(
 				"Unknown architecture: %v, assuming x86_64",

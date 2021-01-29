@@ -217,8 +217,8 @@ func (_ *MockCloudClient) SplitBootImageSpec(spec BootImageSpec) []BootImageSpec
 	return []BootImageSpec{spec}
 }
 
-func (_ *MockCloudClient) GetArchitecture(_ string) Architecture {
-	return ArchX8664
+func (_ *MockCloudClient) GetArchitecture(_ string) api.Architecture {
+	return api.ArchX8664
 }
 
 func NewMockClient() *MockCloudClient {

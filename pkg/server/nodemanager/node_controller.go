@@ -46,7 +46,7 @@ var (
 	HealthyTimeout      time.Duration = 90 * time.Second
 	HealthcheckPause    time.Duration = 5 * time.Second
 	SpotRequestPause    time.Duration = 60 * time.Second
-	BootImages          map[cloud.Architecture]cloud.Image
+	BootImages          map[api.Architecture]cloud.Image
 	MaxBootPerIteration int    = 10
 	itzoDir             string = "/tmp/itzo"
 )
@@ -224,7 +224,7 @@ func (c *NodeController) getCloudInitContents() (string, error) {
 	return metadata, nil
 }
 
-func (c *NodeController) startNodes(nodes []*api.Node, images map[cloud.Architecture]cloud.Image) {
+func (c *NodeController) startNodes(nodes []*api.Node, images map[api.Architecture]cloud.Image) {
 	if len(nodes) <= 0 {
 		return
 	}
@@ -744,10 +744,10 @@ func (c *NodeController) requestNode(nodeReq NodeRequest, podNodeMapping map[str
 
 // Since we are supporting multiple cpu architectures now this function must return
 // a slice of images based on the number of filters we have within the bootspec
-func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (map[cloud.Architecture]cloud.Image, error) {
+func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (map[api.Architecture]cloud.Image, error) {
 	var (
 		specs  = c.CloudClient.SplitBootImageSpec(spec)
-		images = make(map[cloud.Architecture]cloud.Image, len(specs))
+		images = make(map[api.Architecture]cloud.Image, len(specs))
 	)
 
 	for _, ispec := range c.CloudClient.SplitBootImageSpec(spec) {

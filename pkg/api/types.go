@@ -1791,3 +1791,13 @@ type MetricsList struct {
 	TypeMeta `json:",inline"`
 	Items    []*Metrics
 }
+
+type Architecture int
+
+// Architectures aren’t represented as strings since the naming across the
+// industry isn’t uniform.
+const (
+	ArchX8664 Architecture = iota
+	// x86_64 mac. like mac1.* instances in AWS
+	ArchX8664Mac
+)

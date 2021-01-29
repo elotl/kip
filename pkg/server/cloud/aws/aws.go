@@ -321,9 +321,9 @@ func ec2TagsFromLabels(resource string, labels map[string]string) ([]*ec2.Tag, e
 
 func (_ *AwsEC2) SplitBootImageSpec(spec cloud.BootImageSpec) []cloud.BootImageSpec {
 	var (
-		owners       = spec["owners"]
+		owners          = spec["owners"]
 		executableUsers = spec["executableUsers"]
-		imageIDs = spec["imageIDs"]
+		imageIDs        = spec["imageIDs"]
 	)
 	specs := make([]cloud.BootImageSpec, len(spec)-1)
 	for k, v := range spec {
@@ -346,11 +346,11 @@ func (_ *AwsEC2) SplitBootImageSpec(spec cloud.BootImageSpec) []cloud.BootImageS
 	return specs
 }
 
-func (_ *AwsEC2) GetArchitecture(type_ string) cloud.Architecture {
+func (_ *AwsEC2) GetArchitecture(type_ string) api.Architecture {
 	// XXX: This assumes all mac1.* instance are x86_64_mac and the rest is x84_64
 	if strings.HasPrefix(type_, "mac1") {
-		return cloud.ArchX8664Mac
+		return api.ArchX8664Mac
 	} else {
-		return cloud.ArchX8664
+		return api.ArchX8664
 	}
 }

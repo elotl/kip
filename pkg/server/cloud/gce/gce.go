@@ -245,6 +245,6 @@ func (_ *gceClient) SplitBootImageSpec(spec cloud.BootImageSpec) []cloud.BootIma
 	return []cloud.BootImageSpec{spec}
 }
 
-func (_ *gceClient) GetArchitecture(_ string) cloud.Architecture {
-	return cloud.ArchX8664
+func (_ *gceClient) GetArchitecture(_ string) api.Architecture {
+	return api.ArchX8664
 }
