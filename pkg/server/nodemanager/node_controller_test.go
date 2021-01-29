@@ -39,6 +39,7 @@ import (
 var (
 	defaultInstanceType  = "t2.nano"
 	defaultBootImageID   = "ami-elotl"
+	defaultBootImageArch = api.ArchX8664
 	defaultBootImageSpec = cloud.BootImageSpec{
 		"owners":  "689494258501",
 		"filters": "name=elotl-kip-*",
@@ -113,7 +114,8 @@ func MakeNodeController() (*NodeController, func()) {
 		InstanceParameterRemover: DeleteInstanceParameterReturnsOK,
 	}
 	defaultBootImage := cloud.Image{
-		ID: defaultBootImageID,
+		ID:           defaultBootImageID,
+		Architecture: defaultBootImageArch,
 	}
 	imageIdCache := timeoutmap.New(false, make(chan struct{}))
 	imageIdCache.Add(defaultBootImageSpec.String(), defaultBootImage, 5*time.Minute, timeoutmap.Noop)
@@ -672,7 +674,7 @@ func TestDoPoolsCalculation(t *testing.T) {
 	mapping, err := ctl.doPoolsCalculation()
 	assert.NoError(t, err)
 	boundNodeName := mapping[pod.Name]
-	assert.True(t, boundNodeName != "")
+	assert.NotEqual(t, boundNodeName, "")
 	assert.NotEqual(t, node.Name, boundNodeName)
 
 	startedNode, err := ctl.NodeRegistry.GetNode(boundNodeName)

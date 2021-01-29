@@ -1796,7 +1796,7 @@ type Architecture string
 
 const (
 	ArchUndefined Architecture = "undefined"
-	ArchX8664 = "x86_64"
+	ArchX8664 Architecture = "x86_64"
 	// x86_64 mac. like mac1.* instances in AWS
-	ArchX8664Mac = "x86_64_mac"
+	ArchX8664Mac Architecture = "x86_64_mac"
 )

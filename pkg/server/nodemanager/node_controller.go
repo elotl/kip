@@ -750,7 +750,7 @@ func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (map[api.Arc
 		images = make(map[api.Architecture]cloud.Image, len(specs))
 	)
 
-	for _, ispec := range c.CloudClient.SplitBootImageSpec(spec) {
+	for _, ispec := range specs {
 		var img cloud.Image
 		obj, exists := c.ImageIdCache.Get(ispec.String())
 		if obj != nil {
@@ -764,7 +764,7 @@ func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (map[api.Arc
 					ispec, err)
 				return images, err
 			}
-			images[img.Architecture] = newImage
+			images[newImage.Architecture] = newImage
 			c.ImageIdCache.Add(ispec.String(), newImage, 5*time.Minute,
 				func(obj interface{}) {
 					_, _ = c.imageSpecToImage(ispec)
