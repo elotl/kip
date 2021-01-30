@@ -108,17 +108,27 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 }
 
 func (s *BindingNodeScaler) createNodeForStandbySpec(spec *StandbyNodeSpec) *api.Node {
-	// XXX henry: we need the instance’s architecture to be able to pick the right image.
-	// This is currently handled by CloudClient, which isn’t accessible from this object.
-	// We assume x84_64 because everybody still uses it.
-	image, found := BootImages[api.ArchX8664]
-	if !found {
+	var arch api.Architecture
+	var imageID string
+	switch len(BootImages) {
+	case 0:
 		klog.Errorf("Error could not find image for instance type: %s", spec.InstanceType)
 		return nil
+	case 1:
+		for k, v := range BootImages {
+			arch = k
+			imageID = v.ID
+		}
+	default:
+		// XXX not sure what’s the proper way to handle this.
+		klog.Errorf("Multiple images matched image type %s: %v", spec.InstanceType, BootImages)
+		return nil
 	}
+
 	node := api.NewNode()
+	node.Spec.Architecture = arch
 	node.Spec.InstanceType = spec.InstanceType
-	node.Spec.BootImage = image.ID
+	node.Spec.BootImage = imageID
 	node.Spec.Spot = spec.Spot
 	node.Spec.Resources.VolumeSize = s.defaultVolumeSize
 	return node
