@@ -143,10 +143,11 @@ func (reg *PodRegistry) Delete(name string) (api.MilpaObject, error) {
 // place to put it.  Basically, it makes sure that the pod is
 // in proper shape before it's created
 func (reg *PodRegistry) preCreatePod(p *api.Pod) (*api.Pod, error) {
-	instanceType, sustainedCPU, err := instanceselector.ResourcesToInstanceType(&p.Spec)
+	arch, instanceType, sustainedCPU, err := instanceselector.ResourcesToInstanceType(&p.Spec)
 	if err != nil {
 		return nil, util.WrapError(err, "Could not create pod %s, failure to convert resources to instance type", p.Name)
 	}
+	p.Spec.Architecture = arch
 	p.Spec.InstanceType = instanceType
 	p.Spec.Resources.SustainedCPU = sustainedCPU
 	return p, nil

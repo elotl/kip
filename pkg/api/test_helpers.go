@@ -23,6 +23,7 @@ import (
 func GetFakeNode() *Node {
 	n1 := NewNode()
 	n1.Name = uuid.NewV4().String()
+	n1.Spec.Architecture = ArchX8664
 	n1.Spec.InstanceType = "t2.nano"
 	n1.Spec.BootImage = "ami-12345"
 	return n1
@@ -40,6 +41,7 @@ func GetFakePod() *Pod {
 	p1.Name = name
 	p1.Labels = lab
 	p1.Spec.Units = units
+	p1.Spec.Architecture = ArchX8664
 	p1.Spec.InstanceType = "t2.nano"
 	return p1
 }

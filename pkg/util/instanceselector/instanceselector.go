@@ -70,9 +70,22 @@ type instanceSelector struct {
 	// eventually need to make the GPU spec vary as well
 	memorySpecParser          func(resource.Quantity) float32
 	containerInstanceSelector func(*api.ResourceSpec) (int64, int64, error)
+	architectureSelector      func(string) api.Architecture
 }
 
 var selector *instanceSelector
+
+func GenericArchitectureSelector(_ string) api.Architecture {
+	return api.ArchX8664
+}
+
+func AWSArchitectureSelector(instanceType string) api.Architecture {
+	if strings.HasPrefix(instanceType, "mac1.") {
+		return api.ArchX8664Mac
+	} else {
+		return api.ArchX8664
+	}
+}
 
 func Setup(cloud, region, zone, defaultInstanceType, instanceDataPath string) error {
 	switch cloud {
@@ -82,8 +95,8 @@ func Setup(cloud, region, zone, defaultInstanceType, instanceDataPath string) er
 			return err
 		}
 		selector = &instanceSelector{
-			defaultInstanceType:  defaultInstanceType,
-			instanceData:         data,
+			defaultInstanceType: defaultInstanceType,
+			instanceData:        data,
 			unsupportedInstances: sets.NewString([]string{
 				"t1", // TODO: should we support previous generation families?
 				// "c5",
@@ -96,6 +109,7 @@ func Setup(cloud, region, zone, defaultInstanceType, instanceDataPath string) er
 				return util.ToGiBFloat32(&q)
 			},
 			containerInstanceSelector: FargateInstanceSelector,
+			architectureSelector:      AWSArchitectureSelector,
 		}
 	case "azure":
 		data, err := getSelectorData(azureInstanceJson, region, instanceDataPath)
@@ -111,6 +125,7 @@ func Setup(cloud, region, zone, defaultInstanceType, instanceDataPath string) er
 				return util.ToGiBFloat32(&q)
 			},
 			containerInstanceSelector: AzureContainenrInstanceSelector,
+			architectureSelector:      GenericArchitectureSelector,
 		}
 	case "gce":
 		data, err := getSelectorData(gceInstanceJson, zone, instanceDataPath)
@@ -131,6 +146,7 @@ func Setup(cloud, region, zone, defaultInstanceType, instanceDataPath string) er
 				return util.ToGiBFloat32(&q)
 			},
 			containerInstanceSelector: GCEContainenrInstanceSelector,
+			architectureSelector:      GenericArchitectureSelector,
 		}
 		klog.Infof("custom instances in %s: %+v", zone, customData)
 	default:
@@ -344,7 +360,11 @@ func toInstanceData(data []CustomInstanceData, memoryRequirement, cpuRequirement
 // the t2.Unlimited option from AWS. For T2 instances, we try to
 // figure out what percentage of a CPU a user will likely use and
 // use that to compute t2.Unlimited cost.
-func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, instanceTypeGlob string) (string, bool) {
+func (instSel *instanceSelector) getInstanceFromResources(
+	rs api.ResourceSpec, instanceTypeGlob string,
+) (
+	api.Architecture, string, bool,
+) {
 	memoryRequirement, err := instSel.parseMemorySpec(rs.Memory)
 	if err != nil {
 		klog.Errorf("Error parsing memory spec: %s", err)
@@ -425,7 +445,8 @@ func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, i
 		}
 	}
 	klog.Infof("chose instance %+v", cheapestInstance)
-	return cheapestInstance, cheapestIsSustained
+	var arch = instSel.architectureSelector(cheapestInstance)
+	return arch, cheapestInstance, cheapestIsSustained
 }
 
 func noResourceSpecified(ps *api.PodSpec) bool {
@@ -450,32 +471,33 @@ func instanceTypeSpecified(instanceType string) bool {
 	return instanceType != "" && !strings.ContainsRune(instanceType, '*')
 }
 
-func ResourcesToInstanceType(ps *api.PodSpec) (string, *bool, error) {
+func ResourcesToInstanceType(ps *api.PodSpec) (api.Architecture, string, *bool, error) {
 	if ps.Resources.ContainerInstance != nil && *ps.Resources.ContainerInstance {
-		return api.ContainerInstanceType, nil, nil
+		return ps.Architecture, api.ContainerInstanceType, nil, nil
 	}
 	if instanceTypeSpecified(ps.InstanceType) {
 		var sustainedCPU *bool
 		if ps.Resources.SustainedCPU != nil {
 			sustainedCPU = ps.Resources.SustainedCPU
 		}
-		return ps.InstanceType, sustainedCPU, nil
+		return ps.Architecture, ps.InstanceType, sustainedCPU, nil
 	}
 	if selector == nil {
 		msg := "fatal: instanceselector has not been initialized"
 		klog.Errorf(msg)
-		return "", nil, fmt.Errorf(msg)
+		return api.ArchUndefined, "", nil, fmt.Errorf(msg)
 	}
 	if ps.InstanceType == "" && noResourceSpecified(ps) {
-		return selector.defaultInstanceType, nil, nil
+		var arch = selector.architectureSelector(selector.defaultInstanceType)
+		return arch, selector.defaultInstanceType, nil, nil
 	}
 
-	instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources, ps.InstanceType)
+	arch, instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources, ps.InstanceType)
 	if instanceType == "" {
 		msg := "could not compute instance type from Spec.Resources. It's likely that the Pod.Spec.Resources specify an instance that doesnt exist in the cloud"
-		return "", nil, fmt.Errorf(msg)
+		return api.ArchUndefined, "", nil, fmt.Errorf(msg)
 	}
-	return instanceType, &needsSustainedCPU, nil
+	return arch, instanceType, &needsSustainedCPU, nil
 }
 
 func ResourcesToContainerInstance(rs *api.ResourceSpec) (int64, int64, error) {

@@ -58,11 +58,11 @@ func (s *BindingNodeScaler) spotMatches(pod *api.Pod, node *api.Node) bool {
 }
 
 func (s *BindingNodeScaler) podMatchesNode(pod *api.Pod, node *api.Node) bool {
-	return node.Spec.InstanceType == pod.Spec.InstanceType &&
+	return (node.Spec.InstanceType == pod.Spec.InstanceType &&
 		node.Spec.Resources.PrivateIPOnly == pod.Spec.Resources.PrivateIPOnly &&
 		node.Spec.Resources.GPU == pod.Spec.Resources.GPU &&
 		s.spotMatches(pod, node) &&
-		s.diskMatches(pod, node)
+		s.diskMatches(pod, node))
 }
 
 func (s *BindingNodeScaler) diskMatches(pod *api.Pod, node *api.Node) bool {
@@ -84,15 +84,13 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	if s.bootLimiter.IsUnavailableInstance(pod.Spec.InstanceType, isSpotPod) {
 		return nil
 	}
-	// XXX henry: we need the instance’s architecture to be able to pick the right image.
-	// This is currently handled by CloudClient, which isn’t accessible from this object.
-	// We assume x84_64 because everybody still uses it.
-	image, found := BootImages[api.ArchX8664]
+	image, found := BootImages[pod.Spec.Architecture]
 	if !found {
 		klog.Errorf("Error could not find image for instance type: %s", pod.Spec.InstanceType)
 		return nil
 	}
 	node := api.NewNode()
+	node.Spec.Architecture = pod.Spec.Architecture
 	node.Spec.InstanceType = pod.Spec.InstanceType
 	node.Spec.BootImage = image.ID
 	node.Spec.Spot = isSpotPod

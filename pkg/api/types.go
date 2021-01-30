@@ -1459,6 +1459,8 @@ type Node struct {
 
 // NodeSpec defines the desired behavior of the Node.
 type NodeSpec struct {
+	// CPU architecture
+	Architecture Architecture `json:"architecture"`
 	// Cloud instance type of this Node.
 	InstanceType string `json:"instanceType"`
 	// Cloud image that is used for this instance.
@@ -1792,11 +1794,12 @@ type MetricsList struct {
 	Items    []*Metrics
 }
 
-type Architecture string
+type Architecture int
 
+// CPU architecture naming isn’t consistent across the industry.
 const (
-	ArchUndefined Architecture = "undefined"
-	ArchX8664 Architecture = "x86_64"
+	ArchUndefined Architecture = iota
+	ArchX8664
 	// x86_64 mac. like mac1.* instances in AWS
-	ArchX8664Mac Architecture = "x86_64_mac"
+	ArchX8664Mac
 )

@@ -251,8 +251,7 @@ func (c *NodeController) startNodes(nodes []*api.Node, images map[api.Architectu
 			klog.Errorf("Error creating node in registry: %v", err)
 			continue
 		}
-		var arch = c.CloudClient.GetArchitecture(newNode.Spec.InstanceType)
-		image, found := images[arch]
+		image, found := images[newNode.Spec.Architecture]
 		if !found {
 			klog.Errorf("Error finding image for instance type: %s", newNode.Spec.InstanceType)
 			return
