@@ -345,12 +345,3 @@ func (_ *AwsEC2) SplitBootImageSpec(spec cloud.BootImageSpec) []cloud.BootImageS
 	}
 	return specs
 }
-
-func (_ *AwsEC2) GetArchitecture(type_ string) api.Architecture {
-	// XXX: This assumes all mac1.* instance are x86_64_mac and the rest is x84_64
-	if strings.HasPrefix(type_, "mac1") {
-		return api.ArchX8664Mac
-	} else {
-		return api.ArchX8664
-	}
-}

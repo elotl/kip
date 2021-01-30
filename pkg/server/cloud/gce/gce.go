@@ -244,7 +244,3 @@ func waitOnOperation(opName string, getOperation func(string) (*compute.Operatio
 func (_ *gceClient) SplitBootImageSpec(spec cloud.BootImageSpec) []cloud.BootImageSpec {
 	return []cloud.BootImageSpec{spec}
 }
-
-func (_ *gceClient) GetArchitecture(_ string) api.Architecture {
-	return api.ArchX8664
-}

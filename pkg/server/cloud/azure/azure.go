@@ -248,7 +248,3 @@ func (az *AzureClient) locationName() string {
 func (_ *AzureClient) SplitBootImageSpec(spec cloud.BootImageSpec) []cloud.BootImageSpec {
 	return []cloud.BootImageSpec{spec}
 }
-
-func (_ *AzureClient) GetArchitecture(_ string) api.Architecture {
-	return api.ArchX8664
-}
