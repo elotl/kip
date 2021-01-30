@@ -594,6 +594,45 @@ func TestImageSpecToImage(t *testing.T) {
 	assert.Equal(t, "my-image-id", img[api.ArchX8664].ID)
 }
 
+func TestImageSpecToMultiImage(t *testing.T) {
+	ctl, closer := MakeNodeController()
+	defer closer()
+	ctl.CloudClient = &cloud.MockCloudClient{
+		Starter:     StartReturnsOK,
+		SpotStarter: StartReturnsOK,
+		Stopper:     ReturnNil,
+		Waiter:      ReturnAddresses,
+		ImageGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
+			return cloud.Image{
+				Architecture: api.ArchX8664,
+				ID:           "my-image-id",
+				Name:         "my-image-name",
+				RootDevice:   "/dev/rootdev0",
+			}, nil
+		},
+		BootImageSpecSplitter: func(_ cloud.BootImageSpec) []cloud.BootImageSpec {
+			return []cloud.BootImageSpec{
+				cloud.BootImageSpec{
+					"owners": "12345",
+					"name":   "my-image-id",
+				},
+				cloud.BootImageSpec{
+					"imageIDs": "ami-12345",
+					"name":     "my-image-id",
+				},
+			}
+		},
+	}
+	spec := cloud.BootImageSpec{
+		"owners":   "12345",
+		"imageIDs": "ami-12345",
+		"name":     "my-image-*",
+	}
+	var img, err = ctl.imageSpecToImage(spec)
+	assert.Nil(t, err)
+	assert.Equal(t, "my-image-id", img[api.ArchX8664].ID)
+}
+
 func TestImageSpecToImageFailure(t *testing.T) {
 	t.Parallel()
 	ctl, closer := MakeNodeController()

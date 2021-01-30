@@ -33,14 +33,15 @@ type MockCloudClient struct {
 	VPCCIDRs     []string
 	Subnet       SubnetAttributes
 
-	Starter             func(node *api.Node, image Image, metadata, iamPermissions string) (string, error)
-	SpotStarter         func(node *api.Node, image Image, metadata, iamPermissions string) (string, error)
-	Stopper             func(instanceID string) error
-	Waiter              func(node *api.Node) ([]api.NetworkAddress, error)
-	Lister              func() ([]CloudInstance, error)
-	Resizer             func(node *api.Node, size int64) (error, bool)
-	ContainerAuthorizer func(string) (string, string, error)
-	ImageGetter         func(BootImageSpec) (Image, error)
+	Starter               func(node *api.Node, image Image, metadata, iamPermissions string) (string, error)
+	SpotStarter           func(node *api.Node, image Image, metadata, iamPermissions string) (string, error)
+	Stopper               func(instanceID string) error
+	Waiter                func(node *api.Node) ([]api.NetworkAddress, error)
+	Lister                func() ([]CloudInstance, error)
+	Resizer               func(node *api.Node, size int64) (error, bool)
+	ContainerAuthorizer   func(string) (string, string, error)
+	ImageGetter           func(BootImageSpec) (Image, error)
+	BootImageSpecSplitter func(BootImageSpec) []BootImageSpec
 
 	InstanceListerFilter func([]string) ([]CloudInstance, error)
 	InstanceLister       func() ([]CloudInstance, error)
@@ -213,8 +214,12 @@ func (m *MockCloudClient) AddIAMPermissions(node *api.Node, permissions string) 
 	return nil
 }
 
-func (_ *MockCloudClient) SplitBootImageSpec(spec BootImageSpec) []BootImageSpec {
-	return []BootImageSpec{spec}
+func (m *MockCloudClient) SplitBootImageSpec(spec BootImageSpec) []BootImageSpec {
+	if m.BootImageSpecSplitter != nil {
+		return m.BootImageSpecSplitter(spec)
+	} else {
+		return []BootImageSpec{spec}
+	}
 }
 
 func NewMockClient() *MockCloudClient {
