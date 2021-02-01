@@ -42,8 +42,8 @@ const (
 )
 
 var (
-	BootTimeout               time.Duration = 15 * time.Minute
-	AwsInstanceAvailableState               = "available"
+	BootTimeout               = 10 * time.Minute
+	AwsInstanceAvailableState = "available"
 )
 
 func (e *AwsEC2) StopInstance(instanceID string) error {
@@ -479,7 +479,6 @@ func (e *AwsEC2) isHostAvailable(hostId *string) bool {
 		return false
 	}
 	host := describeOutput.Hosts[0]
-	klog.V(2).Infof("host %s state: %s", aws.StringValue(hostId), aws.StringValue(host.State))
 	return aws.StringValue(host.State) == AwsInstanceAvailableState
 }
 
@@ -491,12 +490,11 @@ func (e *AwsEC2) waitForHostAvailable(ctx context.Context, hostId *string) bool 
 		case <-ctx.Done():
 			return hostAvailable
 		case <-ticker.C:
-			klog.V(2).Infof("checking host %s availability...", *hostId)
 			hostAvailable = e.isHostAvailable(hostId)
 			if hostAvailable {
 				return hostAvailable
 			}
-			klog.V(2).Infof("host not available yet")
+			klog.V(2).Infof("host %s not available yet", *hostId)
 		default:
 			//
 		}
@@ -515,7 +513,6 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 		Tags:         tags,
 	}
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
-	klog.V(2).Infof("calculated volume size for node: %v", volSizeGiB)
 	devices := e.getBlockDeviceMapping(image, volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -527,10 +524,6 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)
-	klog.V(2).Info("Block devices for a node")
-	for _, device := range devices {
-		klog.V(2).Infof("Device: %s volume size: %d", *device.DeviceName, *device.Ebs.VolumeSize)
-	}
 	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
 		ImageId:             aws.String(node.Spec.BootImage),
 		InstanceType:        aws.String(node.Spec.InstanceType),
@@ -565,7 +558,6 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 	}
 	cloudID := aws.StringValue(result.Instances[0].InstanceId)
 	klog.V(2).Infof("Started instance: %s", cloudID)
-	klog.V(2).Infof("RunInstances response: %s", result.String())
 	return cloudID, nil
 }
 
@@ -654,9 +646,7 @@ func (e *AwsEC2) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
 			return waitErr
 		},
 		func(err error) bool {
-			// TODO: remove this log line
-			klog.V(2).Infof("retrying err: %s", err.Error())
-			return strings.HasPrefix(err.Error(), "InvalidInstanceID.NotFound") || strings.Contains(err.Error(), "ResourceNotReady")
+			return strings.HasPrefix(err.Error(), "InvalidInstanceID.NotFound")
 		})
 	if err != nil {
 		return nil, fmt.Errorf("waiting for instance to start: %v", err)
