@@ -102,8 +102,9 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	// until dispatch (just launch with the default size), otherwise,
 	// if we have a fixed size disk of non-default size, size the disk
 	// here and also take care of matching disk sizes
+
 	node.Spec.Resources.VolumeSize = s.defaultVolumeSize
-	if s.fixedSizeVolume && pod.Spec.Resources.VolumeSize != "" {
+	if pod.Spec.Resources.VolumeSize != "" { // TODO: consider if && s.fixedSizeVolume is needed here
 		node.Spec.Resources.VolumeSize = pod.Spec.Resources.VolumeSize
 	}
 	node.Status.BoundPodName = pod.Name

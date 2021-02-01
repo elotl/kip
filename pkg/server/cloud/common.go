@@ -127,6 +127,7 @@ func MergeSecurityGroups(cloudSG SecurityGroup, specPorts []InstancePort, specSo
 }
 
 func ToSaneVolumeSize(volSizeSpec string, image Image) int32 {
+	klog.V(2).Infof("Calculating volumes size, volSizeSpec: %v image.VolumeDiskSize: %v", volSizeSpec, image.VolumeDiskSize)
 	size, _ := resource.ParseQuantity(volSizeSpec)
 	volSizeGiB := util.ToGiBRoundUp(&size)
 	if image.VolumeDiskSize != 0 {

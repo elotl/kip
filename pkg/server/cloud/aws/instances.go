@@ -86,6 +86,7 @@ func (e *AwsEC2) getNodeTags(node *api.Node) []*ec2.Tag {
 
 func (e *AwsEC2) getBlockDeviceMapping(image cloud.Image, volSizeGiB int32) []*ec2.BlockDeviceMapping {
 	awsVolSize := aws.Int64(int64(volSizeGiB))
+	klog.V(2).Infof("getting Block device mapping, got %v volSizeGiB, using %v", volSizeGiB, awsVolSize)
 	devices := []*ec2.BlockDeviceMapping{
 		&ec2.BlockDeviceMapping{
 			DeviceName: aws.String(image.RootDevice),
