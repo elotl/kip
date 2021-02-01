@@ -33,17 +33,17 @@ import (
 )
 
 const (
-	awsInstanceProduct                  = "Linux/UNIX"
-	resizeTimeout                       = 60 * time.Second
-	maxUserInstanceTags                 = 45
-	awsCreationDateFormat               = "2006-01-02T15:04:05.000Z"
-	elotlOwnerID                        = "689494258501"
-	elotlImageNameFilter                = "elotl-kip-*"
+	awsInstanceProduct    = "Linux/UNIX"
+	resizeTimeout         = 60 * time.Second
+	maxUserInstanceTags   = 45
+	awsCreationDateFormat = "2006-01-02T15:04:05.000Z"
+	elotlOwnerID          = "689494258501"
+	elotlImageNameFilter  = "elotl-kip-*"
 )
 
 var (
-	BootTimeout time.Duration = 15 * time.Minute
-	AwsInstanceAvailableState = "available"
+	BootTimeout               time.Duration = 15 * time.Minute
+	AwsInstanceAvailableState               = "available"
 )
 
 func (e *AwsEC2) StopInstance(instanceID string) error {
@@ -86,12 +86,11 @@ func (e *AwsEC2) getNodeTags(node *api.Node) []*ec2.Tag {
 
 func (e *AwsEC2) getBlockDeviceMapping(image cloud.Image, volSizeGiB int32) []*ec2.BlockDeviceMapping {
 	awsVolSize := aws.Int64(int64(volSizeGiB))
-	klog.V(2).Infof("getting Block device mapping, got %v volSizeGiB, using %v", volSizeGiB, awsVolSize)
 	devices := []*ec2.BlockDeviceMapping{
 		&ec2.BlockDeviceMapping{
 			DeviceName: aws.String(image.RootDevice),
 			Ebs: &ec2.EbsBlockDevice{
-				VolumeType:          aws.String("gp2"),
+				VolumeType:          aws.String(image.VolumeType),
 				DeleteOnTermination: aws.Bool(true),
 				VolumeSize:          awsVolSize,
 			}},
@@ -281,6 +280,16 @@ func getRootDeviceVolumeSize(blockDevices []*ec2.BlockDeviceMapping, rootDeviceN
 	return rootDiskSize
 }
 
+func getDeviceVolumeType(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) string {
+	volumeType := "gp2"
+	for _, blockDevice := range blockDevices {
+		if aws.StringValue(blockDevice.DeviceName) == rootDeviceName && blockDevice.Ebs != nil {
+			volumeType = aws.StringValue(blockDevice.Ebs.VolumeType)
+		}
+	}
+	return volumeType
+}
+
 func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	input := bootImageSpecToDescribeImagesInput(spec)
 	resp, err := e.client.DescribeImages(input)
@@ -310,12 +319,14 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 			klog.Warningf("cannot get root device name from image: %v", img.Name)
 		}
 		rootDiskSize := getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
+		volumeType := getDeviceVolumeType(img.BlockDeviceMappings, rootDeviceName)
 		images[i] = cloud.Image{
 			Name:           aws.StringValue(img.Name),
 			RootDevice:     aws.StringValue(img.RootDeviceName),
 			ID:             aws.StringValue(img.ImageId),
 			CreationTime:   creationTime,
 			VolumeDiskSize: rootDiskSize,
+			VolumeType:     volumeType,
 		}
 	}
 	cloud.SortImagesByCreationTime(images)
@@ -464,15 +475,17 @@ func (e *AwsEC2) isHostAvailable(hostId *string) bool {
 		return false
 	}
 	if len(describeOutput.Hosts) != 1 {
+		klog.Errorf("no such host: %s", aws.StringValue(hostId))
 		return false
 	}
 	host := describeOutput.Hosts[0]
+	klog.V(2).Infof("host %s state: %s", aws.StringValue(hostId), aws.StringValue(host.State))
 	return aws.StringValue(host.State) == AwsInstanceAvailableState
 }
 
 func (e *AwsEC2) waitForHostAvailable(ctx context.Context, hostId *string) bool {
 	hostAvailable := false
-	ticker := time.NewTicker(1*time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
@@ -533,6 +546,7 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 			Tenancy: aws.String("host"),
 		},
 	})
+
 	if err != nil {
 		if isSubnetConstrainedError(err) {
 			return "", &cloud.NoCapacityError{
@@ -551,6 +565,7 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 	}
 	cloudID := aws.StringValue(result.Instances[0].InstanceId)
 	klog.V(2).Infof("Started instance: %s", cloudID)
+	klog.V(2).Infof("RunInstances response: %s", result.String())
 	return cloudID, nil
 }
 
