@@ -56,7 +56,7 @@ To use a more secure channel instead, set `cells.useCloudParameterStore` in your
 
 This is currently only supported on AWS.
 
-Make sure that Kip has the necessary IAM permissions to use SSM. The [default IAM policy](docs/kip-iam-permissions.md) has this.
+Make sure that Kip has the necessary IAM permissions to use SSM. The [default IAM policy](kip-iam-permissions.md) has this.
 
 You can also limit cells to ensure they are only able to read their own parameters, for example:
 
