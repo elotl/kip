@@ -805,3 +805,34 @@ func TestDeleteInstanceParameterFails(t *testing.T) {
 	assert.Equal(t, api.NodeTerminated, nodes.Items[0].Status.Phase)
 	assert.True(t, called)
 }
+
+func TestStartSingleNodeInsufficientCapacity(t *testing.T)  {
+	// GIVEN
+	t.Parallel()
+	ctl, closer := MakeNodeController()
+	defer closer()
+	ctl.CloudClient = &cloud.MockCloudClient{
+		Starter: func (node *api.Node, image cloud.Image, metadata, iamProfile string) (string, error) {
+			return "", fmt.Errorf("InsufficientInstanceCapacity")
+		},
+	}
+	n := api.GetFakeNode()
+	n, _ = ctl.NodeRegistry.CreateNode(n)
+	firstChoiceInstanceType := "t3.nano"
+	n.Spec.InstanceType = firstChoiceInstanceType
+	// WHEN
+	_ = ctl.startSingleNode(n, cloud.Image{}, "")
+	// THEN
+	assert.True(t, ctl.BootLimiter.IsUnavailableInstance("t3.nano", false))
+	assert.NotEqual(t, firstChoiceInstanceType, n.Spec.InstanceType)
+	secondChoiceInstanceType := "t3a.nano"
+	assert.Equal(t, secondChoiceInstanceType, n.Spec.InstanceType)
+	// GIVEN, WHEN (node.Spec.InstanceType set to new one,
+	// but it this test scenario this new one is unavailable as well
+	// so let's see if the third choice != first choice
+	_ = ctl.startSingleNode(n, cloud.Image{}, "")
+	// THEN
+	assert.True(t, ctl.BootLimiter.IsUnavailableInstance("t3a.nano", false))
+	assert.NotEqual(t, firstChoiceInstanceType, n.Spec.InstanceType)
+	assert.NotEqual(t, secondChoiceInstanceType, n.Spec.InstanceType)
+}

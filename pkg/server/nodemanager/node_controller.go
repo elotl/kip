@@ -20,8 +20,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/elotl/kip/pkg/util/instanceselector"
 	"math/rand"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -43,13 +45,13 @@ import (
 // non-const timeouts were endorsed by Mitchell Hashimoto
 var (
 	//	BootTimeout         time.Duration = 300 * time.Second
-	BootTimeout         time.Duration = 15 * time.Minute
-	HealthyTimeout      time.Duration = 90 * time.Second
-	HealthcheckPause    time.Duration = 5 * time.Second
-	SpotRequestPause    time.Duration = 60 * time.Second
-	BootImage           cloud.Image   = cloud.Image{}
-	MaxBootPerIteration int           = 10
-	itzoDir             string        = "/tmp/itzo"
+	BootTimeout          time.Duration = 15 * time.Minute
+	HealthyTimeout       time.Duration = 90 * time.Second
+	HealthcheckPause     time.Duration = 5 * time.Second
+	SpotRequestPause     time.Duration = 60 * time.Second
+	BootImage            cloud.Image   = cloud.Image{}
+	MaxBootPerIteration  int           = 10
+	itzoDir              string        = "/tmp/itzo"
 )
 
 // when configuring these intervals we want the following constraints
@@ -260,6 +262,9 @@ func (c *NodeController) handleStartNodeError(node *api.Node, err error, isSpot 
 		// with this but I hesitate to do that, instead lets push that
 		// off to the operator for now.
 		c.BootLimiter.AddUnavailableInstance(node.Spec.InstanceType, isSpot)
+	case *cloud.InsufficientCapacityError:
+		e := err.(*cloud.InsufficientCapacityError)
+		c.BootLimiter.AddUnavailableInstance(e.InstanceType, isSpot)
 	}
 }
 
@@ -274,6 +279,23 @@ func (c *NodeController) startSingleNode(node *api.Node, image cloud.Image, clou
 		instanceID, err = c.CloudClient.StartDedicatedNode(node, image, cloudInitData, c.Config.DefaultIAMPermissions)
 	} else {
 		instanceID, err = c.CloudClient.StartNode(node, image, cloudInitData, c.Config.DefaultIAMPermissions)
+	}
+	if err != nil && strings.Contains(err.Error(), "InsufficientInstanceCapacity") {
+		// detect Region has no capacity: InsufficientInstanceCapacity
+		// and try to find matching instance other than the one with no capacity in region,
+		// then, assign the new instance type to node, control loop will try again in next iteration
+		instanceType, _ := instanceselector.GetInstanceFromResources(node.Spec.Resources, func(inst instanceselector.InstanceData) bool {
+			// node.Spec.InstanceType will be added as unavailable type to BootLimiter in c.handleStartNodeError
+			// so let's make sure here that:
+			// 1. Selected instance type isn't the one that just failed
+			// 2. Selected instance type isn't already marked as Unavailable
+			return !c.BootLimiter.IsUnavailableInstance(inst.InstanceType, node.Spec.Spot) && !(inst.InstanceType == node.Spec.InstanceType)
+		})
+		err = &cloud.InsufficientCapacityError{
+			InstanceType:  node.Spec.InstanceType,
+			OriginalError: err.Error(),
+		}
+		node.Spec.InstanceType = instanceType
 	}
 	if err != nil {
 		c.handleStartNodeError(node, err, false)
