@@ -104,7 +104,7 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	// here and also take care of matching disk sizes
 
 	node.Spec.Resources.VolumeSize = s.defaultVolumeSize
-	if pod.Spec.Resources.VolumeSize != "" { // TODO: consider if && s.fixedSizeVolume is needed here
+	if s.fixedSizeVolume && pod.Spec.Resources.VolumeSize != "" {
 		node.Spec.Resources.VolumeSize = pod.Spec.Resources.VolumeSize
 	}
 	node.Status.BoundPodName = pod.Name

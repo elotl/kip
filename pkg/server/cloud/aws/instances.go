@@ -33,17 +33,15 @@ import (
 )
 
 const (
-	awsInstanceProduct    = "Linux/UNIX"
-	resizeTimeout         = 60 * time.Second
-	maxUserInstanceTags   = 45
-	awsCreationDateFormat = "2006-01-02T15:04:05.000Z"
-	elotlOwnerID          = "689494258501"
-	elotlImageNameFilter  = "elotl-kip-*"
-)
-
-var (
+	awsInstanceProduct        = "Linux/UNIX"
+	resizeTimeout             = 60 * time.Second
+	maxUserInstanceTags       = 45
+	awsCreationDateFormat     = "2006-01-02T15:04:05.000Z"
+	elotlOwnerID              = "689494258501"
+	elotlImageNameFilter      = "elotl-kip-*"
 	BootTimeout               = 10 * time.Minute
 	AwsInstanceAvailableState = "available"
+	AvailableWaitTimeout      = 30 * time.Second
 )
 
 func (e *AwsEC2) StopInstance(instanceID string) error {
@@ -269,25 +267,17 @@ func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeI
 	return input
 }
 
-func getRootDeviceVolumeSize(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) int32 {
+func getRootDeviceVolumeSizeAndType(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) (int32, string) {
 	var rootDiskSize int32
-	for _, blockDevice := range blockDevices {
-		if aws.StringValue(blockDevice.DeviceName) == rootDeviceName && blockDevice.Ebs != nil {
-			rootDiskSize = int32(aws.Int64Value(blockDevice.Ebs.VolumeSize))
-			break
-		}
-	}
-	return rootDiskSize
-}
-
-func getDeviceVolumeType(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) string {
 	volumeType := "gp2"
 	for _, blockDevice := range blockDevices {
 		if aws.StringValue(blockDevice.DeviceName) == rootDeviceName && blockDevice.Ebs != nil {
+			rootDiskSize = int32(aws.Int64Value(blockDevice.Ebs.VolumeSize))
 			volumeType = aws.StringValue(blockDevice.Ebs.VolumeType)
+			break
 		}
 	}
-	return volumeType
+	return rootDiskSize, volumeType
 }
 
 func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
@@ -318,8 +308,7 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 		if rootDeviceName == "" {
 			klog.Warningf("cannot get root device name from image: %v", img.Name)
 		}
-		rootDiskSize := getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
-		volumeType := getDeviceVolumeType(img.BlockDeviceMappings, rootDeviceName)
+		rootDiskSize, volumeType := getRootDeviceVolumeSizeAndType(img.BlockDeviceMappings, rootDeviceName)
 		images[i] = cloud.Image{
 			Name:           aws.StringValue(img.Name),
 			RootDevice:     aws.StringValue(img.RootDeviceName),
@@ -495,8 +484,6 @@ func (e *AwsEC2) waitForHostAvailable(ctx context.Context, hostId *string) bool 
 				return hostAvailable
 			}
 			klog.V(2).Infof("host %s not available yet", *hostId)
-		default:
-			//
 		}
 	}
 }
@@ -515,9 +502,9 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
 	devices := e.getBlockDeviceMapping(image, volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), AvailableWaitTimeout)
 	hostAvailable := e.waitForHostAvailable(ctx, hostId)
+	cancel()
 	if !hostAvailable {
 		return "", util.WrapError(err, "Could not run instance: host %s not available", *hostId)
 	}

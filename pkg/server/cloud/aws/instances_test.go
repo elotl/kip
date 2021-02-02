@@ -117,7 +117,7 @@ func TestGetRootDeviceVolumeSize(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.caseName, func(t *testing.T) {
-			rootDiskSize := getRootDeviceVolumeSize(testCase.blockDevices, testCase.rootDeviceName)
+			rootDiskSize, _ := getRootDeviceVolumeSizeAndType(testCase.blockDevices, testCase.rootDeviceName)
 			assert.Equal(t, testCase.expectedRootDiskSize, rootDiskSize)
 		})
 	}

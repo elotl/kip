@@ -324,6 +324,7 @@ func (c *NodeController) finishNodeStart(node *api.Node) error {
 	// a describe instance here...
 	addresses, err := c.CloudClient.WaitForRunning(node)
 	if err != nil {
+		klog.V(2).Infof("Unhealthy wait for running, terminating node: %s", node.Name)
 		_ = c.stopSingleNode(node)
 		return util.WrapError(err, "Error waiting for node to be running")
 	}
