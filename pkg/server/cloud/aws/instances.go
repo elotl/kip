@@ -44,6 +44,13 @@ const (
 	AvailableWaitTimeout      = 30 * time.Second
 )
 
+type EbsSpecs struct {
+	Iops       int64
+	Throughput int64
+	VolumeType string
+	VolumeSize int32
+}
+
 func (e *AwsEC2) StopInstance(instanceID string) error {
 	awsInstanceIDs := []*string{aws.String(instanceID)}
 	_, err := e.client.TerminateInstances(&ec2.TerminateInstancesInput{
@@ -85,9 +92,11 @@ func (e *AwsEC2) getNodeTags(node *api.Node) []*ec2.Tag {
 func (e *AwsEC2) getBlockDeviceMapping(image cloud.Image, volSizeGiB int32) []*ec2.BlockDeviceMapping {
 	awsVolSize := aws.Int64(int64(volSizeGiB))
 	devices := []*ec2.BlockDeviceMapping{
-		&ec2.BlockDeviceMapping{
+		{
 			DeviceName: aws.String(image.RootDevice),
 			Ebs: &ec2.EbsBlockDevice{
+				Iops:                aws.Int64(image.VolumeIops),
+				Throughput:          aws.Int64(image.VolumeThroughput),
 				VolumeType:          aws.String(image.VolumeType),
 				DeleteOnTermination: aws.Bool(true),
 				VolumeSize:          awsVolSize,
@@ -267,17 +276,20 @@ func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeI
 	return input
 }
 
-func getRootDeviceVolumeSizeAndType(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) (int32, string) {
-	var rootDiskSize int32
-	volumeType := "gp2"
+func getRootDeviceVolumeSpecs(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) EbsSpecs {
+	specs := EbsSpecs{VolumeType: "gp2"}
 	for _, blockDevice := range blockDevices {
 		if aws.StringValue(blockDevice.DeviceName) == rootDeviceName && blockDevice.Ebs != nil {
-			rootDiskSize = int32(aws.Int64Value(blockDevice.Ebs.VolumeSize))
-			volumeType = aws.StringValue(blockDevice.Ebs.VolumeType)
+			specs.VolumeSize = int32(aws.Int64Value(blockDevice.Ebs.VolumeSize))
+			specs.VolumeType = aws.StringValue(blockDevice.Ebs.VolumeType)
+			specs.Iops = aws.Int64Value(blockDevice.Ebs.Iops)
+			if specs.VolumeType == "gp3" {
+				specs.Throughput = aws.Int64Value(blockDevice.Ebs.Throughput)
+			}
 			break
 		}
 	}
-	return rootDiskSize, volumeType
+	return specs
 }
 
 func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
@@ -308,14 +320,16 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 		if rootDeviceName == "" {
 			klog.Warningf("cannot get root device name from image: %v", img.Name)
 		}
-		rootDiskSize, volumeType := getRootDeviceVolumeSizeAndType(img.BlockDeviceMappings, rootDeviceName)
+		rootDeviceSpecs := getRootDeviceVolumeSpecs(img.BlockDeviceMappings, rootDeviceName)
 		images[i] = cloud.Image{
-			Name:           aws.StringValue(img.Name),
-			RootDevice:     aws.StringValue(img.RootDeviceName),
-			ID:             aws.StringValue(img.ImageId),
-			CreationTime:   creationTime,
-			VolumeDiskSize: rootDiskSize,
-			VolumeType:     volumeType,
+			Name:             aws.StringValue(img.Name),
+			RootDevice:       aws.StringValue(img.RootDeviceName),
+			ID:               aws.StringValue(img.ImageId),
+			CreationTime:     creationTime,
+			VolumeDiskSize:   rootDeviceSpecs.VolumeSize,
+			VolumeIops:       rootDeviceSpecs.Iops,
+			VolumeThroughput: rootDeviceSpecs.Throughput,
+			VolumeType:       rootDeviceSpecs.VolumeType,
 		}
 	}
 	cloud.SortImagesByCreationTime(images)

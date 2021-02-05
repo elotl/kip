@@ -68,7 +68,7 @@ func TestBootImageSpecToDescribeImagesInput(t *testing.T) {
 	}
 }
 
-func TestGetRootDeviceVolumeSize(t *testing.T) {
+func TestGetRootDeviceVolumeSpecs(t *testing.T) {
 	notRootDeviceName := "not-root"
 	rootDeviceName := "root-device"
 	var volumeSize int64 = 100
@@ -78,47 +78,60 @@ func TestGetRootDeviceVolumeSize(t *testing.T) {
 		blockDevices         []*ec2.BlockDeviceMapping
 		rootDeviceName       string
 		expectedRootDiskSize int32
+		expectedVolumeType   string
+		expectedIops         int64
+		expectedThroughput   int64
 	}{
 		{
-			"root-device-found",
-			[]*ec2.BlockDeviceMapping{
-				&ec2.BlockDeviceMapping{
+			caseName: "root-device-found",
+			blockDevices: []*ec2.BlockDeviceMapping{
+				{
 					DeviceName: &notRootDeviceName,
 				},
-				&ec2.BlockDeviceMapping{
+				{
 					DeviceName: &rootDeviceName,
 					Ebs: &ec2.EbsBlockDevice{
 						VolumeSize: &volumeSize,
+						VolumeType: aws.String("gp3"),
+						Iops:       &volumeSize,
+						Throughput: &volumeSize,
 					},
 				},
 			},
-			rootDeviceName,
-			expectedVolumeSize,
+			rootDeviceName:       rootDeviceName,
+			expectedRootDiskSize: expectedVolumeSize,
+			expectedVolumeType:   "gp3",
+			expectedIops:         100,
+			expectedThroughput:   100,
+
 		},
 		{
-			"empty-volume-list",
-			[]*ec2.BlockDeviceMapping{},
-			rootDeviceName,
-			0,
+			caseName:       "empty-volume-list",
+			blockDevices:   []*ec2.BlockDeviceMapping{},
+			rootDeviceName: rootDeviceName,
+			expectedVolumeType: "gp2",
 		},
 		{
-			"root-device-not-found",
-			[]*ec2.BlockDeviceMapping{
-				&ec2.BlockDeviceMapping{
+			caseName: "root-device-not-found",
+			blockDevices: []*ec2.BlockDeviceMapping{
+				{
 					DeviceName: &notRootDeviceName,
 					Ebs: &ec2.EbsBlockDevice{
 						VolumeSize: &volumeSize,
 					},
 				},
 			},
-			rootDeviceName,
-			0,
+			rootDeviceName: rootDeviceName,
+			expectedVolumeType: "gp2",
 		},
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.caseName, func(t *testing.T) {
-			rootDiskSize, _ := getRootDeviceVolumeSizeAndType(testCase.blockDevices, testCase.rootDeviceName)
-			assert.Equal(t, testCase.expectedRootDiskSize, rootDiskSize)
+			rootDisk := getRootDeviceVolumeSpecs(testCase.blockDevices, testCase.rootDeviceName)
+			assert.Equal(t, testCase.expectedRootDiskSize, rootDisk.VolumeSize)
+			assert.Equal(t, testCase.expectedVolumeType, rootDisk.VolumeType)
+			assert.Equal(t, testCase.expectedThroughput, rootDisk.Throughput)
+			assert.Equal(t, testCase.expectedIops, rootDisk.Iops)
 		})
 	}
 }

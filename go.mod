@@ -11,7 +11,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.0
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.1
 	github.com/Azure/go-autorest/autorest/to v0.2.0
-	github.com/aws/aws-sdk-go v1.28.2
+	github.com/aws/aws-sdk-go v1.37.5
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible
 	github.com/creack/pty v1.1.9 // indirect
@@ -52,8 +52,8 @@ require (
 	go.uber.org/multierr v1.4.0 // indirect
 	go.uber.org/zap v1.13.0 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
-	golang.org/x/sys v0.0.0-20200331124033-c3d80250170d
+	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
+	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
 	google.golang.org/api v0.20.0
 	google.golang.org/grpc v1.28.0
 	gopkg.in/yaml.v2 v2.2.8
