@@ -91,17 +91,24 @@ func (e *AwsEC2) getNodeTags(node *api.Node) []*ec2.Tag {
 
 func (e *AwsEC2) getBlockDeviceMapping(image cloud.Image, volSizeGiB int32) []*ec2.BlockDeviceMapping {
 	awsVolSize := aws.Int64(int64(volSizeGiB))
-	devices := []*ec2.BlockDeviceMapping{
-		{
-			DeviceName: aws.String(image.RootDevice),
-			Ebs: &ec2.EbsBlockDevice{
-				Iops:                aws.Int64(image.VolumeIops),
-				Throughput:          aws.Int64(image.VolumeThroughput),
-				VolumeType:          aws.String(image.VolumeType),
-				DeleteOnTermination: aws.Bool(true),
-				VolumeSize:          awsVolSize,
-			}},
+	device := &ec2.BlockDeviceMapping{
+		DeviceName:  aws.String(image.RootDevice),
+		Ebs:         &ec2.EbsBlockDevice{
+			VolumeType:          aws.String(image.VolumeType),
+			DeleteOnTermination: aws.Bool(true),
+			VolumeSize:          awsVolSize,
+		},
 	}
+	if image.VolumeType == "gp3" {
+		// Throughput is valid only for gp3
+		device.Ebs.Throughput = aws.Int64(image.VolumeThroughput)
+	}
+	if image.VolumeType == "gp3" || image.VolumeType == "io1" || image.VolumeType == "io2" {
+		// Iops is supported only for those 3 types
+		device.Ebs.Iops = aws.Int64(image.VolumeIops)
+	}
+	devices := []*ec2.BlockDeviceMapping{device}
+
 	return devices
 }
 
