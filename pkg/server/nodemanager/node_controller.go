@@ -43,7 +43,7 @@ import (
 // non-const timeouts were endorsed by Mitchell Hashimoto
 var (
 	//	BootTimeout         time.Duration = 300 * time.Second
-	BootTimeout         time.Duration = 15 * time.Minute
+	BootTimeout         time.Duration = 20 * time.Minute
 	HealthyTimeout      time.Duration = 90 * time.Second
 	HealthcheckPause    time.Duration = 5 * time.Second
 	SpotRequestPause    time.Duration = 60 * time.Second
