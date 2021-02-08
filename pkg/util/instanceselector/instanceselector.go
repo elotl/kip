@@ -466,7 +466,7 @@ func ResourcesToInstanceType(ps *api.PodSpec) (string, *bool, error) {
 		return selector.defaultInstanceType, nil, nil
 	}
 
-	instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources, globInstanceType(ps.InstanceType))
+	instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources, makeInstanceTypeGlobberFunc(ps.InstanceType))
 	if instanceType == "" {
 		msg := "could not compute instance type from Spec.Resources. It's likely that the Pod.Spec.Resources specify an instance that doesnt exist in the cloud"
 		return "", nil, fmt.Errorf(msg)
@@ -474,7 +474,7 @@ func ResourcesToInstanceType(ps *api.PodSpec) (string, *bool, error) {
 	return instanceType, &needsSustainedCPU, nil
 }
 
-func globInstanceType(instanceType string) func(inst InstanceData) bool {
+func makeInstanceTypeGlobberFunc(instanceType string) func(inst InstanceData) bool {
 	return func(inst InstanceData) bool {
 		if instanceType == "" {
 			return true

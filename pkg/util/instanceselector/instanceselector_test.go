@@ -136,7 +136,7 @@ func runInstanceTypeTests(t *testing.T, testCases []instanceTypeSpec) {
 	for i, tc := range testCases {
 		msg := fmt.Sprintf("Test %d: instanceSpec: %#v, glob: %s",
 			i, tc.Resources, tc.instanceTypeGlob)
-		it, sus := selector.getInstanceFromResources(tc.Resources, globInstanceType(tc.instanceTypeGlob))
+		it, sus := selector.getInstanceFromResources(tc.Resources, makeInstanceTypeGlobberFunc(tc.instanceTypeGlob))
 		assert.Equal(t, tc.instanceType, it, msg)
 		assert.Equal(t, tc.sustainedCPU, sus, msg)
 	}
