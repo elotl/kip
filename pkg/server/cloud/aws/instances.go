@@ -45,10 +45,10 @@ const (
 )
 
 type EbsSpecs struct {
-	Iops       int64
-	Throughput int64
+	Iops       *int64
+	Throughput *int64 // MiB/s, valid only for gp3
 	VolumeType string
-	VolumeSize int32
+	VolumeSize int32 // GiBs
 }
 
 func (e *AwsEC2) StopInstance(instanceID string) error {
@@ -92,8 +92,8 @@ func (e *AwsEC2) getNodeTags(node *api.Node) []*ec2.Tag {
 func (e *AwsEC2) getBlockDeviceMapping(image cloud.Image, volSizeGiB int32) []*ec2.BlockDeviceMapping {
 	awsVolSize := aws.Int64(int64(volSizeGiB))
 	device := &ec2.BlockDeviceMapping{
-		DeviceName:  aws.String(image.RootDevice),
-		Ebs:         &ec2.EbsBlockDevice{
+		DeviceName: aws.String(image.RootDevice),
+		Ebs: &ec2.EbsBlockDevice{
 			VolumeType:          aws.String(image.VolumeType),
 			DeleteOnTermination: aws.Bool(true),
 			VolumeSize:          awsVolSize,
@@ -101,11 +101,11 @@ func (e *AwsEC2) getBlockDeviceMapping(image cloud.Image, volSizeGiB int32) []*e
 	}
 	if image.VolumeType == "gp3" {
 		// Throughput is valid only for gp3
-		device.Ebs.Throughput = aws.Int64(image.VolumeThroughput)
+		device.Ebs.Throughput = image.VolumeThroughput
 	}
 	if image.VolumeType == "gp3" || image.VolumeType == "io1" || image.VolumeType == "io2" {
 		// Iops is supported only for those 3 types
-		device.Ebs.Iops = aws.Int64(image.VolumeIops)
+		device.Ebs.Iops = image.VolumeIops
 	}
 	devices := []*ec2.BlockDeviceMapping{device}
 
@@ -289,9 +289,9 @@ func getRootDeviceVolumeSpecs(blockDevices []*ec2.BlockDeviceMapping, rootDevice
 		if aws.StringValue(blockDevice.DeviceName) == rootDeviceName && blockDevice.Ebs != nil {
 			specs.VolumeSize = int32(aws.Int64Value(blockDevice.Ebs.VolumeSize))
 			specs.VolumeType = aws.StringValue(blockDevice.Ebs.VolumeType)
-			specs.Iops = aws.Int64Value(blockDevice.Ebs.Iops)
+			specs.Iops = blockDevice.Ebs.Iops
 			if specs.VolumeType == "gp3" {
-				specs.Throughput = aws.Int64Value(blockDevice.Ebs.Throughput)
+				specs.Throughput = blockDevice.Ebs.Throughput
 			}
 			break
 		}

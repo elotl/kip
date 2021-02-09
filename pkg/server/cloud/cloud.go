@@ -118,8 +118,8 @@ type Image struct {
 	CreationTime     *time.Time
 	VolumeDiskSize   int32 // in GiB
 	VolumeType       string
-	VolumeIops       int64
-	VolumeThroughput int64
+	VolumeIops       *int64
+	VolumeThroughput *int64
 }
 
 func SortImagesByCreationTime(images []Image) {
