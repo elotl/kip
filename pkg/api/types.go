@@ -302,8 +302,6 @@ type PodSpec struct {
 	// Default to false.
 	// +optional
 	SetHostnameAsFQDN *bool `json:"setHostnameAsFQDN,omitempty"`
-
-	Architecture Architecture `json:"architecture"`
 }
 
 // PreemptionPolicy describes a policy for if/when to preempt a pod.
@@ -1459,8 +1457,6 @@ type Node struct {
 
 // NodeSpec defines the desired behavior of the Node.
 type NodeSpec struct {
-	// CPU architecture
-	Architecture Architecture `json:"architecture"`
 	// Cloud instance type of this Node.
 	InstanceType string `json:"instanceType"`
 	// Cloud image that is used for this instance.

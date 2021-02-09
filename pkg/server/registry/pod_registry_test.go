@@ -138,7 +138,6 @@ func TestCreatePodInstanceFromResources(t *testing.T) {
 	podRegistry, closer := SetupTestPodRegistry()
 	defer closer()
 	p1 := api.GetFakePod()
-	p1.Spec.Architecture = api.ArchX8664
 	p1.Spec.InstanceType = ""
 	p1.Spec.Resources.CPU = "1"
 	p1.Spec.Resources.Memory = "1Gi"

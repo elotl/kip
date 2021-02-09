@@ -92,13 +92,13 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	if s.bootLimiter.IsUnavailableInstance(pod.Spec.InstanceType, isSpotPod) {
 		return nil
 	}
-	image, found := BootImages[pod.Spec.Architecture]
+	var arch = s.getArchitecture(pod.Spec.InstanceType)
+	image, found := BootImages[arch]
 	if !found {
 		klog.Errorf("Error could not find image for instance type: %s", pod.Spec.InstanceType)
 		return nil
 	}
 	node := api.NewNode()
-	node.Spec.Architecture = pod.Spec.Architecture
 	node.Spec.InstanceType = pod.Spec.InstanceType
 	node.Spec.BootImage = image.ID
 	node.Spec.Spot = isSpotPod
@@ -116,15 +116,13 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 }
 
 func (s *BindingNodeScaler) createNodeForStandbySpec(spec *StandbyNodeSpec) *api.Node {
-	var arch api.Architecture
 	var imageID string
 	switch len(BootImages) {
 	case 0:
 		klog.Errorf("Error could not find image for instance type: %s", spec.InstanceType)
 		return nil
 	case 1:
-		for k, v := range BootImages {
-			arch = k
+		for _, v := range BootImages {
 			imageID = v.ID
 		}
 	default:
@@ -134,7 +132,6 @@ func (s *BindingNodeScaler) createNodeForStandbySpec(spec *StandbyNodeSpec) *api
 	}
 
 	node := api.NewNode()
-	node.Spec.Architecture = arch
 	node.Spec.InstanceType = spec.InstanceType
 	node.Spec.BootImage = imageID
 	node.Spec.Spot = spec.Spot

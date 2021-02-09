@@ -69,6 +69,10 @@ func TestSpotMatches(t *testing.T) {
 	}
 }
 
+func getArchitecture(string) api.Architecture {
+	return api.ArchX8664
+}
+
 func TestPodMatchesNode(t *testing.T) {
 	// XXX: BootImages is a global variable. We should certainely find a
 	// a more elegant way to test this.
@@ -77,6 +81,7 @@ func TestPodMatchesNode(t *testing.T) {
 	ns := BindingNodeScaler{
 		bootLimiter:       bootLimiter,
 		defaultVolumeSize: "5G",
+		getArchitecture:   getArchitecture,
 	}
 	pod := api.GetFakePod()
 	node := ns.createNodeForPod(pod)
@@ -97,6 +102,7 @@ func TestCreateNodeForPodUnavailable(t *testing.T) {
 	ns := BindingNodeScaler{
 		bootLimiter:       bootLimiter,
 		defaultVolumeSize: "5G",
+		getArchitecture:   getArchitecture,
 	}
 
 	// if not a spot pod
@@ -128,6 +134,7 @@ func TestCreateNodeForPodVolumeSize(t *testing.T) {
 	ns := BindingNodeScaler{
 		bootLimiter:       bootLimiter,
 		defaultVolumeSize: defaultVolumeSize,
+		getArchitecture:   getArchitecture,
 	}
 
 	pod := api.GetFakePod()
@@ -199,6 +206,7 @@ func makeNodeScaler() (*BindingNodeScaler, func()) {
 		standbyNodes:      []StandbyNodeSpec{},
 		bootLimiter:       NewInstanceBootLimiter(),
 		defaultVolumeSize: "5G",
+		getArchitecture:   getArchitecture,
 	}
 	return ns, closer
 }

@@ -139,6 +139,7 @@ func TestOnDemandScalingNoStandby(t *testing.T) {
 		nodeRegistry: &FakeNodeStatusUpdater{},
 		bootLimiter:  NewInstanceBootLimiter(),
 		standbyNodes: nil,
+		getArchitecture: getArchitecture,
 	}
 	for i, entry := range table {
 		fmt.Println("test entry", i)
@@ -179,6 +180,7 @@ func TestOnDemandScalingWithStandby(t *testing.T) {
 		nodeRegistry: &FakeNodeStatusUpdater{},
 		bootLimiter:  NewInstanceBootLimiter(),
 		standbyNodes: standbyNodes,
+		getArchitecture: getArchitecture,
 	}
 	for i, entry := range table {
 		fmt.Println("test entry", i)
@@ -241,9 +243,10 @@ func TestSpotScaling(t *testing.T) {
 	bootLimiter := NewInstanceBootLimiter()
 	bootLimiter.AddUnavailableInstance(pc1.Spec.InstanceType, true)
 	scaler := &BindingNodeScaler{
-		nodeRegistry: &FakeNodeStatusUpdater{},
-		bootLimiter:  bootLimiter,
-		standbyNodes: nil,
+		nodeRegistry:    &FakeNodeStatusUpdater{},
+		bootLimiter:     bootLimiter,
+		standbyNodes:    nil,
+		getArchitecture: getArchitecture,
 	}
 
 	for i, entry := range table {

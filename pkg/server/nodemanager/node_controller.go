@@ -34,6 +34,7 @@ import (
 	"github.com/elotl/kip/pkg/server/registry"
 	"github.com/elotl/kip/pkg/util"
 	"github.com/elotl/kip/pkg/util/cloudinitfile"
+	"github.com/elotl/kip/pkg/util/instanceselector"
 	"github.com/elotl/kip/pkg/util/stats"
 	"github.com/elotl/kip/pkg/util/timeoutmap"
 	"k8s.io/klog"
@@ -251,7 +252,7 @@ func (c *NodeController) startNodes(nodes []*api.Node, images map[api.Architectu
 			klog.Errorf("Error creating node in registry: %v", err)
 			continue
 		}
-		image, found := images[newNode.Spec.Architecture]
+		image, found := images[instanceselector.GetArchitecture(newNode.Spec.InstanceType)]
 		if !found {
 			klog.Errorf("Error finding image for instance type: %s", newNode.Spec.InstanceType)
 			return

@@ -133,9 +133,10 @@ func MakeNodeController() (*NodeController, func()) {
 		PodReader:     podRegistry,
 		NodeDispenser: NewNodeDispenser(),
 		NodeScaler: &BindingNodeScaler{
-			nodeRegistry: nodeRegistry,
-			standbyNodes: nil,
-			bootLimiter:  bootLimiter,
+			nodeRegistry:    nodeRegistry,
+			standbyNodes:    nil,
+			bootLimiter:     bootLimiter,
+			getArchitecture: func(string) api.Architecture { return api.ArchX8664 },
 		},
 		CloudClient:        cloudClient,
 		NodeClientFactory:  nodeclient.NewMockItzoClientFactory(),

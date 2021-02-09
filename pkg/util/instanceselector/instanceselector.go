@@ -362,9 +362,7 @@ func toInstanceData(data []CustomInstanceData, memoryRequirement, cpuRequirement
 // use that to compute t2.Unlimited cost.
 func (instSel *instanceSelector) getInstanceFromResources(
 	rs api.ResourceSpec, instanceTypeGlob string,
-) (
-	api.Architecture, string, bool,
-) {
+) (string, bool) {
 	memoryRequirement, err := instSel.parseMemorySpec(rs.Memory)
 	if err != nil {
 		klog.Errorf("Error parsing memory spec: %s", err)
@@ -445,8 +443,7 @@ func (instSel *instanceSelector) getInstanceFromResources(
 		}
 	}
 	klog.Infof("chose instance %+v", cheapestInstance)
-	var arch = instSel.architectureSelector(cheapestInstance)
-	return arch, cheapestInstance, cheapestIsSustained
+	return cheapestInstance, cheapestIsSustained
 }
 
 func noResourceSpecified(ps *api.PodSpec) bool {
@@ -479,33 +476,32 @@ func GetArchitecture(instanceType string) api.Architecture {
 	}
 }
 
-func ResourcesToInstanceType(ps *api.PodSpec) (api.Architecture, string, *bool, error) {
+func ResourcesToInstanceType(ps *api.PodSpec) (string, *bool, error) {
 	if ps.Resources.ContainerInstance != nil && *ps.Resources.ContainerInstance {
-		return ps.Architecture, api.ContainerInstanceType, nil, nil
+		return api.ContainerInstanceType, nil, nil
 	}
 	if instanceTypeSpecified(ps.InstanceType) {
 		var sustainedCPU *bool
 		if ps.Resources.SustainedCPU != nil {
 			sustainedCPU = ps.Resources.SustainedCPU
 		}
-		return ps.Architecture, ps.InstanceType, sustainedCPU, nil
+		return ps.InstanceType, sustainedCPU, nil
 	}
 	if selector == nil {
 		msg := "fatal: instanceselector has not been initialized"
 		klog.Errorf(msg)
-		return api.ArchUndefined, "", nil, fmt.Errorf(msg)
+		return "", nil, fmt.Errorf(msg)
 	}
 	if ps.InstanceType == "" && noResourceSpecified(ps) {
-		var arch = selector.architectureSelector(selector.defaultInstanceType)
-		return arch, selector.defaultInstanceType, nil, nil
+		return selector.defaultInstanceType, nil, nil
 	}
 
-	arch, instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources, ps.InstanceType)
+	instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources, ps.InstanceType)
 	if instanceType == "" {
 		msg := "could not compute instance type from Spec.Resources. It's likely that the Pod.Spec.Resources specify an instance that doesnt exist in the cloud"
-		return api.ArchUndefined, "", nil, fmt.Errorf(msg)
+		return "", nil, fmt.Errorf(msg)
 	}
-	return arch, instanceType, &needsSustainedCPU, nil
+	return instanceType, &needsSustainedCPU, nil
 }
 
 func ResourcesToContainerInstance(rs *api.ResourceSpec) (int64, int64, error) {

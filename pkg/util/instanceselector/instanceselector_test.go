@@ -35,30 +35,26 @@ func TestHappy(t *testing.T) {
 	defaultInstanceType := "t2.nano"
 	_ = Setup("aws", "us-east-1", "", defaultInstanceType, "")
 	ps := api.PodSpec{}
-	ps.Architecture = api.ArchX8664
 	ps.Resources.CPU = "1"
 	ps.Resources.Memory = "1Gi"
 	ps.Resources.DedicatedCPU = true
-	arch, inst, sustainedCPU, err := ResourcesToInstanceType(&ps)
+	inst, sustainedCPU, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
-	assert.Equal(t, arch, api.ArchX8664)
 	assert.Equal(t, "m1.small", inst)
 	assert.False(t, *sustainedCPU)
 	ps.Resources = api.ResourceSpec{}
-	arch, inst, sustainedCPU, err = ResourcesToInstanceType(&ps)
+	inst, sustainedCPU, err = ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
 	assert.Equal(t, defaultInstanceType, inst)
-	assert.Equal(t, api.ArchX8664, arch)
 	assert.Nil(t, sustainedCPU)
 }
 
 func TestHappyMac(t *testing.T) {
 	defaultInstanceType := "mac1.metal"
 	_ = Setup("aws", "us-east-1", "", defaultInstanceType, "")
-	var arch, inst, sustainedCPU, err = ResourcesToInstanceType(&api.PodSpec{})
+	var inst, sustainedCPU, err = ResourcesToInstanceType(&api.PodSpec{})
 	assert.NoError(t, err)
 	assert.Equal(t, defaultInstanceType, inst)
-	assert.Equal(t, api.ArchX8664Mac, arch)
 	assert.Nil(t, sustainedCPU)
 }
 
@@ -67,9 +63,8 @@ func TestAWSGPUInstance(t *testing.T) {
 	_ = Setup("aws", "us-east-1", "", defaultInstanceType, "")
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1"
-	arch, inst, _, err := ResourcesToInstanceType(&ps)
+	inst, _, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
-	assert.Equal(t, arch, api.ArchX8664)
 	assert.Equal(t, "g4dn.xlarge", inst)
 }
 
@@ -79,9 +74,8 @@ func TestGCEDefaultGPUInstance(t *testing.T) {
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1"
 	ps.Resources.Memory = "3.75Gi"
-	arch, inst, _, err := ResourcesToInstanceType(&ps)
+	inst, _, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
-	assert.Equal(t, api.ArchX8664, arch)
 	assert.Equal(t, "n1-standard-1", inst)
 }
 
@@ -91,9 +85,8 @@ func TestGCESpecificGPUInstance(t *testing.T) {
 	ps := api.PodSpec{}
 	ps.Resources.GPU = "1 nvidia-tesla-p100"
 	ps.Resources.Memory = "3.75Gi"
-	arch, inst, _, err := ResourcesToInstanceType(&ps)
+	inst, _, err := ResourcesToInstanceType(&ps)
 	assert.NoError(t, err)
-	assert.Equal(t, api.ArchX8664, arch)
 	assert.Equal(t, "n1-standard-1", inst)
 }
 
@@ -102,19 +95,16 @@ func TestHasInstanceType(t *testing.T) {
 	ps := api.PodSpec{}
 	specType := "m4.xlarge"
 	ps.InstanceType = specType
-	ps.Architecture = api.ArchX8664
-	arch, inst, sustainedCPU, err := ResourcesToInstanceType(&ps)
+	inst, sustainedCPU, err := ResourcesToInstanceType(&ps)
 	assert.Nil(t, err)
-	assert.Equal(t, api.ArchX8664, arch)
 	assert.Equal(t, specType, inst)
 	assert.Nil(t, sustainedCPU)
 	specType = "t2.small"
 	ps.InstanceType = specType
 	wantSustainedCPU := true
 	ps.Resources.SustainedCPU = &wantSustainedCPU
-	arch, inst, sustainedCPU, err = ResourcesToInstanceType(&ps)
+	inst, sustainedCPU, err = ResourcesToInstanceType(&ps)
 	assert.Nil(t, err)
-	assert.Equal(t, api.ArchX8664, arch)
 	assert.Equal(t, specType, inst)
 	if sustainedCPU == nil {
 		t.Error("sustainedCPU should be true")
@@ -135,11 +125,11 @@ func TestNoMatch(t *testing.T) {
 	ps := api.PodSpec{}
 	ps.Resources.CPU = "1000"
 	ps.Resources.Memory = "1"
-	_, _, _, err := ResourcesToInstanceType(&ps)
+	_, _, err := ResourcesToInstanceType(&ps)
 	assert.NotNil(t, err)
 	ps.Resources.CPU = "1"
 	ps.Resources.Memory = "100000Gi"
-	_, _, _, err = ResourcesToInstanceType(&ps)
+	_, _, err = ResourcesToInstanceType(&ps)
 	assert.NotNil(t, err)
 }
 
@@ -154,7 +144,7 @@ func runInstanceTypeTests(t *testing.T, testCases []instanceTypeSpec) {
 	for i, tc := range testCases {
 		msg := fmt.Sprintf("Test %d: instanceSpec: %#v, glob: %s",
 			i, tc.Resources, tc.instanceTypeGlob)
-		_, it, sus := selector.getInstanceFromResources(tc.Resources, tc.instanceTypeGlob)
+		it, sus := selector.getInstanceFromResources(tc.Resources, tc.instanceTypeGlob)
 		assert.Equal(t, tc.instanceType, it, msg)
 		assert.Equal(t, tc.sustainedCPU, sus, msg)
 	}
@@ -458,7 +448,7 @@ func TestAzureResourcesToInstanceType(t *testing.T) {
 func TestNoSetup(t *testing.T) {
 	selector = nil
 	ps := api.PodSpec{}
-	_, _, _, err := ResourcesToInstanceType(&ps)
+	_, _, err := ResourcesToInstanceType(&ps)
 	assert.NotNil(t, err)
 }
 
