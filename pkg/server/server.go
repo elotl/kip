@@ -263,7 +263,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 		cloudClient.GetAttributes().Zone,
 		serverConfigFile.Cells.DefaultInstanceType,
 		instanceDataPath,
-		)
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error setting up instance selector %s", err)
 	}
@@ -381,6 +381,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 			nodeRegistry,
 			serverConfigFile.Cells.StandbyCells,
 			bootLimiter,
+			instanceselector.GetArchitecture,
 			serverConfigFile.Cells.DefaultVolumeSize,
 			fixedSizeVolume,
 		),

@@ -471,6 +471,14 @@ func instanceTypeSpecified(instanceType string) bool {
 	return instanceType != "" && !strings.ContainsRune(instanceType, '*')
 }
 
+func GetArchitecture(instanceType string) api.Architecture {
+	if instanceType == "" {
+		return selector.architectureSelector(selector.defaultInstanceType)
+	} else {
+		return selector.architectureSelector(instanceType)
+	}
+}
+
 func ResourcesToInstanceType(ps *api.PodSpec) (api.Architecture, string, *bool, error) {
 	if ps.Resources.ContainerInstance != nil && *ps.Resources.ContainerInstance {
 		return ps.Architecture, api.ContainerInstanceType, nil, nil

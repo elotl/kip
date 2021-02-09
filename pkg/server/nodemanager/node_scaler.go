@@ -34,9 +34,17 @@ type BindingNodeScaler struct {
 	bootLimiter       *InstanceBootLimiter
 	defaultVolumeSize string
 	fixedSizeVolume   bool
+	getArchitecture   func(string) api.Architecture
 }
 
-func NewBindingNodeScaler(nodeReg StatusUpdater, standbyNodes []StandbyNodeSpec, bootLimiter *InstanceBootLimiter, defaultVolumeSize string, fixedSizeVolume bool) *BindingNodeScaler {
+func NewBindingNodeScaler(
+	nodeReg StatusUpdater,
+	standbyNodes []StandbyNodeSpec,
+	bootLimiter *InstanceBootLimiter,
+	getArchitectureCallback func(string) api.Architecture,
+	defaultVolumeSize string,
+	fixedSizeVolume bool,
+) *BindingNodeScaler {
 	return &BindingNodeScaler{
 		nodeRegistry:      nodeReg,
 		standbyNodes:      standbyNodes,
