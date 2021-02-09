@@ -314,6 +314,7 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 			klog.Errorf(
 				"Unknown architecture: %v, assuming x86_64",
 				aws.StringValue(img.Architecture))
+			arch = api.ArchX8664
 		}
 
 		images[i] = cloud.Image{
