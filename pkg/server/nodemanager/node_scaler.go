@@ -51,6 +51,7 @@ func NewBindingNodeScaler(
 		bootLimiter:       bootLimiter,
 		defaultVolumeSize: defaultVolumeSize,
 		fixedSizeVolume:   fixedSizeVolume,
+		getArchitecture:   getArchitectureCallback,
 	}
 }
 
