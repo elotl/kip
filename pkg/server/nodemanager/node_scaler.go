@@ -65,11 +65,17 @@ func (s *BindingNodeScaler) spotMatches(pod *api.Pod, node *api.Node) bool {
 	return false
 }
 
+// We test to ensure that the pod.Spec and node.Spec both denote the same value
+func (s *BindingNodeScaler) dedicatedMatches(pod *api.Pod, node *api.Node) bool {
+	return node.Spec.Dedicated == pod.Spec.Dedicated
+}
+
 func (s *BindingNodeScaler) podMatchesNode(pod *api.Pod, node *api.Node) bool {
 	return (node.Spec.InstanceType == pod.Spec.InstanceType &&
 		node.Spec.Resources.PrivateIPOnly == pod.Spec.Resources.PrivateIPOnly &&
 		node.Spec.Resources.GPU == pod.Spec.Resources.GPU &&
 		s.spotMatches(pod, node) &&
+		s.dedicatedMatches(pod, node) &&
 		s.diskMatches(pod, node))
 }
 
@@ -89,6 +95,7 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	if pod.Spec.Spot.Policy == api.SpotAlways {
 		isSpotPod = true
 	}
+
 	if s.bootLimiter.IsUnavailableInstance(pod.Spec.InstanceType, isSpotPod) {
 		return nil
 	}
@@ -102,11 +109,13 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 	node.Spec.InstanceType = pod.Spec.InstanceType
 	node.Spec.BootImage = image.ID
 	node.Spec.Spot = isSpotPod
+	node.Spec.Dedicated = pod.Spec.Dedicated
 	node.Spec.Resources = pod.Spec.Resources
 	// If we can resize, keep things simple and never enlarge the disk
 	// until dispatch (just launch with the default size), otherwise,
 	// if we have a fixed size disk of non-default size, size the disk
 	// here and also take care of matching disk sizes
+
 	node.Spec.Resources.VolumeSize = s.defaultVolumeSize
 	if s.fixedSizeVolume && pod.Spec.Resources.VolumeSize != "" {
 		node.Spec.Resources.VolumeSize = pod.Spec.Resources.VolumeSize
@@ -135,12 +144,14 @@ func (s *BindingNodeScaler) createNodeForStandbySpec(spec *StandbyNodeSpec) *api
 	node.Spec.InstanceType = spec.InstanceType
 	node.Spec.BootImage = imageID
 	node.Spec.Spot = spec.Spot
+	node.Spec.Dedicated = spec.Dedicated
 	node.Spec.Resources.VolumeSize = s.defaultVolumeSize
 	return node
 }
 
 func (s *BindingNodeScaler) nodeMatchesStandbySpec(node *api.Node, spec *StandbyNodeSpec) bool {
 	return node.Spec.Spot == spec.Spot &&
+		node.Spec.Dedicated == spec.Dedicated &&
 		node.Spec.InstanceType == spec.InstanceType &&
 		node.Spec.Resources.VolumeSize == s.defaultVolumeSize
 }

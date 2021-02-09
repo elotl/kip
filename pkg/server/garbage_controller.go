@@ -39,8 +39,10 @@ func init() {
 }
 
 type GarbageControllerConfig struct {
-	CleanTerminatedInterval time.Duration
-	CleanInstancesInterval  time.Duration
+	CleanTerminatedInterval     time.Duration
+	CleanInstancesInterval      time.Duration
+	CleanResourceGroupsInterval time.Duration
+	CleanDedicatedHostsInterval time.Duration
 }
 
 type GarbageController struct {
@@ -73,10 +75,12 @@ func (c *GarbageController) GCLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 	cleanTermiantedTicker := time.NewTicker(c.config.CleanTerminatedInterval)
 	instancesTicker := time.NewTicker(c.config.CleanInstancesInterval)
-	cleanResourceGroupsTicker := time.NewTicker(3 * time.Minute)
+	cleanResourceGroupsTicker := time.NewTicker(c.config.CleanResourceGroupsInterval)
+	cleanDedicatedHostsTicker := time.NewTicker(c.config.CleanDedicatedHostsInterval)
 	defer cleanTermiantedTicker.Stop()
 	defer instancesTicker.Stop()
 	defer cleanResourceGroupsTicker.Stop()
+	defer cleanDedicatedHostsTicker.Stop()
 	for {
 		// The garbage controller takes a while to stop if we
 		// are timing out talking to etcd, lets give quit priority
@@ -96,6 +100,8 @@ func (c *GarbageController) GCLoop(quit <-chan struct{}, wg *sync.WaitGroup) {
 			c.CleanTerminatedNodes()
 		case <-cleanResourceGroupsTicker.C:
 			c.CleanAzureResourceGroups()
+		case <-cleanDedicatedHostsTicker.C:
+			c.CleanDedicatedHosts()
 		case <-quit:
 			klog.V(2).Info("Stopping GarbageController")
 			return
@@ -170,6 +176,14 @@ func (c *GarbageController) CleanInstances() {
 		}
 	}
 	lastUnknownInstances = unknownInstances
+}
+
+func (c *GarbageController) CleanDedicatedHosts() {
+	err := c.cloudClient.ReleaseDedicatedHosts()
+	if err != nil {
+		klog.Errorf("Error releasing dedicated hosts: %s", err.Error())
+		return
+	}
 }
 
 func (c *GarbageController) CleanAzureResourceGroups() {

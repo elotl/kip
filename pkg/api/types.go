@@ -17,10 +17,10 @@ limitations under the License.
 package api
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
 
 	uuid "github.com/satori/go.uuid"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -131,6 +131,9 @@ type PodSpec struct {
 	// PodSpot is the policy that determines if a spot instance may be used for
 	// a Pod.
 	Spot PodSpot `json:"spot,omitempty"`
+	// Dedicated is a policy that determines if a dedicated host instance may
+	// be used for a pod
+	Dedicated bool `json:"dedicated,omitempty"`
 	// Resource requirements for the Node that will run this Pod. If both
 	// instanceType and resources are specified, instanceType will take
 	// precedence.
@@ -1465,6 +1468,8 @@ type NodeSpec struct {
 	Terminate bool `json:"terminate,omitempty"`
 	// This is a spot cloud instance.
 	Spot bool `json:"spot"`
+	// This is a dedicated cloud instance
+	Dedicated bool `json:"dedicated"`
 	// Resource requirements necessary for booting this Node. If both
 	// instanceType and memory and cpu resources are specified,
 	// instanceType will take precedence.  If the cloud provider

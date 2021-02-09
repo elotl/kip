@@ -107,6 +107,7 @@ func MakeNodeController() (*NodeController, func()) {
 	cloudClient := &cloud.MockCloudClient{
 		Starter:                  StartReturnsOK,
 		SpotStarter:              StartReturnsOK,
+		DedicatedStarter:         StartReturnsOK,
 		Stopper:                  ReturnNil,
 		Waiter:                   ReturnAddresses,
 		RouteRemover:             StringStringReturnNil,

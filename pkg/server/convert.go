@@ -632,12 +632,25 @@ func k8sToMilpaPod(pod *v1.Pod) (*api.Pod, error) {
 
 func addAnnotationsToMilpaPod(milpaPod *api.Pod) {
 	a := milpaPod.Annotations[annotations.PodLaunchType]
-	if strings.ToLower(a) == "spot" {
+	aLower := strings.ToLower(a)
+	if aLower == "spot" {
 		milpaPod.Spec.Spot.Policy = api.SpotAlways
 	}
+	if aLower == "dedicated" {
+		milpaPod.Spec.Dedicated = true
+	}
 	a = milpaPod.Annotations[annotations.PodInstanceType]
-	if strings.ToLower(a) != "" {
+	aLower = strings.ToLower(a)
+	if aLower != "" {
 		milpaPod.Spec.InstanceType = a
+	}
+	if strings.HasPrefix(aLower, "mac1") {
+		if milpaPod.Spec.Spot.Policy == api.SpotAlways {
+			klog.Warningf(
+				"%s instance types are only availabe on dedicated hosts", a)
+			milpaPod.Spec.Spot.Policy = api.SpotNever
+		}
+		milpaPod.Spec.Dedicated = true
 	}
 	a = milpaPod.Annotations[annotations.PodResourcesPrivateIPOnly]
 	if a != "" {

@@ -43,7 +43,8 @@ import (
 // Making these vars makes it easier testing
 // non-const timeouts were endorsed by Mitchell Hashimoto
 var (
-	BootTimeout         time.Duration = 300 * time.Second
+	//	BootTimeout         time.Duration = 300 * time.Second
+	BootTimeout         time.Duration = 15 * time.Minute
 	HealthyTimeout      time.Duration = 90 * time.Second
 	HealthcheckPause    time.Duration = 5 * time.Second
 	SpotRequestPause    time.Duration = 60 * time.Second
@@ -280,6 +281,8 @@ func (c *NodeController) startSingleNode(node *api.Node, image cloud.Image, clou
 	)
 	if node.Spec.Spot {
 		instanceID, err = c.CloudClient.StartSpotNode(node, image, cloudInitData, c.Config.DefaultIAMPermissions)
+	} else if node.Spec.Dedicated {
+		instanceID, err = c.CloudClient.StartDedicatedNode(node, image, cloudInitData, c.Config.DefaultIAMPermissions)
 	} else {
 		instanceID, err = c.CloudClient.StartNode(node, image, cloudInitData, c.Config.DefaultIAMPermissions)
 	}

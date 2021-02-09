@@ -55,9 +55,13 @@ get_pending_and_running_instance_ids_by_vpc_id() {
 instance_ids=$(get_pending_and_running_instance_ids_by_vpc_id "$VPC_ID")
 while [[ -n "$instance_ids" ]]
 do
-    echo "Terminating instances: $instance_ids"
-    aws ec2 terminate-instances --instance-ids "$instance_ids"
-    aws ec2 wait instance-terminated --instance-ids "$instance_ids"
+    for instance_id in $instance_ids
+    do
+        echo "Terminating instance: $instance_id"
+        aws ec2 terminate-instances --instance-ids "$instance_id"
+        aws ec2 wait instance-terminated --instance-ids "$instance_id"
+        echo "Instance $instance_id terminated"
+    done
 
     # Update the list to ensure nothing else came up in the VPC that would
     # block the destruction of the security group.
