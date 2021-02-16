@@ -112,12 +112,14 @@ type SubnetAttributes struct {
 }
 
 type Image struct {
-	ID             string
-	Name           string
-	RootDevice     string
-	CreationTime   *time.Time
-	VolumeDiskSize int32 // in GiB
-	VolumeType 	   string
+	ID               string
+	Name             string
+	RootDevice       string
+	CreationTime     *time.Time
+	VolumeDiskSize   int32 // in GiB
+	VolumeType       string
+	VolumeIops       *int64
+	VolumeThroughput *int64
 }
 
 func SortImagesByCreationTime(images []Image) {

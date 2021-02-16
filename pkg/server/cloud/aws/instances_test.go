@@ -68,7 +68,7 @@ func TestBootImageSpecToDescribeImagesInput(t *testing.T) {
 	}
 }
 
-func TestGetRootDeviceVolumeSize(t *testing.T) {
+func TestGetRootDeviceVolumeSpecs(t *testing.T) {
 	notRootDeviceName := "not-root"
 	rootDeviceName := "root-device"
 	var volumeSize int64 = 100
@@ -78,47 +78,136 @@ func TestGetRootDeviceVolumeSize(t *testing.T) {
 		blockDevices         []*ec2.BlockDeviceMapping
 		rootDeviceName       string
 		expectedRootDiskSize int32
+		expectedVolumeType   string
+		expectedIops         *int64
+		expectedThroughput   *int64
 	}{
 		{
-			"root-device-found",
-			[]*ec2.BlockDeviceMapping{
-				&ec2.BlockDeviceMapping{
+			caseName: "root-device-found",
+			blockDevices: []*ec2.BlockDeviceMapping{
+				{
 					DeviceName: &notRootDeviceName,
 				},
-				&ec2.BlockDeviceMapping{
+				{
 					DeviceName: &rootDeviceName,
 					Ebs: &ec2.EbsBlockDevice{
 						VolumeSize: &volumeSize,
+						VolumeType: aws.String("gp3"),
+						Iops:       &volumeSize,
+						Throughput: &volumeSize,
 					},
 				},
 			},
-			rootDeviceName,
-			expectedVolumeSize,
+			rootDeviceName:       rootDeviceName,
+			expectedRootDiskSize: expectedVolumeSize,
+			expectedVolumeType:   "gp3",
+			expectedIops:         aws.Int64(volumeSize),
+			expectedThroughput:   aws.Int64(volumeSize),
+
 		},
 		{
-			"empty-volume-list",
-			[]*ec2.BlockDeviceMapping{},
-			rootDeviceName,
-			0,
+			caseName: "gp3-no-throughput-set",
+			blockDevices: []*ec2.BlockDeviceMapping{
+				{
+					DeviceName: &notRootDeviceName,
+				},
+				{
+					DeviceName: &rootDeviceName,
+					Ebs: &ec2.EbsBlockDevice{
+						VolumeSize: &volumeSize,
+						VolumeType: aws.String("gp3"),
+						Iops:       &volumeSize,
+					},
+				},
+			},
+			rootDeviceName:       rootDeviceName,
+			expectedRootDiskSize: expectedVolumeSize,
+			expectedVolumeType:   "gp3",
+			expectedIops:         aws.Int64(volumeSize),
+			expectedThroughput:   nil,
+
 		},
 		{
-			"root-device-not-found",
-			[]*ec2.BlockDeviceMapping{
-				&ec2.BlockDeviceMapping{
+			caseName: "gp3-no-iops-set",
+			blockDevices: []*ec2.BlockDeviceMapping{
+				{
+					DeviceName: &notRootDeviceName,
+				},
+				{
+					DeviceName: &rootDeviceName,
+					Ebs: &ec2.EbsBlockDevice{
+						VolumeSize: &volumeSize,
+						VolumeType: aws.String("gp3"),
+						Throughput: &volumeSize,
+					},
+				},
+			},
+			rootDeviceName:       rootDeviceName,
+			expectedRootDiskSize: expectedVolumeSize,
+			expectedVolumeType:   "gp3",
+			expectedIops:         nil,
+			expectedThroughput:   aws.Int64(volumeSize),
+
+		},
+		{
+			caseName:       "empty-volume-list",
+			blockDevices:   []*ec2.BlockDeviceMapping{},
+			rootDeviceName: rootDeviceName,
+			expectedVolumeType: "gp2",
+		},
+		{
+			caseName: "root-device-not-found",
+			blockDevices: []*ec2.BlockDeviceMapping{
+				{
 					DeviceName: &notRootDeviceName,
 					Ebs: &ec2.EbsBlockDevice{
 						VolumeSize: &volumeSize,
 					},
 				},
 			},
-			rootDeviceName,
-			0,
+			rootDeviceName: rootDeviceName,
+			expectedVolumeType: "gp2",
+		},
+		{
+			caseName: "root-device-io1",
+			blockDevices: []*ec2.BlockDeviceMapping{
+				{
+					DeviceName: &rootDeviceName,
+					Ebs: &ec2.EbsBlockDevice{
+						VolumeSize: &volumeSize,
+						VolumeType: aws.String("io1"),
+						Iops: aws.Int64(25000),
+					},
+				},
+			},
+			rootDeviceName: rootDeviceName,
+			expectedRootDiskSize: expectedVolumeSize,
+			expectedVolumeType: "io1",
+			expectedIops: aws.Int64(25000),
+		},
+		{
+			caseName: "root-device-io2",
+			blockDevices: []*ec2.BlockDeviceMapping{
+				{
+					DeviceName: &rootDeviceName,
+					Ebs: &ec2.EbsBlockDevice{
+						VolumeSize: &volumeSize,
+						VolumeType: aws.String("io2"),
+					},
+				},
+			},
+			rootDeviceName: rootDeviceName,
+			expectedRootDiskSize: expectedVolumeSize,
+			expectedVolumeType: "io2",
 		},
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.caseName, func(t *testing.T) {
-			rootDiskSize, _ := getRootDeviceVolumeSizeAndType(testCase.blockDevices, testCase.rootDeviceName)
-			assert.Equal(t, testCase.expectedRootDiskSize, rootDiskSize)
+			rootDisk := getRootDeviceVolumeSpecs(testCase.blockDevices, testCase.rootDeviceName)
+			assert.Equal(t, testCase.expectedRootDiskSize, rootDisk.VolumeSize)
+			assert.Equal(t, testCase.expectedVolumeType, rootDisk.VolumeType)
+			assert.Equal(t, aws.Int64Value(testCase.expectedThroughput), aws.Int64Value(rootDisk.Throughput))
+			assert.Equal(t, aws.Int64Value(testCase.expectedIops), aws.Int64Value(rootDisk.Iops))
 		})
 	}
 }
