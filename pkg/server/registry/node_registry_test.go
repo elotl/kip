@@ -110,6 +110,28 @@ func TestListNodes(t *testing.T) {
 	}
 }
 
+func TestUpdateNode(t *testing.T) {
+	// GIVEN
+	nodeRegistry, closer := SetupTestNodeRegistry()
+	defer closer()
+	n1 := api.GetFakeNode()
+	n1.Spec.InstanceType = "t3.nano"
+	_, err := nodeRegistry.CreateNode(n1)
+	assert.NoError(t, err)
+	n, err := nodeRegistry.GetNode(n1.Name)
+	assert.NoError(t, err)
+	assert.Equal(t, "t3.nano", n.Spec.InstanceType)
+
+	// WHEN
+	n.Spec.InstanceType = "t3.micro"
+	n2, err := nodeRegistry.UpdateNode(n)
+
+	// THEN
+	assert.NoError(t, err)
+	assert.NotNil(t, n2)
+	assert.Equal(t, "t3.micro", n2.Spec.InstanceType)
+}
+
 // func TestPurgeNode(t *testing.T) {
 // 	nodeRegistry, closer := SetupTestNodeRegistry()
 // 	defer closer()

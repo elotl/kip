@@ -266,7 +266,7 @@ func (c *NodeController) handleStartNodeError(node *api.Node, err error, isSpot 
 		e := err.(*cloud.InsufficientCapacityError)
 		c.BootLimiter.AddUnavailableInstance(e.InstanceType, isSpot)
 		// node has already new instance type chosen, persist it in registry
-		c.NodeRegistry.CreateNode(node)
+		c.NodeRegistry.UpdateNode(node)
 	}
 }
 
@@ -284,7 +284,7 @@ func (c *NodeController) startSingleNode(node *api.Node, image cloud.Image, clou
 	}
 	if err != nil && strings.Contains(err.Error(), "InsufficientInstanceCapacity") {
 		// detect availability zone has no capacity: InsufficientInstanceCapacity
-		// and try to find matching instance other than the one with no capacity in region,
+		// and try to find matching instance other than the one with no capacity in AZ,
 		// then, assign the new instance type to node, control loop will try again in next iteration
 		instanceType, _ := instanceselector.GetInstanceFromResources(node.Spec.Resources, func(inst instanceselector.InstanceData) bool {
 			// node.Spec.InstanceType will be added as unavailable type to BootLimiter in c.handleStartNodeError
