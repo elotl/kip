@@ -17,6 +17,7 @@ limitations under the License.
 package aws
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -32,13 +33,23 @@ import (
 )
 
 const (
-	awsInstanceProduct    = "Linux/UNIX"
-	resizeTimeout         = 60 * time.Second
-	maxUserInstanceTags   = 45
-	awsCreationDateFormat = "2006-01-02T15:04:05.000Z"
-	elotlOwnerID          = "689494258501"
-	elotlImageNameFilter  = "elotl-kip-*"
+	awsInstanceProduct        = "Linux/UNIX"
+	resizeTimeout             = 60 * time.Second
+	maxUserInstanceTags       = 45
+	awsCreationDateFormat     = "2006-01-02T15:04:05.000Z"
+	elotlOwnerID              = "689494258501"
+	elotlImageNameFilter      = "elotl-kip-*"
+	BootTimeout               = 10 * time.Minute
+	AwsInstanceAvailableState = "available"
+	AvailableWaitTimeout      = 30 * time.Second
 )
+
+type EbsSpecs struct {
+	Iops       *int64
+	Throughput *int64 // MiB/s, valid only for gp3
+	VolumeType string
+	VolumeSize int32 // GiBs
+}
 
 func (e *AwsEC2) StopInstance(instanceID string) error {
 	awsInstanceIDs := []*string{aws.String(instanceID)}
@@ -80,15 +91,24 @@ func (e *AwsEC2) getNodeTags(node *api.Node) []*ec2.Tag {
 
 func (e *AwsEC2) getBlockDeviceMapping(image cloud.Image, volSizeGiB int32) []*ec2.BlockDeviceMapping {
 	awsVolSize := aws.Int64(int64(volSizeGiB))
-	devices := []*ec2.BlockDeviceMapping{
-		&ec2.BlockDeviceMapping{
-			DeviceName: aws.String(image.RootDevice),
-			Ebs: &ec2.EbsBlockDevice{
-				VolumeType:          aws.String("gp2"),
-				DeleteOnTermination: aws.Bool(true),
-				VolumeSize:          awsVolSize,
-			}},
+	device := &ec2.BlockDeviceMapping{
+		DeviceName: aws.String(image.RootDevice),
+		Ebs: &ec2.EbsBlockDevice{
+			VolumeType:          aws.String(image.VolumeType),
+			DeleteOnTermination: aws.Bool(true),
+			VolumeSize:          awsVolSize,
+		},
 	}
+	if image.VolumeType == "gp3" {
+		// Throughput is valid only for gp3
+		device.Ebs.Throughput = image.VolumeThroughput
+	}
+	if image.VolumeType == "gp3" || image.VolumeType == "io1" || image.VolumeType == "io2" {
+		// Iops is supported only for those 3 types
+		device.Ebs.Iops = image.VolumeIops
+	}
+	devices := []*ec2.BlockDeviceMapping{device}
+
 	return devices
 }
 
@@ -263,15 +283,20 @@ func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeI
 	return input
 }
 
-func getRootDeviceVolumeSize(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) int32 {
-	var rootDiskSize int32
+func getRootDeviceVolumeSpecs(blockDevices []*ec2.BlockDeviceMapping, rootDeviceName string) EbsSpecs {
+	specs := EbsSpecs{VolumeType: "gp2"}
 	for _, blockDevice := range blockDevices {
 		if aws.StringValue(blockDevice.DeviceName) == rootDeviceName && blockDevice.Ebs != nil {
-			rootDiskSize = int32(aws.Int64Value(blockDevice.Ebs.VolumeSize))
+			specs.VolumeSize = int32(aws.Int64Value(blockDevice.Ebs.VolumeSize))
+			specs.VolumeType = aws.StringValue(blockDevice.Ebs.VolumeType)
+			specs.Iops = blockDevice.Ebs.Iops
+			if specs.VolumeType == "gp3" {
+				specs.Throughput = blockDevice.Ebs.Throughput
+			}
 			break
 		}
 	}
-	return rootDiskSize
+	return specs
 }
 
 func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
@@ -302,13 +327,16 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 		if rootDeviceName == "" {
 			klog.Warningf("cannot get root device name from image: %v", img.Name)
 		}
-		rootDiskSize := getRootDeviceVolumeSize(img.BlockDeviceMappings, rootDeviceName)
+		rootDeviceSpecs := getRootDeviceVolumeSpecs(img.BlockDeviceMappings, rootDeviceName)
 		images[i] = cloud.Image{
-			Name:           aws.StringValue(img.Name),
-			RootDevice:     aws.StringValue(img.RootDeviceName),
-			ID:             aws.StringValue(img.ImageId),
-			CreationTime:   creationTime,
-			VolumeDiskSize: rootDiskSize,
+			Name:             aws.StringValue(img.Name),
+			RootDevice:       aws.StringValue(img.RootDeviceName),
+			ID:               aws.StringValue(img.ImageId),
+			CreationTime:     creationTime,
+			VolumeDiskSize:   rootDeviceSpecs.VolumeSize,
+			VolumeIops:       rootDeviceSpecs.Iops,
+			VolumeThroughput: rootDeviceSpecs.Throughput,
+			VolumeType:       rootDeviceSpecs.VolumeType,
 		}
 	}
 	cloud.SortImagesByCreationTime(images)
@@ -395,7 +423,7 @@ func (e *AwsEC2) listAvailableDedicatedHosts() ([]*ec2.Host, error) {
 		Filter: []*ec2.Filter{
 			{
 				Name:   aws.String("state"),
-				Values: []*string{aws.String("available")},
+				Values: []*string{aws.String(AwsInstanceAvailableState)},
 			},
 		},
 	})
@@ -410,7 +438,7 @@ func (e *AwsEC2) retrieveOrAllocateHost(node *api.Node) (*string, error) {
 		Filter: []*ec2.Filter{
 			{
 				Name:   aws.String("state"),
-				Values: aws.StringSlice([]string{"available"}),
+				Values: aws.StringSlice([]string{AwsInstanceAvailableState}),
 			}, {
 				Name:   aws.String("instance-type"),
 				Values: aws.StringSlice([]string{node.Spec.InstanceType}),
@@ -423,9 +451,16 @@ func (e *AwsEC2) retrieveOrAllocateHost(node *api.Node) (*string, error) {
 	if err != nil {
 		return nil, err
 	}
-	// if there is a host available to accept a new tentant return the host id
+
+	// if there is a host available check if it has capacity
 	if len(describeOutput.Hosts) > 0 {
-		return describeOutput.Hosts[0].HostId, nil
+		// check if host has enough capacity to run instance
+		for _, host := range describeOutput.Hosts {
+			if aws.Int64Value(host.AvailableCapacity.AvailableVCpus) > 0 {
+				// should we check resource requirements here?
+				return host.HostId, nil
+			}
+		}
 	}
 	// if no host has availability we will allocate a new host to the account
 	// and return the id of the newly allocated host
@@ -439,6 +474,39 @@ func (e *AwsEC2) retrieveOrAllocateHost(node *api.Node) (*string, error) {
 		return nil, err
 	}
 	return allocateOutput.HostIds[0], nil
+}
+
+func (e *AwsEC2) isHostAvailable(hostId *string) bool {
+	describeOutput, err := e.client.DescribeHosts(&ec2.DescribeHostsInput{
+		HostIds: aws.StringSlice([]string{aws.StringValue(hostId)}),
+	})
+	if err != nil {
+		klog.Errorf("cannot describe host %s: %v", *hostId, err)
+		return false
+	}
+	if len(describeOutput.Hosts) != 1 {
+		klog.Errorf("no such host: %s", aws.StringValue(hostId))
+		return false
+	}
+	host := describeOutput.Hosts[0]
+	return aws.StringValue(host.State) == AwsInstanceAvailableState
+}
+
+func (e *AwsEC2) waitForHostAvailable(ctx context.Context, hostId *string) bool {
+	hostAvailable := false
+	ticker := time.NewTicker(1 * time.Second)
+	for {
+		select {
+		case <-ctx.Done():
+			return hostAvailable
+		case <-ticker.C:
+			hostAvailable = e.isHostAvailable(hostId)
+			if hostAvailable {
+				return hostAvailable
+			}
+			klog.V(2).Infof("host %s not available yet", *hostId)
+		}
+	}
 }
 
 func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
@@ -455,6 +523,13 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
 	devices := e.getBlockDeviceMapping(image, volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
+	ctx, cancel := context.WithTimeout(context.Background(), AvailableWaitTimeout)
+	hostAvailable := e.waitForHostAvailable(ctx, hostId)
+	cancel()
+	if !hostAvailable {
+		return "", util.WrapError(err, "Could not run instance: host %s not available", *hostId)
+	}
+
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)
 	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
@@ -472,6 +547,7 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 			Tenancy: aws.String("host"),
 		},
 	})
+
 	if err != nil {
 		if isSubnetConstrainedError(err) {
 			return "", &cloud.NoCapacityError{
@@ -572,7 +648,7 @@ func (e *AwsEC2) WaitForRunning(node *api.Node) ([]api.NetworkAddress, error) {
 	// get its instanceID back from RunInstances, the rest of AWS
 	// might not know about that instanceID yet.
 	err := util.Retry(
-		30*time.Second,
+		BootTimeout,
 		func() error {
 			waitErr := e.client.WaitUntilInstanceRunning(dii)
 			return waitErr

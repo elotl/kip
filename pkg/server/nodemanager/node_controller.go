@@ -44,14 +44,15 @@ import (
 // Making these vars makes it easier testing
 // non-const timeouts were endorsed by Mitchell Hashimoto
 var (
-	//	BootTimeout         time.Duration = 300 * time.Second
-	BootTimeout          time.Duration = 15 * time.Minute
-	HealthyTimeout       time.Duration = 90 * time.Second
-	HealthcheckPause     time.Duration = 5 * time.Second
-	SpotRequestPause     time.Duration = 60 * time.Second
-	BootImage            cloud.Image   = cloud.Image{}
-	MaxBootPerIteration  int           = 10
-	itzoDir              string        = "/tmp/itzo"
+	// TODO: this was changed to handle mac1.metal boot, ideally we should have different
+	// bootTimeouts depending on instance family
+	BootTimeout         time.Duration = 20 * time.Minute
+	HealthyTimeout      time.Duration = 90 * time.Second
+	HealthcheckPause    time.Duration = 5 * time.Second
+	SpotRequestPause    time.Duration = 60 * time.Second
+	BootImage           cloud.Image   = cloud.Image{}
+	MaxBootPerIteration int           = 10
+	itzoDir             string        = "/tmp/itzo"
 )
 
 // when configuring these intervals we want the following constraints
