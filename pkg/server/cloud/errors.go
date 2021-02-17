@@ -43,3 +43,12 @@ type UnsupportedInstanceError struct {
 func (e *UnsupportedInstanceError) Error() string {
 	return fmt.Sprintf("Unsupported spot instance type: %s", e.OriginalError)
 }
+
+type InsufficientCapacityError struct {
+	InstanceType  string
+	OriginalError string
+}
+
+func (e *InsufficientCapacityError) Error() string {
+	return fmt.Sprintf("Insufficient capacity of %s instances, err: %s", e.InstanceType, e.OriginalError)
+}

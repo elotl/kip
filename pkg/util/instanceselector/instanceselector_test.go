@@ -136,7 +136,7 @@ func runInstanceTypeTests(t *testing.T, testCases []instanceTypeSpec) {
 	for i, tc := range testCases {
 		msg := fmt.Sprintf("Test %d: instanceSpec: %#v, glob: %s",
 			i, tc.Resources, tc.instanceTypeGlob)
-		it, sus := selector.getInstanceFromResources(tc.Resources, tc.instanceTypeGlob)
+		it, sus := selector.getInstanceFromResources(tc.Resources, makeInstanceTypeGlobberFunc(tc.instanceTypeGlob))
 		assert.Equal(t, tc.instanceType, it, msg)
 		assert.Equal(t, tc.sustainedCPU, sus, msg)
 	}
@@ -464,4 +464,18 @@ func TestGetSelectorData(t *testing.T)  {
 	// happy path: loading from local file failed, but fallback to local variable worked
 	_, err = getSelectorData(awsInstanceJson, "af-south-1", invalidPath)
 	assert.NoError(t, err)
+}
+
+func TestGetInstanceFromResourcesBackPressure(t *testing.T) {
+	_ = Setup("aws", "us-east-1", "", "t2.nano", "")
+	rs := api.ResourceSpec{Memory: "2.0Gi", CPU: "1.0"}
+	initialInstanceType, _ := GetInstanceFromResources(rs, func(inst InstanceData) bool {
+		return true
+	})
+	assert.Equal(t, initialInstanceType, "t3a.small")
+	anotherInstanceType, _ := GetInstanceFromResources(rs, func(inst InstanceData) bool {
+		return inst.InstanceType != initialInstanceType
+	})
+	assert.Equal(t, anotherInstanceType, "t3.small")
+	assert.NotEqual(t, initialInstanceType, anotherInstanceType)
 }

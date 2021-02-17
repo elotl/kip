@@ -82,8 +82,8 @@ func Setup(cloud, region, zone, defaultInstanceType, instanceDataPath string) er
 			return err
 		}
 		selector = &instanceSelector{
-			defaultInstanceType:  defaultInstanceType,
-			instanceData:         data,
+			defaultInstanceType: defaultInstanceType,
+			instanceData:        data,
 			unsupportedInstances: sets.NewString([]string{
 				"t1", // TODO: should we support previous generation families?
 				// "c5",
@@ -344,7 +344,7 @@ func toInstanceData(data []CustomInstanceData, memoryRequirement, cpuRequirement
 // the t2.Unlimited option from AWS. For T2 instances, we try to
 // figure out what percentage of a CPU a user will likely use and
 // use that to compute t2.Unlimited cost.
-func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, instanceTypeGlob string) (string, bool) {
+func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, additionalFilter func(inst InstanceData) bool) (string, bool) {
 	memoryRequirement, err := instSel.parseMemorySpec(rs.Memory)
 	if err != nil {
 		klog.Errorf("Error parsing memory spec: %s", err)
@@ -369,13 +369,9 @@ func (instSel *instanceSelector) getInstanceFromResources(rs api.ResourceSpec, i
 
 	matches = append(matches, toInstanceData(instSel.customInstanceData, memoryRequirement, cpuRequirements)...)
 
-	// Match instance type wildcard e.g. `instance-type: c5*`
-	matches = filterInstanceData(matches, func(inst InstanceData) bool {
-		if instanceTypeGlob == "" {
-			return true
-		}
-		return glob.Glob(instanceTypeGlob, inst.InstanceType)
-	})
+	// This allows you to match instance family (e.g. c*), exclude some instances and basically
+	// do any additional filtering that is needed
+	matches = filterInstanceData(matches, additionalFilter)
 
 	// GPU
 	matches = filterInstanceData(matches, func(inst InstanceData) bool {
@@ -470,7 +466,7 @@ func ResourcesToInstanceType(ps *api.PodSpec) (string, *bool, error) {
 		return selector.defaultInstanceType, nil, nil
 	}
 
-	instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources, ps.InstanceType)
+	instanceType, needsSustainedCPU := selector.getInstanceFromResources(ps.Resources, makeInstanceTypeGlobberFunc(ps.InstanceType))
 	if instanceType == "" {
 		msg := "could not compute instance type from Spec.Resources. It's likely that the Pod.Spec.Resources specify an instance that doesnt exist in the cloud"
 		return "", nil, fmt.Errorf(msg)
@@ -478,6 +474,19 @@ func ResourcesToInstanceType(ps *api.PodSpec) (string, *bool, error) {
 	return instanceType, &needsSustainedCPU, nil
 }
 
+func makeInstanceTypeGlobberFunc(instanceType string) func(inst InstanceData) bool {
+	return func(inst InstanceData) bool {
+		if instanceType == "" {
+			return true
+		}
+		return glob.Glob(instanceType, inst.InstanceType)
+	}
+}
+
 func ResourcesToContainerInstance(rs *api.ResourceSpec) (int64, int64, error) {
 	return selector.containerInstanceSelector(rs)
+}
+
+func GetInstanceFromResources(rs api.ResourceSpec, additionalFilter func(inst InstanceData) bool) (string, bool) {
+	return selector.getInstanceFromResources(rs, additionalFilter)
 }

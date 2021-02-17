@@ -147,7 +147,36 @@ func (reg *NodeRegistry) CreateNode(n *api.Node) (*api.Node, error) {
 }
 
 func (reg *NodeRegistry) UpdateNode(n *api.Node) (*api.Node, error) {
-	return nil, fmt.Errorf("Updating a node is not implemented at this time")
+	if err := reg.Validate(n); err != nil {
+		return nil, err
+	}
+	key := makeNodeKey(n.Name)
+	exists, err := reg.Storer.Exists(key)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return reg.CreateNode(n)
+	}
+	data, err := reg.Codec.Marshal(n)
+	if err != nil {
+		return nil, err
+	}
+	previous, err := reg.Storer.Get(key)
+	if err == store.ErrKeyNotFound {
+		return nil, err
+	} else if err != nil {
+		return nil, fmt.Errorf("error retrieving node from storage: %v", err)
+	}
+	_, _, err = reg.Storer.AtomicPut(key, data, previous, nil)
+	if err != nil {
+		return nil, util.WrapError(err, "Could not update node in registry")
+	}
+	node, err := reg.GetNode(n.Name)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
 }
 
 func (reg *NodeRegistry) GetNode(name string) (*api.Node, error) {
