@@ -1,0 +1,10 @@
+bases:
+  - ../../base
+patchesStrategicMerge:
+  - statefulset.yaml
+configMapGenerator:
+  - name: config
+    behavior: merge
+    files:
+      - cloudinit.yaml
+      - provider.yaml
