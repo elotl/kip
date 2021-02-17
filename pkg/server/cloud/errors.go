@@ -24,7 +24,6 @@ type NoCapacityError struct {
 	OriginalError string
 	AZ            string
 	SubnetID      string
-	InstanceType  string
 }
 
 func (e *NoCapacityError) Error() string {
@@ -46,7 +45,7 @@ func (e *UnsupportedInstanceError) Error() string {
 }
 
 type InsufficientCapacityError struct {
-	InstanceType string
+	InstanceType  string
 	OriginalError string
 }
 

@@ -267,7 +267,10 @@ func (c *NodeController) handleStartNodeError(node *api.Node, err error, isSpot 
 		e := err.(*cloud.InsufficientCapacityError)
 		c.BootLimiter.AddUnavailableInstance(e.InstanceType, isSpot)
 		// node has already new instance type chosen, persist it in registry
-		c.NodeRegistry.UpdateNode(node)
+		_, err = c.NodeRegistry.UpdateNode(node)
+		if err != nil {
+			klog.Errorf("updating node failed: %v", err)
+		}
 	}
 }
 
