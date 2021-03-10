@@ -9,7 +9,7 @@ The Terraform config here can be used to provision a simple test cluster with ki
 You need:
 
 * an AWS account configured (check that e.g. `aws iam get-user` works)
-* Terraform >= 0.12
+* Terraform >= 0.13.0
 * aws-cli
 * jq
 
