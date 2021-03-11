@@ -20,12 +20,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/elotl/kip/pkg/util/instanceselector"
 	"math/rand"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/elotl/kip/pkg/util/instanceselector"
 
 	"github.com/docker/libkv/store"
 	"github.com/elotl/kip/pkg/api"
@@ -686,8 +687,6 @@ func (c *NodeController) removePodFromNode(node *api.Node) {
 func (c *NodeController) dispatchNodesLoop(quit <-chan struct{}, wg *sync.WaitGroup, nodeBindingsUpdate <-chan map[string]string) {
 	wg.Add(1)
 	defer wg.Done()
-	poolTicker := time.NewTicker(c.Config.PoolInterval)
-	defer poolTicker.Stop()
 
 	podNodeMap := <-nodeBindingsUpdate
 	for {
