@@ -100,6 +100,7 @@ type AzureConfig struct {
 	SubscriptionID string `json:"subscriptionID"`
 	Location       string `json:"location"`
 	VNetName       string `json:"virtualNetworkName"`
+	ResourceGroup  string `json:"resourceGroup"`
 	SubnetName     string `json:"subnetName"`
 	TenantID       string `json:"tenantID"`
 	ClientID       string `json:"clientID"`
@@ -348,6 +349,7 @@ func configureCloudProvider(cf *ServerConfigFile, controllerID, nametag string) 
 			cc.Azure.Location,
 			cc.Azure.VNetName,
 			cc.Azure.SubnetName,
+			cc.Azure.ResourceGroup,
 		)
 		if err != nil {
 			return nil, util.WrapError(err, "Error creating Azure cloud client")
@@ -512,6 +514,9 @@ func validateAzureConfig(cf *AzureConfig) field.ErrorList {
 	}
 	if cf.ClientSecret == blankTemplateValue {
 		allErrs = append(allErrs, field.Required(fldPath.Child("clientSecret"), "clientSecret must be set in provider.yaml or pulled from the environment"))
+	}
+	if cf.ResourceGroup == blankTemplateValue || cf.ResourceGroup == "" {
+		allErrs = append(allErrs, field.Required(fldPath.Child("resourceGroup"), "resourceGroup must be set in provider.yaml"))
 	}
 
 	return allErrs

@@ -84,7 +84,7 @@ func TestAzureCloud(t *testing.T) {
 		controllerID = api.SimpleNameGenerator.GenerateName(testControllerID)
 	}
 
-	az, err := NewAzureClient(controllerID, controllerID, testSubscriptionID, testRegion, testVNetName, testSubnetName)
+	az, err := NewAzureClient(controllerID, controllerID, testSubscriptionID, testRegion, testVNetName, testSubnetName, "")
 	if executorNStr == "" {
 		// When not running on Jenkins, clean up resources.
 		defer cleanupFromTest(az)

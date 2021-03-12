@@ -69,15 +69,15 @@ func createKubeConfigFromSecret(rm *manager.ResourceManager, serverURL, saSecret
 func validateKubeconfig(config *clientcmdapi.Config) error {
 	cc, err := clientcmd.NewDefaultClientConfig(*config, &clientcmd.ConfigOverrides{}).ClientConfig()
 	if err != nil {
-		return util.WrapError(err, "validating kubeconfig")
+		return util.WrapError(err, "getting client config")
 	}
 	clientset, err := kubernetes.NewForConfig(cc)
 	if err != nil {
-		return util.WrapError(err, "validating kubeconfig")
+		return util.WrapError(err, "getting clientset")
 	}
 	_, err = clientset.ServerVersion()
 	if err != nil {
-		return util.WrapError(err, "validating kubeconfig")
+		return util.WrapError(err, "getting server version")
 	}
 	return nil
 }

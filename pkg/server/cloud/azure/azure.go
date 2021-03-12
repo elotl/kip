@@ -116,7 +116,7 @@ func getAzureConnection(subscriptionID string) (*AzureClient, error) {
 	return az, nil
 }
 
-func NewAzureClient(controllerID, nametag, subscriptionID, region, vNetName, subnetName string) (*AzureClient, error) {
+func NewAzureClient(controllerID, nametag, subscriptionID, region, vNetName, subnetName, resourceGroup string) (*AzureClient, error) {
 	az, err := getAzureConnection(subscriptionID)
 	if err != nil {
 		return nil, util.WrapError(err, "Could not create Azure API client")
@@ -132,7 +132,7 @@ func NewAzureClient(controllerID, nametag, subscriptionID, region, vNetName, sub
 	}
 
 	// if the user specified a vNet, use that, otherwise create the vNet
-	err = az.setupClusterVNet(vNetName, subnetName)
+	err = az.setupClusterVNet(vNetName, subnetName, resourceGroup)
 	if err != nil {
 		return az, util.WrapError(err, "Error setting up cluster virtual network")
 	}
