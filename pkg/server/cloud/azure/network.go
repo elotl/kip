@@ -533,5 +533,7 @@ func getMilpaIPConfiguration(iface network.Interface) (*network.InterfaceIPConfi
 }
 
 func (az *AzureClient) GetDNSInfo() ([]string, []string, error) {
-	return nil, nil, fmt.Errorf("Unimplemented")
+	nameservers := []string{"168.63.129.16"}
+	return nameservers, []string{}, nil
+	//return nil, nil, fmt.Errorf("Unimplemented")
 }
