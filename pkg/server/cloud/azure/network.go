@@ -32,6 +32,8 @@ import (
 	"k8s.io/klog"
 )
 
+const NameserverIP = "168.63.129.16"
+
 type VirtualNetworkAttributes struct {
 	Name          string
 	ID            string
@@ -534,5 +536,6 @@ func getMilpaIPConfiguration(iface network.Interface) (*network.InterfaceIPConfi
 }
 
 func (az *AzureClient) GetDNSInfo() ([]string, []string, error) {
-	return nil, nil, fmt.Errorf("Unimplemented")
+	nameservers := []string{NameserverIP}
+	return nameservers, []string{}, nil
 }
