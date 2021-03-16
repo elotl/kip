@@ -66,6 +66,7 @@ type AzureClient struct {
 	nametag        string
 	subscriptionID string
 	region         string
+	defaultResourceGroup string
 	virtualNetwork VirtualNetworkAttributes
 	subnet         cloud.SubnetAttributes
 	nsgID          string
@@ -125,6 +126,7 @@ func NewAzureClient(controllerID, nametag, subscriptionID, region, vNetName, sub
 	az.nametag = nametag
 	az.region = region
 	az.subscriptionID = subscriptionID
+	az.defaultResourceGroup = resourceGroup
 
 	err = az.ensureResourceGroups()
 	if err != nil {

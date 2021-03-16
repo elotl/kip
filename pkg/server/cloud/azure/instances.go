@@ -356,8 +356,7 @@ func (az *AzureClient) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, azureDefaultTimeout)
 	defer cancel()
-	rgName := regionalResourceGroupName(az.region)
-	resultPage, err := az.images.ListByResourceGroup(timeoutCtx, rgName)
+	resultPage, err := az.images.List(timeoutCtx)
 	if err != nil {
 		return cloud.Image{}, err
 	}
