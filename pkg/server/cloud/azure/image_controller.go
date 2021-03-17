@@ -39,7 +39,7 @@ import (
 const (
 	elotlImages      = "elotlimages"
 	containerName    = "itzodisks"
-	accountName      = "milpastorage"
+	accountName      = "kipstorage"
 	blobFormatString = `https://%s.blob.core.windows.net`
 )
 
