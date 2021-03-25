@@ -71,15 +71,14 @@ func splitVNetName(vNetName string) (string, string) {
 	return resourceGroup, vNetName
 }
 
-func (az *AzureClient) getVNet(fullVNetName string) (VirtualNetworkAttributes, error) {
-	resourceGroup, vNetName := splitVNetName(fullVNetName)
+func (az *AzureClient) getVNet(vNetName, resourceGroup string) (VirtualNetworkAttributes, error) {
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, azureDefaultTimeout)
 	defer cancel()
 	azVNet, err := az.vnets.Get(timeoutCtx, resourceGroup, vNetName, "")
 	var vNetAttrs VirtualNetworkAttributes
 	if err != nil {
-		return vNetAttrs, util.WrapError(err, "Error getting virtual network %s", fullVNetName)
+		return vNetAttrs, util.WrapError(err, "Error getting virtual network %s in resourceGroup %s", vNetName, resourceGroup)
 	}
 	vNetAttrs, err = toVNetAttrs(&azVNet)
 	if err != nil {
@@ -91,12 +90,12 @@ func (az *AzureClient) getVNet(fullVNetName string) (VirtualNetworkAttributes, e
 // If the user supplied a vNetName, use that vNet
 // -- query it, see if it exists, get the resource group
 // otherwise use the local VNet
-func (az *AzureClient) setupClusterVNet(vNetName, subnetName string) error {
+func (az *AzureClient) setupClusterVNet(vNetName, subnetName, resourceGroup string) error {
 	if vNetName != "" {
 		if subnetName == "" {
 			return fmt.Errorf("Error setting up azure networking: a subnet name (cloud.azure.subnetName) must be supplied in provider.yaml if a virtual network name is specified in provider.yaml")
 		}
-		vnet, err := az.getVNet(vNetName)
+		vnet, err := az.getVNet(vNetName, resourceGroup)
 		if err != nil {
 			return err
 		}
@@ -218,7 +217,7 @@ func (az *AzureClient) getLocalInstanceNetwork() (VirtualNetworkAttributes, clou
 	}
 	klog.V(2).Infof("local machine is connected to subnet %s", subnetNames[0])
 
-	vNet, err := az.getVNet(vNetNames[0])
+	vNet, err := az.getVNet(vNetNames[0], "")
 	if err != nil {
 		return vNet, subnet, util.WrapError(err, "Error looking up local machine's vNet %s. Please specify a virtualNetworkName and subnetName in provider.yaml", vNetNames[0])
 	}
