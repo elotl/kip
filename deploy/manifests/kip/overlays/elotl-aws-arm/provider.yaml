@@ -10,12 +10,12 @@ cells:
   bootImageSpec:
     owners: 689494258501
     filters: name=elotl-kipdev-arm-arm-dev-v0.0.2
-  defaultInstanceType: "t3.nano"
+  defaultInstanceType: "t4g.micro"
   defaultVolumeSize: "20G"
   nametag: kip
   itzo:
     url: https://itzo-kip-download.s3.amazonaws.com
-    version: latest
+    version: arm-latest
 kubelet:
   cpu: "100"
   memory: "512Gi"
