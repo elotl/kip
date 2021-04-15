@@ -33,9 +33,9 @@ type MockCloudClient struct {
 	VPCCIDRs     []string
 	Subnet       SubnetAttributes
 
-	Starter             func(node *api.Node, image Image, metadata, iamPermissions string) (string, error)
-	SpotStarter         func(node *api.Node, image Image, metadata, iamPermissions string) (string, error)
-	DedicatedStarter    func(node *api.Node, image Image, metadata, iamPermissions string) (string, error)
+	Starter             func(node *api.Node, image Image, armImg Image, metadata, iamPermissions string) (string, error)
+	SpotStarter         func(node *api.Node, image Image, armImg Image, metadata, iamPermissions string) (string, error)
+	DedicatedStarter    func(node *api.Node, image Image, armImg Image, metadata, iamPermissions string) (string, error)
 	Stopper             func(instanceID string) error
 	Releaser            func() error
 	Waiter              func(node *api.Node) ([]api.NetworkAddress, error)
@@ -82,16 +82,16 @@ func (m *MockCloudClient) GetBootSecurityGroupIDs() []string {
 	return nil
 }
 
-func (m *MockCloudClient) StartNode(node *api.Node, image Image, metadata, iamPermissions string) (string, error) {
-	return m.Starter(node, image, metadata, iamPermissions)
+func (m *MockCloudClient) StartNode(node *api.Node, image, armImg Image, metadata, iamPermissions string) (string, error) {
+	return m.Starter(node, image, armImg, metadata, iamPermissions)
 }
 
-func (m *MockCloudClient) StartSpotNode(node *api.Node, image Image, metadata, iamPermissions string) (string, error) {
-	return m.SpotStarter(node, image, metadata, iamPermissions)
+func (m *MockCloudClient) StartSpotNode(node *api.Node, image, armImg Image, metadata, iamPermissions string) (string, error) {
+	return m.SpotStarter(node, image, armImg, metadata, iamPermissions)
 }
 
-func (m *MockCloudClient) StartDedicatedNode(node *api.Node, image Image, metadata, iamPermissions string) (string, error) {
-	return m.DedicatedStarter(node, image, metadata, iamPermissions)
+func (m *MockCloudClient) StartDedicatedNode(node *api.Node, image, armImg Image, metadata, iamPermissions string) (string, error) {
+	return m.DedicatedStarter(node, image, armImg, metadata, iamPermissions)
 }
 
 func (m *MockCloudClient) StopInstance(instanceID string) error {
@@ -322,7 +322,7 @@ func NewMockClient() *MockCloudClient {
 		return []string{"cloud.internal"}, []string{"1.1.1.1"}, nil
 	}
 
-	net.Starter = func(node *api.Node, image Image, metadata, iamPermissions string) (string, error) {
+	net.Starter = func(node *api.Node, image Image, armImage Image, metadata, iamPermissions string) (string, error) {
 		inst := CloudInstance{
 			ID:       node.Status.InstanceID,
 			NodeName: node.Name,

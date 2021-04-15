@@ -43,6 +43,11 @@ var (
 		"owners":  "689494258501",
 		"filters": "name=elotl-kip-*",
 	}
+	defaultBootImageSpecARM = cloud.BootImageSpec{
+		"arch": "arm64",
+		"owners":  "689494258501",
+		"filters": "name=elotl-kip-*",
+	}
 )
 
 type StartStopFunc func(node *api.Node) error
@@ -59,12 +64,12 @@ func FakeLister() ([]cloud.CloudInstance, error) {
 	return nil, nil
 }
 
-func StartReturnsOK(node *api.Node, image cloud.Image, metadata, iamProfile string) (string, error) {
+func StartReturnsOK(node *api.Node, image, armImage cloud.Image, metadata, iamProfile string) (string, error) {
 	result := "instID"
 	return result, nil
 }
 
-func StartFails(node *api.Node, image cloud.Image, metadata, iamProfile string) (string, error) {
+func StartFails(node *api.Node, image, armImage cloud.Image, metadata, iamProfile string) (string, error) {
 	return "", fmt.Errorf("Testing, purposefully returning error")
 }
 
@@ -118,6 +123,8 @@ func MakeNodeController() (*NodeController, func()) {
 	}
 	imageIdCache := timeoutmap.New(false, make(chan struct{}))
 	imageIdCache.Add(defaultBootImageSpec.String(), defaultBootImage, 5*time.Minute, timeoutmap.Noop)
+	imageIdCacheARM := timeoutmap.New(false, make(chan struct{}))
+	imageIdCacheARM.Add(defaultBootImageSpecARM.String(), defaultBootImage, 5*time.Minute, timeoutmap.Noop)
 	fakeCertFactory, _ := certs.NewFake()
 	bootLimiter := NewInstanceBootLimiter()
 	ciFile, _ := cloudinitfile.New("")
@@ -140,7 +147,8 @@ func MakeNodeController() (*NodeController, func()) {
 		NodeClientFactory:  nodeclient.NewMockItzoClientFactory(),
 		Events:             events.NewEventSystem(quit, wg),
 		PoolLoopTimer:      &stats.LoopTimer{},
-		ImageIdCache:       imageIdCache,
+		ImageIdCachex86_64: imageIdCache,
+		ImageIDCacheARM64:  imageIdCacheARM,
 		CertificateFactory: fakeCertFactory,
 		CloudInitFile:      ciFile,
 		BootLimiter:        bootLimiter,
@@ -210,7 +218,7 @@ func StartAFewNodes(t *testing.T, numNodes int, spotNode bool) {
 		}
 		startNodes = append(startNodes, node)
 	}
-	ctl.startNodes(startNodes, cloud.Image{})
+	ctl.startNodes(startNodes, cloud.Image{}, cloud.Image{})
 	// starting happens in a goroutine so we'll sleep here
 	time.Sleep(1 * time.Second)
 	nodes, err := ctl.NodeRegistry.ListNodes(registry.MatchAllNodes)
@@ -240,7 +248,7 @@ func TestStartNodeHealthcheckFails(t *testing.T) {
 	ctl.NodeClientFactory.(*nodeclient.MockItzoClientFactory).Health = func() error {
 		return fmt.Errorf("fail")
 	}
-	ctl.startNodes([]*api.Node{api.GetFakeNode()}, cloud.Image{})
+	ctl.startNodes([]*api.Node{api.GetFakeNode()}, cloud.Image{}, cloud.Image{})
 	time.Sleep(1 * time.Second)
 	nodes, err := ctl.NodeRegistry.ListAllNodes(registry.MatchAllNodes)
 	assert.Nil(t, err)
@@ -257,7 +265,7 @@ func TestStartNodeFails(t *testing.T) {
 	ctl.CloudClient = &cloud.MockCloudClient{
 		Starter: StartFails,
 	}
-	ctl.startNodes([]*api.Node{api.GetFakeNode()}, cloud.Image{})
+	ctl.startNodes([]*api.Node{api.GetFakeNode()}, cloud.Image{}, cloud.Image{})
 	time.Sleep(1 * time.Second)
 	nodes, err := ctl.NodeRegistry.ListAllNodes(registry.MatchAllNodes)
 	assert.Nil(t, err)
@@ -725,7 +733,7 @@ func TestAddInstanceParameter(t *testing.T) {
 		},
 	}
 	node := api.GetFakeNode()
-	ctl.startNodes([]*api.Node{node}, cloud.Image{})
+	ctl.startNodes([]*api.Node{node}, cloud.Image{}, cloud.Image{})
 	time.Sleep(1 * time.Second)
 	nodes, err := ctl.NodeRegistry.ListNodes(registry.MatchAllNodes)
 	assert.Nil(t, err)
@@ -748,7 +756,7 @@ func TestAddInstanceParameterFails(t *testing.T) {
 		InstanceParameterAdder:   AddInstanceParameterFails,
 		InstanceParameterRemover: DeleteInstanceParameterReturnsOK,
 	}
-	ctl.startNodes([]*api.Node{api.GetFakeNode()}, cloud.Image{})
+	ctl.startNodes([]*api.Node{api.GetFakeNode()}, cloud.Image{}, cloud.Image{})
 	time.Sleep(1 * time.Second)
 	nodes, err := ctl.NodeRegistry.ListAllNodes(registry.MatchAllNodes)
 	assert.Nil(t, err)
@@ -812,7 +820,7 @@ func TestStartSingleNodeInsufficientCapacity(t *testing.T)  {
 	ctl, closer := MakeNodeController()
 	defer closer()
 	ctl.CloudClient = &cloud.MockCloudClient{
-		Starter: func (node *api.Node, image cloud.Image, metadata, iamProfile string) (string, error) {
+		Starter: func (node *api.Node, image, armImage cloud.Image, metadata, iamProfile string) (string, error) {
 			return "", fmt.Errorf("InsufficientInstanceCapacity")
 		},
 	}
@@ -821,7 +829,7 @@ func TestStartSingleNodeInsufficientCapacity(t *testing.T)  {
 	firstChoiceInstanceType := "t3.nano"
 	n.Spec.InstanceType = firstChoiceInstanceType
 	// WHEN
-	_ = ctl.startSingleNode(n, cloud.Image{}, "")
+	_ = ctl.startSingleNode(n, cloud.Image{}, cloud.Image{}, "")
 	// THEN
 	assert.True(t, ctl.BootLimiter.IsUnavailableInstance("t3.nano", false))
 	assert.NotEqual(t, firstChoiceInstanceType, n.Spec.InstanceType)
@@ -830,7 +838,7 @@ func TestStartSingleNodeInsufficientCapacity(t *testing.T)  {
 	// GIVEN, WHEN (node.Spec.InstanceType set to new one,
 	// but it this test scenario this new one is unavailable as well
 	// so let's see if the third choice != first choice
-	_ = ctl.startSingleNode(n, cloud.Image{}, "")
+	_ = ctl.startSingleNode(n, cloud.Image{}, cloud.Image{}, "")
 	// THEN
 	assert.True(t, ctl.BootLimiter.IsUnavailableInstance("t3a.nano", false))
 	assert.NotEqual(t, firstChoiceInstanceType, n.Spec.InstanceType)

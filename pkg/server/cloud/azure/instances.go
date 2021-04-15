@@ -150,7 +150,7 @@ func (az *AzureClient) createNIC(instanceID string, ipID string) (string, error)
 	return to.String(nic.ID), nil
 }
 
-func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+func (az *AzureClient) StartNode(node *api.Node, image cloud.Image, _ cloud.Image, metadata, iamPermissions string) (string, error) {
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	instanceID := makeInstanceID(az.controllerID, node.Name)
 	err := az.createResourceGroup(instanceID)
@@ -265,14 +265,14 @@ func (az *AzureClient) ReleaseDedicatedHosts() error {
 	return fmt.Errorf("Azure: %s", "release dedicated hosts not implemented yet")
 }
 
-func (az *AzureClient) StartDedicatedNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+func (az *AzureClient) StartDedicatedNode(node *api.Node, image cloud.Image, _ cloud.Image, metadata, iamPermissions string) (string, error) {
 	// TODO stubbed not implemented yet
 	return "", fmt.Errorf("Azure: %s", "start dedicated node not implemented yet")
 
 }
 
-func (az *AzureClient) StartSpotNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
-	return az.StartNode(node, image, metadata, iamPermissions)
+func (az *AzureClient) StartSpotNode(node *api.Node, image cloud.Image, imageARM cloud.Image, metadata, iamPermissions string) (string, error) {
+	return az.StartNode(node, image, imageARM, metadata, iamPermissions)
 }
 
 func (az *AzureClient) getNodeTags(node *api.Node) map[string]*string {

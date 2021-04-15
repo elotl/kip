@@ -42,6 +42,17 @@ const (
 	BootTimeout               = 10 * time.Minute
 	AwsInstanceAvailableState = "available"
 	AvailableWaitTimeout      = 30 * time.Second
+	defaultBootImageArch      = "x86_64"
+	arm64BootImageArch        = "arm64"
+)
+
+var (
+	defaultBootImageFilters = []*ec2.Filter{
+		{
+			Name:   aws.String("architecture"),
+			Values: aws.StringSlice([]string{defaultBootImageArch}),
+		},
+	}
 )
 
 type EbsSpecs struct {
@@ -246,11 +257,26 @@ func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeI
 		input.Owners = aws.StringSlice([]string{elotlOwnerID})
 		input.Filters = []*ec2.Filter{
 			{
+				Name: aws.String("architecture"),
+				Values: aws.StringSlice([]string{defaultBootImageArch}),
+			},
+			{
 				Name:   aws.String("name"),
 				Values: aws.StringSlice([]string{elotlImageNameFilter}),
 			},
 		}
 		return input
+	}
+	input.Filters = defaultBootImageFilters
+	arch, ok := spec["arch"]
+	if ok {
+		delete(spec, "arch")
+		input.Filters = []*ec2.Filter{
+			{
+				Name: aws.String("architecture"),
+				Values: aws.StringSlice([]string{arch}),
+			},
+		}
 	}
 	for key, value := range spec {
 		switch key {
@@ -275,7 +301,7 @@ func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeI
 					Values: aws.StringSlice(filterValues),
 				}
 			}
-			input.Filters = ec2Filters
+			input.Filters = append(input.Filters, ec2Filters...)
 		default:
 			klog.Warningf("invalid boot image spec key: %q (=%q)", key, value)
 		}
@@ -343,20 +369,28 @@ func (e *AwsEC2) GetImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	return images[len(images)-1], nil
 }
 
-func (e *AwsEC2) StartNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+func (e *AwsEC2) StartNode(node *api.Node, imagex86_64 cloud.Image, imageARM64 cloud.Image, metadata, iamPermissions string) (string, error) {
+	var chosenImage cloud.Image
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	tags := e.getNodeTags(node)
 	tagSpec := ec2.TagSpecification{
 		ResourceType: aws.String("instance"),
 		Tags:         tags,
 	}
-	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
-	devices := e.getBlockDeviceMapping(image, volSizeGiB)
+	arch := checkInstanceTypeArch(node.Spec.InstanceType)
+	if arch == arm64BootImageArch {
+		chosenImage = imageARM64
+	} else {
+		chosenImage = imagex86_64
+	}
+	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, chosenImage)
+	devices := e.getBlockDeviceMapping(chosenImage, volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)
+
 	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
-		ImageId:             aws.String(node.Spec.BootImage),
+		ImageId:             aws.String(chosenImage.ID),
 		InstanceType:        aws.String(node.Spec.InstanceType),
 		MinCount:            aws.Int64(1),
 		MaxCount:            aws.Int64(1),
@@ -509,7 +543,8 @@ func (e *AwsEC2) waitForHostAvailable(ctx context.Context, hostId *string) bool 
 	}
 }
 
-func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+func (e *AwsEC2) StartDedicatedNode(node *api.Node, imagex86_64 cloud.Image, imageARM64 cloud.Image, metadata, iamPermissions string) (string, error) {
+	var chosenImage cloud.Image
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	hostId, err := e.retrieveOrAllocateHost(node)
 	if err != nil {
@@ -520,8 +555,14 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 		ResourceType: aws.String("instance"),
 		Tags:         tags,
 	}
-	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
-	devices := e.getBlockDeviceMapping(image, volSizeGiB)
+	arch := checkInstanceTypeArch(node.Spec.InstanceType)
+	if arch == arm64BootImageArch {
+		chosenImage = imageARM64
+	} else {
+		chosenImage = imagex86_64
+	}
+	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, chosenImage)
+	devices := e.getBlockDeviceMapping(chosenImage, volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	ctx, cancel := context.WithTimeout(context.Background(), AvailableWaitTimeout)
 	hostAvailable := e.waitForHostAvailable(ctx, hostId)
@@ -533,7 +574,7 @@ func (e *AwsEC2) StartDedicatedNode(node *api.Node, image cloud.Image, metadata,
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)
 	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
-		ImageId:             aws.String(node.Spec.BootImage),
+		ImageId:             aws.String(chosenImage.ID),
 		InstanceType:        aws.String(node.Spec.InstanceType),
 		MinCount:            aws.Int64(1),
 		MaxCount:            aws.Int64(1),
@@ -584,7 +625,8 @@ func getIAMInstanceProfileSpecification(iamPermissions string) *ec2.IamInstanceP
 
 // This isn't terribly different from Start node but there are
 // some minor differences.  We'll capture errors correctly here and there
-func (e *AwsEC2) StartSpotNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+func (e *AwsEC2) StartSpotNode(node *api.Node, imagex86_64 cloud.Image, imageARM64 cloud.Image, metadata, iamPermissions string) (string, error) {
+	var chosenImage cloud.Image
 	klog.V(2).Infof("Starting instance for node: %v", node)
 	tags := e.getNodeTags(node)
 	tagSpec := ec2.TagSpecification{
@@ -593,14 +635,20 @@ func (e *AwsEC2) StartSpotNode(node *api.Node, image cloud.Image, metadata, iamP
 	}
 	var err error
 	//var subnet *cloud.SubnetAttributes
+	arch := checkInstanceTypeArch(node.Spec.InstanceType)
+	if arch == arm64BootImageArch {
+		chosenImage = imageARM64
+	} else {
+		chosenImage = imagex86_64
+	}
 	klog.V(2).Infof("Starting spot node in: %s", e.subnetID)
-	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, image)
-	devices := e.getBlockDeviceMapping(image, volSizeGiB)
+	volSizeGiB := cloud.ToSaneVolumeSize(node.Spec.Resources.VolumeSize, chosenImage)
+	devices := e.getBlockDeviceMapping(chosenImage, volSizeGiB)
 	networkSpec := e.getInstanceNetworkSpec(node.Spec.Resources.PrivateIPOnly)
 	klog.V(2).Infof("Starting node with security groups: %v subnet: '%s'",
 		e.bootSecurityGroupIDs, e.subnetID)
 	result, err := e.client.RunInstances(&ec2.RunInstancesInput{
-		ImageId:             aws.String(node.Spec.BootImage),
+		ImageId:             aws.String(chosenImage.ID),
 		InstanceType:        aws.String(node.Spec.InstanceType),
 		MinCount:            aws.Int64(1),
 		MaxCount:            aws.Int64(1),

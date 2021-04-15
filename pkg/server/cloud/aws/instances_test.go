@@ -12,14 +12,21 @@ import (
 // func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeImagesInput
 func TestBootImageSpecToDescribeImagesInput(t *testing.T) {
 	testCases := []struct {
+		name  string
 		Spec  cloud.BootImageSpec
 		Input ec2.DescribeImagesInput
 	}{
 		{
+			name: "default boot image spec",
 			Spec: cloud.BootImageSpec{},
 			Input: ec2.DescribeImagesInput{
 				Owners: aws.StringSlice([]string{elotlOwnerID}),
 				Filters: []*ec2.Filter{
+					{
+						// this is added by default if any filters are specified and arch is not specified
+						Name: aws.String("architecture"),
+						Values: aws.StringSlice([]string{defaultBootImageArch}),
+					},
 					{
 						Name:   aws.String("name"),
 						Values: aws.StringSlice([]string{elotlImageNameFilter}),
@@ -28,11 +35,17 @@ func TestBootImageSpecToDescribeImagesInput(t *testing.T) {
 			},
 		},
 		{
+			name: "only filters specified",
 			Spec: cloud.BootImageSpec{
 				"filters": "name=elotl-kip-*",
 			},
 			Input: ec2.DescribeImagesInput{
 				Filters: []*ec2.Filter{
+					{
+						// this is added by default if any filters are specified and arch is not specified
+						Name: aws.String("architecture"),
+						Values: aws.StringSlice([]string{defaultBootImageArch}),
+					},
 					{
 						Name:   aws.String("name"),
 						Values: aws.StringSlice([]string{"elotl-kip-*"}),
@@ -41,6 +54,7 @@ func TestBootImageSpecToDescribeImagesInput(t *testing.T) {
 			},
 		},
 		{
+			name: "imageIDs owners and filters",
 			Spec: cloud.BootImageSpec{
 				"imageIDs": "ami-123 ami-456 ami-789",
 				"owners":   "12345 9999999",
@@ -50,6 +64,11 @@ func TestBootImageSpecToDescribeImagesInput(t *testing.T) {
 				ImageIds: aws.StringSlice([]string{"ami-123", "ami-456", "ami-789"}),
 				Owners:   aws.StringSlice([]string{"12345", "9999999"}),
 				Filters: []*ec2.Filter{
+					{
+						// this is added by default if any filters are specified and arch is not specified
+						Name: aws.String("architecture"),
+						Values: aws.StringSlice([]string{defaultBootImageArch}),
+					},
 					{
 						Name:   aws.String("name"),
 						Values: aws.StringSlice([]string{"elotl-kip-*"}),
@@ -63,8 +82,10 @@ func TestBootImageSpecToDescribeImagesInput(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		input := bootImageSpecToDescribeImagesInput(tc.Spec)
-		assert.Equal(t, tc.Input, *input)
+		t.Run(tc.name, func(t *testing.T) {
+			input := bootImageSpecToDescribeImagesInput(tc.Spec)
+			assert.Equal(t, tc.Input, *input)
+		})
 	}
 }
 

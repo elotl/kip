@@ -75,7 +75,7 @@ func (ts *TestState) startNodes(img cloud.Image) error {
 	for _, node := range nodes {
 		go func(n *api.Node) {
 			fmt.Println("starting node", n.Name)
-			instanceID, err := ts.CloudClient.StartNode(n, img, "", "")
+			instanceID, err := ts.CloudClient.StartNode(n, img, img, "", "")
 			if err != nil {
 				startResults <- err
 				return
@@ -132,7 +132,7 @@ func RunSpotInstanceTest(t *testing.T, c cloud.CloudClient, imageID, rootDevice 
 		ID:         imageID,
 		RootDevice: rootDevice,
 	}
-	instanceID, err := c.StartSpotNode(spotNode, img, "", "")
+	instanceID, err := c.StartSpotNode(spotNode, img, img, "", "")
 	if err != nil {
 		msg := fmt.Sprintf("Failed to Start Spot Node, failing test %s", err)
 		assert.Fail(t, msg)

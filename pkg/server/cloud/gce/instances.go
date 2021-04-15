@@ -283,7 +283,7 @@ func (c *gceClient) startNode(node *api.Node, image cloud.Image, metadata, iamPe
 	return spec.Name, nil
 }
 
-func (c *gceClient) StartNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+func (c *gceClient) StartNode(node *api.Node, image cloud.Image, _ cloud.Image, metadata, iamPermissions string) (string, error) {
 	return c.startNode(node, image, metadata, iamPermissions)
 }
 
@@ -292,7 +292,7 @@ func (c *gceClient) ReleaseDedicatedHosts() error {
 	return fmt.Errorf("GCP: %s", "release dedicated hosts not implemented yet")
 }
 
-func (c *gceClient) StartDedicatedNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+func (c *gceClient) StartDedicatedNode(node *api.Node, image cloud.Image, imageARM cloud.Image, metadata, iamPermissions string) (string, error) {
 	// TODO stubbed not implemented yet
 	return "", fmt.Errorf("GCP: %s", "start dedicated node not implemented yet")
 }
@@ -300,7 +300,7 @@ func (c *gceClient) StartDedicatedNode(node *api.Node, image cloud.Image, metada
 // In we dictate whether the node is a spot based on the node passed in
 // this is decided in createInstanceSpec which is called in the unexported
 // startNode function. StartSpotNode is necessary to fullfil the interface.
-func (c *gceClient) StartSpotNode(node *api.Node, image cloud.Image, metadata, iamPermissions string) (string, error) {
+func (c *gceClient) StartSpotNode(node *api.Node, image cloud.Image, _ cloud.Image, metadata, iamPermissions string) (string, error) {
 	return c.startNode(node, image, metadata, iamPermissions)
 }
 

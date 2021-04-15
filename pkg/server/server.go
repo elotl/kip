@@ -351,7 +351,8 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 	}
 
 	klog.V(5).Infof("creating image ID cache")
-	imageIdCache := timeoutmap.New(false, nil)
+	imageIdCachex86_x64 := timeoutmap.New(false, nil)
+	imageIdCacheARM64 := timeoutmap.New(false, nil)
 
 	klog.V(5).Infof("checking cloud-init file")
 	cloudInitFile, err := cloudinitfile.New(serverConfigFile.Cells.CloudInitFile)
@@ -387,7 +388,8 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 		CloudClient:        cloudClient,
 		NodeClientFactory:  itzoClientFactory,
 		Events:             eventSystem,
-		ImageIdCache:       imageIdCache,
+		ImageIdCachex86_64: imageIdCachex86_x64,
+		ImageIDCacheARM64:  imageIdCacheARM64,
 		CloudInitFile:      cloudInitFile,
 		CertificateFactory: certFactory,
 		BootLimiter:        bootLimiter,

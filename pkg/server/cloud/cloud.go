@@ -45,9 +45,9 @@ const InstanceParameterCertificate = "certificate"
 type CloudClient interface {
 	SetBootSecurityGroupIDs([]string)
 	GetBootSecurityGroupIDs() []string
-	StartNode(*api.Node, Image, string, string) (string, error)
-	StartSpotNode(*api.Node, Image, string, string) (string, error)
-	StartDedicatedNode(*api.Node, Image, string, string) (string, error)
+	StartNode(*api.Node, Image, Image, string, string) (string, error)
+	StartSpotNode(*api.Node, Image, Image, string, string) (string, error)
+	StartDedicatedNode(*api.Node, Image, Image, string, string) (string, error)
 	// This should always be called from a goroutine as it can take a while
 	StopInstance(instanceID string) error
 	ReleaseDedicatedHosts() error

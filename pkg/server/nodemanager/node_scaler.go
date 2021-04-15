@@ -94,7 +94,7 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 
 	node := api.NewNode()
 	node.Spec.InstanceType = pod.Spec.InstanceType
-	node.Spec.BootImage = BootImage.ID
+	node.Spec.BootImage = BootImagex86_64.ID
 	node.Spec.Spot = isSpotPod
 	node.Spec.Dedicated = pod.Spec.Dedicated
 	node.Spec.Resources = pod.Spec.Resources
@@ -114,7 +114,7 @@ func (s *BindingNodeScaler) createNodeForPod(pod *api.Pod) *api.Node {
 func (s *BindingNodeScaler) createNodeForStandbySpec(spec *StandbyNodeSpec) *api.Node {
 	node := api.NewNode()
 	node.Spec.InstanceType = spec.InstanceType
-	node.Spec.BootImage = BootImage.ID
+	node.Spec.BootImage = BootImagex86_64.ID
 	node.Spec.Spot = spec.Spot
 	node.Spec.Dedicated = spec.Dedicated
 	node.Spec.Resources.VolumeSize = s.defaultVolumeSize

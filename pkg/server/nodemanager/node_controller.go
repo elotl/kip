@@ -51,7 +51,8 @@ var (
 	HealthyTimeout      time.Duration = 90 * time.Second
 	HealthcheckPause    time.Duration = 5 * time.Second
 	SpotRequestPause    time.Duration = 60 * time.Second
-	BootImage           cloud.Image   = cloud.Image{}
+	BootImagex86_64     cloud.Image   = cloud.Image{}
+	BootImageARM        cloud.Image   = cloud.Image{}
 	MaxBootPerIteration int           = 10
 	itzoDir             string        = "/tmp/itzo"
 )
@@ -84,7 +85,8 @@ type NodeController struct {
 	NodeClientFactory  nodeclient.ItzoClientFactoryer
 	Events             *events.EventSystem
 	PoolLoopTimer      *stats.LoopTimer
-	ImageIdCache       *timeoutmap.TimeoutMap
+	ImageIdCachex86_64 *timeoutmap.TimeoutMap
+	ImageIDCacheARM64  *timeoutmap.TimeoutMap
 	CloudInitFile      *cloudinitfile.File
 	CertificateFactory *certs.CertificateFactory
 	BootLimiter        *InstanceBootLimiter
@@ -100,7 +102,8 @@ func (c *NodeController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
 	nodeBindingsUpdate := make(chan map[string]string)
 	go c.updateBufferedNodesLoop(quit, wg, nodeBindingsUpdate)
 	go c.dispatchNodesLoop(quit, wg, nodeBindingsUpdate)
-	go c.ImageIdCache.Start(30 * time.Second)
+	go c.ImageIdCachex86_64.Start(30 * time.Second)
+	go c.ImageIDCacheARM64.Start(30 * time.Second)
 }
 
 func (c *NodeController) Dump() []byte {
@@ -161,23 +164,46 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 	// If we can't get the boot image, just use the old value for the image
 	newBootImage, err := c.imageSpecToImage(c.BootImageSpec)
 	if err != nil {
-		if BootImage.ID == "" {
+		if BootImagex86_64.ID == "" {
 			return nil, util.WrapError(err, "Could not get latest boot image")
 		} else {
-			klog.Warningf("Could not get latest boot image: %s, using stored value for boot image: %v", err, BootImage)
-			newBootImage = BootImage
+			klog.Warningf("Could not get latest boot image: %s, using stored value for boot image: %v", err, BootImagex86_64)
+			newBootImage = BootImagex86_64
 		}
 	}
-	BootImage = newBootImage
+	BootImagex86_64 = newBootImage
 
-	if BootImage.ID == "" {
+	if BootImagex86_64.ID == "" {
 		return nil, fmt.Errorf("can not create create new nodes: empty value for machine image.  Please ensure boot image spec maps to a machine image: %v", c.BootImageSpec)
 	}
+
+	// If we can't get the boot image, just use the old value for the image
+	// ARM64
+	armSpec := make(cloud.BootImageSpec, 0)
+	for k, v := range c.BootImageSpec {
+		armSpec[k] = v
+	}
+	armSpec["arch"] = "arm64"
+	newBootImageARM, err := c.imageSpecToImage(armSpec)
+	if err != nil {
+		if BootImageARM.ID == "" {
+			return nil, util.WrapError(err, "Could not get latest boot image")
+		} else {
+			klog.Warningf("Could not get latest boot image: %s, using stored value for boot image: %v", err, BootImageARM)
+			newBootImageARM = BootImageARM
+		}
+	}
+	BootImageARM = newBootImageARM
+
+	if BootImageARM.ID == "" {
+		return nil, fmt.Errorf("can not create create new nodes: empty value for machine image.  Please ensure boot image spec maps to a machine image: %v", c.BootImageSpec)
+	}
+
 	startNodes, stopNodes, podNodeMap := c.NodeScaler.Compute(nodes.Items, pods.Items)
 	if podNodeMap == nil {
 		return nil, fmt.Errorf("Error computing new node pools, this is likely a problem with the DB. Not updating pod-node bindings")
 	}
-	c.startNodes(startNodes, BootImage)
+	c.startNodes(startNodes, BootImagex86_64, BootImageARM)
 	for _, node := range stopNodes {
 		err := c.stopSingleNode(node)
 		if err != nil {
@@ -224,7 +250,7 @@ func (c *NodeController) getCloudInitContents() (string, error) {
 	return metadata, nil
 }
 
-func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
+func (c *NodeController) startNodes(nodes []*api.Node, imagex86_64, imageARM64 cloud.Image) {
 	if len(nodes) <= 0 {
 		return
 	}
@@ -251,7 +277,7 @@ func (c *NodeController) startNodes(nodes []*api.Node, image cloud.Image) {
 			klog.Errorf("Error creating node in registry: %v", err)
 			continue
 		}
-		go c.startSingleNode(newNode, image, metadata)
+		go c.startSingleNode(newNode, imagex86_64, imageARM64, metadata)
 	}
 }
 
@@ -275,17 +301,17 @@ func (c *NodeController) handleStartNodeError(node *api.Node, err error, isSpot 
 	}
 }
 
-func (c *NodeController) startSingleNode(node *api.Node, image cloud.Image, cloudInitData string) error {
+func (c *NodeController) startSingleNode(node *api.Node, imagex86_64, imageARM64 cloud.Image, cloudInitData string) error {
 	var (
 		instanceID string
 		err        error
 	)
 	if node.Spec.Spot {
-		instanceID, err = c.CloudClient.StartSpotNode(node, image, cloudInitData, c.Config.DefaultIAMPermissions)
+		instanceID, err = c.CloudClient.StartSpotNode(node, imagex86_64, imageARM64, cloudInitData, c.Config.DefaultIAMPermissions)
 	} else if node.Spec.Dedicated {
-		instanceID, err = c.CloudClient.StartDedicatedNode(node, image, cloudInitData, c.Config.DefaultIAMPermissions)
+		instanceID, err = c.CloudClient.StartDedicatedNode(node, imagex86_64, imageARM64, cloudInitData, c.Config.DefaultIAMPermissions)
 	} else {
-		instanceID, err = c.CloudClient.StartNode(node, image, cloudInitData, c.Config.DefaultIAMPermissions)
+		instanceID, err = c.CloudClient.StartNode(node, imagex86_64, imageARM64, cloudInitData, c.Config.DefaultIAMPermissions)
 	}
 	if err != nil && strings.Contains(err.Error(), "InsufficientInstanceCapacity") {
 		// detect availability zone has no capacity: InsufficientInstanceCapacity
@@ -763,7 +789,29 @@ func (c *NodeController) requestNode(nodeReq NodeRequest, podNodeMapping map[str
 
 func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	var img cloud.Image
-	obj, exists := c.ImageIdCache.Get(spec.String())
+	if spec["arch"] == "arm64" {
+		obj, exists := c.ImageIDCacheARM64.Get(spec.String())
+		klog.Errorf("spec.String() for arm: %s", spec.String())
+		if obj != nil {
+			img = obj.(cloud.Image)
+		}
+		if !exists || img.ID == "" {
+			var err error
+			img, err = c.CloudClient.GetImage(spec)
+			if err != nil {
+				klog.Errorf("resolving arm64 image spec %v to image ID: %v",
+					spec, err)
+				return img, err
+			}
+			c.ImageIDCacheARM64.Add(spec.String(), img, 5*time.Minute,
+				func(obj interface{}) {
+					_, _ = c.imageSpecToImage(spec)
+				})
+			klog.V(2).Infof("latest arm64 image for spec %v: %v", spec, img)
+		}
+		return img, nil
+	}
+	obj, exists := c.ImageIdCachex86_64.Get(spec.String())
 	if obj != nil {
 		img = obj.(cloud.Image)
 	}
@@ -771,15 +819,15 @@ func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (cloud.Image
 		var err error
 		img, err = c.CloudClient.GetImage(spec)
 		if err != nil {
-			klog.Errorf("resolving image spec %v to image ID: %v",
+			klog.Errorf("resolving x86_64 image spec %v to image ID: %v",
 				spec, err)
 			return img, err
 		}
-		c.ImageIdCache.Add(spec.String(), img, 5*time.Minute,
+		c.ImageIdCachex86_64.Add(spec.String(), img, 5*time.Minute,
 			func(obj interface{}) {
 				_, _ = c.imageSpecToImage(spec)
 			})
-		klog.V(2).Infof("latest image for spec %v: %v", spec, img)
+		klog.V(2).Infof("latest x86_64 image for spec %v: %v", spec, img)
 	}
 	return img, nil
 }
