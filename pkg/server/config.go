@@ -140,6 +140,7 @@ type InternalEtcdConfig struct {
 
 type CellsConfig struct {
 	BootImageSpec          cloud.BootImageSpec           `json:"bootImageSpec"`
+	ARM64BootImageSpec     cloud.BootImageSpec           `json:"arm64BootImageSpec"`
 	DefaultInstanceType    string                        `json:"defaultInstanceType"`
 	DefaultVolumeSize      string                        `json:"defaultVolumeSize"`
 	StandbyCells           []nodemanager.StandbyNodeSpec `json:"standbyCells"`

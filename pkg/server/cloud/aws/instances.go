@@ -44,6 +44,7 @@ const (
 	AvailableWaitTimeout      = 30 * time.Second
 	defaultBootImageArch      = "x86_64"
 	arm64BootImageArch        = "arm64"
+	bootSpecArchKey           = "arch"
 )
 
 var (
@@ -53,6 +54,33 @@ var (
 			Values: aws.StringSlice([]string{defaultBootImageArch}),
 		},
 	}
+	defaultx86_64_BootImageInput = &ec2.DescribeImagesInput{
+		Owners: aws.StringSlice([]string{elotlOwnerID}),
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("architecture"),
+				Values: aws.StringSlice([]string{defaultBootImageArch}),
+			},
+			{
+				Name:   aws.String("name"),
+				Values: aws.StringSlice([]string{elotlImageNameFilter}),
+			},
+		},
+	}
+	defaultARM64_BootImageInput = &ec2.DescribeImagesInput{
+		Owners: aws.StringSlice([]string{elotlOwnerID}),
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("architecture"),
+				Values: aws.StringSlice([]string{"arm64"}),
+			},
+			{
+				Name:   aws.String("name"),
+				Values: aws.StringSlice([]string{elotlImageNameFilter}),
+			},
+		},
+	}
+
 )
 
 type EbsSpecs struct {
@@ -254,23 +282,15 @@ func (e *AwsEC2) getVolumeModificationState(volumeID string) (string, string, er
 func bootImageSpecToDescribeImagesInput(spec cloud.BootImageSpec) *ec2.DescribeImagesInput {
 	input := &ec2.DescribeImagesInput{}
 	if len(spec) < 1 {
-		input.Owners = aws.StringSlice([]string{elotlOwnerID})
-		input.Filters = []*ec2.Filter{
-			{
-				Name: aws.String("architecture"),
-				Values: aws.StringSlice([]string{defaultBootImageArch}),
-			},
-			{
-				Name:   aws.String("name"),
-				Values: aws.StringSlice([]string{elotlImageNameFilter}),
-			},
-		}
-		return input
+		return defaultx86_64_BootImageInput
 	}
 	input.Filters = defaultBootImageFilters
-	arch, ok := spec["arch"]
+	arch, ok := spec[bootSpecArchKey]
 	if ok {
-		delete(spec, "arch")
+		if len(spec) == 1 {
+			return defaultARM64_BootImageInput
+		}
+		delete(spec, bootSpecArchKey)
 		input.Filters = []*ec2.Filter{
 			{
 				Name: aws.String("architecture"),

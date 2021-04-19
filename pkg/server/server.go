@@ -394,6 +394,7 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 		CertificateFactory: certFactory,
 		BootLimiter:        bootLimiter,
 		BootImageSpec:      serverConfigFile.Cells.BootImageSpec,
+		ARM64BootImageSpec: serverConfigFile.Cells.ARM64BootImageSpec,
 	}
 
 	klog.V(5).Infof("creating garbage controller")
@@ -511,7 +512,13 @@ func NewInstanceProvider(configFilePath, nodeName, internalIP, clusterDNS, clust
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate boot image spec")
 	}
-
+	klog.V(5).Infof("validating arm64 boot image spec")
+	err = validateBootImageSpec(
+		serverConfigFile.Cells.ARM64BootImageSpec, cloudClient)
+	if err != nil {
+		klog.Warningf("failed to validate arm64 boot image spec %v", err)
+		err = nil
+	}
 	klog.V(5).Infof("done creating instance provider")
 	return s, err
 }

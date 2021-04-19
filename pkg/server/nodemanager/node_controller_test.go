@@ -711,8 +711,20 @@ func (ns *ErroringNodeScaler) Compute(nodes []*api.Node, pods []*api.Pod) ([]*ap
 func TestDoPoolsCalculationComputeFails(t *testing.T) {
 	t.Parallel()
 	ctl, closer := MakeNodeController()
+	ctl.CloudClient = &cloud.MockCloudClient{
+		Starter:      StartReturnsOK,
+		SpotStarter:  StartReturnsOK,
+		Stopper:      ReturnNil,
+		Waiter:       ReturnAddresses,
+		RouteRemover: StringStringReturnNil,
+		ImageGetter: func(spec cloud.BootImageSpec) (cloud.Image, error) {
+			return cloud.Image{
+				ID: defaultBootImageID,
+			}, nil
+		},
+		InstanceParameterRemover: DeleteInstanceParameterReturnsOK,
+	}
 	defer closer()
-
 	ctl.NodeScaler = &ErroringNodeScaler{}
 	_, err := ctl.doPoolsCalculation()
 	assert.Error(t, err)

@@ -17,22 +17,9 @@ func TestBootImageSpecToDescribeImagesInput(t *testing.T) {
 		Input ec2.DescribeImagesInput
 	}{
 		{
-			name: "default boot image spec",
-			Spec: cloud.BootImageSpec{},
-			Input: ec2.DescribeImagesInput{
-				Owners: aws.StringSlice([]string{elotlOwnerID}),
-				Filters: []*ec2.Filter{
-					{
-						// this is added by default if any filters are specified and arch is not specified
-						Name: aws.String("architecture"),
-						Values: aws.StringSlice([]string{defaultBootImageArch}),
-					},
-					{
-						Name:   aws.String("name"),
-						Values: aws.StringSlice([]string{elotlImageNameFilter}),
-					},
-				},
-			},
+			name:  "default boot image spec",
+			Spec:  cloud.BootImageSpec{},
+			Input: *defaultx86_64_BootImageInput,
 		},
 		{
 			name: "only filters specified",
@@ -79,6 +66,13 @@ func TestBootImageSpecToDescribeImagesInput(t *testing.T) {
 					},
 				},
 			},
+		},
+		{
+			name: "edge case: no arm64BootImageSpec specified, only architecture",
+			Spec: cloud.BootImageSpec{
+				"arch": "arm64",
+			},
+			Input: *defaultARM64_BootImageInput,
 		},
 	}
 	for _, tc := range testCases {

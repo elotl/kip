@@ -57,6 +57,11 @@ var (
 	itzoDir             string        = "/tmp/itzo"
 )
 
+const (
+	arm64Architecture = "arm64"
+	bootSpecArchKey   = "arch"
+)
+
 // when configuring these intervals we want the following constraints
 // to be satisfied:
 //
@@ -91,6 +96,7 @@ type NodeController struct {
 	CertificateFactory *certs.CertificateFactory
 	BootLimiter        *InstanceBootLimiter
 	BootImageSpec      cloud.BootImageSpec
+	ARM64BootImageSpec cloud.BootImageSpec
 }
 
 func (c *NodeController) Start(quit <-chan struct{}, wg *sync.WaitGroup) {
@@ -179,25 +185,28 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 
 	// If we can't get the boot image, just use the old value for the image
 	// ARM64
-	armSpec := make(cloud.BootImageSpec, 0)
-	for k, v := range c.BootImageSpec {
-		armSpec[k] = v
-	}
-	armSpec["arch"] = "arm64"
-	newBootImageARM, err := c.imageSpecToImage(armSpec)
-	if err != nil {
+	if c.ARM64BootImageSpec != nil {
+		armSpec := make(cloud.BootImageSpec, 0)
+		for k, v := range c.ARM64BootImageSpec {
+			armSpec[k] = v
+		}
+		armSpec[bootSpecArchKey] = arm64Architecture
+		newBootImageARM, err := c.imageSpecToImage(armSpec)
+		if err != nil {
+			if BootImageARM.ID == "" {
+				return nil, util.WrapError(err, "Could not get latest boot image")
+			} else {
+				klog.Warningf("Could not get latest boot image: %s, using stored value for boot image: %v", err, BootImageARM)
+				newBootImageARM = BootImageARM
+			}
+		}
+		BootImageARM = newBootImageARM
+
 		if BootImageARM.ID == "" {
-			return nil, util.WrapError(err, "Could not get latest boot image")
-		} else {
-			klog.Warningf("Could not get latest boot image: %s, using stored value for boot image: %v", err, BootImageARM)
-			newBootImageARM = BootImageARM
+			return nil, fmt.Errorf("can not create create new nodes: empty value for machine image.  Please ensure boot image spec maps to a machine image: %v", c.ARM64BootImageSpec)
 		}
 	}
-	BootImageARM = newBootImageARM
 
-	if BootImageARM.ID == "" {
-		return nil, fmt.Errorf("can not create create new nodes: empty value for machine image.  Please ensure boot image spec maps to a machine image: %v", c.BootImageSpec)
-	}
 
 	startNodes, stopNodes, podNodeMap := c.NodeScaler.Compute(nodes.Items, pods.Items)
 	if podNodeMap == nil {
@@ -789,9 +798,8 @@ func (c *NodeController) requestNode(nodeReq NodeRequest, podNodeMapping map[str
 
 func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (cloud.Image, error) {
 	var img cloud.Image
-	if spec["arch"] == "arm64" {
+	if spec[bootSpecArchKey] == arm64Architecture {
 		obj, exists := c.ImageIDCacheARM64.Get(spec.String())
-		klog.Errorf("spec.String() for arm: %s", spec.String())
 		if obj != nil {
 			img = obj.(cloud.Image)
 		}
@@ -800,7 +808,7 @@ func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (cloud.Image
 			img, err = c.CloudClient.GetImage(spec)
 			if err != nil {
 				klog.Errorf("resolving arm64 image spec %v to image ID: %v",
-					spec, err)
+					spec.String(), err)
 				return img, err
 			}
 			c.ImageIDCacheARM64.Add(spec.String(), img, 5*time.Minute,
@@ -810,26 +818,28 @@ func (c *NodeController) imageSpecToImage(spec cloud.BootImageSpec) (cloud.Image
 			klog.V(2).Infof("latest arm64 image for spec %v: %v", spec, img)
 		}
 		return img, nil
-	}
-	obj, exists := c.ImageIdCachex86_64.Get(spec.String())
-	if obj != nil {
-		img = obj.(cloud.Image)
-	}
-	if !exists || img.ID == "" {
-		var err error
-		img, err = c.CloudClient.GetImage(spec)
-		if err != nil {
-			klog.Errorf("resolving x86_64 image spec %v to image ID: %v",
-				spec, err)
-			return img, err
+	} else {
+		obj, exists := c.ImageIdCachex86_64.Get(spec.String())
+		if obj != nil {
+			img = obj.(cloud.Image)
 		}
-		c.ImageIdCachex86_64.Add(spec.String(), img, 5*time.Minute,
-			func(obj interface{}) {
-				_, _ = c.imageSpecToImage(spec)
-			})
-		klog.V(2).Infof("latest x86_64 image for spec %v: %v", spec, img)
+		if !exists || img.ID == "" {
+			var err error
+			img, err = c.CloudClient.GetImage(spec)
+			if err != nil {
+				klog.Errorf("resolving x86_64 image spec %v to image ID: %v",
+					spec, err)
+				return img, err
+			}
+			c.ImageIdCachex86_64.Add(spec.String(), img, 5*time.Minute,
+				func(obj interface{}) {
+					_, _ = c.imageSpecToImage(spec)
+				})
+			klog.V(2).Infof("latest x86_64 image for spec %v: %v", spec, img)
+		}
+		return img, nil
 	}
-	return img, nil
+
 }
 
 func (c *NodeController) bindNodeToPod(pod *api.Pod, node *api.Node) error {
