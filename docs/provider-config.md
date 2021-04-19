@@ -135,6 +135,7 @@ cells:
 
   # bootImageSpec is a dictionary of cloud-specific image properties for
   # specifying the boot image to use for cells.
+  # Image specified here has to be built from x86_64 OS. For ARM64 images, see arm64BootImageSpec.
   # Valid fields on AWS are:
   #   - owners, which is a space separated list of AWS account IDs, "self", or
   #     an AWS owner alias such as "amazon" or "aws-marketplace".
@@ -154,6 +155,15 @@ cells:
   bootImageSpec:
     owners: "689494258501"
     filters: "name=elotl-kip-*"
+    architecture: "x86_64"
+  
+  # specifying arm64BootImageSpec will allow you to consume AWS EC2 instances with ARM CPUs.
+  # configuration of this field is exactly a same as bootImageSpec above. 
+  # The below settings are the default if no arm64BootImageSpec is specified.
+  arm64BootImageSpec:
+    owners: "689494258501"
+    filters: "name=elotl-kip-*"
+    architecture: "arm64"
 
   # cloudInitFile specifies a path to a cloudInitFile that will be
   # used to provision all cells that Kip boots. Kip will detect
