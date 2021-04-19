@@ -121,12 +121,12 @@ func SetupFirewallRules(t *testing.T, c cloud.CloudClient) error {
 	return err
 }
 
-func RunSpotInstanceTest(t *testing.T, c cloud.CloudClient, imageID, rootDevice string) {
+func RunSpotInstanceTest(t *testing.T, c cloud.CloudClient, imageID, instanceType, rootDevice string) {
 	fmt.Printf("Booting spot instance\n")
 	spotNode := api.GetFakeNode()
 	// For the last 3 months there has always been an AZ in us-east-1
 	// that can boot an m3.medium spot instance.
-	spotNode.Spec.InstanceType = "t3.micro"
+	spotNode.Spec.InstanceType = instanceType
 	spotNode.Spec.BootImage = imageID
 	img := cloud.Image{
 		ID:         imageID,

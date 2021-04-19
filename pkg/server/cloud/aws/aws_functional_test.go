@@ -36,6 +36,7 @@ const (
 	vpcID            = "vpc-841834e2"
 	defaultSubnetID  = "subnet-12a8a13f"
 	imageAmi         = "ami-e2dea19d"
+	imageARMAmi      = "ami-02316a849a44166f1"
 	rootDevice       = "xvda" // Update if imageAmi is changed.
 	instanceType     = "t2.nano"
 )
@@ -124,7 +125,10 @@ func TestAWSCloud(t *testing.T) {
 		AWSContainerAuthTest(t, ts.CloudClient)
 	})
 	t.Run("BootSpotInstanceTest", func(t *testing.T) {
-		functional.RunSpotInstanceTest(t, ts.CloudClient, imageAmi, rootDevice)
+		functional.RunSpotInstanceTest(t, ts.CloudClient, imageAmi, "t3.micro", rootDevice)
+	})
+	t.Run("BootSpotARM64InstanceTest", func(t *testing.T) {
+		functional.RunSpotInstanceTest(t, ts.CloudClient, imageARMAmi, "t4g.micro", rootDevice)
 	})
 }
 
