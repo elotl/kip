@@ -47,7 +47,7 @@ import (
 var (
 	// TODO: this was changed to handle mac1.metal boot, ideally we should have different
 	// bootTimeouts depending on instance family
-	BootTimeout         time.Duration = 20 * time.Minute
+	BootTimeout         time.Duration = 5 * time.Minute
 	HealthyTimeout      time.Duration = 90 * time.Second
 	HealthcheckPause    time.Duration = 5 * time.Second
 	SpotRequestPause    time.Duration = 60 * time.Second
@@ -186,12 +186,8 @@ func (c *NodeController) doPoolsCalculation() (map[string]string, error) {
 	// If we can't get the boot image, just use the old value for the image
 	// ARM64
 	if c.ARM64BootImageSpec != nil {
-		armSpec := make(cloud.BootImageSpec, 0)
-		for k, v := range c.ARM64BootImageSpec {
-			armSpec[k] = v
-		}
-		armSpec[bootSpecArchKey] = arm64Architecture
-		newBootImageARM, err := c.imageSpecToImage(armSpec)
+		c.ARM64BootImageSpec[bootSpecArchKey] = arm64Architecture
+		newBootImageARM, err := c.imageSpecToImage(c.ARM64BootImageSpec)
 		if err != nil {
 			if BootImageARM.ID == "" {
 				return nil, util.WrapError(err, "Could not get latest boot image")
