@@ -1,11 +1,16 @@
 #!/bin/bash
 
+apt-get update
+apt-get install apt-transport-https ca-certificates curl gnupg lsb-release
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
 deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 apt-get update
-apt-get install -y kubelet="${k8s_version}*" kubeadm="${k8s_version}*" kubectl="${k8s_version}*" docker.io iproute2
+apt-get remove -y docker docker-engine docker.io containerd runc
+apt-get install -y kubelet="${k8s_version}*" kubeadm="${k8s_version}*" kubectl="${k8s_version}*" docker-ce docker-ce-cli containerd.io iproute2
 
 # Ensure Docker does not block forwarded packets.
 iptables -P FORWARD ACCEPT
@@ -36,7 +41,7 @@ else
     k8s_version=v${k8s_version}
 fi
 
-cat <<EOF > /tmp/kubeadm-config.yaml
+cat <<EOF > /tmp/old-kubeadm-config.yaml
 apiVersion: kubeadm.k8s.io/v1beta1
 kind: InitConfiguration
 bootstrapTokens:
@@ -68,7 +73,9 @@ controllerManager:
     address: 0.0.0.0
 kubernetesVersion: "$k8s_version"
 EOF
+kubeadm config migrate --old-config /tmp/old-kubeadm-config.yaml --new-config /tmp/kubeadm-config.yaml
 kubeadm init --config=/tmp/kubeadm-config.yaml
+stat /etc/kubernetes/admin.conf
 
 export KUBECONFIG=/etc/kubernetes/admin.conf
 

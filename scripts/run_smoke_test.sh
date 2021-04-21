@@ -59,7 +59,7 @@ create_cluster() {
     pushd $TFDIR
     cat > main.tf <<EOF
 terraform {
-  required_version = "~> 0.12"
+  required_version = ">= 0.12.0"
   backend "s3" {
     region  = "${USE_REGION}"
     bucket  = "${STATE_BUCKET}"
@@ -99,7 +99,7 @@ run_smoke_test() {
     kubectl run nginx --image=nginx --port=80
     kubectl expose pod nginx
     kubectl run test --restart=Never --image=elotl/debug --command -- /bin/sh -c "$curlcmd"
-    timeout 300s bash -c "$waitcmd"
+    timeout 360s bash -c "$waitcmd"
 }
 
 fetch_kubeconfig() {
