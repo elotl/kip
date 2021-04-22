@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 apt-get update
 apt-get install apt-transport-https ca-certificates curl gnupg lsb-release
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
@@ -75,7 +77,6 @@ kubernetesVersion: "$k8s_version"
 EOF
 kubeadm config migrate --old-config /tmp/old-kubeadm-config.yaml --new-config /tmp/kubeadm-config.yaml
 kubeadm init --config=/tmp/kubeadm-config.yaml
-stat /etc/kubernetes/admin.conf
 
 export KUBECONFIG=/etc/kubernetes/admin.conf
 
