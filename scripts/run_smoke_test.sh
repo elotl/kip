@@ -99,7 +99,7 @@ run_smoke_test() {
     kubectl run nginx --image=nginx --port=80
     kubectl expose pod nginx
     kubectl run test --restart=Never --image=elotl/debug --command -- /bin/sh -c "$curlcmd"
-    timeout 360s bash -c "$waitcmd"
+    timeout 420s bash -c "$waitcmd"
 }
 
 fetch_kubeconfig() {
