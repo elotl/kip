@@ -14,7 +14,7 @@ env:
   - AWS_REGION=us-east-1
   - AWS_DEFAULT_REGION=us-east-1
   - TERRAFORM_VERSION=0.12.21
-  - KUBECTL_VERSION=1.18.0
+  - KUBECTL_VERSION=1.19.0
   - KUSTOMIZE_VERSION=3.6.1
   - GOOGLE_APPLICATION_CREDENTIALS=.account.json
   - secure: eQV5LiSp5XP7pL4gFYR98uL8aMdmeI5J5h3oOsRZ8fEBVFB0XBX0QDmK6zpaxAx2GoHfFC6ioUdNQjiVmnatwRHnnmxlplD8w99LXcvYkdfS6mtbyhdd2gZNv3gypIFqzyG73zqqhosNSUou1H8GSMWaQSk+P1Y6W7jHKsPEtrV5fepwu6tSpIK+DZbN2mrbyKdKMgWkdAPd/ni++bLDrvwlsoC8MOyWLerDnjRdC/Enzp4OgP9XR/JcqaNyXGLhMRLrN/PwWUk6mayjiVdGk9MLM+YuzCaVaqmtlHZMQHQQzP8r8KO4wZt+ApfNkVlwj44+ya7YoMkSguS5U4AmC0I3NntwhA4L8tpezk/FhSF0FwmP2MDKbWajYWtptThoXRQ5yU/UTJD/hWPofZPm9halZs7yqtoYNLXQWGfS06zROMyLoDOI7uw8b3VSSxQwVjcy8zjmJ/X5I/Dpl/QXsFGaU3u3u/Q0gE4V7ve/9fhbcittq1pRamcVvvZE/jUiXxWEiVEQ39W2dF/Fsp71nvm9Q7vTkgFKPtZV+lwFykTf9gg8vdbRTJ2qlYz668mQ0B+XUhueR+gxaDV+pIFKHRM+/B32fakTwBkXFHGtonodSL8TCeOydpmWLzJ4KexHAjL9AaUoqj4XKfQtAmtNppPmHpScONfhEZ65V+EnXiE=
@@ -45,7 +45,7 @@ script:
 - "./scripts/run_tests.sh"
 - make img login-img push-img DKR=docker
 - "./scripts/init-cert/build.sh"
-- "./scripts/run_smoke_test.sh"
+- K8S_VERSION=$KUBECTL_VERSION "./scripts/run_smoke_test.sh"
 - "./scripts/update_latest_tags.sh"
 notifications:
   slack:

@@ -3,6 +3,7 @@ kind: CertificateSigningRequest
 metadata:
   name: ${CSR_NAME}
 spec:
+  signerName: kubernetes.io/legacy-unknown
   groups:
   - system:nodes
   - system:authenticated
