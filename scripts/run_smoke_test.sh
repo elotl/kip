@@ -72,6 +72,7 @@ module "kip-aws" {
   source        = "${ROOT_DIR}/deploy/terraform-aws"
   cluster_name  = "${CLUSTER_NAME}"
   k8s_version   = "${K8S_CLUSTER_VERSION}"
+  kustomize_dir = "${ROOT_DIR}/deploy/manifests/kip/base"
 }
 EOF
     terraform init
