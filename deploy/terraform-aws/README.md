@@ -10,8 +10,9 @@ You need:
 
 * an AWS account configured (check that e.g. `aws iam get-user` works)
 * Terraform >= 0.13.0
-* aws-cli
+* awscli
 * jq
+* [kustomize](https://github.com/kubernetes-sigs/kustomize)
 
 Initialize Terraform and verify the configuration:
 
@@ -35,7 +36,11 @@ into a tfvars file:
     EOF
 
 There are other configuration variables available, there’s an example tfvars
-file env.tfvars.example. You can then apply your config:
+file env.tfvars.example.
+
+## Creating Cluster
+
+You can then apply your config:
 
     terraform apply -var-file myenv.tfvars
 
@@ -59,7 +64,8 @@ You can now ssh into the instance using the username "ubuntu", and the ssh key y
 If you haven't set an existing ssh key in your configuration, a new ssh key has been created.
 You can extract and use it via:
 
-    $ terraform show -json | jq -r '.values.root_module.resources | .[] | select(.address=="tls_private_key.ssh-key") | .values.private_key_pem' > /tmp/id_rsa
+    $ terraform show -json | jq -r '.values.root_module.resources | .[] | select(.type=="tls_private_key") | .values.private_key_pem'  > /tmp/id_rsa
+    $ chmod 400 /tmp/id_rsa
     $ ssh -i /tmp/id_rsa ubuntu@<public IP of node>
 
 AmazonSystemManagedInstanceCore permissions are attached to the node instance.
