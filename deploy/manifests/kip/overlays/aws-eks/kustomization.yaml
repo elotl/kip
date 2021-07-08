@@ -1,0 +1,7 @@
+bases:
+  - ../../base
+configMapGenerator:
+  - name: config
+    behavior: merge
+    files:
+      - provider.yaml
