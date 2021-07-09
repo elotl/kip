@@ -58,6 +58,8 @@ run_smoke_test_2() {
 fetch_kubeconfig() {
     echo "fetch kubeconfig"
     aws eks update-kubeconfig --name elotl-ci-cd
+    echo "get user"
+    aws iam get-user # debug
 }
 
 test_once() {
