@@ -11,8 +11,8 @@ spec:
     kubernetes.io/hostname: kip-provider-0
   tolerations:
     - key: usage
-    - value: kip-smoke-tests
-    - effect: NoSchedule
+      value: kip-smoke-tests
+      effect: NoSchedule
   containers:
     - name: nginx
       image: nginx
