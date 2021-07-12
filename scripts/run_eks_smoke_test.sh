@@ -45,13 +45,15 @@ run_smoke_test_1() {
     local waitcmd="phase=\"\"; echo \"Waiting for test results from pod\"; until [[ \$phase = Succeeded ]]; do sleep 1; phase=\$(kubectl get pod -n kip-smoke-tests test -ojsonpath=\"{.status.phase}\"); if [[ \$phase = Failed ]]; then echo \$phase; kubectl get pods -A; exit 1; fi; echo \$phase; done"
     kubectl run test --restart=Never --namespace=kip-smoke-tests --image=elotl/debug --command -- /bin/sh -c "$curlcmd"
     timeout 420s bash -c "$waitcmd"
+    kubectl delete pod -n kip-smoke-tests test
 }
 
 run_smoke_test_2() {
     local curlcmd="i=0; while [ \$i -lt 300 ]; do i=\$((i+1)); curl kip-nginx.kip-smoke-tests | grep 'Welcome to nginx' && exit 0; sleep 1; done; exit 1"
     local waitcmd="phase=\"\"; echo \"Waiting for test results from pod\"; until [[ \$phase = Succeeded ]]; do sleep 1; phase=\$(kubectl get pod -n kip-smoke-tests test -ojsonpath=\"{.status.phase}\"); if [[ \$phase = Failed ]]; then echo \$phase; kubectl get pods -A; exit 1; fi; echo \$phase; done"
-    kubectl run test --restart=Never --image=elotl/debug --command -- /bin/sh -c "$curlcmd"
+    kubectl run test --restart=Never --namespace=kip-smoke-tests --image=elotl/debug --command -- /bin/sh -c "$curlcmd"
     timeout 420s bash -c "$waitcmd"
+    kubectl delete pod -n kip-smoke-tests test
 }
 
 fetch_kubeconfig() {
