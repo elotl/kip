@@ -36,7 +36,7 @@ update_vk() {
     local patch_kip="{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"image\":\"elotl/kip:$version\",\"name\":\"kip\"}]}}}}"
 #    kubectl patch -n kip-smoke-tests statefulset kip-build-kip-provider -p "$patch_init"
     kubectl patch -n kip-smoke-tests statefulset kip-build-kip-provider -p "$patch_kip"
-    kubectl taint node kip-build-kip-provider-0 usage=kip-smoke-tests:NoSchedule
+    kubectl taint node kip-build-kip-provider-0 usage=kip-smoke-tests:NoSchedule --overwrite
 }
 
 run_smoke_test_1() {
