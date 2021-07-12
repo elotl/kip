@@ -18,7 +18,7 @@ cleanup() {
 delete_kube_resources() {
     kubectl delete -f $SCRIPT_DIR/eks-smoke-test/kip-nginx.yaml
     kubectl delete -f $SCRIPT_DIR/eks-smoke-test/regular-node-nginx.yaml
-    kubectl delete -n kube-smoke-tests pod test
+    kubectl delete -n kip-smoke-tests pod test
 }
 
 show_kube_info() {
@@ -31,10 +31,9 @@ show_kube_info() {
 
 update_vk() {
     local version="$(git describe)"
-# TODO: uncomment
-#    local patch_init="{\"spec\":{\"template\":{\"spec\":{\"initContainers\":[{\"image\":\"elotl/init-cert:$version\",\"name\":\"init-cert\"}]}}}}"
+    local patch_init="{\"spec\":{\"template\":{\"spec\":{\"initContainers\":[{\"image\":\"elotl/init-cert:$version\",\"name\":\"init-cert\"}]}}}}"
     local patch_kip="{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"image\":\"elotl/kip:$version\",\"name\":\"kip\"}]}}}}"
-#    kubectl patch -n kip-smoke-tests statefulset kip-build-kip-provider -p "$patch_init"
+    kubectl patch -n kip-smoke-tests statefulset kip-build-kip-provider -p "$patch_init"
     kubectl patch -n kip-smoke-tests statefulset kip-build-kip-provider -p "$patch_kip"
     kubectl taint node kip-build-kip-provider-0 usage=kip-smoke-tests:NoSchedule --overwrite
 }
@@ -43,14 +42,14 @@ run_smoke_test_1() {
     kubectl apply -f $SCRIPT_DIR/eks-smoke-test/kip-nginx.yaml
     kubectl apply -f $SCRIPT_DIR/eks-smoke-test/regular-node-nginx.yaml
     local curlcmd="i=0; while [ \$i -lt 300 ]; do i=\$((i+1)); curl regular-nginx.kip-smoke-tests | grep 'Welcome to nginx' && exit 0; sleep 1; done; exit 1"
-    local waitcmd="phase=\"\"; echo \"Waiting for test results from pod\"; until [[ \$phase = Succeeded ]]; do sleep 1; phase=\$(kubectl get pod -n kube-smoke-tests test -ojsonpath=\"{.status.phase}\"); if [[ \$phase = Failed ]]; then echo \$phase; kubectl get pods -A; exit 1; fi; echo \$phase; done"
+    local waitcmd="phase=\"\"; echo \"Waiting for test results from pod\"; until [[ \$phase = Succeeded ]]; do sleep 1; phase=\$(kubectl get pod -n kip-smoke-tests test -ojsonpath=\"{.status.phase}\"); if [[ \$phase = Failed ]]; then echo \$phase; kubectl get pods -A; exit 1; fi; echo \$phase; done"
     kubectl run test --restart=Never --namespace=kip-smoke-tests --image=elotl/debug --command -- /bin/sh -c "$curlcmd"
     timeout 420s bash -c "$waitcmd"
 }
 
 run_smoke_test_2() {
     local curlcmd="i=0; while [ \$i -lt 300 ]; do i=\$((i+1)); curl kip-nginx.kip-smoke-tests | grep 'Welcome to nginx' && exit 0; sleep 1; done; exit 1"
-    local waitcmd="phase=\"\"; echo \"Waiting for test results from pod\"; until [[ \$phase = Succeeded ]]; do sleep 1; phase=\$(kubectl get pod -n kube-smoke-tests test -ojsonpath=\"{.status.phase}\"); if [[ \$phase = Failed ]]; then echo \$phase; kubectl get pods -A; exit 1; fi; echo \$phase; done"
+    local waitcmd="phase=\"\"; echo \"Waiting for test results from pod\"; until [[ \$phase = Succeeded ]]; do sleep 1; phase=\$(kubectl get pod -n kip-smoke-tests test -ojsonpath=\"{.status.phase}\"); if [[ \$phase = Failed ]]; then echo \$phase; kubectl get pods -A; exit 1; fi; echo \$phase; done"
     kubectl run test --restart=Never --image=elotl/debug --command -- /bin/sh -c "$curlcmd"
     timeout 420s bash -c "$waitcmd"
 }
@@ -58,8 +57,6 @@ run_smoke_test_2() {
 fetch_kubeconfig() {
     echo "fetch kubeconfig"
     aws eks update-kubeconfig --name elotl-ci-cd
-    echo "get user"
-    aws iam get-user # debug
 }
 
 test_once() {
