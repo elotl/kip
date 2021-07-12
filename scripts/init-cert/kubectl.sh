@@ -3,7 +3,7 @@
 set -euo pipefail
 
 kubectl_dir_base=/opt/kubectl
-default_kubectl=${kubectl_dir_base}/1.16/kubectl
+default_kubectl=${kubectl_dir_base}/1.19/kubectl
 
 version_doc="$($default_kubectl version --output=json | jq -r '.serverVersion')"
 

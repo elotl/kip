@@ -5,6 +5,7 @@ ROOT_DIR=$SCRIPT_DIR/..
 
 BUILD=${TRAVIS_BUILD_NUMBER:-local}
 CLUSTER_NAME="build-$BUILD"
+K8S_CLUSTER_VERSION=${K8S_VERSION:-v1.19.0}
 USE_REGION=${USE_REGION:-us-east-1}
 STATE_BUCKET=${STATE_BUCKET:-elotl-tf-state}
 STATE_PATH=${STATE_PATH:-build/terraform-${BUILD}.tfstate}
@@ -70,6 +71,8 @@ terraform {
 module "kip-aws" {
   source        = "${ROOT_DIR}/deploy/terraform-aws"
   cluster_name  = "${CLUSTER_NAME}"
+  k8s_version   = "${K8S_CLUSTER_VERSION}"
+  kustomize_dir = "${ROOT_DIR}/deploy/manifests/kip/base"
 }
 EOF
     terraform init

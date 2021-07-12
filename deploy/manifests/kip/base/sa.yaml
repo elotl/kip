@@ -111,6 +111,7 @@ rules:
     - certificates.k8s.io
     resourceNames:
       - kubernetes.io/kubelet-serving
+      - kubernetes.io/legacy-unknown
     resources:
       - signers
     verbs:
