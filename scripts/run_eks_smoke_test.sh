@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+set -euxo pipefail
 
-BUILD=${TRAVIS_BUILD_NUMBER:-local}
-USE_REGION=${USE_REGION:-us-east-1}
+readonly curlcmd_test_1="i=0; while [ \$i -lt 300 ]; do i=\$((i+1)); curl regular-nginx.kip-smoke-tests | grep 'Welcome to nginx' && exit 0; sleep 1; done; exit 1"
+readonly waitcmd_test_1="phase=\"\"; echo \"Waiting for test results from pod\"; until [[ \$phase = Succeeded ]]; do sleep 1; phase=\$(kubectl get pod -n kip-smoke-tests test -ojsonpath=\"{.status.phase}\"); if [[ \$phase = Failed ]]; then echo \$phase; kubectl get pods -A; exit 1; fi; echo \$phase; done"
+readonly curlcmd_test_2="i=0; while [ \$i -lt 300 ]; do i=\$((i+1)); curl kip-nginx.kip-smoke-tests | grep 'Welcome to nginx' && exit 0; sleep 1; done; exit 1"
+readonly waitcmd_test_2="phase=\"\"; echo \"Waiting for test results from pod\"; until [[ \$phase = Succeeded ]]; do sleep 1; phase=\$(kubectl get pod -n kip-smoke-tests test -ojsonpath=\"{.status.phase}\"); if [[ \$phase = Failed ]]; then echo \$phase; kubectl get pods -A; exit 1; fi; echo \$phase; done"
+
+
+if [ "$#" -ne 1 ] || ! [ -d "$1" ]
+then
+    echo "Usage: $0 path/to/yaml/"
+    exit
+fi
+readonly yaml_dir=$1
 
 handle_error() {
     trap - EXIT
@@ -16,8 +26,8 @@ cleanup() {
 }
 
 delete_kube_resources() {
-    kubectl delete -f $SCRIPT_DIR/eks-smoke-test/kip-nginx.yaml
-    kubectl delete -f $SCRIPT_DIR/eks-smoke-test/regular-node-nginx.yaml
+    kubectl delete -f $yaml_dir/kip-nginx.yaml
+    kubectl delete -f $yaml_dir/regular-node-nginx.yaml
     kubectl delete -n kip-smoke-tests pod test --ignore-not-found
     kubectl delete pod test --ignore-not-found
 }
@@ -26,7 +36,7 @@ show_kube_info() {
     kubectl get pods -A
     kubectl get nodes
     kubectl -n kip-smoke-tests describe pod -l statefulset.kubernetes.io/pod-name=kip-build-kip-provider-0
-    kubectl logs -n kip-smoke-tests -l statefulset.kubernetes.io/pod-name=kip-build-kip-provider-0r -c init-cert --tail=-1
+    kubectl logs -n kip-smoke-tests -l statefulset.kubernetes.io/pod-name=kip-build-kip-provider-0 -c init-cert --tail=-1
     kubectl logs -n kip-smoke-tests -l statefulset.kubernetes.io/pod-name=kip-build-kip-provider-0 -c kip --tail=-1
 }
 
@@ -40,20 +50,16 @@ update_vk() {
 }
 
 run_smoke_test_1() {
-    kubectl apply -f $SCRIPT_DIR/eks-smoke-test/regular-node-nginx.yaml
-    local curlcmd="i=0; while [ \$i -lt 300 ]; do i=\$((i+1)); curl regular-nginx.kip-smoke-tests | grep 'Welcome to nginx' && exit 0; sleep 1; done; exit 1"
-    local waitcmd="phase=\"\"; echo \"Waiting for test results from pod\"; until [[ \$phase = Succeeded ]]; do sleep 1; phase=\$(kubectl get pod -n kip-smoke-tests test -ojsonpath=\"{.status.phase}\"); if [[ \$phase = Failed ]]; then echo \$phase; kubectl get pods -A; exit 1; fi; echo \$phase; done"
-    kubectl run test --restart=Never --namespace=kip-smoke-tests --image=elotl/debug --command -- /bin/sh -c "$curlcmd"
-    timeout 420s bash -c "$waitcmd"
+    kubectl apply -f $yaml_dir/regular-node-nginx.yaml
+    kubectl run test --restart=Never --namespace=kip-smoke-tests --image=elotl/debug --command -- /bin/sh -c "$curlcmd_test_1"
+    timeout 420s bash -c "$waitcmd_test_1"
     kubectl delete -n kip-smoke-tests pod test --ignore-not-found
 }
 
 run_smoke_test_2() {
-    kubectl apply -f $SCRIPT_DIR/eks-smoke-test/kip-nginx.yaml
-    local curlcmd="i=0; while [ \$i -lt 300 ]; do i=\$((i+1)); curl kip-nginx.kip-smoke-tests | grep 'Welcome to nginx' && exit 0; sleep 1; done; exit 1"
-    local waitcmd="phase=\"\"; echo \"Waiting for test results from pod\"; until [[ \$phase = Succeeded ]]; do sleep 1; phase=\$(kubectl get pod -n kip-smoke-tests test -ojsonpath=\"{.status.phase}\"); if [[ \$phase = Failed ]]; then echo \$phase; kubectl get pods -A; exit 1; fi; echo \$phase; done"
-    kubectl run test --restart=Never --namespace=kip-smoke-tests --image=elotl/debug --command -- /bin/sh -c "$curlcmd"
-    timeout 420s bash -c "$waitcmd"
+    kubectl apply -f $yaml_dir/kip-nginx.yaml
+    kubectl run test --restart=Never --namespace=kip-smoke-tests --image=elotl/debug --command -- /bin/sh -c "$curlcmd_test_2"
+    timeout 420s bash -c "$waitcmd_test_2"
     kubectl delete -n kip-smoke-tests pod test --ignore-not-found
 }
 
@@ -63,7 +69,6 @@ fetch_kubeconfig() {
 }
 
 test_once() {
-    set -euxo pipefail
     trap handle_error EXIT
     fetch_kubeconfig
     update_vk
@@ -73,5 +78,4 @@ test_once() {
     trap - EXIT
 }
 
-# Run test_once() if running as a shell script, and return if sourced.
-(return 0 2>/dev/null) || test_once
+test_once

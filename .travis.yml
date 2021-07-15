@@ -45,7 +45,7 @@ script:
 - "./scripts/run_tests.sh"
 - make img login-img push-img DKR=docker
 - "./scripts/init-cert/build.sh"
-- "./scripts/run_eks_smoke_test.sh"
+- "./scripts/run_eks_smoke_test.sh ./scripts/eks-smoke-test"
 - K8S_VERSION=$KUBECTL_VERSION "./scripts/run_smoke_test.sh"
 - "./scripts/update_latest_tags.sh"
 notifications:
