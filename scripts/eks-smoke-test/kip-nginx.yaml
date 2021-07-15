@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kip-nginx
+  namespace: kip-smoke-tests
+  labels:
+    app: kip-nginx
+spec:
+  nodeSelector:
+    type: virtual-kubelet
+    kubernetes.io/hostname: kip-provider-0
+  tolerations:
+    - key: usage
+      value: kip-smoke-tests
+      effect: NoSchedule
+  containers:
+    - name: nginx
+      image: nginx
+      ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kip-nginx
+  namespace: kip-smoke-tests
+spec:
+  selector:
+    app: kip-nginx
+  ports:
+    - port: 80
+      targetPort: 80

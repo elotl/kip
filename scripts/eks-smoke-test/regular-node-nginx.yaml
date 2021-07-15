@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: regular-nginx
+  namespace: kip-smoke-tests
+  labels:
+    app: regular-nginx
+spec:
+  nodeSelector:
+    nodeType: regular
+  containers:
+    - name: nginx
+      image: nginx
+      ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: regular-nginx
+  namespace: kip-smoke-tests
+spec:
+  selector:
+    app: regular-nginx
+  ports:
+    - port: 80
+      targetPort: 80
