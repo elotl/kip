@@ -10,21 +10,17 @@ terraform {
     google = {
       version = "~> 3.21"
     }
+    kubernetes = {
+      source = "hashicorp/kubernetes"
+      version = ">= 2.0.1"
+    }
   }
 }
 
 provider "google" {
   project = var.project
-  region  = var.region
-  zone    = var.zone
-}
-
-resource "random_id" "password" {
-  byte_length = 16
-}
-
-locals {
-  password = format("%s", random_id.password.hex)
+  region = var.region
+  zone = var.zone
 }
 
 resource "google_container_cluster" "cluster" {
@@ -32,26 +28,23 @@ resource "google_container_cluster" "cluster" {
 
   # Create a zonal cluster. In production, you want a regional cluster with
   # multiple masters spread across zones in the region.
-  location        = var.zone
+  location = var.zone
 
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default
   # node pool and immediately delete it.
   remove_default_node_pool = true
-  initial_node_count       = 1
+  initial_node_count = 1
 
   master_auth {
-    username = "client"
-    password = local.password
-
     client_certificate_config {
       issue_client_certificate = true
     }
   }
 
   ip_allocation_policy {
-    cluster_ipv4_cidr_block   = var.pod_cidr
-    services_ipv4_cidr_block  = var.service_cidr
+    cluster_ipv4_cidr_block = var.pod_cidr
+    services_ipv4_cidr_block = var.service_cidr
   }
 
   master_authorized_networks_config {
@@ -63,13 +56,13 @@ resource "google_container_cluster" "cluster" {
 }
 
 resource "google_container_node_pool" "node_pool" {
-  name       = "node-pool-${var.cluster_name}"
-  location   = var.zone
-  cluster    = google_container_cluster.cluster.name
-  node_count = 1
+  name = "node-pool-${var.cluster_name}"
+  location = var.zone
+  cluster = google_container_cluster.cluster.name
+  node_count = 2
 
   node_config {
-    preemptible  = false
+    preemptible = false
     machine_type = "n1-standard-1"
 
     metadata = {
@@ -92,16 +85,27 @@ resource "google_filestore_instance" "filestore" {
   tier = var.filestore_tier
 
   file_shares {
-    name        = var.filestore_fileshare_name
+    name = var.filestore_fileshare_name
     capacity_gb = var.filestore_fileshare_capacity_gb
   }
 
   networks {
     network = "default"
-    modes   = ["MODE_IPV4"]
+    modes = [
+      "MODE_IPV4"]
     reserved_ip_range = var.filestore_reserved_ip_range
   }
 }
+
+data "google_client_config" "default" {}
+
+provider "kubernetes" {
+  host = google_container_cluster.cluster.endpoint
+
+  token = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(google_container_cluster.cluster.master_auth[0].cluster_ca_certificate)
+}
+
 
 locals {
   kubeconfig = "${path.module}/kubeconfig"
@@ -146,27 +150,23 @@ resource "null_resource" "kubeconfig" {
   ]
 }
 
-resource "null_resource" "client_permissions" {
-  provisioner "local-exec" {
-    interpreter = [
-      "bash",
-      "-x",
-      "-c",
-    ]
-    environment = {
-      KUBECONFIG = "${path.module}/kubeconfig"
-    }
-    command = "kubectl apply -f ${path.module}/cluster-admin.yaml --username=client --password=${local.password}"
+resource "kubernetes_cluster_role_binding" "cluster-admin" {
+  metadata {
+    name = "client-binding"
   }
-
-  triggers = {
-    cluster_instance_ids = google_container_cluster.cluster.id
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind = "ClusterRole"
+    name = "cluster-admin"
   }
-
+  subject {
+    kind = "User"
+    name = "client"
+  }
   depends_on = [
-    google_container_cluster.cluster,
-    null_resource.kubeconfig
+    google_container_cluster.cluster
   ]
+
 }
 
 resource "null_resource" "deploy" {
@@ -191,6 +191,6 @@ resource "null_resource" "deploy" {
 
   depends_on = [
     google_container_cluster.cluster,
-    null_resource.client_permissions
+    google_container_node_pool.node_pool
   ]
 }
