@@ -53,7 +53,7 @@ require (
 	go.uber.org/zap v1.13.0 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
-	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
+	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
 	google.golang.org/api v0.20.0
 	google.golang.org/grpc v1.28.0
 	gopkg.in/yaml.v2 v2.2.8
@@ -65,7 +65,7 @@ require (
 	k8s.io/cri-api v0.18.4
 	k8s.io/gengo v0.0.0-20201214224949-b6c5ce23f027 // indirect
 	k8s.io/klog v1.0.0
-	k8s.io/kubernetes v1.18.4
+	k8s.io/kubernetes v1.18.19
 	k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
 )
 
