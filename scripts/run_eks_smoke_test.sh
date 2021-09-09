@@ -38,6 +38,10 @@ show_kube_info() {
     kubectl -n kip-smoke-tests describe pod -l statefulset.kubernetes.io/pod-name=kip-build-kip-provider-0
     kubectl logs -n kip-smoke-tests -l statefulset.kubernetes.io/pod-name=kip-build-kip-provider-0 -c init-cert --tail=-1
     kubectl logs -n kip-smoke-tests -l statefulset.kubernetes.io/pod-name=kip-build-kip-provider-0 -c kip --tail=-1
+    kubectl -n kip-smoke-tests describe pod test
+    kubectl logs -n kip-smoke-tests test --tail=-1
+    kubectl -n kip-smoke-tests describe po regular-nginx
+    kubectl -n kip-smoke-tests describe po kip-nginx
 }
 
 update_vk() {
