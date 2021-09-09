@@ -8,7 +8,7 @@ metadata:
 spec:
   nodeSelector:
     type: virtual-kubelet
-    kubernetes.io/hostname: kip-provider-0
+    kubernetes.io/hostname: kip-build-kip-provider-0
   tolerations:
     - key: usage
       value: kip-smoke-tests
