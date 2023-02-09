@@ -20,7 +20,7 @@ require (
 	github.com/docker/libkv v0.2.1
 	github.com/elotl/node-cli v0.1.3-0.20200910230114-dc9515d74fa9
 	github.com/elotl/wsstream v0.0.0-20200212170458-7144cd9ecd95
-	github.com/emicklei/go-restful v2.11.2+incompatible // indirect
+	github.com/emicklei/go-restful v2.16.0+incompatible // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-openapi/spec v0.19.6 // indirect
 	github.com/go-openapi/swag v0.19.7 // indirect
