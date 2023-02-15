@@ -25,24 +25,22 @@ require (
 	github.com/go-openapi/spec v0.19.6 // indirect
 	github.com/go-openapi/swag v0.19.7 // indirect
 	github.com/go-yaml/yaml v2.1.0+incompatible
-	github.com/golang/protobuf v1.3.5
+	github.com/golang/protobuf v1.4.3
 	github.com/googleapis/gnostic v0.4.0 // indirect
 	github.com/gorilla/websocket v1.4.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.12.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
-	github.com/json-iterator/go v1.1.8
+	github.com/json-iterator/go v1.1.11
 	github.com/justnoise/genny v0.0.0-20170328200008-9127e812e1e9
 	github.com/kr/pty v1.1.8
 	github.com/mailru/easyjson v0.7.1 // indirect
 	github.com/mattn/go-ieproxy v0.0.0-20191113090002-7c0f6868bffe // indirect
 	github.com/mitchellh/mapstructure v1.1.2
-	github.com/prometheus/client_golang v1.1.0 // indirect
-	github.com/prometheus/common v0.7.0 // indirect
-	github.com/prometheus/procfs v0.0.8 // indirect
+	github.com/prometheus/client_golang v1.11.1 // indirect
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/satori/go.uuid v1.2.0
-	github.com/sirupsen/logrus v1.4.2
+	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
@@ -53,10 +51,10 @@ require (
 	go.uber.org/zap v1.13.0 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
-	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
+	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40
 	google.golang.org/api v0.20.0
 	google.golang.org/grpc v1.28.0
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.18.4
 	k8s.io/apiextensions-apiserver v0.18.4
 	k8s.io/apimachinery v0.18.4
